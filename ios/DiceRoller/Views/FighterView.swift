@@ -166,7 +166,7 @@ struct FighterView: View {
     }
 
     /// The sigil of whichever god blessed the blow, stamping over the strike
-    /// and burning away. A rite face bound to two gods splits the flare.
+    /// and burning away.
     @ViewBuilder
     private var godSigil: some View {
         if pose == .attack, !strikeGods.isEmpty {
@@ -266,9 +266,8 @@ struct FighterView: View {
     private var badgeRow: some View {
         HStack(spacing: 3) {
             if side == .player {
-                if engine.playerBlock > 0 { badge(icon: "shield.fill", text: "\(engine.playerBlock)", tint: Theme.steel) }
-                if engine.dodgeStacks > 0 { badge(icon: "wind", text: "\(engine.dodgeStacks)", tint: Theme.steel) }
-                if engine.fullBlockActive { badge(icon: "shield.checkered", text: "ALL", tint: Theme.gold) }
+                if engine.playerShield > 0 { badge(icon: "shield.fill", text: "\(engine.playerShield)", tint: Theme.steel) }
+                if engine.evadeChance > 0 { badge(icon: "wind", text: "\(Int(engine.evadeChance * 100))%", tint: Theme.steel) }
                 if engine.regenTurns > 0 { badge(icon: "leaf.fill", text: "\(engine.regenAmount)×\(engine.regenTurns)", tint: Theme.forest) }
                 if engine.playerBleedTurns > 0 { badge(icon: "drop.fill", text: "\(engine.playerBleedAmount)×\(engine.playerBleedTurns)", tint: Theme.blood) }
             } else if let foe {
@@ -276,6 +275,7 @@ struct FighterView: View {
                     badge(icon: "shield.fill", text: "\(foe.armour)", tint: Theme.bronze)
                 }
                 if foe.block > 0 { badge(icon: "shield.lefthalf.filled", text: "\(foe.block)", tint: Theme.steel) }
+                if foe.judgementPending { badge(icon: "scalemass.fill", text: "\(foe.judgementAmount)", tint: Deity.anubis.tint) }
                 if foe.bleedTurns > 0 { badge(icon: "drop.fill", text: "\(foe.bleedAmount)×\(foe.bleedTurns)", tint: Theme.blood) }
                 if foe.poisonTurns > 0 { badge(icon: "drop.triangle.fill", text: "\(foe.poisonAmount)×\(foe.poisonTurns)", tint: Theme.venom) }
                 if foe.burnTurns > 0 { badge(icon: "flame.fill", text: "\(foe.burnAmount)×\(foe.burnTurns)", tint: Theme.ember) }
@@ -285,7 +285,7 @@ struct FighterView: View {
         }
         .frame(height: 18)
         .animation(.spring(response: 0.3, dampingFraction: 0.7),
-                   value: engine.playerBlock + engine.dodgeStacks + (foe?.block ?? 0) + (foe?.armour ?? 0))
+                   value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.block ?? 0) + (foe?.armour ?? 0))
     }
 
     private func badge(icon: String, text: String, tint: Color) -> some View {

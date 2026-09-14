@@ -1,6 +1,7 @@
 import Foundation
 
-/// Archer: longbow and light armour. Arrow tiers chain into the Perfect Shot.
+/// Archer: longbow and light armour. Arrow tiers stack into heavy volleys,
+/// with a real shield and a rolling evade behind the draw.
 enum ArcherContent {
     // MARK: - Starting gear
 
@@ -10,14 +11,13 @@ enum ArcherContent {
             faces: [.arrow1, .arrow1, .arrow2, .arrow2, .arrow3, .bowSmack])
     }
 
-    /// Light armour die: 2× Dodge, 1× Roll, 1× Block, 1× Heal, 1× Focus.
+    /// Light armour die: 2× Evade, 2× Block, 1× Heal, 1× Focus.
     static func armorDie(rarity: Rarity = .common, name: String = "Light Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.dodge, .dodge, .roll, .block, .heal, .focus])
+            faces: [.evade, .evade, .block, .block, .heal, .focus])
     }
 
-    /// Opening bow three: mid-weight draws and smacks — Twin Shot and
-    /// Point-Blank fuel, with a Focus to aim by.
+    /// Opening bow three: mid-weight draws and smacks — Twin Shot fuel.
     static func cadenceBow(rarity: Rarity = .common) -> Die {
         Die(name: "Recurve Cadence", slot: .weapon, rarity: rarity,
             faces: [.arrow1, .arrow2, .arrow2, .bowSmack, .bowSmack, .focus])
@@ -26,13 +26,13 @@ enum ArcherContent {
     /// Opening bow four: heavy shafts — Piercing Bolt and Perfect Shot fuel.
     static func heronBow(rarity: Rarity = .common) -> Die {
         Die(name: "Heron's Shaft", slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow3, .arrow3, .bowSmack, .dodge, .focus])
+            faces: [.arrow1, .arrow3, .arrow3, .bowSmack, .evade, .focus])
     }
 
-    /// Opening armour three: padded plate — Field Dressing fuel behind blocks.
+    /// Opening armour three: padded plate — Field Dressing fuel behind shields.
     static func paddedCuirass(rarity: Rarity = .common) -> Die {
         Die(name: "Padded Cuirass", slot: .armor, rarity: rarity,
-            faces: [.block, .block, .heal, .heal, .roll, .focus])
+            faces: [.block, .block, .heal, .heal, .evade, .focus])
     }
 
     static func weapon() -> GearPiece {
@@ -49,68 +49,40 @@ enum ArcherContent {
 
     static let combos: [ComboDef] = [
         // Weapon — the draw
-        ComboDef(id: "arc_drawnShot", name: "Drawn Shot", owner: "archer", source: .weapon,
-                 required: [.exact(.arrow1), .exact(.arrow2)], damage: 30,
-                 flavor: "String to the cheek, loosed clean."),
         ComboDef(id: "arc_twinShot", name: "Twin Shot", owner: "archer", source: .weapon,
-                 required: [.anyArrow, .anyArrow], sameKind: true, damage: 26, staminaNext: 2,
+                 required: [ComboIngredient(.anyArrow, 2)], damage: 22,
                  flavor: "Two shafts nocked as one."),
         ComboDef(id: "arc_piercingBolt", name: "Piercing Bolt", owner: "archer", source: .weapon,
-                 required: [.exact(.arrow2), .exact(.arrow3)], damage: 44, pierce: 0.6,
+                 required: [ComboIngredient(.exact(.arrow2)), ComboIngredient(.exact(.arrow3))],
+                 damage: 38, pierce: 0.6,
                  flavor: "Straight through the shield and out the back."),
-        ComboDef(id: "arc_suppressing", name: "Suppressing Fire", owner: "archer", source: .weapon,
-                 required: [.exact(.arrow1), .exact(.arrow1), .exact(.arrow1)], damage: 32, stagger: 0.35,
-                 flavor: "Keep their head down, keep them slow."),
         ComboDef(id: "arc_pointBlank", name: "Point-Blank", owner: "archer", source: .weapon,
-                 required: [.exact(.bowSmack), .anyArrow], damage: 34, stagger: 0.2,
+                 required: [ComboIngredient(.exact(.bowSmack)), ComboIngredient(.anyArrow)],
+                 damage: 26, stagger: 0.2,
                  flavor: "Riser to the jaw, then the arrow."),
-        ComboDef(id: "arc_perfectShot", name: "Perfect Shot", owner: "archer", source: .weapon,
-                 required: [.exact(.arrow1), .exact(.arrow2), .exact(.arrow3)], damage: 80,
-                 staminaNext: 2, pierce: 0.4, guaranteedCrit: true,
-                 flavor: "Three draws, one breath, one perfect release."),
 
         // Armour — light armour
-        ComboDef(id: "arc_sidestep", name: "Sidestep", owner: "archer", source: .armor,
-                 required: [.exact(.dodge), .exact(.dodge)], dodge: 2, staminaNext: 2,
-                 flavor: "Never where the blade expects you."),
-        ComboDef(id: "arc_rollAndDraw", name: "Roll and Draw", owner: "archer", source: .armor,
-                 required: [.exact(.roll), .anyArrow], damage: 28, dodge: 1,
-                 flavor: "Tumble clear, rise firing."),
-        ComboDef(id: "arc_fieldDressing", name: "Field Dressing", owner: "archer", source: .armor,
-                 required: [.exact(.heal), .exact(.heal)], heal: 26,
-                 flavor: "Boiled cloth and a steady hand."),
         ComboDef(id: "arc_quickGuard", name: "Quick Guard", owner: "archer", source: .armor,
-                 required: [.exact(.block), .exact(.dodge)], block: 12, dodge: 1,
+                 required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade))],
+                 shield: 14, evadePercent: 15,
                  flavor: "Bracer up, then gone."),
+        ComboDef(id: "arc_fieldDressing", name: "Field Dressing", owner: "archer", source: .armor,
+                 required: [ComboIngredient(.exact(.heal), 2)], heal: 22,
+                 flavor: "Boiled cloth and a steady hand."),
         ComboDef(id: "arc_steadyAim", name: "Steady Aim", owner: "archer", source: .armor,
-                 required: [.exact(.focus), .anyArrow], damage: 30, staminaNext: 2, pierce: 0.3,
+                 required: [ComboIngredient(.exact(.focus)), ComboIngredient(.anyArrow)],
+                 damage: 24, pierce: 0.3,
                  flavor: "The world narrows to one point."),
 
-        // Blended — light armour opening into the draw
-        ComboDef(id: "arc_windRead", name: "Wind Read", owner: "archer", source: .armor,
-                 required: [.exact(.focus), .exact(.arrow2), .exact(.arrow3)],
-                 damage: 46, staminaNext: 2, pierce: 0.5,
-                 flavor: "Read the air, hold the breath, let the heavy shaft go."),
-        ComboDef(id: "arc_rollingVolley", name: "Rolling Volley", owner: "archer", source: .armor,
-                 required: [.exact(.roll), .anyArrow, .anyArrow],
-                 damage: 40, dodge: 1, staminaNext: 2,
-                 flavor: "Tumble clear and empty the quiver from your knees."),
-        ComboDef(id: "arc_coveringStep", name: "Covering Step", owner: "archer", source: .armor,
-                 required: [.exact(.block), .exact(.dodge), .anyArrow],
-                 damage: 30, block: 14, dodge: 1,
-                 flavor: "Bracer, sidestep, shot — in that order, always."),
-        ComboDef(id: "arc_fieldSurgery", name: "Field Surgery", owner: "archer", source: .armor,
-                 required: [.exact(.heal), .exact(.heal), .exact(.focus)],
-                 heal: 24, staminaNext: 2, regenAmount: 6, regenTurns: 2,
-                 flavor: "Stitch it, breathe, pick the next target."),
-        ComboDef(id: "arc_hunterCycle", name: "Hunter's Cycle", owner: "archer", source: .armor,
-                 required: [.exact(.dodge), .exact(.arrow1), .exact(.arrow2), .exact(.arrow3)],
-                 damage: 76, staminaNext: 2, pierce: 0.5,
-                 flavor: "Out of reach, then three draws that climb into the dark."),
+        // Signatures
+        ComboDef(id: "arc_perfectShot", name: "Perfect Shot", owner: "archer", source: .weapon,
+                 required: [ComboIngredient(.exact(.arrow1)), ComboIngredient(.exact(.arrow2)),
+                            ComboIngredient(.exact(.arrow3))],
+                 damage: 58, pierce: 0.4, guaranteedCrit: true,
+                 flavor: "Three draws, one breath, one perfect release."),
         ComboDef(id: "arc_stormOfShafts", name: "Storm of Shafts", owner: "archer", source: .weapon,
-                 required: [.anyArrow, .anyArrow, .anyArrow, .exact(.bowSmack)],
-                 damage: 70, stagger: 0.4,
-                 flavor: "Three in the air and the riser across the jaw."),
+                 required: [ComboIngredient(.anyArrow, 4)], damage: 56, stagger: 0.4,
+                 flavor: "Four in the air and the riser across the jaw."),
     ]
 
     // MARK: - Offer pools
@@ -121,30 +93,30 @@ enum ArcherContent {
         case .common:
             [
                 (Die(name: "Hunting Bow", slot: .weapon, rarity: rarity,
-                     faces: [.arrow1, .arrow1, .arrow1, .arrow2, .bowSmack, .focus]), "Drawn Shot · Suppressing Fire"),
+                     faces: [.arrow1, .arrow1, .arrow1, .arrow2, .bowSmack, .focus]), "Twin Shot · Point-Blank"),
                 (Die(name: "Scout's Vest", slot: .armor, rarity: rarity,
-                     faces: [.dodge, .dodge, .block, .heal, .roll, .focus]), "Sidestep · Quick Guard"),
+                     faces: [.evade, .evade, .block, .heal, .heal, .focus]), "Quick Guard · Field Dressing"),
             ]
         case .uncommon:
             [
                 (Die(name: "Yew Longbow", slot: .weapon, rarity: rarity,
-                     faces: [.arrow1, .arrow2, .arrow2, .arrow2, .arrow3, .focus]), "Twin Shot · Drawn Shot"),
+                     faces: [.arrow1, .arrow2, .arrow2, .arrow2, .arrow3, .focus]), "Twin Shot · Perfect Shot"),
                 (Die(name: "Ranger's Coat", slot: .armor, rarity: rarity,
-                     faces: [.dodge, .roll, .roll, .heal, .heal, .focus]), "Roll and Draw · Field Dressing"),
+                     faces: [.evade, .evade, .block, .heal, .heal, .focus]), "Quick Guard · Field Dressing"),
             ]
         case .rare:
             [
                 (Die(name: "Keen Recurve", slot: .weapon, rarity: rarity,
-                     faces: [.arrow2, .arrow2, .arrow3, .arrow3, .arrow1, .focus]), "Piercing Bolt · Twin Shot"),
+                     faces: [.arrow2, .arrow2, .arrow3, .arrow3, .arrow1, .focus]), "Piercing Bolt · Perfect Shot"),
                 (Die(name: "Windstep Leathers", slot: .armor, rarity: rarity,
-                     faces: [.roll, .roll, .dodge, .dodge, .focus, .heal]), "Roll and Draw · Sidestep"),
+                     faces: [.evade, .evade, .evade, .block, .focus, .heal]), "Quick Guard · Storm of Shafts"),
             ]
         case .signature:
             [
                 (Die(name: "Greenwood Truestrike", slot: .weapon, rarity: rarity,
                      faces: [.arrow1, .arrow2, .arrow3, .arrow3, .arrow2, .arrow1]), "Perfect Shot — every face is a draw"),
                 (Die(name: "Heartwood Quiver", slot: .weapon, rarity: rarity,
-                     faces: [.arrow3, .arrow3, .arrow3, .arrow2, .focus, .bowSmack]), "Piercing Bolt · Twin Shot III"),
+                     faces: [.arrow3, .arrow3, .arrow3, .arrow2, .focus, .bowSmack]), "Storm of Shafts · Piercing Bolt"),
             ]
         }
     }
@@ -152,8 +124,8 @@ enum ArcherContent {
     /// Face reforges this class can be offered, by tier.
     static func faceOffers(_ rarity: Rarity) -> [(face: FaceKind, hint: String)] {
         switch rarity {
-        case .common: [(.arrow1, "Drawn Shot · Suppressing Fire"), (.block, "Quick Guard")]
-        case .uncommon: [(.arrow2, "Drawn Shot · Piercing Bolt"), (.roll, "Roll and Draw")]
+        case .common: [(.arrow1, "Twin Shot · Perfect Shot"), (.block, "Quick Guard")]
+        case .uncommon: [(.arrow2, "Twin Shot · Piercing Bolt"), (.evade, "Quick Guard")]
         case .rare: [(.arrow3, "Piercing Bolt · Perfect Shot"), (.focus, "Steady Aim")]
         case .signature: [(.arrow3, "Perfect Shot · Piercing Bolt"), (.arrow2, "Perfect Shot")]
         }

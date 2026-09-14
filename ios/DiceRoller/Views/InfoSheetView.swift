@@ -43,8 +43,6 @@ struct InfoSheetView: View {
 
     private var hero: HeroClass { GameData.heroClass(id: classID) }
 
-    private var devotion: [Deity: Int] { Devotion.counts(loadout) }
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -326,9 +324,9 @@ struct InfoSheetView: View {
 
     private var pantheonTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("THE PANTHEON — GODS MARK THE FACES YOU ALREADY OWN")
+            sectionTitle("THE PANTHEON — ONE GOD PER DIE, ANSWERING WHAT YOU PLAY")
 
-            Text("Gods rise out of the water after every fight and hold court at the shrines on the bank. A god never takes a face away: their named gift is laid on top of a face you already own — the face keeps its name, its numbers and every chain it feeds, and the gift's answer rides on top. Each god carries twelve gifts, four per kind of face, and a gift deepens three times on the same face, ending in a named final form. One face belongs to one god; only a rare dual-god rite binds two gods into one face — and a bound face fires their duo at full strength every play.")
+            Text("A god claims a whole die and never touches its faces — the claim simply means their blessing answers every face that die plays, read by what the face is. Attacks get the attack answer, Block faces the block answer, Evade faces the evade answer, everything else the support answer — once each per action, chains included. A blessed die is the entry ticket to that god's four upgrades; two upgrades unlock their capstone. One capstone and one pairing per run.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -337,53 +335,40 @@ struct InfoSheetView: View {
                 deityCard(deity)
             }
 
-            comboGroup(
-                title: "CROSS-GOD FUSIONS — ANY CLASS",
-                combos: DivineContent.fusions
-            )
-
-            sectionTitle("DUO GODS — FIFTEEN NAMED PAIRS")
-            Text("Chain two different gods' gifted faces into one chain and their duo fires as a bonus rider — a taste. Bind the pair into one face with a rare rite and it fires at full strength every play.")
+            sectionTitle("FIFTEEN PAIRINGS — TWO GODS STANDING TOGETHER")
+            Text("Once you carry one upgrade from each of two gods, their pairing opens: a named effect that fires at most once per turn while both gods stay equipped. One pairing per run.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(DuoContent.all) { duo in
-                duoRow(duo)
+            ForEach(PairingContent.pairings) { pairing in
+                pairingRow(pairing)
             }
         }
     }
 
-    private func duoRow(_ duo: DuoDef) -> some View {
+    private func pairingRow(_ pairing: PairingDef) -> some View {
         HStack(alignment: .top, spacing: 9) {
             HStack(spacing: 4) {
-                Image(systemName: duo.first.symbol)
+                Image(systemName: pairing.first.symbol)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(duo.first.tint)
+                    .foregroundStyle(pairing.first.tint)
                 Text("&")
                     .font(.system(size: 9, weight: .black))
                     .foregroundStyle(Theme.parchmentDim)
-                Image(systemName: duo.second.symbol)
+                Image(systemName: pairing.second.symbol)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(duo.second.tint)
+                    .foregroundStyle(pairing.second.tint)
             }
-            .frame(width: 96, alignment: .leading)
+            .frame(width: 66, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(duo.name)
+                Text(pairing.name)
                     .font(.fantasy(12.5, weight: .bold))
                     .foregroundStyle(Theme.parchment)
-                Text("Chained — \(duo.chained.summary).")
+                Text(pairing.detail)
                     .font(.system(size: 9))
                     .foregroundStyle(Theme.parchmentDim)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Bound by rite — \(duo.bound.summary).")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Theme.gold.opacity(0.85))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(duo.flavor)
-                    .font(.system(size: 8.5).italic())
-                    .foregroundStyle(Theme.parchmentDim.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -395,10 +380,8 @@ struct InfoSheetView: View {
     }
 
     private func deityCard(_ deity: Deity) -> some View {
-        let count = devotion[deity] ?? 0
-        let classCombos = DivineContent.classCombos(classID).filter { $0.deity == deity }
-        let ladder = DivineContent.ladder(for: deity)
-        let signature = DivineContent.signatures.filter { $0.deity == deity }
+        let claimedDice = loadout.allDice.filter { $0.patron == deity }.count
+        let capstone = GodKit.capstone(for: deity)
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 9) {
@@ -420,58 +403,36 @@ struct InfoSheetView: View {
 
                 Spacer()
 
-                HStack(spacing: 3) {
-                    ForEach(0..<5, id: \.self) { index in
-                        Circle()
-                            .fill(index < count ? deity.tint : Theme.bg)
-                            .frame(width: 7, height: 7)
-                    }
-                    Text("\(count)")
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
-                        .foregroundStyle(count > 0 ? deity.tint : Theme.parchmentDim)
-                }
+                Text(claimedDice == 0 ? "NO CLAIM" : "\(claimedDice) DICE")
+                    .font(.system(size: 8.5, weight: .black))
+                    .kerning(0.8)
+                    .foregroundStyle(claimedDice > 0 ? deity.tint : Theme.parchmentDim)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(claimedDice > 0 ? deity.tint.opacity(0.14) : Theme.bg, in: .capsule)
             }
 
-            // Their twelve gifts — four per kind of face, touched → final form.
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(MarkRole.allCases, id: \.self) { role in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(role.label.uppercased())
-                            .font(.system(size: 7, weight: .black))
-                            .kerning(0.5)
-                            .foregroundStyle(deity.tint)
-                        ForEach(GiftContent.gifts(deity, role)) { gift in
-                            HStack(alignment: .top, spacing: 5) {
-                                Image(systemName: gift.symbol)
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundStyle(deity.tint)
-                                    .frame(width: 13)
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text("\(gift.name) — \(gift.touched.summary)")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(Theme.parchment)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Text("Final form: \(gift.finalFormName) — \(gift.finalForm.summary)")
-                                        .font(.system(size: 8.5))
-                                        .foregroundStyle(deity.tint.opacity(0.85))
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            Text(deity.pitch)
+                .font(.system(size: 9.5))
+                .italic()
+                .foregroundStyle(Theme.parchmentDim)
 
-            // Devotion track.
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(deity.passives, id: \.threshold) { passive in
-                    HStack(spacing: 5) {
-                        Image(systemName: count >= passive.threshold ? "checkmark.seal.fill" : "lock.fill")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(count >= passive.threshold ? deity.tint : Theme.parchmentDim.opacity(0.5))
-                        Text("\(passive.threshold) devotion — \(passive.text)")
+            // The blessing — what their answer does to each kind of face.
+            VStack(alignment: .leading, spacing: 3) {
+                Text("BLESSING — ONCE PER ROLE PER ACTION")
+                    .font(.system(size: 7, weight: .black))
+                    .kerning(0.5)
+                    .foregroundStyle(deity.tint)
+                ForEach(BlessingRole.allCases, id: \.self) { role in
+                    HStack(alignment: .top, spacing: 5) {
+                        Text(GodKit.blessingLabel(for: role))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.parchmentDim)
+                            .frame(width: 92, alignment: .leading)
+                        Text(GodKit.blessing(for: deity, role: role).summary)
                             .font(.system(size: 9))
-                            .foregroundStyle(count >= passive.threshold ? Theme.parchment : Theme.parchmentDim.opacity(0.7))
+                            .foregroundStyle(Theme.parchment)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -479,66 +440,55 @@ struct InfoSheetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 9))
 
-            if !classCombos.isEmpty || !ladder.isEmpty || !signature.isEmpty {
-                VStack(spacing: 4) {
-                    ForEach(ladder + classCombos + signature) { combo in
-                        divineComboRow(combo, deity: deity, count: count)
+            // The upgrade path — four rungs, then the capstone.
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(GodKit.upgrades(for: deity)) { upgrade in
+                    HStack(alignment: .top, spacing: 5) {
+                        Image(systemName: upgrade.symbol)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(deity.tint)
+                            .frame(width: 13)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(upgrade.name)
+                                .font(.system(size: 9.5, weight: .bold))
+                                .foregroundStyle(Theme.parchment)
+                            Text(upgrade.detail)
+                                .font(.system(size: 8.5))
+                                .foregroundStyle(Theme.parchmentDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
+                if let capstone {
+                    HStack(alignment: .top, spacing: 5) {
+                        Image(systemName: capstone.symbol)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Theme.gold)
+                            .frame(width: 13)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("\(capstone.name) — CAPSTONE")
+                                .font(.system(size: 9.5, weight: .black))
+                                .foregroundStyle(Theme.gold)
+                            Text(capstone.detail)
+                                .font(.system(size: 8.5))
+                                .foregroundStyle(Theme.parchmentDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.top, 3)
+                }
             }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 9))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(count >= Devotion.passiveTier ? deity.tint.opacity(0.45) : .clear, lineWidth: 1)
+                .strokeBorder(claimedDice > 0 ? deity.tint.opacity(0.45) : .clear, lineWidth: 1)
         )
-    }
-
-    private func divineComboRow(_ combo: ComboDef, deity: Deity, count: Int) -> some View {
-        let locked = combo.devotionRequired > count
-        let reachable = GameData.isReachable(combo, loadout: loadout)
-        return HStack(alignment: .top, spacing: 9) {
-            ComboRecipeView(combo: combo, tileSize: 19)
-                .frame(width: 96, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 5) {
-                    Text(combo.name)
-                        .font(.fantasy(12.5, weight: .bold))
-                        .foregroundStyle(locked ? Theme.parchmentDim : deity.tint)
-                    if locked {
-                        Text("DEVOTION \(combo.devotionRequired)")
-                            .font(.system(size: 7.5, weight: .black))
-                            .foregroundStyle(Theme.parchmentDim)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1.5)
-                            .background(Theme.bg, in: .capsule)
-                    } else if reachable {
-                        Text("READY")
-                            .font(.system(size: 7.5, weight: .black))
-                            .foregroundStyle(Theme.bg)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1.5)
-                            .background(deity.tint, in: .capsule)
-                    }
-                    Text("\(combo.staminaCost) stam")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundStyle(Theme.parchmentDim)
-                }
-                Text(combo.effectSummary)
-                    .font(.system(size: 9.5))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
-        .opacity(locked ? 0.6 : 1)
     }
 
     // MARK: - Rules tab
@@ -548,11 +498,11 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "link", tint: Theme.ember, title: "CHAINS ARE THE FIGHT",
                 lines: [
-                    "A face played on its own is chip damage — worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
-                    "Fuse faces side by side into a recipe and the whole chain multiplies: two faces pay as printed, three ×\(String(format: "%.1f", GameData.comboLengthScale(faces: 3))), four ×\(String(format: "%.1f", GameData.comboLengthScale(faces: 4))), five ×\(String(format: "%.1f", GameData.comboLengthScale(faces: 5))).",
-                    "Damage, block, healing, poison, bleed and burn all ride the same curve — a long defensive chain is worth building too.",
-                    "Order matters: the faces must sit side by side in the plan, in the recipe's exact order.",
-                    "The longest recipe always wins, so a four-face chain beats the two-face combo hiding inside it.",
+                    "A face played on its own is worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
+                    "A recipe asks for ingredients and quantities, never a tap order — any arrangement of the faces fuses into one step. Three Swift Slashes make the same chain whichever tap they arrived from.",
+                    "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
+                    "Fused combos cost less than their faces played apart: 3 faces cost 2, 4 cost 3, 5 cost 4. A chain of three or more banks a single stamina point for next turn.",
+                    "The combo panel above the tray lists every chain the roll could make, with the letters its dice wear.",
                 ]
             )
 
@@ -564,7 +514,7 @@ struct InfoSheetView: View {
                     "No mix is guaranteed: a draw can come up all weapon and leave you nothing defensive. That is what freezes are for.",
                     "Dice whose faces you hold are left in the bag — the held face rides along as its own reel instead.",
                     "The loadout tab marks which dice this turn's draw put on the table.",
-                    "A weak die dilutes every draw — the Ferryman's Whetstone Ritual rolls a die's unclaimed faces anew instead of throwing it away.",
+                    "A weak die dilutes every draw — the Ferryman's Whetstone Ritual rolls a die's faces anew instead of throwing it away.",
                 ]
             )
 
@@ -588,7 +538,7 @@ struct InfoSheetView: View {
                     "A held face keeps exactly as it landed, crit and all — and the die it came from still rolls again next turn. A freeze hands you an extra face, it never benches a die.",
                     "The die behind a held face sits out the next draw, so the held face never arrives beside a fresh roll of its own die — the hold is the only way to guarantee a face comes back.",
                     "Held faces sit at the front of the tray as their own reel, so they are always where you left them.",
-                    "A held face played into a combo adds +\(Int(GameData.frozenFuelCritBonus * 100))% to that chain's crit roll — spend the freeze setting up the big chain.",
+                    "The universal hold bonus is gone — gods reward holds instead. Ra and Horus pay out when an action carries a held face of theirs; Horus even hands stamina back for the first one each turn.",
                     "The hold lasts one turn: play it, freeze it again to keep it longer, or leave it and it is gone.",
                 ]
             )
@@ -627,7 +577,7 @@ struct InfoSheetView: View {
                 }
                 .padding(.top, 2)
 
-                Text("Perfect Shot and Vanishing Strike always crit, whatever fed them. The play bar shows each step's crit odds and its critical damage before you commit. A face carried over from a freeze glints with frost and adds +\(Int(GameData.frozenFuelCritBonus * 100))% to the chain's crit odds.")
+                Text("Perfect Shot and Vanishing Strike always crit, whatever fed them. The play bar shows each step's crit odds and its critical damage before you commit.")
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.parchmentDim.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
@@ -639,12 +589,12 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "sun.max.fill", tint: Theme.sunGold, title: "THE GODS",
                 lines: [
-                    "A god never takes a face away. Their named gift is laid on top of a face you already own — the face keeps its name, its numbers and every chain it fed. A fire arrow is still an arrow.",
-                    "Each god carries twelve gifts — four for attacks, four for guards, four for mends and support — and they pull in different directions. Following Ra twice does not mean the same run twice.",
-                    "A gift deepens where it lands: touched, deepened, then a named final form. Once a face carries a gift it carries that gift. Replacing one is possible only through a rare shrine offer — and it costs all the depth.",
-                    "When a chain fires, every gifted face in it speaks in turn on top of the chain's own effect — gently scaled, each announced on its own. Two different gods in one chain fire their named duo; three or more trigger the pantheon flourish and every rider lands harder.",
-                    "Every pair of gods has a named duo — fifteen in all. Chain two gods for a taste; a rare rite binds the pair into one face and fires the duo at full strength every play.",
-                    "Devotion counts one per gifted face, more the deeper it runs. Two devotion opens a god's first own chain, three their second, five their signature — and a god's chain hits harder the more devotion stands behind it when it fires.",
+                    "A god claims a whole die, never a face. Their blessing reads whatever that die plays: attacks get the attack answer, Block faces the block answer, Evade faces the evade answer, everything else the support answer.",
+                    "Each answer fires once per action, chains included — a long chain does not multiply a god's patience.",
+                    "A blessed die is the ticket to that god's four upgrades. Two upgrades unlock their capstone — one capstone per run.",
+                    "Carry an upgrade from each of two gods and their named pairing opens — fifteen in all, firing at most once per turn while both gods stay equipped. One pairing per run.",
+                    "Shrines on the bank are where the gods reliably hold court. After a fight they visit only sometimes — most spoils are the river's own.",
+                    "Replacing a patron is always an explicit choice, never accidental. Upgrades tied to a god you no longer carry go quiet rather than disappearing.",
                 ]
             )
 
@@ -673,21 +623,21 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "drop.triangle.fill", tint: Theme.venom, title: "STATUS EFFECTS",
                 lines: [
-                    "Bleed, Poison and Burn tick on the enemy at the start of their turn and stack duration.",
-                    "Statuses seep under armour and land on health directly.",
+                    "Bleed, Poison and Burn tick on the enemy at the start of their turn. Burn caps at 12 a tick; bleed refreshes to the stronger value rather than stacking.",
+                    "Statuses seep under armour and land on health directly — so does Anubis's stored judgement when it detonates.",
                     "Stagger weakens the enemy's very next attack by its percentage, then wears off.",
                     "Mark multiplies your next hit on that enemy.",
-                    "Pierce ignores part of the enemy's block and armour. Block soaks damage and clears each turn unless a Brace carries it.",
-                    "Evade cancels one incoming hit outright — and every evade you get comes from a face you played or a gift you carry. Nobody slips a blow by luck alone.",
+                    "Pierce ignores part of the enemy's block and armour. Your own shield soaks damage before health and stays until something breaks it.",
+                    "Evade is a chance to slip a hit entirely, rolled fresh for every blow — chances add up to a ceiling, and it clears after the enemy turn.",
                 ]
             )
 
             ruleCard(
-                icon: "arrow.left.arrow.right", tint: Theme.steelBlue, title: "ORDER MATTERS",
+                icon: "arrow.left.arrow.right", tint: Theme.steelBlue, title: "RECIPES, NOT ORDERS",
                 lines: [
-                    "The plan resolves strictly left to right, in the order you place the dice.",
-                    "Adjacent faces matching one of your recipes fuse into a single combo step.",
-                    "Mis-ordered chains simply play as separate faces — Rising Guillotine and Cleaving Follow-Through use the same two faces in opposite order.",
+                    "The plan resolves left to right, in the order you place the dice — but recipes themselves ask for ingredients, never order.",
+                    "Any arrangement of the right faces fuses into one combo step; competing recipes are settled by size and specificity, biggest first.",
+                    "Tap a recipe in the panel to fuse it by hand, or tap it again to dissolve it back into solo faces.",
                     "Tap a step to take its dice back and reclaim the stamina.",
                 ]
             )

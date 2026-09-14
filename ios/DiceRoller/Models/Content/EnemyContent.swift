@@ -13,7 +13,7 @@ enum EnemyContent {
         blurb: "A straw crewman lashed to a post, waiting to take the evening's practice swings.",
         maxHP: 56, symbol: "figure.wave", goldReward: 14,
         moves: [
-            EnemyMove(id: "sway", name: "Sways in the Breeze", faces: [.smoke], weight: 40),
+            EnemyMove(id: "sway", name: "Sways in the Breeze", faces: [.evade], weight: 40),
             EnemyMove(id: "stand", name: "Stands There", faces: [.block], weight: 36),
             EnemyMove(id: "creak", name: "Creaks Quietly", faces: [.heal], weight: 24),
         ]
@@ -42,7 +42,7 @@ enum EnemyContent {
             EnemyMove(id: "grasp", name: "Cold Grasp", faces: [.daggerThrow], weight: 34, damage: 12),
             EnemyMove(id: "keening", name: "Keening", faces: [.swiftSlash, .swiftSlash], weight: 30,
                       comboName: "Flurry", damage: 20, bleedAmount: 4, bleedTurns: 2),
-            EnemyMove(id: "sink", name: "Sink Away", faces: [.dodge], weight: 20, block: 10),
+            EnemyMove(id: "sink", name: "Sink Away", faces: [.evade], weight: 20, block: 10),
             EnemyMove(id: "feed", name: "Feed on Breath", faces: [.runeLife], weight: 16, damage: 8, heal: 12),
         ]
     )
@@ -55,7 +55,7 @@ enum EnemyContent {
             EnemyMove(id: "pincer", name: "Pincer", faces: [.sideSwing], weight: 30, damage: 14),
             EnemyMove(id: "swarm", name: "Skittering Swarm", faces: [.swiftSlash, .swiftSlash, .swiftSlash], weight: 28,
                       comboName: "Pack Tactics", damage: 27),
-            EnemyMove(id: "burrow", name: "Burrow", faces: [.dodge, .block], weight: 22, block: 14),
+            EnemyMove(id: "burrow", name: "Burrow", faces: [.evade, .block], weight: 22, block: 14),
             EnemyMove(id: "sting", name: "Barbed Sting", faces: [.poison], weight: 20, damage: 15, bleedAmount: 5, bleedTurns: 2),
         ]
     )
@@ -86,7 +86,7 @@ enum EnemyContent {
             EnemyMove(id: "scorch", name: "Scorch", faces: [.runeFire], weight: 30, damage: 18),
             EnemyMove(id: "conflagrate", name: "Conflagrate", faces: [.runeFire, .runeFire], weight: 28,
                       comboName: "Fireball", damage: 36, bleedAmount: 6, bleedTurns: 3),
-            EnemyMove(id: "emberWard", name: "Ember Ward", faces: [.ward, .ward], weight: 22,
+            EnemyMove(id: "emberWard", name: "Ember Ward", faces: [.block, .block], weight: 22,
                       comboName: "Arcane Shield", block: 22),
             EnemyMove(id: "draw", name: "Draw from the Lake", faces: [.runeLife], weight: 20, damage: 14, heal: 16),
         ]
@@ -102,7 +102,7 @@ enum EnemyContent {
                       comboName: "Fireball", damage: 42, bleedAmount: 7, bleedTurns: 3),
             EnemyMove(id: "wall", name: "Wall of Coals", faces: [.block, .block, .block], weight: 24,
                       comboName: "Fortress", block: 32),
-            EnemyMove(id: "shove", name: "Brazier Shove", faces: [.parry, .sideSwing], weight: 22,
+            EnemyMove(id: "shove", name: "Brazier Shove", faces: [.block, .sideSwing], weight: 22,
                       comboName: "Shield Bash", damage: 20, block: 14),
         ]
     )
@@ -116,7 +116,7 @@ enum EnemyContent {
                       comboName: "Flurry", damage: 32, bleedAmount: 7, bleedTurns: 2),
             EnemyMove(id: "pounce", name: "Cinder Pounce", faces: [.daggerThrow, .daggerThrow], weight: 26,
                       comboName: "Twin Fang", damage: 38),
-            EnemyMove(id: "circle", name: "Circle the Hull", faces: [.dodge, .dodge], weight: 22, block: 24),
+            EnemyMove(id: "circle", name: "Circle the Hull", faces: [.evade, .evade], weight: 22, block: 24),
             EnemyMove(id: "howl", name: "Ash Howl", faces: [.runeFire, .runeArcane], weight: 22,
                       comboName: "Amplify", damage: 34, heal: 10),
         ]
@@ -131,7 +131,7 @@ enum EnemyContent {
                       comboName: "Dragonfire", damage: 46, bleedAmount: 8, bleedTurns: 3),
             EnemyMove(id: "constrict", name: "Constrict", faces: [.overhead, .sideSwing], weight: 26,
                       comboName: "Cleaving Follow-Through", damage: 42),
-            EnemyMove(id: "glow", name: "Scales Glow White", faces: [.block, .ward], weight: 22,
+            EnemyMove(id: "glow", name: "Scales Glow White", faces: [.block, .block], weight: 22,
                       comboName: "Fortress", block: 32, heal: 14),
             EnemyMove(id: "sear", name: "Sear the Deck", faces: [.runeFire, .sideSwing], weight: 24,
                       damage: 36, bleedAmount: 9, bleedTurns: 2),
@@ -163,7 +163,7 @@ enum EnemyContent {
             EnemyMove(id: "unmake", name: "Unmake", faces: [.runeArcane], weight: 28, damage: 30),
             EnemyMove(id: "wail", name: "Wail of the Void", faces: [.runeFrost, .runeArcane], weight: 26,
                       comboName: "Soul Wail", damage: 46, bleedAmount: 9, bleedTurns: 3),
-            EnemyMove(id: "fade", name: "Fade from the Light", faces: [.smoke, .dodge], weight: 24, block: 30),
+            EnemyMove(id: "fade", name: "Fade from the Light", faces: [.evade, .evade], weight: 24, block: 30),
             EnemyMove(id: "drink", name: "Drink the Disc", faces: [.runeLife], weight: 22, damage: 24, heal: 26),
         ]
     )
@@ -175,7 +175,7 @@ enum EnemyContent {
         moves: [
             EnemyMove(id: "devourTime", name: "Devour the Hour", faces: [.overhead, .overhead], weight: 28,
                       comboName: "Crushing Blow", damage: 48),
-            EnemyMove(id: "stall", name: "Stall the Barque", faces: [.parry, .parry], weight: 24,
+            EnemyMove(id: "stall", name: "Stall the Barque", faces: [.block, .block], weight: 24,
                       comboName: "Riposte", block: 30),
             EnemyMove(id: "grind", name: "Grind the Sand", faces: [.sideSwing, .sideSwing, .sideSwing], weight: 24,
                       comboName: "Wide Sweep", damage: 42),
@@ -200,7 +200,7 @@ enum EnemyContent {
                               comboName: "Crushing Blow", damage: 50),
                     EnemyMove(id: "venom", name: "Black Venom", faces: [.poison, .poison], weight: 24,
                               comboName: "Venom Coat", damage: 26, bleedAmount: 10, bleedTurns: 3),
-                    EnemyMove(id: "scaleWall", name: "Scale Wall", faces: [.block, .block, .ward], weight: 22,
+                    EnemyMove(id: "scaleWall", name: "Scale Wall", faces: [.block, .block, .block], weight: 22,
                               comboName: "Fortress", block: 38),
                     EnemyMove(id: "lash", name: "Tail Lash", faces: [.sideSwing, .sideSwing], weight: 24,
                               comboName: "Wide Sweep", damage: 42),
@@ -212,7 +212,7 @@ enum EnemyContent {
                 moves: [
                     EnemyMove(id: "crush", name: "Crush the Hull", faces: [.overhead, .sideSwing], weight: 30,
                               comboName: "Cleaving Follow-Through", damage: 56),
-                    EnemyMove(id: "blind", name: "Blind the Crew", faces: [.smoke, .runeFrost], weight: 26,
+                    EnemyMove(id: "blind", name: "Blind the Crew", faces: [.evade, .runeFrost], weight: 26,
                               damage: 34, bleedAmount: 8, bleedTurns: 3),
                     EnemyMove(id: "squeeze", name: "Squeeze", faces: [.overhead, .overhead, .overhead], weight: 22,
                               comboName: "Crushing Blow", damage: 62),
@@ -230,7 +230,7 @@ enum EnemyContent {
                               comboName: "Arcane Storm", damage: 58),
                     EnemyMove(id: "thrash", name: "Death Thrash", faces: [.sideSwing, .sideSwing, .sideSwing], weight: 24,
                               comboName: "Wide Sweep", damage: 52),
-                    EnemyMove(id: "coilTight", name: "Coil Tight", faces: [.parry, .block], weight: 18,
+                    EnemyMove(id: "coilTight", name: "Coil Tight", faces: [.block, .block], weight: 18,
                               comboName: "Bulwark", block: 34),
                 ]
             ),
@@ -267,7 +267,7 @@ enum EnemyContent {
         moves: [
             EnemyMove(id: "crush", name: "Brazier Crush", faces: [.overhead, .sideSwing], weight: 26,
                       comboName: "Cleaving Follow-Through", damage: 28),
-            EnemyMove(id: "plate", name: "Molten Plate", faces: [.block, .ward], weight: 26,
+            EnemyMove(id: "plate", name: "Molten Plate", faces: [.block, .block], weight: 26,
                       comboName: "Fortress", block: 32),
             EnemyMove(id: "burst", name: "Furnace Burst", faces: [.runeFire, .runeFire], weight: 24,
                       comboName: "Fireball", damage: 34, bleedAmount: 6, bleedTurns: 2),

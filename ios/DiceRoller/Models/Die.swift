@@ -23,33 +23,44 @@ enum GearSlot: String, Hashable, CaseIterable {
     }
 }
 
-/// A six-faced die belonging to a weapon, armour or item.
+/// A six-faced die belonging to a weapon, armour or item. At most one god may
+/// claim any die as its patron; the claim never changes the faces, it makes
+/// the god answer whatever those faces do.
 struct Die: Identifiable, Hashable {
     let id: UUID
     var name: String
     var slot: GearSlot
     var rarity: Rarity
     var faces: [DieFace]
+    /// The god who claimed this die, if any. A blessed die is the entry ticket
+    /// to that god's upgrades and to their pairing with another god.
+    var patron: Deity?
 
-    init(name: String, slot: GearSlot, rarity: Rarity = .common, faces: [FaceKind], id: UUID = UUID()) {
+    init(name: String, slot: GearSlot, rarity: Rarity = .common, faces: [FaceKind], patron: Deity? = nil, id: UUID = UUID()) {
         self.id = id
         self.name = name
         self.slot = slot
         self.rarity = rarity
         self.faces = faces.map { DieFace($0) }
+        self.patron = patron
     }
 
-    init(name: String, slot: GearSlot, rarity: Rarity, dieFaces: [DieFace], id: UUID = UUID()) {
+    init(name: String, slot: GearSlot, rarity: Rarity, dieFaces: [DieFace], patron: Deity? = nil, id: UUID = UUID()) {
         self.id = id
         self.name = name
         self.slot = slot
         self.rarity = rarity
         self.faces = dieFaces
+        self.patron = patron
     }
 
     /// Fresh copy with a brand-new identity, used whenever a die is granted.
     func instantiated() -> Die {
-        Die(name: name, slot: slot, rarity: rarity, dieFaces: faces.map { DieFace($0.kind, imbueTiers: $0.imbueTiers, bonusCrit: $0.bonusCrit) })
+        Die(
+            name: name, slot: slot, rarity: rarity,
+            dieFaces: faces.map { DieFace($0.kind, imbueTiers: $0.imbueTiers, bonusCrit: $0.bonusCrit) },
+            patron: patron
+        )
     }
 
     /// Average crit chance across the six faces — the headline number on cards.
@@ -60,14 +71,7 @@ struct Die: Identifiable, Hashable {
 
     var hasImbue: Bool { faces.contains(where: \.isImbued) }
 
-    /// Every god bound to this die through its faces' gifts.
-    var blessings: [Deity] {
-        faces.flatMap { face -> [Deity] in
-            face.mark?.gods ?? []
-        }
-    }
-
-    var isBlessed: Bool { !blessings.isEmpty }
+    var isBlessed: Bool { patron != nil }
 
     /// Rolls a face at random and decides on the spot whether it crits.
     func roll(critBonus: Double) -> (face: DieFace, isCrit: Bool, chance: Double) {

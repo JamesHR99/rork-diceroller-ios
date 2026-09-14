@@ -53,8 +53,11 @@ omen 10%, shrine 10%, ferryman 10%, mooring 8%. Heralds never spawn mid-hour.
 - Every die has exactly **6 faces**. A face is a `FaceKind` plus `imbueTiers` and `bonusCrit`.
 - Rolling: `faces.randomElement()` — flat 1-in-6, no weighting.
 - Crit is decided **the instant the die lands**, not when it resolves:
-  `chance = min(0.75, face.baseCrit + face.bonusCrit + critBonus + blessedCrit)`
+  `chance = min(0.75, face.baseCrit + face.bonusCrit + critBonus)` — Horus patron dice with
+  the *Wind-Reader* upgrade roll +8% more.
 - `DieFace.critCap = 0.75` — a single face can never be a guaranteed crit.
+- Every die may carry **one patron god** (`Die.patron`) — the faces never change, the god
+  simply answers what the die plays (see §7).
 
 ### Base crit by face
 
@@ -68,10 +71,10 @@ omen 10%, shrine 10%, ferryman 10%, mooring 8%. Heralds never spawn mid-hour.
 
 | Class | Weapon die (×3) | Armour die (×3) |
 |---|---|---|
-| Archer | 2 Arrow I, 2 Arrow II, 1 Arrow III, 1 Bow Smack | 2 Dodge, Roll, Block, Heal, Focus |
-| Warrior | 3 Overhead, 2 Side Swing, 1 Parry | 3 Block, Brace, Heal, Taunt |
-| Rogue | 3 Swift Slash, 2 Dagger Throw, 1 Dodge | 3 Dodge, 2 Heal, 1 Block |
-| Magician | 2 Fire, Frost, Life, Arcane, Wand Zap | 2 Heal, 2 Ward, Dodge, Channel |
+| Archer | 2 Arrow I, 2 Arrow II, 1 Arrow III, 1 Bow Smack | 2 Evade, 2 Block, Heal, Focus |
+| Warrior | 3 Overhead, 2 Side Swing, 1 Block | 4 Block, Heal, Focus |
+| Rogue | 3 Swift Slash, 2 Dagger Throw, 1 Evade | 3 Evade, 2 Heal, Block |
+| Magician | 2 Fire, Frost, Life, Arcane, Wand Zap | 2 Heal, Block, 2 Evade, Channel |
 
 ---
 
@@ -114,8 +117,8 @@ ROLL (once)  →  place faces into the plan  →  COMMIT
 
 | Class | Max stamina |
 |---|---|
-| Archer / Warrior / Magician | 3 |
-| Rogue | 4 |
+| Archer / Warrior / Magician | 4 |
+| Rogue | 5 |
 
 - Placing a face costs **1 stamina**. Reordering only costs the plan-cost difference.
 - Taking a face back refunds exactly what the plan spent on it — pulling a die out of a
@@ -134,7 +137,10 @@ The bar **never refills**. Unspent stamina carries over and each turn recovers *
 capped at the class maximum — so an all-in turn opens the next one on 2 (base 3).
 Carrying can never exceed the cap on its own; hoarding for turns buys nothing.
 
-**Chain tallies are live.** The number carved on each tray die counts the chains that die can *still* feed from where the plan stands: the search pool is everything left in the tray plus the run of not-yet-fused chips at the tail of the plan, so committing dice to a line makes the other tallies fall in real time. A face already welded into a finished chain drops out of the count entirely, and the header badge counts the same way. Chains are still never named mid-fight — and nothing is highlighted, only tallied.
+**Chain marks are live.** Each tray die wears the **letters** of every recipe the combo panel
+lists that it could still feed, coloured to match the list — committing dice elsewhere makes
+the letters fall in real time. Recipes are named in the panel, never hidden: pick one to
+fuse it, tap it again to dissolve it back into solo faces.
 
 **Chains barely refuel you.** `GameData.comboStaminaBank` is **0 for a pair and +1 for a
 chain of 3 or more**, and that is the *only* refund a combo pays: recipes' printed
@@ -142,9 +148,8 @@ chain of 3 or more**, and that is the *only* refund a combo pays: recipes' print
 data, filtered out of every effect line). The bar is meant to hold you near your base.
 
 **Overcharging past the cap is earned, not automatic.** `nextTurnStamina` — Focus,
-Energize/Channel, gift riders, duos, plus that single chain point — lands
-*above* the maximum and expires if left unspent: at the next turn start the bar is clamped
-back down to `maxStamina` before the +2 applies. Building a turn around Focus is the
+Energize/Channel, god blessings, and that single chain point — lands
+*above* the maximum and expires if left unspent. Building a turn around Focus is the
 intended way to afford a big chain.
 
 > Two reworks ago the bar refilled completely every turn, which made spending everything
@@ -205,8 +210,9 @@ adds **three** more, **ten in all** (`Loadout.maxDice` = 10). Against that, only
   (`frozenSlotIDs`, `toggleFreeze(slotID:)`), not die id — one die can have both a carried
   reel and its own fresh roll on the table at once.
 - A carried face can itself be frozen again, holding it a further turn.
-- **Frozen fuel:** a carried face adds **+10%** to the crit roll of any combo it joins
-  (`GameData.frozenFuelCritBonus`); guaranteed-crit recipes are unaffected.
+- **Holds feed the gods now:** the old universal +10% crit bonus for a held face is gone.
+  Ra's *Solar Wind* and Horus's *Falcon's Eye* pay out when an action carries a held face
+  of theirs; Horus's *Thermal* hands back 1 stamina for the first held Horus face each turn.
 - You cannot freeze a die that is already in the plan; playing a frozen die thaws it and
   refunds the freeze.
 - Freezing is the *only* dice manipulation in the game — no rerolls, no mulligans.
@@ -217,15 +223,12 @@ adds **three** more, **ten in all** (`Loadout.maxDice` = 10). Against that, only
 
 ### Single faces (`applyFace`)
 
-**A face played alone is chip damage.** `FaceKind.soloValue` cuts the printed `baseValue`
-to `GameData.soloAttackScale` (0.4) for attacks and `soloGuardScale` (0.9) for
-guards/heals/venom, floored at 1. A lone guard face is a real play; lone attacks stay chip. Divine faces are exempt — a god's favour is scarce and
-earned, and lands at full value alone.
+**A face played alone is workable, never the best answer.** `FaceKind.soloValue` cuts the
+printed `baseValue` to `GameData.soloAttackScale` (**0.65**) for attacks and
+`soloGuardScale` (0.9) for guards/heals/venom, floored at 1. A lone guard face is a real
+play; lone attacks are two thirds of themselves — playable, but the chain still wins.
 
 `value = soloValue × (isCrit ? 1.5 : 1)`, rounded **up**.
-
-The table below lists **printed `baseValue`** — what a face is worth *inside a combo's
-maths and the codex*. Solo, an Arrow III is 8, not 19.
 
 | Face | Base | Solo behaviour |
 |---|---|---|
@@ -234,40 +237,33 @@ maths and the codex*. Solo, an Arrow III is 8, not 19.
 | Overhead / Side Swing | 12 / 9 | damage |
 | Swift Slash / Dagger Throw | 7 / 11 | damage |
 | Wand Zap | 8 | damage |
-| Fire / Frost / Life / Arcane rune | 4 / 3 / 5 / 4 | damage (Frost also staggers 20%) |
+| Fire / Frost / Life / Arcane rune | 4 / 3 / 6 / 4 | damage (Frost also staggers 20%) |
 | Bomb | 15 | damage + burn 4×2 (crit 6×2) |
-| Parry / Brace / Taunt / Ward / Block | 8 / 10 / 6 / 9 / 7 | block (Brace carries over) |
-| Heal / Elixir / Life Rune | 8 / 12 / 5 | heal |
-| Dodge / Smoke | — | evade next hit |
-| Roll | 4 | evade **and** 4 block |
+| **Block** | 8 | +8 shield — **persists until broken** |
+| **Evade** | — | **+15% evade chance this turn** (crit +20%) |
+| Heal / Life Rune | 10 / 6 | heal |
 | Poison | 3 | poison 3×2 |
 | Energize / Channel | — | +1 stamina next turn (+2 on crit) |
 | Focus | — | +1 stamina next turn **and +5 to the next attack in the plan** |
 
-Runes are deliberately terrible alone (3–5 printed, 1–2 after the solo cut) — that is the
-Magician's whole design tension, now generalised to every class.
+The old defensive families collapsed into single meanings: Parry/Brace/Taunt/Ward → **Block**,
+Dodge/Roll/Smoke → **Evade**, Heal/Elixir → **Heal**. A face means the same thing on a
+weapon, armour, item or relic.
 
 ### Combos (`buildPlan` → `applyCombo`)
 
-- Faces must sit **adjacent and in exact order** in the play bar.
-- Matching is **greedy left-to-right**, testing recipes sorted by: length desc → specificity desc → devotion desc → blocksAll → damage desc. A 3-face ultimate always beats the 2-face combo hiding inside it.
+- Recipes ask for **ingredients and quantities, never a tap order** — any arrangement of the
+  right faces fuses into one step (`ComboDef.match(from:)`, bounded backtracking over
+  ingredient lines).
+- Matching is **greedy**, testing recipes sorted by face count desc → specificity desc →
+  damage desc. `forcedCombos` (player-locked from the panel) are tested first;
+  `dissolvedCombos` are skipped, so tapping a recipe in the panel re-plans the turn by hand.
 - Stamina cost of a combo is discounted — 3 faces cost 2, 4 cost 3, 5 cost 4 (see §3).
 
-**Chain length multiplies everything the combo does** (`GameData.comboLengthScale`) —
-damage, heal, block, bleed, poison, burn and regen all ride the same curve, so long
-defensive chains scale as hard as offensive ones:
-
-| Faces in the chain | Output multiplier |
-|---|---|
-| 2 | ×1.0 (as printed) |
-| 3 | ×1.4 |
-| 4 | ×1.8 |
-| 5+ | ×2.2 |
-
-**Critical dice add weight inside the chain**, not just odds: each crit face feeding a
-combo adds `GameData.critComboWeight` (+15%) to the chain's whole output. A crit is never
-wasted in a combo. `GameData.comboOutputScale(faces:critDice:crit:)` is the single source
-of truth: `(lengthScale + critDice × 0.15) × (crit ? 2.0 : 1)`.
+**Recipes print their own value — chains no longer multiply by length.** What lifts a step
+is its critical dice: each crit face feeding a combo adds `GameData.critComboWeight` (+15%)
+to the whole output. `GameData.comboOutputScale` is the single source of truth:
+`(1 + critDice × 0.15) × (crit ? 2.0 : 1)`.
 
 **Combo crit** is rolled once for the whole step (`GameData.comboCritChance`):
 
@@ -279,94 +275,44 @@ of truth: `(lengthScale + critDice × 0.15) × (crit ? 2.0 : 1)`.
 | all dice crit | 100% |
 | `guaranteedCrit` recipe | 100% |
 
-Any die carried over from a freeze adds **+10%** to the roll (capped at 100%).
-
-A critical combo is **×2.0** on top of the length-and-crit-weight scale; a critical single
-face is only ×1.5 of an already-reduced solo value. That gap is what makes chaining the
-only real way to kill anything.
+A critical combo is **×2.0**; a critical single face is only ×1.5 of an already-reduced
+solo value. That gap is what makes chaining the strongest way to kill anything.
 
 ### Headline recipes per class
 
-**Archer** — tiered draw
-| Combo | Recipe | Effect |
+Each class carries six everyday recipes plus two signatures; six item recipes are shared.
+
+| Class | Everyday | Signatures |
 |---|---|---|
-| Drawn Shot | Arrow I → II | 30 |
-| Piercing Bolt | Arrow II → III | 44, ignores 60% block |
-| Twin Shot | 2 same arrows | 26, +2 stamina |
-| Suppressing Fire | Arrow I ×3 | 32, stagger 35% |
-| **Perfect Shot** | Arrow I → II → III | **80, always crits**, pierce 40% |
-| Steady Aim | Focus → any arrow | 30, pierce 30% |
+| Archer | Twin Shot (any arrow ×2, 22), Piercing Bolt (II+III, 38, pierce 60%), Point-Blank (smack + arrow, 26, stagger 20%), Quick Guard (block + evade, 14 shield, +15% evade), Field Dressing (heal ×2, 22), Steady Aim (focus + arrow, 24, pierce 30%) | **Perfect Shot** (I+II+III, 58, pierce 40%, always crits), **Storm of Shafts** (any arrow ×4, 56, stagger 40%) |
+| Warrior | Crushing Blow (overhead ×2, 30), Wide Sweep (side ×2, 24, stagger 25%), Earthshaker (overhead ×3, 46, stagger 40%), Riposte (block ×2, 20 shield, reflect 50%), Second Wind (heal + block, 12 heal + 10 shield), Executioner (any swing ×2 + any strike, 44, +missing HP ÷ 5) | **Warlord's Answer** (any swing ×3 + block, 58, 14 shield, stagger 35%), **Blood Tide** (any swing ×4, 68, lifesteal) |
+| Rogue | Flurry (slash ×2, 22), Opening Cut (slash + throw, 22, bleed 6×2), Twin Fang (throw ×2, 26, bleed 8×3), Shadowstep (evade + strike, 22, +15% evade), Patch Up (heal ×2, 20), Hemorrhage (throw + slash ×2, 36, bleed 8×2, +2/bleed stack) | **Vanishing Strike** (evade + throw + slash, 44, bleed 6×3, always crits), **Thousand Cuts** (slash ×3, 40, bleed 10×3) |
+| Magician | Fireball (fire ×2, 26, burn 4×2), Ice Blast (frost ×2, 22, stagger 45%), Chill Ward (frost + life, 10 heal + 14 shield), Life Siphon (arcane + life, 20, lifesteal), Kindle (zap + any rune, 20), Blink (evade + block, 10 shield, +15% evade) | **Meteor** (fire ×2 + arcane, 50, burn 6×3), **Arcane Storm** (3 different runes, 44, burn 4×2, stagger 30%) |
 
-**Warrior** — momentum and walls
-| Combo | Recipe | Effect |
-|---|---|---|
-| Crushing Blow | Overhead ×2 | 38 |
-| Cleaving Follow-Through | Overhead → Side | 34, **+12 to next turn's first swing** |
-| Rising Guillotine | Side → Overhead | 36, pierce 50% |
-| Earthshaker | Overhead ×3 | 62, stagger 40% |
-| Executioner | Over → Over → Side | 52 + (missing enemy HP ÷ 5) |
-| **Whirlwind Crush** | Over → Side → Over | **72**, +3 stamina, stagger 30% |
-| Riposte | Parry ×2 | blocks everything, **reflects 100%** |
-| Fortress | Block ×3 | blocks everything, reflects 50% |
-
-**Rogue** — bleed and vanishing
-| Combo | Recipe | Effect |
-|---|---|---|
-| Flurry | Slash ×2 | 22, +2 stamina |
-| Opening Cut | Slash → Throw | 28, bleed 6×2, **marks +25%** |
-| Cutthroat | Throw → Slash | 26 **+2 per enemy bleed stack** |
-| Twin Fang | Throw ×2 | 34, bleed 10×3 |
-| Thousand Cuts | Slash ×3 | 42, bleed 8×3 |
-| **Vanishing Strike** | Dodge → Throw → Slash | **60, always crits**, blocks everything |
-| Untouchable | Dodge ×3 | blocks everything, +3 stamina |
-
-**Magician** — runes into spells
-| Combo | Recipe | Effect |
-|---|---|---|
-| Fireball | Fire ×2 | 34, burn 6×3 |
-| Ice Blast | Frost ×2 | 28, stagger 45% |
-| Steam Burst | Fire → Frost | 30, stagger 30% |
-| Life Siphon | Arcane → Life | 26, lifesteal |
-| Amplify | Arcane → any rune | 30, +2 stamina |
-| **Meteor** | Fire → Fire → Arcane | **68**, burn 10×3 |
-| **Arcane Storm** | 3 *different* runes | **58**, burn 6×2, stagger 30% |
-| Arcane Shield | Ward ×2 | 26 block |
-
-**Items (every class)** — Detonate (Bomb×2, 48 + burn 8×2), Vanish (Smoke×2, blocks all), Venom Coat (Poison×2, 10×3), Great Draught (Elixir×2, heal 30), Blinding Blast, Toxic Blast, Quick Sip.
-
-**Items blended with gear** — items no longer only combo with themselves. `.anyStrike`
-wildcards let a pickup chain into whatever weapon you carry: Breach and Strike (Bomb →
-strike, 38 pierce 50%), Envenomed Edge (Poison → strike), Smoke and Steel (Smoke →
-strike), Steadied Draught (Elixir → Heal → strike), Demolition (Bomb → strike → strike,
-58), Ambush (Smoke → strike → strike, 52 + mark), Alchemist's End (Poison → Bomb → strike
-→ strike, 74), Fortified Guard (Elixir → Smoke → Energize, blocks all).
-
-**Blended weapon × armour chains** — because every class always carries the same weapon
-and armour, each class gained several 3- and 4-face recipes that open with an armour face
-and pay off with the weapon: Archer's Hunter's Cycle (Dodge → Arrow I → II → III, 76),
-Warrior's Warlord's Answer (Taunt → Block → Overhead → Side, 82), Rogue's Death of a
-Thousand (Dodge → Slash → Throw → Slash, 72), Magician's Channelled Tempest (Channel →
-3 distinct runes, 84).
+**Items (every class)** — Detonate (bomb ×2, 36 + burn 5×2), Venom Coat (poison ×2, poison 8×3),
+Steadied Strike (heal + strike, 16 + 14 heal), Breach and Strike (bomb + strike, 28, pierce 50%),
+Envenomed Edge (poison + strike, 18, poison 6×3), Blinding Blast (evade + bomb, 26, +20% evade).
 
 ### Damage bonuses stacked on top
 
-1. **Warrior momentum** — `attacksSoFar × 5`, counted per attack already resolved *this turn*. Applies to attack steps only, and is consumed by the step that uses it.
-2. **Momentum carry** — Cleaving Follow-Through banks +12 into next turn's first swing.
+1. **Warrior momentum** — `attacksSoFar × 5`, counted per attack already resolved *this turn*. Applies to attack steps only.
+2. **Momentum carry** — momentum recipes bank damage into next turn's first swing.
 3. **Focus** — a Focus face banks +5 onto the next attack step in the plan.
-4. **Scaling flags** — `scalesWithBleed` (+2/stack), `scalesWithWounds` (+missing HP ÷5), `scalesWithBurn` (+3/stack), `scalesWithBlock` (heal + block held).
+4. **Scaling flags** — `scalesWithBleed` (+2/stack), `scalesWithWounds` (+missing HP ÷5), `scalesWithBurn` (+3/stack).
+5. **God primes** — flat (`primeDamage`) and percentage (`primePercent`) bonuses banked onto the next damaging action; **percentages add, nothing compounds**, and unspent primes expire after your next player turn.
 
 ### How damage lands on the enemy (`damageEnemy`)
 
 ```
 raw × mark  →  pierce ignores (block × pierce)  →  remaining block absorbs
     →  pierce ignores (armourMax × pierce)  →  remaining armour absorbs
-    →  the rest hits HP  →  Sobek blood-tithe heals you
+    →  the rest hits HP
 ```
 
 - All damage is routed to the **aimed foe** (`aimedFoe`); if your target died mid-turn, the aim slides to the nearest living foe.
 - `mark` is a one-shot multiplier and is **consumed by the next hit** (reset to 1.0), per foe.
-- Mark does **not** apply to bleed/poison/burn ticks.
-- **Armour** sits between block and HP: direct hits chip it first, and pierce ignores a fraction of it exactly as it does block. Statuses never touch it. Armour never regenerates. When the plate shatters there is an `ARMOUR BROKEN` floater, a screen kick and a heavy haptic.
+- Mark does **not** apply to bleed/poison/burn ticks or judgement detonations.
+- **Armour** sits between block and HP: direct hits chip it first, and pierce ignores a fraction of it exactly as it does block. Statuses never touch it. Armour never regenerates.
 - Enemy block from last turn is still standing during your turn, and is wiped for every living foe at the start of the enemy turn.
 
 ---
@@ -385,7 +331,9 @@ raw × mark  →  pierce ignores (block × pierce)  →  remaining block absorbs
 - A critical combo adds **+1 turn** to bleed/poison/burn duration.
 - **Statuses seep under armour** — they tick health directly and never touch the plate.
 - Player bleed is only applied **if the enemy actually landed a hit** (`landedAnyHit`), and it overwrites rather than refreshing.
-- Devotion modifies statuses at the moment they are applied (see §7).
+- Ra's burn caps at **12 stacks**; Sobek's bleed refreshes rather than stacking.
+- **Anubis's judgement** is stored per foe (`EnemyState.judgementAmount/pending`) and
+  detonates against health at the end of your next player turn (`detonateJudgements`).
 - In packs, **every foe carries its own statuses** — they are applied to the aimed foe only.
 
 ---
@@ -398,7 +346,8 @@ raw × mark  →  pierce ignores (block × pierce)  →  remaining block absorbs
 2. Bleed → poison → burn tick **per foe**, in that order, each decrementing its own counter. A death here ends the fight immediately (victory needs every foe dead).
 3. **Each living foe then acts, one after another**, in the order they rose: its telegraphed `intent` move executes — block first, then heal, then attacks.
 4. Damage is computed once per foe, then **split across the number of attack faces in the move** (remainder goes on the first hit).
-5. Full block and reflect clear **after every foe has acted**, so a full guard covers the whole pack's incoming turn.
+5. **Evade clears** after every foe has acted, and Bes's *Unbroken House* retaliates for
+   half of what your shield absorbed (up to 20) at whoever hit you hardest.
 
 **Total attack damage per foe** = `move.damage + heat`, where `heat = heatPerTurn × (turnNumber − 1)`, per foe.
 Only two enemies have heat: **Nehebkau (4/turn)** and **Apep (2/turn)**. Stagger then multiplies by `(1 − stagger)` and is consumed, per foe.
@@ -406,14 +355,13 @@ Only two enemies have heat: **Nehebkau (4/turn)** and **Apep (2/turn)**. Stagger
 **Per-hit defence order:**
 
 ```
-Full block active?  → absorbed entirely (and reflect fires)
-Evade stack?        → consumed, hit avoided
-Agility roll?       → agility% flat chance to dodge
-Player block?       → absorbs up to its value
-Otherwise           → HP loss
+Evade roll?         → Double.random < evadeChance — hit avoided, first-evade rewards fire
+Player shield?      → absorbs up to its value (persists across turns)
+Otherwise           → HP loss (Nine Lives Unbound can catch a lethal hit)
 ```
 
-Agility by class: Rogue 18%, Archer 12%, Magician 8%, Warrior 5%.
+Evade chance stacks to a **60% ceiling** (`GameData.evadeCeiling`) and clears after the
+enemy turn. The old full-block ("blocks everything") and agility rolls are gone.
 
 **Intent** is picked by weighted random at the start of your turn, from whichever stage is active, **per living foe** — so what you see telegraphed is what will happen, one capsule per foe above the arena.
 
@@ -424,7 +372,7 @@ Agility by class: Rogue 18%, Archer 12%, Magician 8%, Warrior 5%.
   rehearsal foe on the practice bank — no damage, no armour, no scaling, 56 HP so every class
   lands chains against something real. Its spoils are **three random relics to choose from**
   (`RelicContent`, one equips into the item slot with its three dice), and **no god attends**
-  that first water's edge — no blessing offers, no devotion. The gods start meeting you from
+  that first water's edge — no god attends. The gods start meeting you from
   the second fight onward.
 - Each member arrives as `EnemyDef.packMember()`: **HP ×0.55**, **gold ×0.7** — so a trio is
   much less than double a solo fight.
@@ -440,6 +388,9 @@ Agility by class: Rogue 18%, Archer 12%, Magician 8%, Warrior 5%.
 | Fire (5–8) | Ember Wraith 106, Flamekeeper 132, Ash Jackal 148 | Bronze Effigy 160, armour 34 | **Nehebkau** 262, heat 4 |
 | Coils (9–12) | Devourer Spawn 172, Shadow of the Uncreated 190, Hour-Eater 208 | Boneplate Devourer 200, armour 42 | **Apep** 420, heat 2, 3 stages |
 
+All HP below is the raw table; `GameData.enemyHealthTune` (**×1.12**) is applied in
+`EnemyDef.init` to hold fight length against the stronger solo attacks.
+
 Mid-hour and prep fights draw from the current gate's roster (guardians **and** heavies), so hour 1 and hour 3 can throw the same creature.
 
 **Heralds** (`EnemyDef.herald()`) are a gate creature with: HP ×1.45, damage ×1.3, block ×1.3, gold ×1.8.
@@ -452,53 +403,60 @@ Mid-hour and prep fights draw from the current gate's roster (guardians **and** 
 
 ## 7. The gods
 
-**Files:** `Models/Deity.swift`, `Models/FaceMark.swift`, `Content/GiftContent.swift`, `Content/DuoContent.swift`, `Content/DivineContent.swift`
+**Files:** `Models/Deity.swift`, `Models/GodKit.swift`, `Models/PairingContent` (in GodKit.swift)
 
 Six gods: **Ra, Sobek, Anubis, Bes, Horus, Bastet**.
 
-### Gifts, not overwrites
+### Patron dice, not face gifts
 
-**A god never takes a face away.** Their named **gift** is laid on top of a face you already own (`Models/FaceMark.swift`): the face keeps its kind, its numbers and every chain it fed, and the gift's `DivineFaceEffect` rides on top whenever the face plays, solo or inside a chain. A fire arrow is still an arrow.
+**A god claims a whole die** (`Die.patron`) and never touches its faces. The claim means
+their **blessing answers every face that die plays**, read by what the face is:
 
-**Seventy-two gifts** (`Content/GiftContent.swift`): each god carries **twelve** — four for attacks, four for guards, four for mends & support — and the four pull in different directions (Ra attacks: Fire Arrows / Piercing Ray / Sun-Hardened / Blinding Flare; Sobek: flood-pierce / bleed jaws / lifesteal / ambush stagger; and so on). All four read the same god, so following a god twice does not mean the same run twice.
+- Attack faces → the **attack** answer. **Block** faces → the **block** answer.
+  **Evade** faces → the **evade** answer. Everything else → the **support** answer.
+- Each answer fires **once per role per action** (`resolveBlessings`), chains included —
+  a long chain does not multiply a god's patience.
+- A claim is laid through a **patron offer** (shrines, occasional post-battle favour, the
+  Standing Idol omen). Replacing a patron only happens through explicit replace cards.
 
-### Deepening, and being stuck
+The old seventy-two named face gifts, their three-step deepening, the devotion ladder and
+the eighteen devotion combos are **gone** — gods speak through blessings, upgrades and
+capstones now.
 
-A gift **deepens three times on the same face**: **touched → deepened → named final form** (e.g. Ra's Fire Arrows ends as *Solar Flare*). Depth 1/2/3 also weights devotion. Once a face carries a gift it carries that gift. The only way out is a rare **replace offer** (12% of shrines when you carry any gift): it burns whatever the face carries and lays the new gift at **touched**, losing all prior depth.
+### The six blessings (per answer, once per role per action)
 
-The pick-a-face screen dims faces held by another god with their sigil. An offer card names the gift, prints its touched effect, and counts how many of your faces can take it — pick the card, then the face.
+| God | Attack | Block | Evade | Support |
+|---|---|---|---|---|
+| Ra | burn 2 | +4 shield | burn 2 on attacker | prime 3 burn |
+| Sobek | bleed 4 | +4 shield | heal 3 | prime 5 heal |
+| Anubis | 6 judgement | +4 shield | 4 judgement | prime 6 damage |
+| Bes | +3 shield | +5 shield | prime 8 damage | +4 shield |
+| Horus | pierce 20% | +4 shield | prime +15% | prime +15% |
+| Bastet | +4 damage | +3 shield | +8% evade (once/turn) | prime 4 damage |
 
-### Riders, duos and the pantheon flourish
+Ra's burn caps at **12 stacks**; Sobek's bleed **refreshes to the stronger value** rather
+than stacking; Anubis's **judgement** stores damage (cap 30 per enemy) that **detonates
+against health at the end of your next turn** — additions join the pile without delaying it.
 
-When a chain fires, the chain's own effect lands first, then **every gifted face in the chain speaks in turn** (`resolveGiftRiders`), each announced on its own, scaled by `GameData.comboRiderScale` — deliberately gentler than the chain's own length curve (cap 1.6).
+### Upgrades and capstones
 
-- **Two different gods in one chain** fire their named **duo** (`DuoContent.bestDuo`, weighted by face support) as a bonus rider — the *chained* (weaker) version.
-- **Three or more different gods** trigger the **pantheon flourish**: every rider in the chain is multiplied by `GameData.pantheonFlourish` (1.5), with a screen-wide shake.
-- A **bound face** (see below) fires its duo at **full strength every play**, solo or chained (`applyGiftRider`).
+- **Four upgrades per god** (`GodKit.upgrades`), each earned **once** and each needing a
+  blessed die of that god. Upgrades tied to a god you no longer carry **go quiet**
+  (`GameManager.activeUpgrades`) rather than disappearing.
+- **One capstone per run**, unlocked by two upgrades of that god (`GodKit.capstoneUnlocked`):
+  Ra *Solar Flare* (detonate burn for 3/stack, once a turn), Sobek *Jaws of the Nile*
+  (bite a bleed early, heal up to 8), Anubis *Final Verdict* (×2 vs low ordinary foes, ×1.5
+  vs bosses), Bes *Unbroken House* (retaliate half of what your shield absorbed, up to 20),
+  Horus *Eye of the Falcon* (a held-Horus chain with a crit ignores all defences), Bastet
+  *Nine Lives Unbound* (once a battle, a lethal hit leaves you at 1 HP with near-certain evade).
 
-### Duo gods
+### Fifteen pairings
 
-**Fifteen named duos** (`Content/DuoContent.swift`), one per pair of gods. Two routes:
-- **Chained** — get both gods' gifted faces into one chain and the duo fires as a taste on top.
-- **Bound** — a rare **dual-god rite** (`OfferKind.rite`, 35% of shrines + the Standing Idol omen) marries the second god into a face already carrying the first. A bound face counts toward **both** gods' devotion, feeds both gods' chains, and fires the duo's *bound* (full-strength) version every single play.
-
-### Devotion opens each god's own chains
-
-**Devotion = the sum of gift depths** carried for that god (a final-form face counts 3), counted across every die; a rite partner counts 1.
-
-| Devotion | Tier | Effect |
-|---|---|---|
-| 2 | Passive | Rung-1 chain unlocked (Ra *Kindling*, Sobek *Rising Water*, Anubis *The First Toll*, Bes *The Loud House*, Horus *The Perch*, Bastet *Whisker-Twitch*) + the small passive (Ra burns +1 turn, Sobek +3 HP per hit dealt, Anubis poison +2, Bes open with 8 block, Horus +4% crit, Bastet open with 1 evade) |
-| 3 | Deeper | Rung-2 chain unlocked (*Solar Wind*, *The Drowning*, *Weighing of Hearts*, *Drums in the Dark*, *The Stooping Falcon*, *The Prowl*) + the deeper passive |
-| 5 | Signature | That god's signature chain (*Procession of Ra*, *Jaws of the Nile*, *The Final Verdict*, *House of Joy*, *Eye of the Falcon*, *Nine Lives Unbound*) |
-
-Ladder rungs are gated in `GameData.divineCombos` (`devotionRequired`) and **scale with the devotion standing behind them**: `GameData.devotionChainScale` adds +7% per devotion point past the rung, capped ×1.5 — the same Kindling at seven Ra hits harder than at two. Rungs stay unlocked only while the devotion holds; reforging a gifted face away can drop you below a rung.
-
-Devotion passives are baked in at `BattleEngine.init` — Bes block and Bastet evades are already on the board before your first roll. Horus's crit is folded into `critBonus`, so it raises **every** face.
-
-**Gifted faces do double duty in combos** (`FacePattern.matches(_:mark:)`, `ComboDef.matches(_:marks:)`): they still satisfy every exact and family slot they fed before, *and* they now fill divine slots — "any Ra gift" reads a Ra-gifted arrow, "a face carrying Fire Arrows" reads that exact gift, "any gifted face" reads any mark. **The Ennead** (three faces, three different gods) can be assembled entirely from gifts.
-
-**Divine combos** come in four layers: one per god per class (e.g. Sunfire Arrow, Crocodile Grip, Solar Nova) — all rewritten to read specific *gifts* instead of the retired relic faces — cross-god fusions (Pyre Strike, Boiling Nile, **The Ennead**), the **twelve ladder rungs**, and the six devotion-gated signatures.
+**One pairing per run**, unlocked by carrying **one upgrade from each of two gods**
+(`GameManager.pairingReady`), firing **at most once per turn** while both gods stay
+equipped (`PairingContent.pairings`): Boiling Nile, Funeral Pyre, Forge Song, Sunstrike,
+Dancing Flame, The Crossing, Crocodile Hide, Reed and Sky, Death Roll, Guardian of the
+Tomb, The Weighing Eye, Borrowed Life, Watchful Guardian, Warm Doorstep, Silent Descent.
 
 ---
 
@@ -511,9 +469,15 @@ Devotion passives are baked in at `BattleEngine.init` — Bes block and Bastet e
 | Mooring — rest | `max(20, maxHP × 0.35)` |
 | Mooring — whetstone | one free reforge |
 
-**Reward screen** is always **3 cards**: named-gift offers, the first always the visiting god's, later cards theirs 58% of the time and otherwise a random god's. Serpent-lords **always** drop a relic die; heralds drop one **38%** of the time; **packs** teach you the river's name a little more often (10% for pairs, 16% for trios); the relic die takes one of the three slots. Shrines lay out two gifts of their god plus either a **dual-god rite** (35%) or a third gift — and, 12% of the time when you carry gifts, a **replace offer** that burns one face's gift and lays a fresh one.
+**Reward screen** is always **3 usable cards**. After a fight a god visits only **28%** of
+the time (`makeGodFavourOffers`: a patron claim on an unblessed die, upgrades, a capstone
+once unlocked, or a ready pairing — mundane fills top up any shortfall); the other **72%**
+are the river's own (`makeMundaneSpoils`): Grave-Goods gold, Bandages and Beer healing, and
+**18%** a face reforge. Serpent-lords **always** drop a relic die; heralds drop one **38%**
+of the time; **packs** add to those odds (10% for pairs, 16% for trios).
 
-**Shrines** hold 3 gift cards, all dominated by the presiding god.
+**Shrines** are the reliable place to receive a god's favour: three cards from that god
+(`makeGodFavourOffers`), plus the Breath of Ra **15%** of the time while the run has room.
 
 **Ferryman** stocks 5 rolled offers (30% reforge / 28% imbue / 20% item / 22% restorative), a relic 26% of the time, plus a flask. Prices: `base × rarityMultiplier` rounded to 5, where multipliers are 1.0 / 1.6 / 2.4 / 3.6.
 
@@ -539,38 +503,37 @@ Ranked by how much they move the feel of a fight.
   budget, now also the only guarantee a face returns once the pool deepens. Each freeze is a
   *net extra face* (the die still rolls, and sits out the next draw).
 - `GameData.diceDrawCount` (6) — how many dice hit the table from the ten you carry.
-- Class `maxStamina` in `GameData.classes` (3, Rogue 4) plus `GameData.maxStaminaGrants`
+- Class `maxStamina` in `GameData.classes` (4, Rogue 5) plus `GameData.maxStaminaGrants`
   (2) — the bar carries over and recovers +2 a turn, so this is the steady-state ceiling.
   Breath of Ra cards (spoils ~20%, shrines ~15%, Ferryman ~30% priced at the rare tier)
   raise it permanently, capped two points above the class.
 - `GameData.staminaRecoveryPerTurn` (2) — how fast a spent bar comes back. Raised from 1 so all-in turns cost at most two turns of runway; at 1, combo banks were the real income.
 - `GameData.comboStaminaBank` (0 for a pair, +1 from 3 faces up) — deliberately tiny. Raising it back toward +1/+2/+3 makes chains self-sustaining and the bar irrelevant; this is the dial that decides whether stamina is a real constraint.
 - `GameData.comboStaminaCost` — the fusion discount, now the *main* reason a long chain is affordable at all.
-- `nextTurnStamina` sources (Focus, Energize/Channel, gift riders, duos, and the single chain point) are the only way above the cap, and only for one turn. Recipes' printed `staminaNext` is ignored by the engine.
+- `nextTurnStamina` sources (Focus, Energize/Channel, god blessings, and the single chain point) are the only way above the cap, and only for one turn.
 
-**Gift power curve**
-- `GameData.comboRiderScale` (cap 1.6) — how hard gift riders inside a chain scale with chain length and crit dice. This is the guardrail that keeps a five-chain of gifted faces strong rather than run-ending.
-- `GameData.pantheonFlourish` (1.5) — the three-different-gods payoff. Raising it makes mixed pantheon builds competitive with single-god devotion.
-- `GameData.devotionChainScale` (+7%/point past the rung, cap 1.5) — how much a god's own chain grows with the devotion behind it. This is the single biggest power curve in the game.
-- Gift depth values in `Content/GiftContent.swift` — 72 entries × 3 depths. Depth 3 (final forms) are deliberately the strongest riders in the game.
+**God power curve**
+- Blessing values in `GodKit.blessing(for:role:)` — six gods × four answers. These fire every turn; small nudges move everything.
+- Upgrade strength in `GodKit.upgrades` and the six capstones — earned once each, so they are one-time power spikes rather than curves.
+- Pairing trigger odds live in the once-per-turn flags (`pairingFiredThisTurn` and friends) in `BattleEngine` — raising them to per-action would double god output.
 
 **Length of a fight**
 - Enemy `maxHP` in `EnemyContent` versus your combo damage. Right now a Warrior hitting Whirlwind Crush (72, 144 on crit) can two-turn a Reed Lurker but needs ~6 clean turns on Apep.
 - `heatPerTurn` — currently only on two bosses. Adding 1–2 to late guardians would punish stalling everywhere.
-- Post-fight heal (8 HP) and `rest` heal (35%) — the attrition curve across an hour.
+- Post-fight heal (0 HP — `GameData.postBattleHeal`) and `rest` heal (35%) — the attrition curve across an hour; the mundane spoil's heal and the Ferryman's flask are the mid-hour comeback.
 
 **Solo vs chain power**
-- `GameData.soloAttackScale` (0.4) and `soloGuardScale` (0.9) — how hard a lone face is cut.
-  Guards, heals and venom played alone keep almost everything; attacks stay chip. Raising
-  the attack scale restores the old "any face is a play" feel.
-- `GameData.comboLengthScale` (1.0 / 1.4 / 1.8 / 2.2) — the whole reason to build long. Flattening it makes two-face pairs competitive again; steepening it makes 4-face chains mandatory.
-- Because solos were cut and chains raised, **enemy damage is calibrated against chain output**. If the solo scales move, re-check `GameData.enemyDamageBonus(hour:)` (now 0/1/3/6 by gate depth, up from 0/1/2/4) and `enemyDamageScale` (now 1.0/1.15/1.25) — both were re-tuned upward to hold fight length against the wider draw, the second hold, and the Breath of Ra ceiling.
+- `GameData.soloAttackScale` (0.65) and `soloGuardScale` (0.9) — how hard a lone face is cut.
+  Guards, heals and venom played alone keep almost everything; attacks keep two thirds. Lowering
+  it back toward 0.4 restores the old chip-damage feel.
+- Recipe damage values in the four content files — chains print their own value now. Raising a signature's printed damage is the lever a length multiplier used to be.
+- Because solos were raised and length multipliers removed, **enemies carry ×1.12 health** (`GameData.enemyHealthTune`) and `GameData.enemyDamageBonus(hour:)` (2/3/4/6 by depth) with `enemyDamageScale` (1.0/1.15/1.25) calibrate pressure. If the solo scale moves, re-check both.
 
 **How swingy it feels**
-- `faceCritMultiplier` 1.5 vs `comboCritMultiplier` 2.0 — the gap is the whole incentive to chain.
+- `faceCritMultiplier` 1.5 vs `comboCritMultiplier` 2.0 — the gap is the main incentive to chain, now that length no longer multiplies.
 - `GameData.critComboWeight` (0.15) — flat weight each crit die adds inside a chain, independent of whether the chain itself crits. This is what stops a crit being wasted in a combo.
 - `comboCritChance` (35/70/85) — one crit die giving a 35% shot at double damage is the single biggest variance source in the game.
-- `DieFace.critCap` 0.75 and the `blessedCrit` cap of 0.40.
+- `DieFace.critCap` 0.75 — imbues and Horus's Wind-Reader are the only crit faucets.
 
 **Route shape**
 - `Voyage.stagesPerHour` (4) — the 48-stage run length. Three would make the night much tighter.

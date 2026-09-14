@@ -5,13 +5,18 @@ import Observation
 enum PendingSelection: Equatable {
     /// Reforge one face of your choice into this kind.
     case reforge(FaceKind, title: String)
-    /// Reroll every face the gods have not claimed on one die of your choice.
+    /// Reroll every face on one die of your choice.
     case reforgeDie(title: String)
-    /// Lay a god's named gift on one face — deepening the same gift on a face
-    /// that already carries it, or (rarely) replacing whatever it carries.
-    case gift(GiftDef, replace: Bool, title: String)
-    /// Bind a second god onto a face that is unclaimed or marked by the first.
-    case rite(primary: Deity, secondary: Deity, title: String)
+    /// A god claims one of your dice as its patron. `replace` marks the rare
+    /// explicit card that may take a die away from another god.
+    case patron(Deity, replace: Bool, title: String)
+    /// Take one of a god's upgrades. Needs a blessed die of that god.
+    case upgrade(GodUpgrade, title: String)
+    /// Commit to a capstone — one per run. Needs two upgrades of that god.
+    case capstone(GodCapstone, title: String)
+    /// Commit to a pairing — one per run. Needs both gods blessed and an
+    /// upgrade from each.
+    case pairing(PairingDef, title: String)
     /// Raise one chosen face's crit chance by this much.
     case imbue(Double, title: String)
     /// You are at the dice cap — pick which die this one replaces.
@@ -45,6 +50,12 @@ final class GameManager {
     private(set) var critBonus = 0.0
     /// Permanent turn-capacity gains taken this run, from Breath of Ra cards.
     private(set) var staminaBonus = 0
+    /// Upgrades earned this run, by id. Quiet for gods you no longer carry.
+    private(set) var acquiredUpgrades: Set<String> = []
+    /// The capstone this run committed to, if any — one per run.
+    private(set) var capstoneID: String?
+    /// The pairing this run committed to, if any — one per run.
+    private(set) var pairingID: String?
     private(set) var totalDamage = 0
     private(set) var totalCombos = 0
     private(set) var totalCrits = 0
@@ -151,14 +162,66 @@ final class GameManager {
         availableNodes.contains { $0.id == node.id }
     }
 
-    /// How many faces of each god you carry, across every die.
-    var devotion: [Deity: Int] { Devotion.counts(loadout) }
-
-    /// Gods you follow, strongest first.
-    var followedDeities: [(deity: Deity, count: Int)] {
-        devotion.map { (deity: $0.key, count: $0.value) }
-            .sorted { $0.count == $1.count ? $0.deity.rawValue < $1.deity.rawValue : $0.count > $1.count }
+    /// Gods with a claim on dice you carry.
+    var patrons: Set<Deity> {
+        Set(allDice.compactMap(\.patron))
     }
+
+    /// Gods you follow, by number of claimed dice, strongest first.
+    var followedDeities: [(deity: Deity, dice: Int)] {
+        var counts: [Deity: Int] = [:]
+        for die in allDice {
+            if let patron = die.patron { counts[patron, default: 0] += 1 }
+        }
+        return counts.map { (deity: $0.key, dice: $0.value) }
+            .sorted { $0.dice == $1.dice ? $0.deity.rawValue < $1.deity.rawValue : $0.dice > $1.dice }
+    }
+
+    /// Upgrades that are live right now: earned, and their god still carries
+    /// a die. Upgrades tied to a god you no longer carry go quiet.
+    var activeUpgrades: Set<String> {
+        let gods = patrons
+        return Set(acquiredUpgrades.filter { id in
+            GodKit.upgrades.first { $0.id == id }.map { gods.contains($0.deity) } ?? false
+        })
+    }
+
+    /// The capstone this run is riding, if its god is still equipped.
+    var activeCapstone: GodCapstone? {
+        guard let capstoneID,
+              let capstone = GodKit.capstones.first(where: { $0.id == capstoneID }),
+              patrons.contains(capstone.deity) else { return nil }
+        return capstone
+    }
+
+    /// True when at least one earned upgrade belongs to this god.
+    func carriesUpgrade(of deity: Deity) -> Bool {
+        GodKit.upgrades(for: deity).contains { activeUpgrades.contains($0.id) }
+    }
+
+    /// True when the pairing's conditions hold right now: both gods blessed
+    /// and at least one upgrade from each.
+    func pairingReady(_ pairing: PairingDef) -> Bool {
+        patrons.contains(pairing.first) && patrons.contains(pairing.second)
+            && carriesUpgrade(of: pairing.first) && carriesUpgrade(of: pairing.second)
+    }
+
+    /// The pairing this run is riding, if its conditions still hold.
+    var activePairing: PairingDef? {
+        guard let pairingID,
+              let pairing = PairingContent.pairings.first(where: { $0.id == pairingID }),
+              pairingReady(pairing) else { return nil }
+        return pairing
+    }
+
+    /// A capstone may be taken once two upgrades of its god are earned and a
+    /// blessed die of that god is carried.
+    func capstoneUnlocked(_ capstone: GodCapstone) -> Bool {
+        GodKit.capstoneUnlocked(capstone, upgrades: activeUpgrades) && patrons.contains(capstone.deity)
+    }
+
+    /// Dice that could still take a first patron.
+    var unblessedDice: [Die] { allDice.filter { $0.patron == nil } }
 
     /// Where the finished run placed, if it made the table.
     var latestRank: Int? {
@@ -177,6 +240,9 @@ final class GameManager {
         gold = 40
         critBonus = 0
         staminaBonus = 0
+        acquiredUpgrades = []
+        capstoneID = nil
+        pairingID = nil
         totalDamage = 0
         totalCombos = 0
         totalCrits = 0
@@ -233,28 +299,14 @@ final class GameManager {
         }
     }
 
-    /// A god holds court on the bank: a wider spread of their favours, plus a
-    /// rare rite that binds a second god into one face.
+    /// A god holds court on the bank. Shrines are the reliable place to
+    /// receive a god's favour: a patron claim, upgrades, a capstone once it
+    /// is unlocked, or the pairing with a god you already follow.
     private func enterShrine() {
         let deity = Deity.allCases.randomElement() ?? .ra
         visitingDeity = deity
         isShrine = true
-        var offers = makeBlessingOffers(deity: deity, count: 2, progress: progress)
-        if Int.random(in: 0..<100) < 35,
-           let partner = Deity.allCases.filter({ $0 != deity }).randomElement() {
-            offers.append(makeRiteOffer(primary: deity, partner: partner))
-        } else {
-            offers.append(makeGiftOffer(GiftContent.gifts(deity).randomElement() ?? GiftContent.all[0]))
-        }
-        // Rarely, a shrine offers the knife as well as the gift: burn whatever
-        // a face carries and lay a fresh gift down, losing all its depth.
-        // Rarely a shrine offers the knife as well as the gift: burn whatever
-        // a face carries and lay a fresh gift down, losing all its depth.
-        if carriesAnyGift, Int.random(in: 0..<100) < 12,
-           let carried = followedDeities.first?.deity,
-           let fresh = GiftContent.gifts(deity).randomElement() {
-            offers.append(makeGiftOffer(fresh, replace: true, replacingDeity: carried))
-        }
+        var offers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
         // Occasionally a shrine offers the Breath of Ra while the run has
         // room for one.
         if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 15 {
@@ -263,11 +315,6 @@ final class GameManager {
         rewardOffers = offers
         statusMessage = deity.greeting
         withAnimation { screen = .reward }
-    }
-
-    /// True when any face in the loadout carries a god's gift.
-    private var carriesAnyGift: Bool {
-        loadout?.allDice.contains { die in die.faces.contains { $0.mark != nil } } ?? false
     }
 
     private func enterBattle() {
@@ -298,7 +345,10 @@ final class GameManager {
             maxStamina: effectiveMaxStamina,
             hour: node.hour,
             critBonus: critBonus,
-            devotion: devotion
+            patrons: patrons,
+            upgrades: activeUpgrades,
+            capstoneID: activeCapstone?.id,
+            pairing: activePairing
         )
         withAnimation { screen = .battle }
     }
@@ -370,10 +420,6 @@ final class GameManager {
             return
         }
 
-        // A god comes to the water's edge after every fight.
-        let deity = Deity.allCases.randomElement() ?? .ra
-        visitingDeity = deity
-        isShrine = false
         let kind = activeNode?.kind
         // Serpent-lords always give up a relic die; the hour's herald sometimes
         // does. Packs of the river teach you its name a little more often. It
@@ -383,16 +429,71 @@ final class GameManager {
             || (kind == .herald && Int.random(in: 0..<100) < 38)
             || (kind == .battle && Int.random(in: 0..<100) < packRelicOdds)
         let relic = dropsRelic ? makeRelicOffer(progress: progress, priced: false) : nil
-        var spoils = makeBlessingOffers(deity: deity, count: relic == nil ? 3 : 2, progress: progress)
+
+        // A god comes to the water's edge only sometimes now — shrines are
+        // where they reliably hold court. Most spoils are the river's own:
+        // gold, a little health, rarely a face change.
+        var spoils: [Offer]
+        if Int.random(in: 0..<100) < 28 {
+            let deity = Deity.allCases.randomElement() ?? .ra
+            visitingDeity = deity
+            isShrine = false
+            spoils = makeGodFavourOffers(deity: deity, count: relic == nil ? 3 : 2, progress: progress)
+        } else {
+            visitingDeity = nil
+            isShrine = false
+            spoils = makeMundaneSpoils(count: relic == nil ? 3 : 2)
+        }
         if let relic { spoils.append(relic) }
-        // Rarely the river breathes: a card that permanently widens the bar,
-        // at the cost of the blessing beside it.
-        if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 20 {
+        // Rarely the river breathes: a card that permanently widens the bar.
+        if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 14 {
             spoils.append(makeBreathOffer(priced: false))
         }
         rewardOffers = spoils
         statusMessage = "+\(earned) gold · \(currentHP)/\(maxHP) health"
         withAnimation { screen = .reward }
+    }
+
+    /// The river's own spoils: gold in hand, a little health, or — rarely —
+    /// the chance to change one face on a die. Always three usable choices.
+    private func makeMundaneSpoils(count: Int) -> [Offer] {
+        var offers: [Offer] = []
+        let gold = 25 + Int(progress * 40)
+        offers.append(Offer(
+            name: "Grave-Goods",
+            detail: "+\(gold) gold, pried from the river's leavings.",
+            symbol: "creditcard.fill",
+            rarity: .common,
+            comboHint: "The Ferryman takes gold",
+            price: 0,
+            kind: .gold(gold)
+        ))
+        let heal = 15 + Int(progress * 20)
+        offers.append(Offer(
+            name: "Bandages and Beer",
+            detail: "Restore \(heal) health right now.",
+            symbol: "cross.vial.fill",
+            rarity: .common,
+            comboHint: "Live long enough to combo",
+            price: 0,
+            kind: .heal(heal)
+        ))
+        if Double.random(in: 0..<1) < 0.18,
+           let pick = GameData.faceOffers(classID, Rarity.roll(progress: progress)).randomElement() {
+            offers.append(Offer(
+                name: "Reforge → \(pick.face.label)",
+                detail: "Turn any one face on any die into \(pick.face.label). \(pick.face.soloEffect).",
+                symbol: pick.face.symbol,
+                rarity: .uncommon,
+                comboHint: pick.hint,
+                price: 0,
+                kind: .reforge(pick.face)
+            ))
+        }
+        while offers.count < count, let fill = makeOffer(rarity: Rarity.roll(progress: progress), priced: false, index: offers.count) {
+            offers.append(fill)
+        }
+        return Array(offers.prefix(max(count, 3)))
     }
 
     /// Closes out whatever the barque just did and points it back at the chart.
@@ -501,11 +602,14 @@ final class GameManager {
             grant(die: die.instantiated())
         case .reforge(let face):
             pendingSelection = .reforge(face, title: offer.name)
-        case .gift(let gift, let replace):
-            pendingSelection = .gift(gift, replace: replace, title: gift.name)
-        case .rite(let primary, let secondary):
-            pendingSelection = .rite(primary: primary, secondary: secondary,
-                                     title: "Rite of \(primary.name) & \(secondary.name)")
+        case .patron(let deity, let replace):
+            pendingSelection = .patron(deity, replace: replace, title: offer.name)
+        case .upgrade(let upgrade):
+            applyUpgrade(upgrade)
+        case .capstone(let capstone):
+            applyCapstone(capstone)
+        case .pairing(let pairing):
+            applyPairing(pairing)
         case .imbue(let amount):
             pendingSelection = .imbue(amount, title: offer.name)
         case .item(let item):
@@ -573,9 +677,9 @@ final class GameManager {
         finishSelection("Face reforged into \(kind.label).")
     }
 
-    /// The Ferryman's deep whetstone: every unmarked face on the chosen die is
-    /// rolled anew from the class's pool at the die's rarity. Faces the gods
-    /// have claimed keep their gifts.
+    /// The Ferryman's deep whetstone: every face on the chosen die is rolled
+    /// anew from the class's pool at the die's rarity. The patron claim rides
+    /// through untouched — a new face is the same claim.
     func applyDieReforge(dieID: UUID) {
         guard var loadout, let die = loadout.die(id: dieID) else { return }
         guard let pick = GameData.diceOffers(classID, die.rarity).randomElement()
@@ -584,13 +688,13 @@ final class GameManager {
         var index = 0
         loadout.mutate(dieID: dieID) { target in
             target.faces = target.faces.map { face in
-                guard face.mark == nil, index < fresh.count else { return face }
+                guard index < fresh.count else { return face }
                 defer { index += 1 }
                 return fresh[index]
             }
         }
         self.loadout = loadout
-        finishSelection("\(die.name) is rolled anew — every unclaimed face redrawn at \(die.rarity.label) tier.")
+        finishSelection("\(die.name) is rolled anew — every face redrawn at \(die.rarity.label) tier.")
     }
 
     func applyImbue(dieID: UUID, faceID: UUID, amount: Double) {
@@ -606,64 +710,81 @@ final class GameManager {
         finishSelection("Crit chance now \(Int(newChance * 100))%.")
     }
 
-    /// A god lays a named gift on a face: fresh on an unclaimed face, deeper
-    /// on a face that already carries the same gift, or (rare replace offers)
-    /// burned down and laid anew on a face promised to another god.
-    func applyGift(dieID: UUID, faceID: UUID, gift: GiftDef, replace: Bool) {
+    /// A god claims a die as its patron. The faces never change; the god
+    /// simply answers whatever those faces do from now on. Taking a die from
+    /// another god only happens through the explicit replace cards.
+    func applyPatron(dieID: UUID, deity: Deity, replace: Bool) {
         guard var loadout else { return }
         var line = ""
         loadout.mutate(dieID: dieID) { die in
-            guard let index = die.faces.firstIndex(where: { $0.id == faceID }) else { return }
-            let face = die.faces[index]
-            if let existing = face.mark, existing.deity == gift.deity, existing.giftID == gift.id {
-                guard existing.depth.next != nil else { return }
-                let wasFinal = existing.isFinalForm
-                die.faces[index] = face.deepenedMark()
-                if !wasFinal, die.faces[index].mark?.depth == .finalForm {
-                    line = "\(face.kind.label) becomes \(gift.finalFormName) — \(gift.deity.name)'s final form."
-                } else {
-                    line = "\(gift.name) deepens on \(face.kind.label)."
-                }
-            } else if face.mark == nil {
-                die.faces[index] = face.marked(by: gift)
-                let summary = gift.touched.summary
-                line = summary.isEmpty
-                    ? "\(gift.deity.name) lays \(gift.name) on \(face.kind.label)."
-                    : "\(gift.name) laid on \(face.kind.label) — \(summary)."
-            } else if replace {
-                die.faces[index] = face.marked(by: gift)
-                line = "The old claim burns off \(face.kind.label); \(gift.name) is laid in its place, at its first depth."
+            if let current = die.patron {
+                guard replace, current != deity else { return }
+                die.patron = deity
+                line = "\(die.name) is taken from \(current.name) — \(deity.name) claims it now. \(current.name)'s upgrades go quiet."
+            } else {
+                die.patron = deity
+                line = "\(deity.name) claims \(die.name). Their blessing now answers every face it plays."
             }
         }
         self.loadout = loadout
-        let count = devotion[gift.deity] ?? 0
-        let tier = Devotion.tier(count)
-        if tier > 0, let passive = gift.deity.passives.last(where: { count >= $0.threshold }) {
-            line += " · \(gift.deity.name) \(count) — \(passive.text)"
-        } else if !line.isEmpty {
-            line += " · \(gift.deity.name) \(count)"
-        }
-        finishSelection(line.isEmpty ? "That face cannot take this gift." : line)
+        finishSelection(line.isEmpty ? "That die cannot take this claim." : line)
     }
 
-    /// A dual-god rite: bind the second god into a face already carrying the
-    /// first. A bound face counts for both gods, feeds both gods' chains, and
-    /// fires their named duo at full strength every play.
-    func applyRite(dieID: UUID, faceID: UUID, primary: Deity, secondary: Deity) {
-        guard var loadout else { return }
-        var line = ""
-        loadout.mutate(dieID: dieID) { die in
-            guard let index = die.faces.firstIndex(where: { $0.id == faceID }) else { return }
-            let face = die.faces[index]
-            if let mark = face.mark, mark.deity == primary, mark.rite == nil {
-                die.faces[index] = face.bound(to: secondary)
-                let duo = DuoContent.duo(primary, secondary)
-                line = "\(secondary.name) settles beside \(primary.name) on \(face.kind.label)."
-                if let duo { line += " Their \(duo.name) fires every play." }
+    /// Take one of a god's upgrades. Needs a blessed die of that god.
+    func applyUpgrade(_ upgrade: GodUpgrade) {
+        guard patrons.contains(upgrade.deity) else {
+            finishSelection("That upgrade needs a blessed die of \(upgrade.deity.name)'s.")
+            return
+        }
+        guard !acquiredUpgrades.contains(upgrade.id) else {
+            finishSelection("You have already earned \(upgrade.name).")
+            return
+        }
+        acquiredUpgrades.insert(upgrade.id)
+        var line = "\(upgrade.name) earned — \(upgrade.detail)"
+        if let capstone = GodKit.capstone(for: upgrade.deity),
+           capstoneID == nil, capstoneUnlocked(capstone) {
+            line += " · \(capstone.name) is unlocked."
+        }
+        if pairingID == nil {
+            for pairing in PairingContent.pairings
+            where pairing.first == upgrade.deity || pairing.second == upgrade.deity {
+                if pairingReady(pairing) {
+                    line += " · \(pairing.name) is available."
+                    break
+                }
             }
         }
-        self.loadout = loadout
-        finishSelection(line.isEmpty ? "A rite needs a face that already carries the first god." : line)
+        finishSelection(line)
+    }
+
+    /// Commit to a capstone — one per run.
+    func applyCapstone(_ capstone: GodCapstone) {
+        guard capstoneID == nil else {
+            finishSelection("You have already committed to a capstone this run.")
+            return
+        }
+        guard capstoneUnlocked(capstone) else {
+            finishSelection("Two upgrades of \(capstone.deity.name) are needed first.")
+            return
+        }
+        capstoneID = capstone.id
+        finishSelection("\(capstone.name) — \(capstone.detail)")
+    }
+
+    /// Commit to a pairing — one per run. Needs both gods blessed and an
+    /// upgrade from each.
+    func applyPairing(_ pairing: PairingDef) {
+        guard pairingID == nil else {
+            finishSelection("You have already committed to a pairing this run.")
+            return
+        }
+        guard pairingReady(pairing) else {
+            finishSelection("Both gods need a blessed die and one upgrade each.")
+            return
+        }
+        pairingID = pairing.id
+        finishSelection("\(pairing.name) — \(pairing.detail)")
     }
 
     func applySwap(replacing oldDieID: UUID, with newDie: Die) {
@@ -779,17 +900,12 @@ final class GameManager {
                 grant(item: pick)
                 lines.append("Found \(pick.name)")
             }
-        case .giftOffer:
-            // The old relic overwrites are gone; omens now hand out a named
-            // god's gift for free.
-            if let gift = GiftContent.all.randomElement() {
-                pendingSelection = .gift(gift, replace: false, title: event.title)
-                lines.append("\(gift.deity.name) stirs — \(gift.name)")
-            }
-        case .ritePair:
-            let gods = Array(Deity.allCases.shuffled())
-            pendingSelection = .rite(primary: gods[0], secondary: gods[1], title: event.title)
-            lines.append("\(gods[0].name) and \(gods[1].name) listen")
+        case .patronOffer:
+            // The old relic overwrites are gone; omens now hand out a god's
+            // claim on a die for free.
+            let deity = Deity.allCases.randomElement() ?? .ra
+            pendingSelection = .patron(deity, replace: false, title: event.title)
+            lines.append("\(deity.name) listens")
         case .gamble(let chance, let damage):
             if Double.random(in: 0..<1) < chance {
                 let winnings = 40 + Int(progress * 50)
@@ -900,104 +1016,94 @@ final class GameManager {
 
     // MARK: - Divine offerings
 
-    /// An altar of named gifts. Only the god standing there gives — every card
-    /// is drawn from their own twelve, never another god's, so a visit is that
-    /// god's offer to make. The only way a second god reaches your dice is a
-    /// duo rite. Cards are spread across the three roles where possible, so an
-    /// altar rarely offers three attack gifts in a row.
-    func makeBlessingOffers(deity: Deity, count: Int, progress: Double) -> [Offer] {
-        let wanted = max(1, count)
-        let byRole = Dictionary(grouping: GiftContent.gifts(deity), by: \.role)
-        var buckets = MarkRole.allCases.shuffled().compactMap { byRole[$0]?.shuffled() }
-        var gifts: [GiftDef] = []
-        // Take one from each role in turn, so the spread reads as a choice of
-        // what to strengthen rather than a choice of three near-identical cards.
-        while gifts.count < wanted, buckets.contains(where: { !$0.isEmpty }) {
-            for index in buckets.indices where gifts.count < wanted {
-                guard !buckets[index].isEmpty else { continue }
-                gifts.append(buckets[index].removeFirst())
-            }
+    /// A god's favour: a patron claim on an unblessed die, upgrades from their
+    /// path, their capstone once it is unlocked, or the pairing with a god you
+    /// already follow. Only the god standing there gives — every card is their
+    /// own to make. Mundane offers fill any shortfall, so the screen always
+    /// presents choices you can actually take.
+    func makeGodFavourOffers(deity: Deity, count: Int, progress: Double) -> [Offer] {
+        let rarity = Rarity.roll(progress: progress)
+        var godCards: [Offer] = []
+        if !unblessedDice.isEmpty {
+            godCards.append(makePatronOffer(deity: deity, priced: false))
         }
-        return gifts.map { makeGiftOffer($0, rarity: Rarity.roll(progress: progress)) }
+        var extras: [Offer] = GodKit.upgrades(for: deity)
+            .filter { !acquiredUpgrades.contains($0.id) }
+            .shuffled()
+            .map { makeUpgradeOffer($0) }
+        if let capstone = GodKit.capstone(for: deity),
+           capstoneID == nil, capstoneUnlocked(capstone) {
+            extras.append(makeCapstoneOffer(capstone))
+        }
+        if pairingID == nil {
+            let pairings = PairingContent.pairings.filter { pairing in
+                (pairing.first == deity || pairing.second == deity) && pairingReady(pairing)
+            }.shuffled()
+            extras.append(contentsOf: pairings.map { makePairingOffer($0) })
+        }
+        extras.shuffle()
+        godCards.append(contentsOf: extras.prefix(max(0, count - godCards.count)))
+        while godCards.count < count,
+              let fill = makeOffer(rarity: rarity, priced: false, index: godCards.count) {
+            godCards.append(fill)
+        }
+        return Array(godCards.prefix(max(count, 3)))
     }
 
-    /// One named-gift card. rarity is the card's material — the gift itself
-    /// is what it is, and deepens the same way wherever it is offered.
-    private func makeGiftOffer(_ gift: GiftDef, rarity: Rarity = .uncommon, replace: Bool = false, replacingDeity: Deity? = nil) -> Offer {
-        let eligible = eligibleFaceCount(for: gift, replace: replace)
-        let deepening = loadout?.allDice.contains { die in
-            die.faces.contains { $0.mark?.giftID == gift.id && $0.mark?.depth.next != nil }
-        } ?? false
-
-        var detail: String
-        if replace {
-            detail = "Burns off \(replacingDeity?.name ?? "the old claim")'s gift and lays \(gift.name) in its place — at its first depth, all prior depth lost. "
-        } else if deepening {
-            detail = "Deepens \(gift.name) where you carry it. "
-        } else {
-            detail = "\(gift.deity.name)'s gift for your \(gift.role.label.lowercased()): "
-        }
-        detail += gift.touched.summary + "."
-        if eligible == 0 && !replace {
-            detail += " No face of yours can take it right now."
-        }
-
-        return Offer(
-            name: gift.name,
-            detail: detail,
-            symbol: gift.symbol,
-            rarity: rarity,
-            comboHint: giftHint(gift),
-            price: 0,
-            kind: .gift(gift, replace: replace),
-            deity: gift.deity
+    /// A patron claim: the god takes an unblessed die of your choosing. Their
+    /// faces never change — the blessing simply starts answering them.
+    private func makePatronOffer(deity: Deity, priced: Bool) -> Offer {
+        Offer(
+            name: "\(deity.name)'s Claim",
+            detail: "\(deity.name) claims one of your unblessed dice. The faces never change — from then on, their blessing answers every face that die plays. \(deity.pitch)",
+            symbol: deity.symbol,
+            rarity: .rare,
+            comboHint: "Blessed dice open this god's upgrades",
+            price: priced ? GameData.price(base: 70, rarity: .rare) : 0,
+            kind: .patron(deity, replace: false),
+            deity: deity
         )
     }
 
-    /// How many of your faces could receive this gift: unclaimed faces, faces
-    /// deepening the same gift, or — for replace cards — any gifted face.
-    private func eligibleFaceCount(for gift: GiftDef, replace: Bool) -> Int {
-        loadout?.allDice.reduce(0) { total, die in
-            total + die.faces.filter { face in
-                if let mark = face.mark {
-                    if replace { return true }
-                    return mark.deity == gift.deity && mark.giftID == gift.id && mark.depth.next != nil
-                }
-                return true
-            }.count
-        } ?? 0
-    }
-
-    /// First divine combo the gift feeds, for the card's link chip.
-    private func giftHint(_ gift: GiftDef) -> String {
-        let pool = DivineContent.combos(for: classID)
-        let specific = pool.first { combo in
-            combo.required.contains { pattern in
-                if case .gift(let id) = pattern { return id == gift.id }
-                return false
-            }
-        }
-        if let specific { return specific.name }
-        let byDeity = pool.first { combo in
-            combo.required.contains { pattern in
-                if case .deity(let owner) = pattern { return owner == gift.deity }
-                return false
-            }
-        }
-        return byDeity?.name ?? "\(gift.deity.name)'s chains"
-    }
-
-    /// The dual-god rite: a rare find that binds two gods into one face.
-    private func makeRiteOffer(primary: Deity, partner: Deity) -> Offer {
+    /// One upgrade card from a god's path.
+    private func makeUpgradeOffer(_ upgrade: GodUpgrade) -> Offer {
         Offer(
-            name: "Rite of \(primary.name) & \(partner.name)",
-            detail: "Two gods, one face. Choose a face that is unclaimed or already marked by \(primary.name); \(partner.name) settles in beside them. The only way two gods ever share a face.",
-            symbol: "square.on.square",
-            rarity: .rare,
-            comboHint: "Counts for both gods",
+            name: upgrade.name,
+            detail: "\(upgrade.deity.name)'s upgrade — \(upgrade.detail) Needs a blessed die of \(upgrade.deity.name)'s.",
+            symbol: upgrade.symbol,
+            rarity: .uncommon,
+            comboHint: "Builds toward \(upgrade.deity.name)'s capstone",
             price: 0,
-            kind: .rite(primary, partner),
-            deity: primary
+            kind: .upgrade(upgrade),
+            deity: upgrade.deity
+        )
+    }
+
+    /// A capstone card: the last word of a god's path, once it is unlocked.
+    private func makeCapstoneOffer(_ capstone: GodCapstone) -> Offer {
+        Offer(
+            name: capstone.name,
+            detail: "\(capstone.deity.name)'s capstone — \(capstone.detail) One capstone per run.",
+            symbol: capstone.symbol,
+            rarity: .signature,
+            comboHint: "One per run",
+            price: 0,
+            kind: .capstone(capstone),
+            deity: capstone.deity
+        )
+    }
+
+    /// A pairing card: two gods standing together, once per run.
+    private func makePairingOffer(_ pairing: PairingDef) -> Offer {
+        Offer(
+            name: pairing.name,
+            detail: "\(pairing.first.name) & \(pairing.second.name) — \(pairing.detail) One pairing per run.",
+            symbol: pairing.symbol,
+            rarity: .rare,
+            comboHint: "Needs both gods equipped",
+            price: 0,
+            kind: .pairing(pairing),
+            deity: pairing.first
         )
     }
 

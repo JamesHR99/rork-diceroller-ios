@@ -69,18 +69,32 @@ struct OfferCardView: View {
 
                 if case .die(let die) = offer.kind {
                     DieStripView(die: die, tileSize: 15, showCrit: false)
-                } else if offer.isRite {
+                } else if case .patron = offer.kind {
                     HStack(spacing: 4) {
                         sealBadge(offer.deity?.symbol ?? "sparkles", tint: offer.deity?.tint ?? Theme.gold)
-                        sealBadge(offer.ritePartner?.symbol ?? "sparkles", tint: offer.ritePartner?.tint ?? Theme.gold)
-                        Text("2 gods · 1 face")
+                        Text(offer.isReplacingPatron ? "takes a claimed die" : "claims one die")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
-                } else if let gift = offer.giftDef {
+                } else if case .upgrade(let upgrade) = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge(gift.symbol, tint: offer.tint)
-                        Text(offer.isReplacingGift ? "burns the old claim" : "1 face")
+                        sealBadge(upgrade.symbol, tint: offer.tint)
+                        Text("one upgrade · needs a blessed die")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(Theme.parchmentDim)
+                    }
+                } else if case .capstone = offer.kind {
+                    HStack(spacing: 4) {
+                        sealBadge("crown.fill", tint: offer.tint)
+                        Text("capstone · one per run")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(Theme.parchmentDim)
+                    }
+                } else if case .pairing(let pairing) = offer.kind {
+                    HStack(spacing: 4) {
+                        sealBadge(pairing.first.symbol, tint: pairing.first.tint)
+                        sealBadge(pairing.second.symbol, tint: pairing.second.tint)
+                        Text("2 gods · once per turn")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
@@ -173,7 +187,7 @@ struct OfferCardView: View {
         }
     }
 
-    /// A small god-sigil tile used on mark and rite cards.
+    /// A small god-sigil tile used on blessing cards.
     private func sealBadge(_ symbol: String, tint: Color) -> some View {
         Image(systemName: symbol)
             .font(.system(size: 9, weight: .bold))

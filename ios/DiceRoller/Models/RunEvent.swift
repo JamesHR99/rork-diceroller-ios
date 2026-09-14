@@ -28,10 +28,8 @@ enum EventReward: Hashable {
     case die
     /// Roll an item at the current tier.
     case item
-    /// An ultra-rare omen favour: a random god's named gift laid on a face.
-    case giftOffer
-    /// A dual-god rite: two gods bound into one chosen face.
-    case ritePair
+    /// An ultra-rare omen favour: a god claims one of your dice as patron.
+    case patronOffer
     /// A gamble: `chance` to win the first reward, else take damage.
     case gamble(chance: Double, damage: Int)
 }
@@ -135,10 +133,10 @@ enum EventContent {
             id: "standingIdol", title: "The Standing Idol", symbol: "hand.raised.fill",
             body: "A gold-leafed god stands hip-deep in the shallows, one palm open. The river has worn everything away except the face, which is still watching, and still willing to deal.",
             choices: [
-                EventChoice(id: "idol_palm", label: "Press your palm to the gold", detail: "A god stirs and lays one of their named gifts on a face of yours",
-                            hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .giftOffer),
-                EventChoice(id: "idol_litany", label: "Recite the doubled litany", detail: "-25 gold, bind two gods into one face",
-                            hpCost: 0, goldCost: 25, maxHPChange: 0, reward: .ritePair),
+                EventChoice(id: "idol_palm", label: "Press your palm to the gold", detail: "A god stirs and claims one of your dice",
+                            hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .patronOffer),
+                EventChoice(id: "idol_litany", label: "Recite the doubled litany", detail: "-25 gold, sharpen one face's crit",
+                            hpCost: 0, goldCost: 25, maxHPChange: 0, reward: .imbue),
                 EventChoice(id: "idol_row", label: "Keep your eyes down and row", detail: "Some deals are not worth the price",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .none),
             ]

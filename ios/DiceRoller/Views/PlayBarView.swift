@@ -290,7 +290,7 @@ struct PlayBarView: View {
             ForEach(Array(step.faces.enumerated()), id: \.element.id) { index, face in
                 Image(systemName: face.face.symbol)
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(face.isCrit ? Theme.gold : (face.mark?.deity.tint ?? face.face.tint))
+                    .foregroundStyle(face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint))
                     .frame(width: 29, height: 27)
                     .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
                     .overlay(
@@ -357,11 +357,6 @@ struct PlayBarView: View {
     private func critLine(_ step: PlanStep) -> some View {
         if step.comboCritChance > 0 {
             HStack(spacing: 3) {
-                if step.frozenFuel {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Theme.frost)
-                }
                 Image(systemName: "sparkles").font(.system(size: 9, weight: .bold))
                 Text(step.isGuaranteedCrit
                      ? "CRIT GUARANTEED"

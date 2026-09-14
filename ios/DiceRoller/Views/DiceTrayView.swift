@@ -36,7 +36,8 @@ struct DiceTrayView: View {
                 leadingControl
 
                 HStack(spacing: engine.slots.count > 7 ? 5 : 7) {
-                    let counts = engine.comboUseCounts
+                    let counts = Dictionary(uniqueKeysWithValues:
+                        engine.comboMarkers.map { ($0.key, $0.value.count) })
                     ForEach(engine.slots) { slot in
                         DiceTrayReelView(
                             slot: slot,
@@ -48,6 +49,8 @@ struct DiceTrayView: View {
                     }
                 }
             }
+
+            comboPanel
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -186,10 +189,73 @@ struct DiceTrayView: View {
 
         if engine.canRoll { return "Roll to begin the turn · the order changes every roll" }
         if engine.isRolling { return "The drums wind down, one by one..." }
-        if engine.maxChainCount > 0 {
-            return "Each tally counts the chains that die can still feed · find them yourself"
+        if !engine.comboCandidates.isEmpty {
+            return "Tap a recipe to fuse it · letters match the marks on your dice"
         }
         return "Chain faces together — alone they barely scratch · FREEZE holds one face"
+    }
+
+    // MARK: - Combo panel
+
+    /// Every chain the roll could still make: name, effect, ingredients and
+    /// stamina, with a letter that matches the markers under the dice feeding
+    /// it. Tap to fuse; tap a planned one to dissolve it back into solos.
+    @ViewBuilder
+    private var comboPanel: some View {
+        if !engine.canRoll && !engine.isRolling && !engine.comboCandidates.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(engine.comboCandidates) { candidate in
+                        comboChip(candidate)
+                    }
+                }
+                .padding(.vertical, 1)
+            }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+        }
+    }
+
+    private func comboChip(_ candidate: ComboCandidate) -> some View {
+        let planned = candidate.isForced && candidate.isInPlan
+        let partial = candidate.placedCount > 0 && !planned
+        return Button {
+            engine.toggleCombo(candidate.combo.id)
+        } label: {
+            HStack(spacing: 5) {
+                Text(candidate.letter)
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Theme.bg)
+                    .frame(width: 18, height: 18)
+                    .background(candidate.combo.tint, in: .circle)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(candidate.combo.name)
+                        .font(.system(size: 10.5, weight: .black))
+                        .kerning(0.4)
+                        .foregroundStyle(planned ? Theme.gold : Theme.parchment)
+                        .lineLimit(1)
+                    Text(candidate.combo.effectSummary)
+                        .font(.system(size: 8.5, weight: .semibold))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .lineLimit(1)
+                }
+
+                Text("\(candidate.combo.staminaCost)")
+                    .font(.system(size: 10, weight: .black).monospacedDigit())
+                    .foregroundStyle(planned ? Theme.gold : Theme.parchmentDim)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Theme.bgCard, in: .capsule)
+            .overlay(
+                Capsule().strokeBorder(
+                    planned ? Theme.gold : (partial ? candidate.combo.tint.opacity(0.7) : Theme.rule.opacity(0.35)),
+                    lineWidth: planned ? 1.8 : 1
+                )
+            )
+            .opacity(partial ? 0.75 : 1)
+        }
+        .buttonStyle(PressableButtonStyle())
     }
 
     // MARK: - Roll control
@@ -255,10 +321,10 @@ private struct DiceTrayReelView: View {
     private var corner: CGFloat { 15 }
     private var iconSize: CGFloat { width * 0.34 }
     private var labelSize: CGFloat { max(8, width * 0.115) }
-    /// A gifted face — whose final-form title is the read that decides a turn
-    /// — carries its name in bigger type.
+    /// A claimed die's face carries its name in bigger type — the god's
+    /// blessing is part of the read that decides a turn.
     private func labelSize(for face: RolledFace) -> CGFloat {
-        face.mark == nil ? labelSize : max(11, width * 0.16)
+        face.patron == nil ? labelSize : max(11, width * 0.16)
     }
     private var tagSize: CGFloat { max(8.5, width * 0.125) }
 
@@ -423,7 +489,7 @@ private struct DiceTrayReelView: View {
                     .kerning(0.2)
                     .foregroundStyle(face.isCrit
                                      ? Theme.gold
-                                     : (face.mark?.deity.tint ?? face.face.tint))
+                                     : (face.patron?.tint ?? face.face.tint))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 Text(bottomTag(face))
@@ -449,17 +515,15 @@ private struct DiceTrayReelView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                // Depth notches: one per depth of the god's mark.
-                if let mark = face.mark {
-                    HStack(spacing: 2) {
-                        ForEach(0..<mark.depth.rawValue, id: \.self) { _ in
-                            Circle()
-                                .fill(mark.deity.tint)
-                                .overlay(Circle().strokeBorder(Theme.bg.opacity(0.7), lineWidth: 0.5))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-                    .padding(4)
+                // A patron god's sigil rides the die whose faces they answer.
+                if let patron = face.patron {
+                    Image(systemName: patron.symbol)
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundStyle(patron.tint)
+                        .frame(width: 16, height: 16)
+                        .background(Theme.bg.opacity(0.85), in: .circle)
+                        .overlay(Circle().strokeBorder(patron.tint.opacity(0.8), lineWidth: 1))
+                        .padding(4)
                 }
             }
             .overlay(alignment: .top) { critBadge(face) }
@@ -502,22 +566,24 @@ private struct DiceTrayReelView: View {
         !freezeArmed && !chainCounts.isEmpty && count(face) == 0
     }
 
-    /// The tally carved on a die: how many chains it can still feed from where
-    /// the plan stands. It falls as you commit dice to a line, and it never
-    /// says which chains — finding them is the game.
+    /// The letters carved on a die: every chain the combo panel lists that
+    /// this die could feed, coloured to match the list. Tap the panel entry to
+    /// fuse the chain; the letters fall away as dice commit elsewhere.
     @ViewBuilder
     private func chainCountBadge(_ face: RolledFace) -> some View {
-        let uses = count(face)
-        if uses > 0 && !freezeArmed {
+        let markers = engine.comboMarkers[face.id] ?? []
+        if !markers.isEmpty && !freezeArmed {
             HStack(spacing: 1.5) {
-                Image(systemName: "link")
-                    .font(.system(size: max(7, width * 0.09), weight: .black))
-                Text("\(uses)")
-                    .font(.system(size: max(9.5, width * 0.135), weight: .black).monospacedDigit())
-                    .contentTransition(.numericText())
+                ForEach(Array(markers.prefix(3).enumerated()), id: \.offset) { _, marker in
+                    Text(marker.letter)
+                        .font(.system(size: max(7.5, width * 0.1), weight: .black))
+                        .foregroundStyle(Theme.bg)
+                        .frame(width: max(10, width * 0.15), height: max(10, width * 0.15))
+                        .background(marker.color, in: .circle)
+                        .overlay(Circle().strokeBorder(Theme.bg.opacity(0.6), lineWidth: 0.5))
+                }
             }
-            .foregroundStyle(Theme.parchment.opacity(0.9))
-            .padding(.horizontal, max(4, width * 0.055))
+            .padding(.horizontal, 3)
             .padding(.vertical, 1.5)
             .background(Theme.bg.opacity(0.85), in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.45), lineWidth: 1))
@@ -642,17 +708,15 @@ private struct DiceTrayReelView: View {
 
     // MARK: - Styling helpers
 
-    /// The settled reel's label — the earned final-form title once a mark has
-    /// run its full course, otherwise the face's own compact name.
+    /// The settled reel's label — the face's own compact name.
     private func reelLabel(_ face: RolledFace) -> String {
-        if let title = face.mark?.title(for: face.face) { return title.uppercased() }
-        return face.face.shortLabel
+        face.face.shortLabel
     }
 
     private func iconTint(_ face: RolledFace) -> Color {
         if face.isCrit { return Theme.gold }
         if isFrozen { return Theme.frost }
-        if let mark = face.mark { return mark.deity.tint }
+        if let patron = face.patron { return patron.tint }
         return face.face.tint
     }
 
@@ -660,13 +724,13 @@ private struct DiceTrayReelView: View {
         if isFrozen { return Theme.frost }
         if face.isCrit { return Theme.gold }
         if isHeld { return Theme.frost.opacity(0.6) }
-        if let mark = face.mark { return mark.deity.tint.opacity(0.85) }
+        if let patron = face.patron { return patron.tint.opacity(0.85) }
         return face.face.tint.opacity(0.55)
     }
 
     private func glowTint(_ face: RolledFace) -> Color {
         if isFrozen { return Theme.frost }
-        if let mark = face.mark { return mark.deity.tint }
+        if let patron = face.patron { return patron.tint }
         return face.isCrit ? Theme.gold : face.face.tint
     }
 
@@ -682,11 +746,11 @@ private struct DiceTrayReelView: View {
         let value = GameData.scaleUp(face.face.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
         case .damage: return "\(value) dmg"
-        case .block: return "+\(value) blk"
+        case .block: return "+\(value) shield"
         case .heal: return "+\(value) hp"
         case .poison: return "\(value) psn"
         case .stamina: return "+2 stam"
-        case .evade: return "evade"
+        case .evade: return face.isCrit ? "+20% evd" : "+15% evd"
         case .focus: return "focus"
         }
     }

@@ -10,7 +10,7 @@ enum GameData {
             symbol: "arrowshape.up.circle.fill", accentName: "Ember",
             maxHP: 100, maxStamina: 4,
             weaponName: "Longbow", armorName: "Light Armour",
-            blurb: "Arrow tiers chain into a deeper and deeper draw. Line up Arrow I, II and III for the legendary Perfect Shot.",
+            blurb: "Arrow tiers stack into heavy volleys. Line up Arrow I, II and III for the legendary Perfect Shot.",
             playstyle: "Balanced · ranged · precision"
         ),
         HeroClass(
@@ -18,7 +18,7 @@ enum GameData {
             symbol: "shield.fill", accentName: "Steel",
             maxHP: 130, maxStamina: 4,
             weaponName: "Longsword", armorName: "Plate Armour",
-            blurb: "Overhead and side swings mix into cleaves and the Whirlwind Crush, behind a wall of plate that reflects what it stops.",
+            blurb: "Heavy swings behind a shield that stays until it breaks. Stack Block faces and become the wall.",
             playstyle: "Tanky · heavy hits · momentum"
         ),
         HeroClass(
@@ -26,7 +26,7 @@ enum GameData {
             symbol: "bolt.circle.fill", accentName: "Venom",
             maxHP: 82, maxStamina: 5,
             weaponName: "Twin Daggers", armorName: "Leather Armour",
-            blurb: "Fast, bleeding cuts. Every escape is a face you played — dodge into a throw and a slash for the Vanishing Strike.",
+            blurb: "Fast, bleeding cuts. Stack Evade faces to slip blows outright, then answer from the dark.",
             playstyle: "Fragile · fastest · bleed"
         ),
         HeroClass(
@@ -34,7 +34,7 @@ enum GameData {
             symbol: "wand.and.stars", accentName: "Arcane",
             maxHP: 88, maxStamina: 4,
             weaponName: "Magic Wand", armorName: "Robes",
-            blurb: "Runes are nothing alone. Pair and triple them for Fireball, Ice Blast, Meteor and the Arcane Storm.",
+            blurb: "Runes are nothing alone. Fold them into Fireball, Ice Blast, Meteor and the Arcane Storm.",
             playstyle: "Fragile · spell recipes · utility"
         ),
     ]
@@ -60,23 +60,15 @@ enum GameData {
 
     /// Stamina the bar recovers at the start of each turn. The bar never
     /// refills outright — unspent points carry over and this tops them back up,
-    /// never past the class maximum on its own. Two points a turn keeps the
-    /// pressure of an all-in turn affordable while chains and blessings remain
-    /// the way to genuinely overcharge.
+    /// never past the class maximum on its own.
     static let staminaRecoveryPerTurn = 2
 
     /// Stamina a landed chain hands you for the next turn — and the only
     /// refund a combo pays. A pair gives nothing; three faces or more bank a
-    /// single point. Recipes no longer pay their own printed refunds: the bar
-    /// is meant to hold you to your base, and Focus and the gods' blessings are
-    /// how you overcharge past it. The point rides above the cap for one turn.
+    /// single point. Recipes no longer pay their own printed refunds.
     static func comboStaminaBank(faces: Int) -> Int {
         faces >= 3 ? 1 : 0
     }
-
-    /// Crit chance a combo gains when one of its dice was carried over from a
-    /// freeze — holds are best spent feeding the big chain.
-    static let frozenFuelCritBonus = 0.10
 
     /// What a fused combo step costs: three faces cost 2, four cost 3, five
     /// cost 4. Solo faces and two-face pairs stay full price.
@@ -87,64 +79,40 @@ enum GameData {
     // MARK: - Chain power
 
     /// How much of a face's printed value survives when it is played alone.
-    /// A single attack face is chip damage — the chain is the fight.
-    static let soloAttackScale = 0.4
+    /// A single attack face is roughly two thirds of itself — workable, never
+    /// the best answer.
+    static let soloAttackScale = 0.65
     /// Guards, heals and venom played alone keep almost everything, so a lone
     /// block face is a real play rather than a wasted point.
     static let soloGuardScale = 0.9
 
-    /// Everything a combo does is multiplied by how long the chain is. Two
-    /// faces pay as printed; each face past that bends the curve up hard.
-    static func comboLengthScale(faces: Int) -> Double {
-        switch faces {
-        case ...2: 1.0
-        case 3: 1.4
-        case 4: 1.8
-        default: 2.2
-        }
-    }
-
-    /// Weight each critical face adds to the chain it feeds, on top of the
-    /// chance the whole chain crits. A crit die is never wasted in a combo.
+    /// Weight each critical face adds to the chain it feeds. A crit die is
+    /// never wasted in a combo. Chains no longer scale by length — the recipe
+    /// prints its own value.
     static let critComboWeight = 0.15
 
-    /// Total multiplier on a chain's output: its length, plus the crit dice
-    /// feeding it, times the chain's own crit roll if it lands.
+    /// Total multiplier on a chain's output: the crit dice feeding it, times
+    /// the chain's own crit roll if it lands.
     static func comboOutputScale(faces: Int, critDice: Int, crit: Bool) -> Double {
-        let base = comboLengthScale(faces: faces) + Double(critDice) * critComboWeight
+        let base = 1.0 + Double(critDice) * critComboWeight
         return crit ? base * comboCritMultiplier : base
     }
 
-    /// Gift riders inside a chain scale far more gently than the chain itself,
-    /// so a five-chain of gifted faces is strong rather than run-ending.
-    static func comboRiderScale(faces: Int, critDice: Int, crit: Bool) -> Double {
-        let base = 1.0 + 0.12 * Double(max(0, faces - 1)) + Double(critDice) * 0.1
-        let withCrit = crit ? base * 1.35 : base
-        return min(1.6, withCrit)
-    }
+    /// Ceiling on evade chance — stacking Evade faces can never make you
+    /// untouchable. Sixty percent is the wall.
+    static let evadeCeiling = 0.6
 
-    /// Three or more different gods in one chain: every gift rider in that
-    /// chain fires at increased strength.
-    static let pantheonFlourish = 1.5
+    /// Chance a successful evade fires a "first evade this turn" reward.
+    /// (Not a chance — a marker: the first roll that actually saves you.)
+    static let judgementCap = 30
 
-    /// A god's own chain grows with the devotion behind it: the same Kindling
-    /// at seven Ra hits harder than at two. +7% per point past the rung, cap
-    /// 1.5 — enough to read, never enough to run away.
-    static func devotionChainScale(devotion: Int, required: Int) -> Double {
-        guard required > 0, devotion > required else { return 1 }
-        return min(1.5, 1.0 + 0.07 * Double(devotion - required))
-    }
+    /// How much harder enemies are at reading your chains now that solo
+    /// attacks hit for two thirds and recipes no longer multiply by length.
+    static let enemyHealthTune = 1.12
 
     /// Flat damage the depth of the Duat adds to every enemy hit, offsetting
-    /// the sharper player economy. The Reeds used to add nothing at all, which
-    /// let the opening hours drift past as free practice — they now bite from
-    /// the first real foe, so the extra stamina and the second hold are spent
-    /// rather than banked. Steepens through the middle hours because gifts ride
-    /// on top of ordinary faces instead of replacing them, and again in the
-    /// Coils where a third hold and a wider bar exist.
-    ///
-    /// Only ever applied to moves that already deal damage, so the straw
-    /// effigy of the first hour stays harmless.
+    /// the sharper player economy. Only ever applied to moves that already
+    /// deal damage, so the straw effigy of the first hour stays harmless.
     static func enemyDamageBonus(hour: Int) -> Int {
         hour >= 9 ? 6 : (hour >= 5 ? 4 : (hour >= 3 ? 3 : 2))
     }
@@ -163,34 +131,27 @@ enum GameData {
 
     // MARK: - Combos
 
-    /// Every combo a class can perform: its weapon and armour set, the shared
-    /// item combos, and whichever divine combos your devotion has unlocked.
-    static func combos(for classID: String, devotion: [Deity: Int] = [:]) -> [ComboDef] {
-        classCombos(classID) + SharedContent.combos + divineCombos(classID, devotion: devotion)
+    /// Every combo a class can perform: its weapon and armour set plus the
+    /// shared item combos. Gods speak through blessings now, not recipes.
+    static func combos(for classID: String) -> [ComboDef] {
+        classCombos(classID) + SharedContent.combos
     }
 
-    /// Divine combos available right now — signature combos need enough faces
-    /// of that god in your loadout.
-    static func divineCombos(_ classID: String, devotion: [Deity: Int]) -> [ComboDef] {
-        DivineContent.combos(for: classID).filter { combo in
-            guard combo.devotionRequired > 0 else { return true }
-            guard let deity = combo.deity else { return true }
-            return (devotion[deity] ?? 0) >= combo.devotionRequired
-        }
-    }
-
-    /// Is this combo assemblable with the faces you currently carry, marks
-    /// included? Marked faces fill both their own kind slots and their god's
-    /// divine slots.
+    /// Is this combo assemblable with the faces you currently carry?
     static func isReachable(_ combo: ComboDef, loadout: Loadout?) -> Bool {
         guard let loadout else { return false }
-        var owned: [(kind: FaceKind, mark: FaceMark?)] = []
+        var owned: [FaceKind] = []
         for die in loadout.allDice {
-            for face in die.faces { owned.append((face.kind, face.mark)) }
+            for face in die.faces { owned.append(face.kind) }
         }
-        return combo.required.allSatisfy { pattern in
-            owned.contains { pattern.matches($0.kind, mark: $0.mark) }
+        var pool: [FaceKind] = []
+        for line in combo.required {
+            for _ in 0..<line.count {
+                guard let index = owned.firstIndex(where: { line.pattern.matches($0) }) else { return false }
+                pool.append(owned.remove(at: index))
+            }
         }
+        return combo.matches(pool)
     }
 
     static func classCombos(_ classID: String) -> [ComboDef] {
@@ -202,14 +163,12 @@ enum GameData {
         }
     }
 
-    /// Longest and most specific recipes are tested first so a three-face
-    /// ultimate always beats the two-face combo hiding inside it.
-    static func combosByPriority(for classID: String, devotion: [Deity: Int] = [:]) -> [ComboDef] {
-        combos(for: classID, devotion: devotion).sorted { lhs, rhs in
-            if lhs.required.count != rhs.required.count { return lhs.required.count > rhs.required.count }
+    /// Biggest and most specific recipes are tested first so a five-face
+    /// signature always beats the two-face combo hiding inside it.
+    static func combosByPriority(for classID: String) -> [ComboDef] {
+        combos(for: classID).sorted { lhs, rhs in
+            if lhs.faceCount != rhs.faceCount { return lhs.faceCount > rhs.faceCount }
             if lhs.specificity != rhs.specificity { return lhs.specificity > rhs.specificity }
-            if lhs.devotionRequired != rhs.devotionRequired { return lhs.devotionRequired > rhs.devotionRequired }
-            if lhs.blocksAll != rhs.blocksAll { return lhs.blocksAll }
             if lhs.damage != rhs.damage { return lhs.damage > rhs.damage }
             return lhs.id < rhs.id
         }
@@ -251,52 +210,6 @@ enum GameData {
         case "rogue": RogueContent.imbueSymbol
         default: MagicianContent.imbueSymbol
         }
-    }
-
-    // MARK: - Devotion
-
-    /// Burn duration and damage the gods add on top of a combo's printed value.
-    static func burnBonus(_ devotion: [Deity: Int]) -> (amount: Int, turns: Int) {
-        let count = devotion[.ra] ?? 0
-        if count >= Devotion.deeperTier { return (2, 1) }
-        if count >= Devotion.passiveTier { return (0, 1) }
-        return (0, 0)
-    }
-
-    static func poisonBonus(_ devotion: [Deity: Int]) -> (amount: Int, turns: Int) {
-        let count = devotion[.anubis] ?? 0
-        if count >= Devotion.deeperTier { return (4, 1) }
-        if count >= Devotion.passiveTier { return (2, 0) }
-        return (0, 0)
-    }
-
-    /// Health Sobek returns each time you draw blood.
-    static func bloodTithe(_ devotion: [Deity: Int]) -> Int {
-        let count = devotion[.sobek] ?? 0
-        if count >= Devotion.deeperTier { return 6 }
-        if count >= Devotion.passiveTier { return 3 }
-        return 0
-    }
-
-    static func openingBlock(_ devotion: [Deity: Int]) -> Int {
-        let count = devotion[.bes] ?? 0
-        if count >= Devotion.deeperTier { return 16 }
-        if count >= Devotion.passiveTier { return 8 }
-        return 0
-    }
-
-    static func openingEvades(_ devotion: [Deity: Int]) -> Int {
-        let count = devotion[.bastet] ?? 0
-        if count >= Devotion.deeperTier { return 2 }
-        if count >= Devotion.passiveTier { return 1 }
-        return 0
-    }
-
-    static func devotionCrit(_ devotion: [Deity: Int]) -> Double {
-        let count = devotion[.horus] ?? 0
-        if count >= Devotion.deeperTier { return 0.08 }
-        if count >= Devotion.passiveTier { return 0.04 }
-        return 0
     }
 
     // MARK: - Crit rules

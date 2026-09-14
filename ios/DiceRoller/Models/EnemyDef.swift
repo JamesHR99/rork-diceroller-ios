@@ -101,7 +101,9 @@ struct EnemyDef: Identifiable, Hashable {
         self.name = name
         self.title = title
         self.blurb = blurb
-        self.maxHP = maxHP
+        // Solo attacks hit harder and recipes no longer multiply by length,
+        // so every foe carries a touch more health to keep the night honest.
+        self.maxHP = max(1, Int((Double(maxHP) * GameData.enemyHealthTune).rounded()))
         self.symbol = symbol
         self.goldReward = goldReward
         self.isBoss = isBoss

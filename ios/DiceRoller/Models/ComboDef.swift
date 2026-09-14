@@ -5,43 +5,52 @@ enum ComboSource: String, Hashable {
     case weapon
     case armor
     case item
-    case divine
 
     var label: String {
         switch self {
         case .weapon: "Weapon Combos"
         case .armor: "Armour Combos"
         case .item: "Item Combos"
-        case .divine: "Divine Combos"
         }
     }
 }
 
-/// A combo recipe. Faces must appear in the play bar in this exact order,
-/// side by side, for the combo to fuse into a single step.
+/// One ingredient line of a combo recipe: a face pattern and how many of it
+/// the chain asks for. Order never matters — three Swift Slashes make the
+/// same chain whichever tap they arrived from.
+struct ComboIngredient: Hashable {
+    let pattern: FacePattern
+    let count: Int
+
+    init(_ pattern: FacePattern, _ count: Int = 1) {
+        self.pattern = pattern
+        self.count = count
+    }
+
+    var label: String {
+        count == 1 ? pattern.label : "\(count)× \(pattern.label)"
+    }
+}
+
+/// A combo recipe. Any arrangement of the ingredients fuses into a single
+/// step; the player can still arrange the fused action however they like.
 struct ComboDef: Identifiable, Hashable {
     let id: String
     let name: String
     /// Class that owns this combo; nil means every class can use it.
     let owner: String?
     let source: ComboSource
-    /// God this combo belongs to, for tinting and the Pantheon codex.
-    let deity: Deity?
-    /// Faces of `deity` you must carry before this combo can be performed.
-    let devotionRequired: Int
-    let required: [FacePattern]
-    /// All matched faces must be the same kind (Twin Shot).
-    let sameKind: Bool
+    let required: [ComboIngredient]
     /// All matched faces must be different kinds (Arcane Storm).
     let distinct: Bool
-    /// All matched faces must be blessed by different gods (The Ennead).
-    let distinctDeities: Bool
 
     let damage: Int
     let heal: Int
-    let block: Int
-    let dodge: Int
-    /// Stamina refunded at the start of your next turn.
+    let shield: Int
+    /// Evade chance this chain adds, in percentage points.
+    let evadePercent: Int
+    /// Stamina banked for next turn when the chain is three faces or more —
+    /// the only stamina a recipe pays back.
     let staminaNext: Int
 
     let bleedAmount: Int
@@ -53,28 +62,21 @@ struct ComboDef: Identifiable, Hashable {
     let regenAmount: Int
     let regenTurns: Int
 
-    /// Fraction of the enemy's block this attack ignores (0–1).
+    /// Fraction of the enemy's defences this attack ignores (0–1).
     let pierce: Double
     /// Fraction the enemy's next attack is weakened by (0–1).
     let stagger: Double
-    /// Extra damage multiplier applied to your next hit on this enemy.
-    let mark: Double
-    /// Fraction of blocked damage thrown back at the attacker.
+    /// Fraction of damage your shield absorbs thrown back at the attacker.
     let reflect: Double
 
-    let blocksAll: Bool
     let lifesteal: Bool
-    let carryBlock: Bool
-    let cleanseBleed: Bool
-    /// Damage grows with the enemy's bleed stacks (Cutthroat).
+    /// Damage grows with the enemy's bleed stacks (Hemorrhage).
     let scalesWithBleed: Bool
     /// Damage grows with how wounded the enemy already is (Executioner).
     let scalesWithWounds: Bool
-    /// Damage grows with the burn already on the enemy (Sun Disc chains).
+    /// Damage grows with the burn already on the enemy.
     let scalesWithBurn: Bool
-    /// Healing grows with the block you are holding (Second Wind).
-    let scalesWithBlock: Bool
-    /// Damage carried into next turn's first swing (Cleaving Follow-Through).
+    /// Damage carried into next turn's first swing (momentum recipes).
     let momentumNext: Int
     /// This combo always crits, no matter which dice fed it.
     let guaranteedCrit: Bool
@@ -86,17 +88,13 @@ struct ComboDef: Identifiable, Hashable {
         name: String,
         owner: String?,
         source: ComboSource,
-        deity: Deity? = nil,
-        devotionRequired: Int = 0,
-        required: [FacePattern],
-        sameKind: Bool = false,
+        required: [ComboIngredient],
         distinct: Bool = false,
-        distinctDeities: Bool = false,
         damage: Int = 0,
         heal: Int = 0,
-        block: Int = 0,
-        dodge: Int = 0,
-        staminaNext: Int = 1,
+        shield: Int = 0,
+        evadePercent: Int = 0,
+        staminaNext: Int = 0,
         bleedAmount: Int = 0,
         bleedTurns: Int = 0,
         poisonAmount: Int = 0,
@@ -107,16 +105,11 @@ struct ComboDef: Identifiable, Hashable {
         regenTurns: Int = 0,
         pierce: Double = 0,
         stagger: Double = 0,
-        mark: Double = 0,
         reflect: Double = 0,
-        blocksAll: Bool = false,
         lifesteal: Bool = false,
-        carryBlock: Bool = false,
-        cleanseBleed: Bool = false,
         scalesWithBleed: Bool = false,
         scalesWithWounds: Bool = false,
         scalesWithBurn: Bool = false,
-        scalesWithBlock: Bool = false,
         momentumNext: Int = 0,
         guaranteedCrit: Bool = false,
         flavor: String
@@ -125,16 +118,12 @@ struct ComboDef: Identifiable, Hashable {
         self.name = name
         self.owner = owner
         self.source = source
-        self.deity = deity
-        self.devotionRequired = devotionRequired
         self.required = required
-        self.sameKind = sameKind
         self.distinct = distinct
-        self.distinctDeities = distinctDeities
         self.damage = damage
         self.heal = heal
-        self.block = block
-        self.dodge = dodge
+        self.shield = shield
+        self.evadePercent = evadePercent
         self.staminaNext = staminaNext
         self.bleedAmount = bleedAmount
         self.bleedTurns = bleedTurns
@@ -146,90 +135,102 @@ struct ComboDef: Identifiable, Hashable {
         self.regenTurns = regenTurns
         self.pierce = pierce
         self.stagger = stagger
-        self.mark = mark
         self.reflect = reflect
-        self.blocksAll = blocksAll
         self.lifesteal = lifesteal
-        self.carryBlock = carryBlock
-        self.cleanseBleed = cleanseBleed
         self.scalesWithBleed = scalesWithBleed
         self.scalesWithWounds = scalesWithWounds
         self.scalesWithBurn = scalesWithBurn
-        self.scalesWithBlock = scalesWithBlock
         self.momentumNext = momentumNext
         self.guaranteedCrit = guaranteedCrit
         self.flavor = flavor
     }
 
+    /// Total faces the recipe consumes.
+    var faceCount: Int { required.reduce(0) { $0 + $1.count } }
+
     /// Fused combos cost less than their faces played apart: 3 faces cost 2,
     /// 4 cost 3, 5 cost 4.
-    var staminaCost: Int { GameData.comboStaminaCost(faces: required.count) }
-
-    var isDivine: Bool { source == .divine }
+    var staminaCost: Int { GameData.comboStaminaCost(faces: faceCount) }
 
     /// How specific this recipe is — exact slots beat wildcards when two
-    /// recipes of the same length could both match.
-    var specificity: Int { required.filter(\.isExact).count }
+    /// recipes of the same shape could both match.
+    var specificity: Int { required.reduce(0) { $0 + ($1.pattern.isExact ? 1 : 0) } }
 
-    /// Does this exact run of faces satisfy the recipe? (Codex path; no marks.)
-    func matches(_ faces: [FaceKind]) -> Bool {
-        matches(faces, marks: Array(repeating: nil, count: faces.count))
+    /// Can this recipe be satisfied out of these faces, with quantities and
+    /// wildcards but no order? Each face is used at most once. Returns the
+    /// indices of the faces it would consume, or nil.
+    func match(from faces: [FaceKind]) -> [Int]? {
+        guard faces.count == faceCount else { return nil }
+        var used = Array(repeating: false, count: faces.count)
+        var assignment: [Int] = []
+
+        func search(line: Int) -> Bool {
+            guard line < required.count else { return true }
+            let pattern = required[line].pattern
+            let need = required[line].count
+            var chosen: [Int] = []
+            func pick(_ start: Int, taken: Int) -> Bool {
+                if taken == need {
+                    let snapshot = assignment
+                    assignment.append(contentsOf: chosen)
+                    if search(line: line + 1) { return true }
+                    assignment = snapshot
+                    return false
+                }
+                for index in start..<faces.count where !used[index] && pattern.matches(faces[index]) {
+                    used[index] = true
+                    chosen.append(index)
+                    if pick(index + 1, taken: taken + 1) { return true }
+                    chosen.removeLast()
+                    used[index] = false
+                }
+                return false
+            }
+            return pick(0, taken: 0)
+        }
+
+        guard search(line: 0) else { return nil }
+        if distinct, Set(assignment.map { faces[$0] }).count != faceCount { return nil }
+        return assignment
     }
 
-    /// Does this run of rolled faces satisfy the recipe, with marks in play?
-    /// Marked faces keep satisfying every kind-based slot they fed before and
-    /// additionally fill their god's divine slots.
-    func matches(_ faces: [FaceKind], marks: [FaceMark?]) -> Bool {
-        guard faces.count == required.count, marks.count == faces.count else { return false }
-        for (index, pattern) in required.enumerated() where !pattern.matches(faces[index], mark: marks[index]) {
-            return false
-        }
-        if sameKind, Set(faces).count != 1 { return false }
-        if distinct, Set(faces).count != faces.count { return false }
-        if distinctDeities {
-            // The god of a face is its gift's god (a rite partner never stands
-            // for the face here). Every slot must name a different one.
-            let gods = zip(faces, marks).map { $1?.deity ?? $1?.rite }
-            if gods.contains(where: { $0 == nil }) { return false }
-            if Set(gods.compactMap { $0 }).count != faces.count { return false }
-        }
-        return true
+    /// Does this set of faces satisfy the recipe? (Codex path.)
+    func matches(_ faces: [FaceKind]) -> Bool {
+        guard faces.count == faceCount else { return false }
+        return match(from: faces) != nil
+    }
+
+    /// Human-readable ingredient list.
+    var ingredientSummary: String {
+        required.map(\.label).joined(separator: " + ")
     }
 
     /// One-line effect readout for the codex and play bar.
     var effectSummary: String {
         var parts: [String] = []
-        if blocksAll { parts.append("blocks everything this turn") }
         if damage > 0 { parts.append("\(damage) dmg") }
         if scalesWithBleed { parts.append("+2 dmg per bleed stack") }
         if scalesWithWounds { parts.append("+dmg vs wounded") }
         if scalesWithBurn { parts.append("+3 dmg per burn stack") }
-        if pierce > 0 { parts.append("ignores \(Int(pierce * 100))% block") }
+        if pierce > 0 { parts.append("ignores \(Int(pierce * 100))% defences") }
         if stagger > 0 { parts.append("staggers \(Int(stagger * 100))%") }
-        if mark > 0 { parts.append("marks +\(Int((mark - 1) * 100))%") }
-        if reflect > 0 { parts.append("reflects \(Int(reflect * 100))%") }
+        if reflect > 0 { parts.append("reflects \(Int(reflect * 100))% of blocked hits") }
         if bleedAmount > 0 { parts.append("bleed \(bleedAmount)×\(bleedTurns)") }
         if poisonAmount > 0 { parts.append("poison \(poisonAmount)×\(poisonTurns)") }
         if burnAmount > 0 { parts.append("burn \(burnAmount)×\(burnTurns)") }
         if heal > 0 { parts.append("heal \(heal)") }
-        if scalesWithBlock { parts.append("+heal per block held") }
         if regenAmount > 0 { parts.append("regen \(regenAmount)×\(regenTurns)") }
         if lifesteal { parts.append("heals for damage dealt") }
-        if block > 0 { parts.append("\(block) block") }
-        if carryBlock { parts.append("block carries over") }
-        if dodge > 0 { parts.append("\(dodge) evade\(dodge > 1 ? "s" : "")") }
-        if cleanseBleed { parts.append("clears bleed") }
+        if shield > 0 { parts.append("\(shield) shield") }
+        if evadePercent > 0 { parts.append("+\(evadePercent)% evade") }
         if momentumNext > 0 { parts.append("+\(momentumNext) next swing") }
         if guaranteedCrit { parts.append("always crits") }
-        // Recipes pay no printed refund any more — only the length of the
-        // chain banks stamina, and only from three faces up.
-        let bank = GameData.comboStaminaBank(faces: required.count)
+        let bank = GameData.comboStaminaBank(faces: faceCount)
         if bank > 0 { parts.append("+\(bank) stamina next turn") }
         return parts.joined(separator: ", ")
     }
 
     var tint: Color {
-        if let deity { return deity.tint }
         if guaranteedCrit { return Theme.gold }
         switch owner {
         case "archer": return Theme.ember

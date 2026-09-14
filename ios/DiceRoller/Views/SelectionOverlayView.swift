@@ -1,8 +1,10 @@
 import SwiftUI
 
 /// The overlay that appears whenever an upgrade needs a target: pick the die
-/// and face to reforge, gift, imbue or bind by rite, choose which die a new
-/// one replaces, or confirm an item swap.
+/// and face to reforge or imbue, choose which die a god claims as patron,
+/// pick which die a new one replaces, or confirm an item swap. God upgrades,
+/// capstones and pairings need no target — they apply the moment they are
+/// taken, so they never reach this overlay.
 struct SelectionOverlayView: View {
     let selection: PendingSelection
     @Environment(GameManager.self) private var game
@@ -10,25 +12,10 @@ struct SelectionOverlayView: View {
     @State private var chosenDieID: UUID?
     @State private var chosenFaceID: UUID?
 
-    /// Can this face receive the offered upgrade? A gift lands fresh on an
-    /// unclaimed face, deepens the same gift on a face that already carries
-    /// it, or — for the rare replace offers — burns whatever it carries.
+    /// Can this face receive the offered work? Reforges and imbues land on
+    /// any face; nothing is off limits any more.
     private func isEligible(_ face: DieFace) -> Bool {
-        switch selection {
-        case .gift(let gift, let replace, _):
-            if let mark = face.mark {
-                if replace { return true }
-                return mark.deity == gift.deity && mark.giftID == gift.id && mark.depth.next != nil
-            }
-            return true
-        case .rite(let primary, _, _):
-            if let mark = face.mark {
-                return mark.deity == primary && mark.rite == nil
-            }
-            return false
-        default:
-            return true
-        }
+        true
     }
 
     var body: some View {
@@ -39,12 +26,16 @@ struct SelectionOverlayView: View {
                 header
 
                 switch selection {
-                case .reforge, .reforgeDie, .imbue, .gift, .rite:
+                case .reforge, .reforgeDie, .imbue:
                     facePicker
+                case .patron:
+                    patronPicker
                 case .swapDie(let die):
                     dieSwapPicker(incoming: die)
                 case .swapItem(let item):
                     itemSwapPicker(incoming: item)
+                default:
+                    facePicker
                 }
 
                 footer
@@ -59,9 +50,12 @@ struct SelectionOverlayView: View {
     /// out large instead of an empty bench.
     private func selectOpeningDie() {
         switch selection {
-        case .reforge, .reforgeDie, .imbue, .gift, .rite:
+        case .reforge, .reforgeDie, .imbue:
             guard chosenDieID == nil else { return }
             chosenDieID = carriedDice.first?.id
+        case .patron:
+            guard chosenDieID == nil else { return }
+            chosenDieID = claimableDice.first?.id
         default:
             break
         }
@@ -72,23 +66,46 @@ struct SelectionOverlayView: View {
         (game.loadout?.pieces ?? []).flatMap(\.dice)
     }
 
+    /// Dice the standing god may claim: unblessed ones for a first claim —
+    /// or every die, on the rare explicit replace cards.
+    private var claimableDice: [Die] {
+        switch selection {
+        case .patron(_, let replace, _):
+            return replace ? carriedDice : carriedDice.filter { $0.patron == nil }
+        default:
+            return carriedDice
+        }
+    }
+
     /// The die currently on the bench.
     private var workingDie: Die? {
-        guard let chosenDieID else { return carriedDice.first }
-        return carriedDice.first { $0.id == chosenDieID } ?? carriedDice.first
+        guard let chosenDieID else { return claimableDice.first ?? carriedDice.first }
+        return claimableDice.first { $0.id == chosenDieID }
+            ?? carriedDice.first { $0.id == chosenDieID }
+            ?? claimableDice.first
+    }
+
+    private var claimDeity: Deity? {
+        if case .patron(let deity, _, _) = selection { return deity }
+        return nil
     }
 
     // MARK: - Header / footer
+
+    private var isPatronReplace: Bool {
+        if case .patron(_, let replace, _) = selection { return replace }
+        return false
+    }
 
     private var title: String {
         switch selection {
         case .reforge(_, let title): title
         case .reforgeDie(let title): title
-        case .gift(let gift, _, let title): "\(gift.name) — \(title)"
-        case .rite(_, _, let title): title
+        case .patron(_, _, let title): title
         case .imbue(_, let title): title
         case .swapDie: "Your dice are full"
         case .swapItem: "Swap your item?"
+        default: ""
         }
     }
 
@@ -97,19 +114,19 @@ struct SelectionOverlayView: View {
         case .reforge(let kind, _):
             "Choose any face on any die to reforge into \(kind.label) — \(kind.soloEffect.lowercased())."
         case .reforgeDie:
-            "Pick a die along the rail — every face the gods have not claimed is rolled anew from your class's pool, at that die's rarity."
-        case .gift(let gift, let replace, _):
+            "Pick a die along the rail — every face is rolled anew from your class's pool, at that die's rarity."
+        case .patron(let deity, let replace, _):
             replace
-                ? "\(gift.deity.name)'s gift for your \(gift.role.label.lowercased()). Pick a gifted face to burn its old claim — all prior depth is lost — or an unclaimed one."
-                : "\(gift.deity.name)'s gift for your \(gift.role.label.lowercased()): \(gift.touched.summary). Lay it on an unclaimed face, or deepen it where they already hold one. Faces promised to another god are beyond their reach."
-        case .rite(let primary, let secondary, _):
-            "Two gods, one face. Choose a face marked by \(primary.name); \(secondary.name) settles in beside them and their duo fires at full strength every play."
+                ? "\(deity.name) takes a die from whoever holds it. The faces never change — their blessing simply starts answering every face it plays. The old god's upgrades go quiet."
+                : "\(deity.name) claims one of your unblessed dice. The faces never change — their blessing answers every face that die plays. Blessed dice open this god's upgrades."
         case .imbue(let amount, _):
             "Choose a face to etch. Its crit chance rises permanently by \(Int(amount * 100))%."
         case .swapDie(let die):
             "You carry \(Loadout.maxDice) dice. Pick one to replace with \(die.name)."
         case .swapItem(let item):
             "You already carry an item. Taking \(item.name) discards it."
+        default:
+            ""
         }
     }
 
@@ -117,10 +134,10 @@ struct SelectionOverlayView: View {
         HStack(spacing: 12) {
             Image(systemName: headerSymbol)
                 .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(Theme.gold)
+                .foregroundStyle(claimDeity?.tint ?? Theme.gold)
                 .frame(width: 50, height: 50)
                 .background(Theme.bgCard, in: .circle)
-                .overlay(Circle().strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1.5))
+                .overlay(Circle().strokeBorder((claimDeity?.tint ?? Theme.gold).opacity(0.4), lineWidth: 1.5))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title.uppercased())
@@ -130,7 +147,7 @@ struct SelectionOverlayView: View {
                 Text(subtitle)
                     .font(.paper(13))
                     .foregroundStyle(Theme.parchmentDim)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -152,33 +169,30 @@ struct SelectionOverlayView: View {
         switch selection {
         case .reforge(let kind, _): kind.symbol
         case .reforgeDie: "arrow.triangle.2.circlepath"
-        case .gift(let gift, _, _): gift.symbol
-        case .rite: "square.on.square"
+        case .patron(let deity, _, _): deity.symbol
         case .imbue: GameData.imbueSymbol(game.classID)
         case .swapDie: "arrow.triangle.2.circlepath"
         case .swapItem: "bag.fill"
+        default: "sparkles"
         }
     }
 
-    /// Before → after read-out for the currently selected face.
+    /// Before → after read-out for the currently selected face or die.
     private var previewText: String? {
-        guard let dieID = chosenDieID, let faceID = chosenFaceID,
-              let die = game.loadout?.die(id: dieID),
-              let face = die.faces.first(where: { $0.id == faceID }) else { return nil }
         switch selection {
         case .reforge(let kind, _):
+            guard let dieID = chosenDieID, let faceID = chosenFaceID,
+                  let die = game.loadout?.die(id: dieID),
+                  let face = die.faces.first(where: { $0.id == faceID }) else { return nil }
             return "\(face.kind.label) → \(kind.label)"
-        case .gift(let gift, let replace, _):
-            if let mark = face.mark, mark.deity == gift.deity, mark.giftID == gift.id {
-                return "\(mark.depth.label) → \(mark.depth.next?.label ?? "Final Form")"
-            }
-            if replace, face.mark != nil { return "→ Replaced · \(gift.touched.summary)" }
-            return "→ Touched · \(gift.touched.summary)"
-        case .rite(let primary, let secondary, _):
-            return face.mark?.deity == primary ? "+ \(secondary.name)" : nil
         case .imbue(let amount, _):
+            guard let dieID = chosenDieID, let faceID = chosenFaceID,
+                  let die = game.loadout?.die(id: dieID),
+                  let face = die.faces.first(where: { $0.id == faceID }) else { return nil }
             let after = min(DieFace.critCap, face.critChance + amount)
             return "\(Int(face.critChance * 100))% → \(Int(after * 100))% crit"
+        case .patron(let deity, _, _):
+            return workingDie.map { "\($0.name) → \(deity.name)" }
         default:
             return nil
         }
@@ -229,20 +243,20 @@ struct SelectionOverlayView: View {
         switch selection {
         case .reforge: "Reforge It"
         case .reforgeDie: "Reforge It"
-        case .gift: "Lay the Gift"
-        case .rite: "Bind Them"
+        case .patron: "Claim It"
         case .imbue: "Etch It"
         case .swapDie: "Swap It In"
         case .swapItem: "Take the New Item"
+        default: "Confirm"
         }
     }
 
     private var canConfirm: Bool {
         switch selection {
-        case .reforge, .imbue, .gift, .rite: chosenFaceID != nil
-        case .reforgeDie: chosenDieID != nil
-        case .swapDie: chosenDieID != nil
+        case .reforge, .imbue: chosenFaceID != nil
+        case .reforgeDie, .patron, .swapDie: chosenDieID != nil
         case .swapItem: true
+        default: false
         }
     }
 
@@ -254,12 +268,9 @@ struct SelectionOverlayView: View {
         case .reforgeDie:
             guard let dieID = chosenDieID else { return }
             game.applyDieReforge(dieID: dieID)
-        case .gift(let gift, let replace, _):
-            guard let dieID = chosenDieID, let faceID = chosenFaceID else { return }
-            game.applyGift(dieID: dieID, faceID: faceID, gift: gift, replace: replace)
-        case .rite(let primary, let secondary, _):
-            guard let dieID = chosenDieID, let faceID = chosenFaceID else { return }
-            game.applyRite(dieID: dieID, faceID: faceID, primary: primary, secondary: secondary)
+        case .patron(let deity, let replace, _):
+            guard let dieID = chosenDieID else { return }
+            game.applyPatron(dieID: dieID, deity: deity, replace: replace)
         case .imbue(let amount, _):
             guard let dieID = chosenDieID, let faceID = chosenFaceID else { return }
             game.applyImbue(dieID: dieID, faceID: faceID, amount: amount)
@@ -268,6 +279,8 @@ struct SelectionOverlayView: View {
             game.applySwap(replacing: dieID, with: die.instantiated())
         case .swapItem(let item):
             game.applyItemSwap(to: item)
+        default:
+            break
         }
     }
 
@@ -317,9 +330,9 @@ struct SelectionOverlayView: View {
                 isSelected: isSelected
             )
 
-            Text(face.displayName)
+            Text(face.kind.label)
                 .font(.fantasy(15, weight: .bold))
-                .foregroundStyle(isSelected ? Theme.gold : (eligible ? Theme.parchment : Theme.parchmentDim))
+                .foregroundStyle(isSelected ? Theme.gold : Theme.parchment)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.65)
@@ -343,54 +356,18 @@ struct SelectionOverlayView: View {
                               lineWidth: isSelected ? 2 : 1)
         )
         .shadow(color: isSelected ? Theme.gold.opacity(0.3) : .clear, radius: 12)
-        .overlay(alignment: .topTrailing) {
-            // A face promised to another god shows whose sigil holds it.
-            if !eligible, let owner = face.mark?.deity {
-                Image(systemName: owner.symbol)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(owner.tint)
-                    .frame(width: 22, height: 22)
-                    .background(Theme.bg, in: .circle)
-                    .overlay(Circle().strokeBorder(owner.tint.opacity(0.7), lineWidth: 1))
-                    .padding(6)
-            } else if !eligible {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .padding(8)
-            }
-        }
     }
 
-    /// Under-face caption: what this offer would do on this face.
+    /// Under-face caption: what this face does.
     private func cardCaption(_ face: DieFace) -> String {
-        switch selection {
-        case .gift(let gift, let replace, _):
-            if let mark = face.mark, mark.deity == gift.deity, mark.giftID == gift.id {
-                return "\(mark.depth.label) — deepens to \(mark.depth.next?.label.lowercased() ?? "final form")"
-            }
-            if replace, face.mark != nil {
-                return "Burns \(face.mark?.deity.name ?? "the old claim")'s gift — \(gift.name) laid fresh"
-            }
-            if face.mark != nil {
-                return "Held by \(face.mark?.deity.name ?? "another god")"
-            }
-            return gift.touched.summary
-        case .rite(let primary, let secondary, _):
-            if face.mark?.deity == primary {
-                return "Marked by \(primary.name) — \(secondary.name) joins"
-            }
-            return "Needs a face marked by \(primary.name)"
-        default:
-            return face.kind.soloEffect
-        }
+        face.kind.soloEffect
     }
 
     /// Every die you carry, as a rail of chips under the bench.
     private var dieRail: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 9) {
-                ForEach(carriedDice) { die in
+                ForEach(isPatronReplace || claimableDice.isEmpty ? carriedDice : claimableDice) { die in
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             chosenDieID = die.id
@@ -438,6 +415,30 @@ struct SelectionOverlayView: View {
         )
     }
 
+    // MARK: - Patron picker
+
+    /// A god surveying the bench: pick which die they claim.
+    private var patronPicker: some View {
+        ScrollView {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 10)], spacing: 10) {
+                ForEach(claimableDice) { die in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            chosenDieID = die.id
+                        }
+                        Haptics.light()
+                    } label: {
+                        dieCard(die, highlighted: chosenDieID == die.id,
+                                tint: claimDeity?.tint ?? Theme.gold)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     // MARK: - Die swap
 
     private func dieSwapPicker(incoming: Die) -> some View {
@@ -447,7 +448,7 @@ struct SelectionOverlayView: View {
                     .font(.system(size: 9, weight: .black))
                     .kerning(1.2)
                     .foregroundStyle(Theme.gold)
-                dieCard(incoming, highlighted: true)
+                dieCard(incoming, highlighted: true, tint: incoming.rarity.tint)
             }
             .frame(width: 190)
 
@@ -460,7 +461,7 @@ struct SelectionOverlayView: View {
                             chosenDieID = die.id
                             Haptics.light()
                         } label: {
-                            dieCard(die, highlighted: chosenDieID == die.id)
+                            dieCard(die, highlighted: chosenDieID == die.id, tint: Theme.gold)
                         }
                         .buttonStyle(PressableButtonStyle())
                     }
@@ -470,7 +471,7 @@ struct SelectionOverlayView: View {
         }
     }
 
-    private func dieCard(_ die: Die, highlighted: Bool) -> some View {
+    private func dieCard(_ die: Die, highlighted: Bool, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: die.slot.symbol)
@@ -482,9 +483,15 @@ struct SelectionOverlayView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
-                Text(die.rarity.label.uppercased())
-                    .font(.system(size: 7.5, weight: .black))
-                    .foregroundStyle(die.rarity.tint)
+                if let patron = die.patron {
+                    Image(systemName: patron.symbol)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(patron.tint)
+                } else {
+                    Text(die.rarity.label.uppercased())
+                        .font(.system(size: 7.5, weight: .black))
+                        .foregroundStyle(die.rarity.tint)
+                }
             }
             DieStripView(die: die, tileSize: 24, showCrit: true, critBonus: game.critBonus)
         }
@@ -493,7 +500,7 @@ struct SelectionOverlayView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(highlighted ? Theme.gold : Theme.parchmentDim.opacity(0.2),
+                .strokeBorder(highlighted ? tint : Theme.parchmentDim.opacity(0.2),
                               lineWidth: highlighted ? 2 : 1)
         )
     }

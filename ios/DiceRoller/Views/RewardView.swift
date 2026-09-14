@@ -216,44 +216,45 @@ struct RewardView: View {
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
-                devotionStrip(deity)
+                patronStrip(deity)
             }
             .opacity(risen ? 1 : 0)
         }
     }
 
-    private func devotionStrip(_ deity: Deity) -> some View {
-        let count = game.devotion[deity] ?? 0
-        let next = deity.passives.first { count < $0.threshold }
+    /// How much of this god you already carry: claimed dice, earned upgrades,
+    /// and where their path stands.
+    private func patronStrip(_ deity: Deity) -> some View {
+        let dice = game.allDice.filter { $0.patron == deity }.count
+        let earned = GodKit.upgrades(for: deity).filter { game.activeUpgrades.contains($0.id) }.count
+        let capstone = GodKit.capstone(for: deity)
+        let capstoneTaken = game.activeCapstone?.deity == deity
         return VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 5) {
                 HStack(spacing: 3) {
-                    ForEach(0..<5, id: \.self) { index in
-                        Circle()
-                            .fill(index < count ? accent : Theme.bgCard)
-                            .frame(width: 6, height: 6)
+                    ForEach(0..<4, id: \.self) { index in
+                        Image(systemName: index < earned ? "seal.fill" : "seal")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(index < earned ? accent : Theme.bgCard)
                     }
                 }
-                Text(count == 0
-                     ? "No faces yet"
-                     : "\(count) face\(count == 1 ? "" : "s") of \(deity.name)")
+                Text(dice == 0
+                     ? "No dice claimed yet"
+                     : "\(dice) claimed dice · \(earned) upgrade\(earned == 1 ? "" : "s")")
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Theme.parchmentDim)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
 
-            if let line = currentPassive(deity, count) {
-                Text(line)
+            if let capstone {
+                Text(capstoneTaken
+                     ? "\(capstone.name) rides with you"
+                     : (game.capstoneUnlocked(capstone)
+                        ? "\(capstone.name) unlocked — one capstone per run"
+                        : "Two upgrades unlock \(capstone.name)"))
                     .font(.system(size: 8.5, weight: .semibold))
-                    .foregroundStyle(accent.opacity(0.9))
-                    .lineLimit(2)
-            }
-
-            if let next {
-                Text("→ \(next.threshold): \(next.text)")
-                    .font(.system(size: 8.5, weight: .semibold))
-                    .foregroundStyle(Theme.parchmentDim.opacity(0.9))
+                    .foregroundStyle(capstoneTaken ? accent.opacity(0.9) : Theme.parchmentDim.opacity(0.9))
                     .lineLimit(2)
             }
         }
@@ -262,9 +263,5 @@ struct RewardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bgElevated.opacity(0.85), in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(accent.opacity(0.3), lineWidth: 1))
-    }
-
-    private func currentPassive(_ deity: Deity, _ count: Int) -> String? {
-        deity.passives.last { count >= $0.threshold }?.text
     }
 }

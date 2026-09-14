@@ -231,9 +231,9 @@ struct GameOverView: View {
             statRow(icon: "dice.fill", label: "Dice carried", value: "\(game.diceCount)/\(Loadout.maxDice)", tint: Theme.steel)
             statRow(icon: game.heroClass?.symbol ?? "person.fill", label: "Demigod",
                     value: game.heroClass?.name ?? "—", tint: accent)
-            if let followed = game.followedDeities.first, followed.count > 0 {
+            if let followed = game.followedDeities.first, followed.dice > 0 {
                 statRow(icon: followed.deity.symbol, label: "Closest god",
-                        value: "\(followed.deity.name) ×\(followed.count)", tint: followed.deity.tint)
+                        value: "\(followed.deity.name) ×\(followed.dice)", tint: followed.deity.tint)
             }
             if let best = game.bestRecord {
                 Divider().background(Theme.parchmentDim.opacity(0.2))

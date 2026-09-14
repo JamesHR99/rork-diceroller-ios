@@ -10,9 +10,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "Coals stolen from Ra's own brazier. Everything it touches goes up.",
         dice: [
-            [.bomb, .bomb, .bomb, .energize, .heal, .smoke],
-            [.bomb, .bomb, .smoke, .smoke, .energize, .heal],
-            [.bomb, .elixir, .elixir, .energize, .smoke, .heal],
+            [.bomb, .bomb, .bomb, .energize, .heal, .evade],
+            [.bomb, .bomb, .evade, .evade, .energize, .heal],
+            [.bomb, .heal, .heal, .energize, .evade, .heal],
         ]
     )
 
@@ -22,9 +22,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "River water steeped with everything the current has carried down.",
         dice: [
-            [.poison, .poison, .poison, .elixir, .energize, .smoke],
-            [.poison, .poison, .elixir, .elixir, .heal, .dodge],
-            [.poison, .bomb, .elixir, .energize, .smoke, .heal],
+            [.poison, .poison, .poison, .heal, .energize, .evade],
+            [.poison, .poison, .heal, .heal, .heal, .evade],
+            [.poison, .bomb, .heal, .energize, .evade, .heal],
         ]
     )
 
@@ -34,9 +34,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "The household god's own amulet. Nothing crosswise gets past it.",
         dice: [
-            [.block, .block, .block, .heal, .dodge, .energize],
-            [.block, .block, .brace, .heal, .heal, .dodge],
-            [.ward, .ward, .block, .heal, .elixir, .energize],
+            [.block, .block, .block, .heal, .evade, .energize],
+            [.block, .block, .block, .heal, .heal, .evade],
+            [.block, .block, .block, .heal, .heal, .energize],
         ]
     )
 
@@ -46,9 +46,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "It sees the turn before this one. Stamina gathers where it looks.",
         dice: [
-            [.focus, .focus, .energize, .energize, .dodge, .smoke],
-            [.focus, .energize, .energize, .heal, .elixir, .dodge],
-            [.focus, .focus, .smoke, .smoke, .elixir, .heal],
+            [.focus, .focus, .energize, .energize, .evade, .evade],
+            [.focus, .energize, .energize, .heal, .heal, .evade],
+            [.focus, .focus, .evade, .evade, .heal, .heal],
         ]
     )
 
@@ -58,9 +58,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "Coins for the crossing, and the grey mist they are handed through.",
         dice: [
-            [.smoke, .smoke, .smoke, .dodge, .energize, .heal],
-            [.smoke, .smoke, .dodge, .dodge, .elixir, .energize],
-            [.dodge, .dodge, .smoke, .heal, .heal, .elixir],
+            [.evade, .evade, .evade, .evade, .energize, .heal],
+            [.evade, .evade, .evade, .evade, .heal, .energize],
+            [.evade, .evade, .evade, .heal, .heal, .heal],
         ]
     )
 
@@ -70,9 +70,9 @@ enum RelicContent {
         rarity: .rare,
         blurb: "A preserved heart that never learned to stop beating.",
         dice: [
-            [.elixir, .elixir, .elixir, .heal, .heal, .energize],
-            [.heal, .heal, .heal, .elixir, .dodge, .smoke],
-            [.elixir, .heal, .heal, .block, .energize, .smoke],
+            [.heal, .heal, .heal, .heal, .heal, .energize],
+            [.heal, .heal, .heal, .heal, .evade, .evade],
+            [.heal, .heal, .heal, .block, .energize, .evade],
         ]
     )
 

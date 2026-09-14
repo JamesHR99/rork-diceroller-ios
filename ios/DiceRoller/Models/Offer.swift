@@ -6,16 +6,17 @@ enum OfferKind: Hashable {
     case die(Die)
     /// Reforge one face of your choice into this kind.
     case reforge(FaceKind)
-    /// Reroll every face the gods have not claimed on one die of your choice.
+    /// Reroll every face on one die of your choice.
     case reforgeDie
-    /// A god's named gift: lay it on one of your existing faces — starting
-    /// fresh, deepening the same gift, or (rarely, `replace: true`) burning
-    /// off whatever the face already carries and laying this gift instead.
-    case gift(GiftDef, replace: Bool)
-    /// A dual-god rite: bind the second god onto a face already carrying the
-    /// first. The only way two gods ever share a face — and the only way a
-    /// bound face fires its duo at full strength every play.
-    case rite(Deity, Deity)
+    /// A god claims one of your dice as its patron — an unblessed die, or
+    /// (rarely, `replace: true`) explicitly taking a die from another god.
+    case patron(Deity, replace: Bool)
+    /// A god's upgrade: earned once, needs a blessed die of that god.
+    case upgrade(GodUpgrade)
+    /// A god's capstone: one per run, needs two upgrades of that god.
+    case capstone(GodCapstone)
+    /// A pairing: two gods standing together, one per run.
+    case pairing(PairingDef)
     /// Permanently raise one chosen face's crit chance.
     case imbue(Double)
     /// A carryable item (replaces the one you hold).
@@ -73,26 +74,9 @@ struct Offer: Identifiable, Hashable {
     /// Blessings glow in their god's colour; everything else uses its rarity.
     var tint: Color { deity?.tint ?? rarity.tint }
 
-    /// The gift this card lays down, if it is one.
-    var giftDef: GiftDef? {
-        if case .gift(let gift, _) = kind { return gift }
-        return nil
-    }
-
-    /// True when this gift card may burn an existing gift off a face.
-    var isReplacingGift: Bool {
-        if case .gift(_, let replace) = kind { return replace }
-        return false
-    }
-
-    /// The partner god of a dual-god rite card, if it is one.
-    var ritePartner: Deity? {
-        if case .rite(_, let partner) = kind { return partner }
-        return nil
-    }
-
-    var isRite: Bool {
-        if case .rite = kind { return true }
+    /// True when a patron card may take a die from another god.
+    var isReplacingPatron: Bool {
+        if case .patron(_, let replace) = kind { return replace }
         return false
     }
 }
