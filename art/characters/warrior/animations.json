@@ -1,0 +1,23 @@
+{
+  "character": "warrior",
+  "version": 1,
+  "status": "animation-study",
+  "source": {
+    "width": 1536,
+    "height": 1024,
+    "columns": 4,
+    "rows": 2,
+    "cellWidth": 384,
+    "cellHeight": 512,
+    "frameOrder": "left-to-right, top-to-bottom",
+    "background": "transparent",
+    "alphaRequired": true
+  },
+  "animations": {
+    "attack": { "file": "warrior_attack_sheet.png", "frames": [0,1,2,3,4,5,6,7], "durationMs": [240,180,100,70,110,180,170,240], "loop": false },
+    "idle": { "file": "warrior_idle_sheet.png", "frames": [0,1,2,3,4,5,6,7], "durationMs": [220,180,180,200,180,180,180,220], "loop": true },
+    "block": { "file": "warrior_block_sheet.png", "frames": [0,1,2,3,4,5,6,7], "durationMs": [180,80,100,160,100,140,180,220], "loop": false },
+    "take_damage": { "file": "warrior_take_damage_sheet.png", "frames": [0,1,2,3,4,5,6,7], "durationMs": [160,70,100,140,150,160,180,240], "loop": false }
+  }
+}
+
