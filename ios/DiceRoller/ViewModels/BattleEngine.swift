@@ -16,8 +16,44 @@ struct RolledFace: Identifiable, Hashable {
     let imbueTiers: Int
     /// True when this face was carried over from last turn's freeze.
     var wasHeld = false
+    /// Chisel substitutions: Adjustable Nock shifts a held arrow a tier,
+    /// Prismatic Focus stands an Arcane rune in for another, Concealed Blade
+    /// counts an Evade as a Swift Slash. The true face keeps its god and crit.
+    var effectiveFace: FaceKind?
+    /// Returning Knife: this appearance has already come back once.
+    var hasReturned = false
 
     var displayName: String { face.label }
+
+    init(
+        id: UUID,
+        dieID: UUID,
+        dieName: String,
+        face: FaceKind,
+        patron: Deity?,
+        isCrit: Bool,
+        critChance: Double,
+        imbueTiers: Int,
+        wasHeld: Bool = false,
+        effectiveFace: FaceKind? = nil,
+        hasReturned: Bool = false
+    ) {
+        self.id = id
+        self.dieID = dieID
+        self.dieName = dieName
+        self.face = face
+        self.patron = patron
+        self.isCrit = isCrit
+        self.critChance = critChance
+        self.imbueTiers = imbueTiers
+        self.wasHeld = wasHeld
+        self.effectiveFace = effectiveFace
+        self.hasReturned = hasReturned
+    }
+
+    /// The face the engine matches recipes with and prints values from —
+    /// the true face wherever no Chisel substitution stands.
+    var matchFace: FaceKind { effectiveFace ?? face }
 }
 
 /// Visual + logical state of one reel in the tray. A slot has its own identity
@@ -58,13 +94,22 @@ struct PlanStep: Identifiable {
     let focusBonus: Int
     /// Chance the whole combo crits, from how many crit dice fed it.
     let comboCritChance: Double
+    /// Relentless Advance: stamina shaved off this step, never below 1.
+    let staminaDiscount: Int
 
-    init(faces: [RolledFace], combo: ComboDef?, momentumBonus: Int = 0, focusBonus: Int = 0) {
+    init(
+        faces: [RolledFace],
+        combo: ComboDef?,
+        momentumBonus: Int = 0,
+        focusBonus: Int = 0,
+        staminaDiscount: Int = 0
+    ) {
         self.id = faces.first?.id ?? UUID()
         self.faces = faces
         self.combo = combo
         self.momentumBonus = momentumBonus
         self.focusBonus = focusBonus
+        self.staminaDiscount = staminaDiscount
         if let combo {
             if combo.guaranteedCrit {
                 self.comboCritChance = 1.0
@@ -85,8 +130,11 @@ struct PlanStep: Identifiable {
     var hasCritFace: Bool { critDice > 0 }
     var isGuaranteedCrit: Bool { combo?.guaranteedCrit == true }
     var title: String { combo?.name ?? faces.first?.displayName ?? "" }
-    /// Fused combos cost less than their faces played apart.
-    var staminaCost: Int { GameData.comboStaminaCost(faces: faces.count) }
+    /// Fused combos cost less than their faces played apart. Relentless
+    /// Advance shaves one more off the first weapon combo of a turn.
+    var staminaCost: Int {
+        max(1, GameData.comboStaminaCost(faces: faces.count) - staminaDiscount)
+    }
 
     /// True when this step touches a foe — direct damage or an enemy status —
     /// so it is listed in the allocation overlay and needs a target.
@@ -248,6 +296,15 @@ struct FloatText: Identifiable, Equatable {
     let big: Bool
 }
 
+/// The Echoing Staff's deferred half-cast, fired at the start of your next
+/// turn — half damage, healing and shield, nothing else repeated.
+struct PendingEcho {
+    let damage: Int
+    let heal: Int
+    let shield: Int
+    let foeID: UUID?
+}
+
 /// One foe on the deck: its own health, armour, block, statuses, telegraphed
 /// intent and pose. A battle holds one for every enemy in the fight.
 struct EnemyState: Identifiable {
@@ -285,6 +342,10 @@ struct EnemyState: Identifiable {
 
     var isAlive: Bool { hp > 0 }
     var hpFraction: Double { def.maxHP > 0 ? Double(hp) / Double(def.maxHP) : 0 }
+    /// Divine Trials: this foe carries the attending god's lent power.
+    var isTrialChampion = false
+    /// Bastet's trial gift: a charge that slips one blow this turn.
+    var evadeCharges = 0
     /// Bosses re-coil a little sooner under the tighter economy.
     var stagedHPFraction: Double {
         def.isBoss ? min(1, hpFraction + GameData.bossStageShift) : hpFraction
@@ -322,6 +383,10 @@ final class BattleEngine {
     let capstoneID: String?
     /// The pairing this run committed to, if its gods are equipped.
     let pairing: PairingDef?
+    /// Chisels of Ptah carried this run. They reshape the weapon, not the dice.
+    let chisels: Set<String>
+    /// A god's Trial waiting on this fight, before it is accepted or declined.
+    private(set) var trial: DivineTrial?
     private let comboPool: [ComboDef]
 
     // MARK: Player state
@@ -369,6 +434,35 @@ final class BattleEngine {
     private var hardestHitAmount = 0
     private var tookHealthDamageThisEnemyTurn = false
 
+    // Chisels of Ptah: optional Chisels arm per recipe, keyed by combo id, and
+    // hold until fired or disarmed.
+    private(set) var siegeArmed: Set<String> = []
+    private(set) var counterweightArmed: Set<String> = []
+    private(set) var assassinArmed: Set<String> = []
+    private(set) var echoArmedComboID: String?
+    /// Twin Bowstring's second arrow, Crescent Edge's splash and the echo's
+    /// retargets: step ID → foe ID, defaulted to the weakest living foe.
+    private(set) var secondaryAllocations: [UUID: UUID] = [:]
+    /// Adjustable Nock: the one held arrow shifted a tier this turn.
+    private(set) var nockShiftedFaceID: UUID?
+    private var returningKnifeUsedThisTurn = false
+    private var returningKnifeSlot: DieSlot?
+    private var currentUsedThisTurn = false
+    private var lastSpellWasMixed: Bool?
+    private(set) var relentlessActive = false
+    private var weaponComboLandedThisTurn = false
+    private var pendingEcho: PendingEcho?
+
+    // Divine Trials: the player-side state the trial's lent power touches.
+    private(set) var trialAccepted = false
+    private(set) var trialChampionID: UUID?
+    private(set) var playerBurnAmount = 0
+    private(set) var playerBurnTurns = 0
+    private(set) var playerJudgementAmount = 0
+    private(set) var playerJudgementPending = false
+    private var trialFirstStrikeUsed = false
+    private var enemyTurnCount = 0
+
     // MARK: Enemy state
     /// Which foe each plan step is sent at: step ID → foe ID. Built when the
     /// turn is committed (or defaulted for solo fights) and read during
@@ -380,6 +474,9 @@ final class BattleEngine {
     private(set) var isAllocating = false
     /// The attack row highlighted in the allocation overlay.
     private(set) var selectedAllocationID: UUID?
+    /// Which hit of the selected row is being pointed: 0 the blow itself,
+    /// 1 its chisel-granted second hit (split arrow or splash).
+    private(set) var selectedAllocationHit = 0
     /// The foe the blow currently being thrown was sent at.
     private(set) var activeTargetID: UUID?
     /// Set for a beat when a boss re-coils, so the arena can announce it.
@@ -439,7 +536,9 @@ final class BattleEngine {
         patrons: Set<Deity> = [],
         upgrades: Set<String> = [],
         capstoneID: String? = nil,
-        pairing: PairingDef? = nil
+        pairing: PairingDef? = nil,
+        chisels: Set<String> = [],
+        trial: DivineTrial? = nil
     ) {
         let foes = enemies.map { EnemyState(def: $0) }
         self.enemies = foes
@@ -458,6 +557,8 @@ final class BattleEngine {
         self.upgrades = upgrades
         self.capstoneID = capstoneID
         self.pairing = pairing
+        self.chisels = chisels
+        self.trial = trial
         self.comboPool = GameData.combosByPriority(for: classID)
 
         // Bes stands in the doorway from the first turn when his Loud House
@@ -468,6 +569,8 @@ final class BattleEngine {
     }
 
     private func hasUpgrade(_ id: String) -> Bool { upgrades.contains(id) }
+
+    private func hasChisel(_ id: String) -> Bool { chisels.contains(id) }
 
     // MARK: - Derived
 
@@ -509,6 +612,238 @@ final class BattleEngine {
         livingFoes.first?.displayName ?? enemies.last?.displayName ?? ""
     }
 
+    // MARK: - Chisels of Ptah
+
+    /// True when this combo step is an arrow combo — Twin Bowstring and
+    /// Siege Draw key off it.
+    private func isArrowCombo(_ step: PlanStep) -> Bool {
+        guard let combo = step.combo else { return false }
+        return combo.damage > 0 && combo.required.contains { $0.pattern.matches(.arrow1) }
+    }
+
+    private func twinBowstringApplies(_ step: PlanStep) -> Bool {
+        guard step.isCombo else { return false }
+        return hasChisel("ch_twinBowstring") && isArrowCombo(step)
+    }
+
+    private func crescentApplies(_ step: PlanStep) -> Bool {
+        guard let combo = step.combo else { return false }
+        return hasChisel("ch_crescentEdge") && combo.damage > 0 && combo.source == .weapon
+    }
+
+    /// True when this step sends a second, chisel-granted hit somewhere —
+    /// Twin Bowstring's second arrow or Crescent Edge's splash.
+    func hasSecondaryHit(_ step: PlanStep) -> Bool {
+        twinBowstringApplies(step) || (crescentApplies(step) && livingFoes.count > 1)
+    }
+
+    /// Who the step's chisel-granted second hit is pointed at: an explicit
+    /// allocation, or the weakest living foe other than the main target.
+    func secondaryFoeID(for step: PlanStep) -> UUID? {
+        guard hasSecondaryHit(step) else { return nil }
+        let mainID = allocatedFoeID(for: step)
+        if let id = secondaryAllocations[step.id],
+           enemies.contains(where: { $0.id == id && $0.isAlive }) {
+            return id
+        }
+        let others = livingFoes.filter { $0.id != mainID }
+        return (others.min(by: { $0.hp < $1.hp }) ?? livingFoes.first)?.id
+    }
+
+    /// Damage the step's primary hit deals before enemy defences.
+    func mainDamage(for step: PlanStep) -> Int {
+        if twinBowstringApplies(step) {
+            return GameData.scaleUp(displayedDamage(for: step), by: GameData.twinSplitFraction)
+        }
+        return displayedDamage(for: step)
+    }
+
+    /// Damage the step's chisel-granted second hit deals before defences —
+    /// zero when this step carries none.
+    func secondaryDamage(for step: PlanStep) -> Int {
+        if twinBowstringApplies(step) {
+            return GameData.scaleUp(displayedDamage(for: step), by: GameData.twinSplitFraction)
+        }
+        if crescentApplies(step) {
+            return max(1, Int(Double(displayedDamage(for: step)) * GameData.crescentFraction))
+        }
+        return 0
+    }
+
+    /// Multiplier on a step's raw damage from its armed optional Chisels.
+    private func armedDamageMultiplier(for step: PlanStep) -> Double {
+        guard let combo = step.combo else { return 1.0 }
+        var multiplier = 1.0
+        if siegeArmed.contains(combo.id) { multiplier += GameData.siegeDamageBonus }
+        if assassinArmed.contains(combo.id) { multiplier += GameData.assassinDamageBonus }
+        return multiplier
+    }
+
+    /// Extra pierce this step's armed Chisels grant.
+    private func armedPierce(for step: PlanStep) -> Double {
+        guard let combo = step.combo else { return 0 }
+        var pierce = 0.0
+        if siegeArmed.contains(combo.id) { pierce += GameData.siegePierce }
+        if assassinArmed.contains(combo.id) { pierce += GameData.assassinPierce }
+        return pierce
+    }
+
+    /// A step's damage with its armed Chisels folded in — the number the
+    /// plan and the forecast print.
+    func displayedDamage(for step: PlanStep) -> Int {
+        let multiplier = armedDamageMultiplier(for: step)
+        guard multiplier != 1.0 else { return step.damage }
+        return GameData.scaleUp(step.damage, by: multiplier)
+    }
+
+    /// One copper line naming what the armed Chisels and passives do to this
+    /// step, printed under its effect line.
+    func chiselLine(for step: PlanStep) -> String? {
+        guard let combo = step.combo else { return nil }
+        var parts: [String] = []
+        if siegeArmed.contains(combo.id) { parts.append("SIEGE +40% · PIERCE 50%") }
+        if assassinArmed.contains(combo.id) { parts.append("COMMITTED +40% · PIERCE 50%") }
+        if counterweightArmed.contains(combo.id) {
+            let spend = min(GameData.counterweightMaxSpend, playerShield)
+            if spend > 0 { parts.append("COUNTERWEIGHT +\(spend * GameData.counterweightDamagePerPoint)") }
+        }
+        if echoArmedComboID == combo.id { parts.append("ECHO NEXT TURN") }
+        if twinBowstringApplies(step) { parts.append("2 × 60% HITS") }
+        if crescentApplies(step) { parts.append("SPLASH 35%") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// The optional Chisel that could arm onto this recipe, for the copper
+    /// badge on its chip — nil when none applies.
+    func badgeChisel(for comboID: String) -> ChiselDef? {
+        guard phase == .player,
+              let combo = comboPool.first(where: { $0.id == comboID }) else { return nil }
+        if hasChisel("ch_siegeDraw"), combo.damage > 0,
+           combo.required.contains(where: { $0.pattern.matches(.arrow1) }) {
+            return ChiselCatalog.def("ch_siegeDraw")
+        }
+        if hasChisel("ch_counterweight"), combo.damage > 0, playerShield > 0 {
+            return ChiselCatalog.def("ch_counterweight")
+        }
+        if hasChisel("ch_assassin"), combo.damage > 0,
+           evadeChance >= GameData.assassinEvadeCost {
+            return ChiselCatalog.def("ch_assassin")
+        }
+        if hasChisel("ch_echoingStaff"), combo.source == .weapon {
+            return ChiselCatalog.def("ch_echoingStaff")
+        }
+        return nil
+    }
+
+    func isArmed(_ chisel: ChiselDef, comboID: String) -> Bool {
+        switch chisel.id {
+        case "ch_siegeDraw": siegeArmed.contains(comboID)
+        case "ch_counterweight": counterweightArmed.contains(comboID)
+        case "ch_assassin": assassinArmed.contains(comboID)
+        case "ch_echoingStaff": echoArmedComboID == comboID
+        default: false
+        }
+    }
+
+    func toggleArmed(_ chisel: ChiselDef, comboID: String) {
+        guard phase == .player else { return }
+        switch chisel.id {
+        case "ch_siegeDraw":
+            if siegeArmed.contains(comboID) { siegeArmed.remove(comboID) } else { siegeArmed.insert(comboID) }
+        case "ch_counterweight":
+            guard playerShield > 0 else { return }
+            if counterweightArmed.contains(comboID) { counterweightArmed.remove(comboID) } else { counterweightArmed.insert(comboID) }
+        case "ch_assassin":
+            guard evadeChance >= GameData.assassinEvadeCost else { return }
+            if assassinArmed.contains(comboID) { assassinArmed.remove(comboID) } else { assassinArmed.insert(comboID) }
+        case "ch_echoingStaff":
+            echoArmedComboID = echoArmedComboID == comboID ? nil : comboID
+        default:
+            return
+        }
+        Haptics.light()
+    }
+
+    /// Adjustable Nock: a held arrow may shift one tier, once a turn — and
+    /// tapping the shifted arrow again sets it back true.
+    func nockAvailable(for faceID: UUID) -> Bool {
+        guard hasChisel("ch_adjustableNock"), phase == .player,
+              let face = rolled.first(where: { $0.id == faceID }) else { return false }
+        return face.wasHeld && face.matchFace.isArrow
+            && (nockShiftedFaceID == nil || nockShiftedFaceID == faceID)
+    }
+
+    func nockShift(faceID: UUID, up: Bool) {
+        guard nockAvailable(for: faceID),
+              let index = rolled.firstIndex(where: { $0.id == faceID }) else { return }
+        if nockShiftedFaceID == faceID, rolled[index].effectiveFace != nil {
+            rolled[index].effectiveFace = nil
+            nockShiftedFaceID = nil
+            refreshCandidates()
+            Haptics.light()
+            return
+        }
+        let tiers: [FaceKind] = [.arrow1, .arrow2, .arrow3]
+        guard let tier = tiers.firstIndex(of: rolled[index].matchFace) else { return }
+        let shifted = tier + (up ? 1 : -1)
+        guard tiers.indices.contains(shifted) else { return }
+        rolled[index].effectiveFace = tiers[shifted]
+        nockShiftedFaceID = faceID
+        refreshCandidates()
+        Haptics.light()
+    }
+
+    var hasEchoPending: Bool { pendingEcho != nil }
+
+    /// True when any optional Chisel is armed onto this step's recipe — the
+    /// copper hammer worn by the plan card.
+    func isComboArmed(_ step: PlanStep) -> Bool {
+        guard let combo = step.combo else { return false }
+        return siegeArmed.contains(combo.id) || counterweightArmed.contains(combo.id)
+            || assassinArmed.contains(combo.id) || echoArmedComboID == combo.id
+    }
+
+    // MARK: - Divine Trials
+
+    /// The trial waits until the player answers it.
+    var trialPromptVisible: Bool { trial != nil && !trialAccepted }
+
+    func acceptTrial() {
+        guard let trial, !trialAccepted else { return }
+        trialAccepted = true
+        guard let champion = enemies.filter(\.isAlive).randomElement() else { return }
+        trialChampionID = champion.id
+        if let index = enemies.firstIndex(where: { $0.id == champion.id }) {
+            enemies[index].isTrialChampion = true
+        }
+        lastAction = "\(trial.deity.name)'s trial begins — the champion carries their power."
+        Haptics.heavy()
+    }
+
+    func declineTrial() {
+        guard !trialAccepted else { return }
+        trial = nil
+        lastAction = "The god withdraws. The fight is only a fight."
+        Haptics.light()
+    }
+
+    private func isChampion(_ foe: EnemyState) -> Bool {
+        trialAccepted && foe.id == trialChampionID
+    }
+
+    /// The one-line lent-power note under a champion's intent chip.
+    func trialForecast(for foe: EnemyState) -> (icon: String, text: String, tint: Color)? {
+        guard isChampion(foe), let trial else { return nil }
+        switch trial.deity {
+        case .ra: return ("flame.fill", "first hit: burn 2×2", Theme.ember)
+        case .sobek: return ("drop.fill", "first hit: bleed 2×2 · feeds 4", Theme.blood)
+        case .anubis: return ("scalemass.fill", "sentence \(GameData.trialSentence) every 2nd turn", Deity.anubis.tint)
+        case .bes: return ("shield.checkered", "+8 gate after acting", Deity.bes.tint)
+        case .horus: return ("bird.fill", "every 3rd: pierces half guard", Deity.horus.tint)
+        case .bastet: return ("cat.fill", "evade on your 2nd turns", Deity.bastet.tint)
+        }
+    }
+
     // MARK: - Targeting
 
     /// True when at least one step in the plan can touch a foe — damage or an
@@ -532,11 +867,15 @@ final class BattleEngine {
         return livingFoes.first?.id
     }
 
-    /// Damage the current allocation points at one foe.
+    /// Damage the current allocation points at one foe: primary hits, plus
+    /// the chisel-granted second hits pointed here.
     func allocatedDamage(for foeID: UUID) -> Int {
         turnPlan.reduce(0) { total, step in
-            guard step.targetsEnemy, allocatedFoeID(for: step) == foeID else { return total }
-            return total + step.damage
+            guard step.targetsEnemy, step.damage > 0 else { return total }
+            var sum = total
+            if allocatedFoeID(for: step) == foeID { sum += mainDamage(for: step) }
+            if secondaryFoeID(for: step) == foeID { sum += secondaryDamage(for: step) }
+            return sum
         }
     }
 
@@ -547,6 +886,9 @@ final class BattleEngine {
             guard let selectedAllocationID,
                   let step = turnPlan.first(where: { $0.id == selectedAllocationID }) else {
                 return false
+            }
+            if selectedAllocationHit == 1 {
+                return secondaryFoeID(for: step) == foeID
             }
             return allocatedFoeID(for: step) == foeID
         }
@@ -567,7 +909,11 @@ final class BattleEngine {
         let steps = allocatableSteps
         guard let defaultFoe = livingFoes.first?.id else { return }
         allocations = Dictionary(uniqueKeysWithValues: steps.map { ($0.id, defaultFoe) })
+        for step in steps where hasSecondaryHit(step) {
+            secondaryAllocations[step.id] = secondaryFoeID(for: step) ?? defaultFoe
+        }
         selectedAllocationID = steps.first?.id
+        selectedAllocationHit = 0
         isAllocating = true
         Haptics.light()
     }
@@ -576,32 +922,56 @@ final class BattleEngine {
     func selectAllocation(_ stepID: UUID) {
         guard isAllocating, allocatableSteps.contains(where: { $0.id == stepID }) else { return }
         selectedAllocationID = stepID
+        selectedAllocationHit = 0
         Haptics.light()
     }
 
-    /// Send the selected attack at this foe, then advance to the next attack
+    /// Point the row's second, chisel-granted hit instead of the blow itself.
+    func selectSecondaryHit(_ stepID: UUID) {
+        guard isAllocating, allocatableSteps.contains(where: { $0.id == stepID }) else { return }
+        selectedAllocationID = stepID
+        selectedAllocationHit = 1
+        Haptics.light()
+    }
+
+    /// Send the selected hit at this foe, then advance to the next attack
     /// so a sweep down the list assigns quickly.
     func assignSelected(to foeID: UUID) {
         guard isAllocating, let stepID = selectedAllocationID,
               enemies.contains(where: { $0.id == foeID && $0.isAlive }),
               allocatableSteps.contains(where: { $0.id == stepID }) else { return }
-        allocations[stepID] = foeID
+        if selectedAllocationHit == 1 {
+            secondaryAllocations[stepID] = foeID
+        } else {
+            allocations[stepID] = foeID
+        }
         Haptics.light()
         let steps = allocatableSteps
         if let index = steps.firstIndex(where: { $0.id == stepID }), index + 1 < steps.count {
             selectedAllocationID = steps[index + 1].id
+            selectedAllocationHit = 0
         }
     }
 
-    /// Cycle the selected attack through the living foes.
+    /// Cycle the selected hit through the living foes.
     func cycleTarget(for stepID: UUID) {
         guard isAllocating,
               let step = allocatableSteps.first(where: { $0.id == stepID }),
               livingFoes.count > 1 else { return }
         let living = livingFoes
-        let current = allocatedFoeID(for: step) ?? living[0].id
+        let current: UUID
+        if selectedAllocationHit == 1 {
+            current = secondaryFoeID(for: step) ?? living[0].id
+        } else {
+            current = allocatedFoeID(for: step) ?? living[0].id
+        }
         guard let index = living.firstIndex(where: { $0.id == current }) else { return }
-        allocations[step.id] = living[(index + 1) % living.count].id
+        let next = living[(index + 1) % living.count].id
+        if selectedAllocationHit == 1 {
+            secondaryAllocations[step.id] = next
+        } else {
+            allocations[step.id] = next
+        }
         selectedAllocationID = step.id
         Haptics.light()
     }
@@ -611,6 +981,7 @@ final class BattleEngine {
         guard isAllocating else { return }
         isAllocating = false
         selectedAllocationID = nil
+        selectedAllocationHit = 0
         Haptics.light()
     }
 
@@ -619,6 +990,7 @@ final class BattleEngine {
         guard isAllocating else { return }
         isAllocating = false
         selectedAllocationID = nil
+        selectedAllocationHit = 0
         Haptics.medium()
         commitTurn()
     }
@@ -655,11 +1027,21 @@ final class BattleEngine {
     }
 
     var projectedDamage: Int {
-        turnPlan.reduce(0) { $0 + $1.damage }
+        turnPlan.reduce(0) { total, step in
+            guard step.targetsEnemy, step.damage > 0 else { return total }
+            return total + mainDamage(for: step) + secondaryDamage(for: step)
+        }
     }
 
     var planStaminaCost: Int {
-        turnPlan.reduce(0) { $0 + $1.staminaCost }
+        let siege = turnPlan.filter { step in
+            step.combo.map { siegeArmed.contains($0.id) } == true
+        }.count
+        let echo = echoArmedComboID.map { comboID in
+            turnPlan.contains { $0.combo?.id == comboID } ? GameData.echoStaminaCost : 0
+        } ?? 0
+        return turnPlan.reduce(0) { $0 + $1.staminaCost }
+            + siege * GameData.siegeStaminaCost + echo
     }
 
     var stamina: Int { max(0, turnStamina - planStaminaCost) }
@@ -699,12 +1081,27 @@ final class BattleEngine {
         var found: [ComboCandidate] = []
         var markers: [UUID: [(letter: String, color: Color)]] = [:]
 
+        var assisted = 0
         for combo in comboPool {
             let forced = forcedCombos.contains(combo.id)
             let dissolved = dissolvedCombos.contains(combo.id)
             guard forced || !dissolved else { continue }
-            guard let indices = combo.match(from: free.map(\.face)) else { continue }
-            let slots = indices.map { free[$0] }
+            let kinds = free.map(\.matchFace)
+            var indices = combo.match(from: kinds)
+            var substituted: (index: Int, kind: FaceKind)? = nil
+            if indices == nil, assisted < 1,
+               let match = chiselAssistedMatch(combo, kinds: kinds) {
+                indices = match.indices
+                substituted = match.substitution
+            }
+            guard let indices else { continue }
+            var slots = indices.map { free[$0] }
+            if let substituted {
+                assisted += 1
+                if let local = indices.firstIndex(of: substituted.index) {
+                    slots[local].effectiveFace = substituted.kind
+                }
+            }
             let placed = slots.filter { planned.contains($0.id) }.count
             let letter = Self.letter(at: found.count)
             found.append(ComboCandidate(combo: combo, slots: slots, placedCount: placed,
@@ -1024,6 +1421,7 @@ final class BattleEngine {
     private func resolveTurn() async {
         let steps = buildPlan(from: playedFaces)
         committedPlan = steps
+        weaponComboLandedThisTurn = false
 
         let carriedSlots = slots.filter { slot in
             guard frozenSlotIDs.contains(slot.id), case .rolled(let face) = slot.state else { return false }
@@ -1039,13 +1437,18 @@ final class BattleEngine {
             guard case .rolled(let face) = slot.state else { return nil }
             var held = face
             held.wasHeld = true
+            // Adjustable Nock is a once-a-turn shift; the true arrow returns.
+            held.effectiveFace = nil
             return DieSlot(die: slot.die, state: .rolled(held), isCarried: true)
         }
         rolled = pendingCarry.compactMap { slot in
             if case .rolled(let face) = slot.state { return face }
             return nil
         }
-        turnStamina = max(0, turnStamina - steps.reduce(0) { $0 + $1.staminaCost })
+        let planIDs = Set(steps.compactMap { $0.combo?.id })
+        let armedExtras = steps.filter { $0.combo.map { planIDs.contains($0.id) && siegeArmed.contains($0.id) } == true }.count * GameData.siegeStaminaCost
+            + (echoArmedComboID.map { planIDs.contains($0) ? GameData.echoStaminaCost : 0 } ?? 0)
+        turnStamina = max(0, turnStamina - steps.reduce(0) { $0 + $1.staminaCost } - armedExtras)
         playOrder = []
         clearChainCounts()
 
@@ -1054,22 +1457,68 @@ final class BattleEngine {
             try? await Task.sleep(for: .milliseconds(260))
             let target = targetIndex(for: step)
             activeTargetID = target.map { enemies[$0].id }
-            if let combo = step.combo {
-                let didCrit = Double.random(in: 0..<1) < step.comboCritChance
-                playerPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
-                noteStrikeGods(in: step.faces)
-                applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
-                resolveBlessings(in: step, targetIndex: target)
-                pairingAfterAction(step: step, dealtDamage: combo.damage > 0, targetIndex: target)
-                let hang = 480 + min(step.faces.count, 5) * 90 + (didCrit ? 420 : 0)
-                try? await Task.sleep(for: .milliseconds(hang))
-            } else if let face = step.faces.first {
-                playerPose = pose(for: face.face)
-                noteStrikeGods(in: [face])
-                let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
-                resolveBlessings(in: step, targetIndex: target)
-                pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
-                try? await Task.sleep(for: .milliseconds(380))
+
+            // Assassin's Commitment: the evade charge burns before the blow
+            // lands, so the combo's own evasion can never pay for it.
+            if let combo = step.combo, assassinArmed.contains(combo.id), evadeChance > 0 {
+                evadeChance = max(0, evadeChance - GameData.assassinEvadeCost)
+                addFloat("Commitment −15% Evade", color: Theme.ptahCopper, onEnemy: false)
+            }
+
+            // Bastet's trial gift: one charge slips the first damaging blow
+            // aimed at the champion this turn.
+            var skipStep = false
+            if step.targetsEnemy, step.damage > 0, let target,
+               enemies.indices.contains(target), enemies[target].isAlive,
+               enemies[target].isTrialChampion, enemies[target].evadeCharges > 0 {
+                enemies[target].evadeCharges -= 1
+                addFloat("EVADED!", color: Deity.bastet.tint, onEnemy: true, big: true, foe: enemies[target].id)
+                lastAction = "\(enemies[target].displayName) vanishes — the blow finds empty air."
+                skipStep = true
+            }
+
+            if !skipStep {
+                if let combo = step.combo {
+                    let didCrit = Double.random(in: 0..<1) < step.comboCritChance
+                    playerPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
+                    noteStrikeGods(in: step.faces)
+                    applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
+                    // Concealed Blade: the substituted Evade still grants its
+                    // evasion, and its god still answered it as a defensive face.
+                    if hasChisel("ch_concealedBlade"),
+                       step.faces.contains(where: { $0.face == .evade && $0.effectiveFace == .swiftSlash }) {
+                        gainEvade(0.15)
+                        addFloat("Concealed Blade", color: Theme.ptahCopper, onEnemy: false)
+                    }
+                    if combo.source == .weapon, combo.damage > 0 {
+                        weaponComboLandedThisTurn = true
+                    }
+                    // Returning Knife: the first dagger thrown each turn comes
+                    // back as a held face next turn.
+                    if hasChisel("ch_returningKnife"), !returningKnifeUsedThisTurn,
+                       let daggerFace = step.faces.first(where: { $0.matchFace == .daggerThrow && !$0.hasReturned }) {
+                        returningKnifeUsedThisTurn = true
+                        var returned = daggerFace
+                        returned.wasHeld = true
+                        returned.hasReturned = true
+                        returned.effectiveFace = nil
+                        if let die = loadoutDice.first(where: { $0.id == daggerFace.dieID }) {
+                            returningKnifeSlot = DieSlot(die: die, state: .rolled(returned), isCarried: true)
+                        }
+                        addFloat("Returning Knife", color: Theme.ptahCopper, onEnemy: false)
+                    }
+                    resolveBlessings(in: step, targetIndex: target)
+                    pairingAfterAction(step: step, dealtDamage: combo.damage > 0, targetIndex: target)
+                    let hang = 480 + min(step.faces.count, 5) * 90 + (didCrit ? 420 : 0)
+                    try? await Task.sleep(for: .milliseconds(hang))
+                } else if let face = step.faces.first {
+                    playerPose = pose(for: face.face)
+                    noteStrikeGods(in: [face])
+                    let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
+                    resolveBlessings(in: step, targetIndex: target)
+                    pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
+                    try? await Task.sleep(for: .milliseconds(380))
+                }
             }
             resetPoses()
             if !hasLivingFoes {
@@ -1079,10 +1528,33 @@ final class BattleEngine {
             }
         }
 
+        // Relentless Advance: land a weapon combo this turn and the first one
+        // next turn is cheaper. Skip a turn without one and the momentum is gone.
+        relentlessActive = weaponComboLandedThisTurn
+        if let knifeSlot = returningKnifeSlot {
+            pendingCarry.append(knifeSlot)
+            returningKnifeSlot = nil
+        }
+        returningKnifeUsedThisTurn = false
+
         activeStepIndex = nil
         try? await Task.sleep(for: .milliseconds(380))
         detonateJudgements()
         boilingNileTick()
+        // Anubis's Sentence: stored by a trial champion, it falls against
+        // health at the end of your next turn.
+        if playerJudgementPending {
+            playerJudgementPending = false
+            let amount = playerJudgementAmount
+            playerJudgementAmount = 0
+            playerHP = max(0, playerHP - amount)
+            addFloat("-\(amount) SENTENCE", color: Deity.anubis.tint, onEnemy: false, big: true)
+            withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.6 }
+            if playerHP <= 0 {
+                finishDefeat("The Sentence falls, and the scale tips...")
+                return
+            }
+        }
         if !hasLivingFoes {
             finishVictory()
             return
@@ -1156,6 +1628,17 @@ final class BattleEngine {
                                      scalesWithWounds: combo.scalesWithWounds, scalesWithBurn: combo.scalesWithBurn,
                                      targetIndex: target)
 
+            // Counterweight: spend held shield for damage before the blow lands.
+            if counterweightArmed.contains(combo.id) {
+                let spend = min(GameData.counterweightMaxSpend, playerShield)
+                if spend > 0 {
+                    playerShield -= spend
+                    let bonus = spend * GameData.counterweightDamagePerPoint
+                    raw += bonus
+                    addFloat("Counterweight +\(bonus)", color: Theme.ptahCopper, onEnemy: false)
+                }
+            }
+
             // Capstone: Solar Flare — once a turn, a chain of three or more
             // holding a Ra attack face detonates the target's burn for 3 a
             // stack, then applies fresh burn.
@@ -1172,11 +1655,34 @@ final class BattleEngine {
             }
 
             let pierce = attackPierce(comboBase: combo.pierce, step: step, crit: crit, targetIndex: target)
-            let dealt = damageEnemy(raw, pierce: pierce, targetIndex: target)
-            firstFeastCheck(dealt)
+            let totalDealt: Int
+            if twinBowstringApplies(step) {
+                // Twin Bowstring: two hits at 60% each, splittable across foes.
+                addFloat("TWIN BOWSTRING", color: Theme.ptahCopper, onEnemy: false, big: true)
+                let perHit = GameData.scaleUp(raw, by: GameData.twinSplitFraction)
+                let dealt1 = damageEnemy(perHit, pierce: pierce, targetIndex: target)
+                firstFeastCheck(dealt1)
+                let dealt2 = damageEnemy(perHit, pierce: pierce,
+                                         targetIndex: secondaryTargetIndex(for: step, mainIndex: target))
+                firstFeastCheck(dealt2)
+                totalDealt = dealt1 + dealt2
+            } else {
+                let dealt = damageEnemy(raw, pierce: pierce, targetIndex: target)
+                firstFeastCheck(dealt)
+                if crescentApplies(step),
+                   let splashIndex = secondaryTargetIndex(for: step, mainIndex: target),
+                   splashIndex != resolveTarget(target) {
+                    // Crescent Edge: a second foe takes a fraction of the
+                    // damage — no healing, statuses or god triggers carry over.
+                    let splash = max(1, Int(Double(raw) * GameData.crescentFraction))
+                    addFloat("CRESCENT EDGE", color: Theme.ptahCopper, onEnemy: false)
+                    _ = damageEnemy(splash, pierce: 0, targetIndex: splashIndex)
+                }
+                totalDealt = dealt
+            }
             jawsOfTheNile(step: step, targetIndex: target)
-            if combo.lifesteal, dealt > 0 {
-                healPlayer(dealt, label: "Lifesteal")
+            if combo.lifesteal, totalDealt > 0 {
+                healPlayer(totalDealt, label: "Lifesteal")
             }
         } else {
             // Defensive chains still feed Sobek's capstone and held-face
@@ -1219,6 +1725,33 @@ final class BattleEngine {
         let bank = GameData.comboStaminaBank(faces: step.faces.count)
         if bank > 0 {
             addFloat("+\(bank) Stamina", color: Theme.gold, onEnemy: false)
+        }
+
+        // Echoing Staff: half of this spell repeats at the start of your next
+        // turn — damage, healing and shield, nothing else.
+        if echoArmedComboID == combo.id,
+           combo.damage > 0 || combo.heal > 0 || combo.shield > 0 {
+            let echoBase = combo.damage > 0
+                ? GameData.scaleUp(combo.damage, by: multiplier) + step.momentumBonus + step.focusBonus
+                : 0
+            pendingEcho = PendingEcho(
+                damage: GameData.scaleUp(max(echoBase, 0), by: GameData.echoScale),
+                heal: GameData.scaleUp(GameData.scaleUp(combo.heal, by: multiplier), by: GameData.echoScale),
+                shield: GameData.scaleUp(GameData.scaleUp(combo.shield, by: multiplier), by: GameData.echoScale),
+                foeID: target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
+            )
+        }
+
+        // Alternating Current: opposite rune kinds bank a stamina point.
+        if hasChisel("ch_current"), combo.source == .weapon {
+            let kinds = Set(step.faces.map(\.matchFace))
+            let mixed = kinds.count > 1
+            if let last = lastSpellWasMixed, last != mixed, !currentUsedThisTurn {
+                currentUsedThisTurn = true
+                nextTurnStamina += 1
+                addFloat("Alternating Current +1", color: Theme.ptahCopper, onEnemy: false)
+            }
+            lastSpellWasMixed = mixed
         }
     }
 
@@ -1357,6 +1890,7 @@ final class BattleEngine {
     /// pairing riders, capped at total.
     private func attackPierce(comboBase: Double, step: PlanStep?, crit: Bool, targetIndex target: Int?) -> Double {
         var pierce = comboBase
+        if let step { pierce += armedPierce(for: step) }
         guard let target, enemies.indices.contains(target) else { return min(pierce, 1.0) }
         let foe = enemies[target]
 
@@ -1381,6 +1915,37 @@ final class BattleEngine {
         if hasUpgrade("ra_sunEdge"), foe.burnTurns > 0 { pierce += 0.25 }
         if hasUpgrade("sob_riptide"), foe.hpFraction < 0.5 { pierce += 0.3 }
         return min(pierce, 1.0)
+    }
+
+    /// Where a step's chisel-granted second hit resolves: its allocation, or
+    /// the weakest living foe other than the main target, falling back beside
+    /// the main blow when nothing else stands.
+    private func secondaryTargetIndex(for step: PlanStep, mainIndex: Int?) -> Int? {
+        if let id = secondaryAllocations[step.id],
+           let index = enemies.firstIndex(where: { $0.id == id && $0.isAlive }) {
+            return index
+        }
+        let candidates = enemies.indices.filter { enemies[$0].isAlive && $0 != mainIndex }
+        if let weakest = candidates.min(by: { enemies[$0].hp < enemies[$1].hp }) {
+            return weakest
+        }
+        return resolveTarget(mainIndex)
+    }
+
+    /// The Echoing Staff: fire the stored half-cast at the start of your turn.
+    /// No statuses, no stamina, no god effects, no further echoes.
+    private func firePendingEcho() {
+        guard let echo = pendingEcho else { return }
+        pendingEcho = nil
+        guard echo.damage > 0 || echo.heal > 0 || echo.shield > 0 else { return }
+        addFloat("ECHO", color: Theme.ptahCopper, onEnemy: false, big: true)
+        let index = echo.foeID.flatMap { id in enemies.firstIndex(where: { $0.id == id && $0.isAlive }) }
+            ?? enemies.firstIndex(where: \.isAlive)
+        if echo.damage > 0 {
+            _ = damageEnemy(echo.damage, pierce: 0, targetIndex: index)
+        }
+        if echo.heal > 0 { healPlayer(echo.heal, label: "Echo") }
+        if echo.shield > 0 { gainShield(echo.shield) }
     }
 
     /// Sobek's First Feast: the first attack each turn that draws blood heals 4.
@@ -1716,6 +2281,12 @@ final class BattleEngine {
     /// spreading, and death checks.
     private func onEnemyDamaged(_ foe: EnemyState) {
         guard foe.hp <= 0 else { return }
+        // Anubis's Sentence dies with the judge who passed it.
+        if foe.isTrialChampion, trialAccepted, trial?.deity == .anubis, playerJudgementPending {
+            playerJudgementPending = false
+            playerJudgementAmount = 0
+            addFloat("The Sentence dies with its judge", color: Deity.anubis.tint, onEnemy: false)
+        }
         // Upgrade: Burial Gift — a judged enemy dying early pays out.
         if hasUpgrade("an_burialGift"), foe.judgementPending {
             healPlayer(8, label: "Burial")
@@ -1734,6 +2305,7 @@ final class BattleEngine {
 
     private func enemyTurn() async {
         phase = .enemyActing
+        enemyTurnCount += 1
         for index in enemies.indices where enemies[index].isAlive {
             enemies[index].block = 0
         }
@@ -1797,6 +2369,12 @@ final class BattleEngine {
         healGivenThisTurn = false
         pairingFiredThisTurn = false
         silentDescentArmed = false
+        // Trial timers: the first-strike powers reset each enemy turn, and
+        // Bastet's unspent evade charge expires with the turn.
+        trialFirstStrikeUsed = false
+        for index in enemies.indices where enemies[index].isTrialChampion {
+            enemies[index].evadeCharges = 0
+        }
     }
 
     /// The first time an incoming hit is actually slipped, several gods and
@@ -1880,6 +2458,21 @@ final class BattleEngine {
         let move = foe.intent
         lastAction = "\(foe.displayName) uses \(move.comboName ?? move.name)!"
 
+        // Anubis's Sentence: every second turn the trial champion forgoes its
+        // attack and weighs your heart instead.
+        if isChampion(foe), trial?.deity == .anubis, enemyTurnCount % 2 == 0 {
+            foe.pose = .telegraph
+            try? await Task.sleep(for: .milliseconds(420))
+            foe.pose = .attack
+            addFloat("SENTENCE \(GameData.trialSentence)", color: Deity.anubis.tint, onEnemy: true, big: true, foe: foe.id)
+            playerJudgementAmount = GameData.trialSentence
+            playerJudgementPending = true
+            lastAction = "\(foe.displayName) passes Sentence — it falls at the end of your next turn."
+            try? await Task.sleep(for: .milliseconds(420))
+            resetPoses()
+            return false
+        }
+
         if move.block > 0 {
             foe.pose = .block
             foe.block += move.block
@@ -1929,7 +2522,13 @@ final class BattleEngine {
                 }
 
                 if playerShield > 0 {
-                    let absorbed = min(playerShield, hit)
+                    // Horus's trial blow ignores half of the guard.
+                    var usableShield = playerShield
+                    if isChampion(foe), trial?.deity == .horus, enemyTurnCount % 3 == 0 {
+                        usableShield -= playerShield / 2
+                        addFloat("Half the guard pierced!", color: Deity.horus.tint, onEnemy: false)
+                    }
+                    let absorbed = min(usableShield, hit)
                     playerShield -= absorbed
                     hit -= absorbed
                     if absorbed > 0 {
@@ -1965,6 +2564,24 @@ final class BattleEngine {
                 withAnimation(.linear(duration: 0.3)) { shakeTrigger += 1 }
                 Haptics.heavy()
 
+                // Ra's and Sobek's trials ride the champion's first hit that
+                // reaches health each turn — blocked or evaded, nothing catches.
+                if isChampion(foe), !trialFirstStrikeUsed, let trial {
+                    if trial.deity == .ra {
+                        trialFirstStrikeUsed = true
+                        playerBurnAmount = 2
+                        playerBurnTurns = 2
+                        addFloat("BURNING SUN", color: Deity.ra.tint, onEnemy: false, big: true)
+                    } else if trial.deity == .sobek {
+                        trialFirstStrikeUsed = true
+                        playerBleedAmount = max(playerBleedAmount, 2)
+                        playerBleedTurns = max(playerBleedTurns, 2)
+                        addFloat("HUNGRY RIVER", color: Deity.sobek.tint, onEnemy: false, big: true)
+                        foe.hp = min(foe.def.maxHP, foe.hp + 4)
+                        addFloat("+4", color: Theme.forest, onEnemy: true, foe: foe.id)
+                    }
+                }
+
                 // Capstone: Nine Lives Unbound — once a battle, death waits.
                 if playerHP <= 0 {
                     if capstoneID == "ba_nineLives", !nineLivesUsed {
@@ -1985,9 +2602,15 @@ final class BattleEngine {
         }
 
         if move.bleedAmount > 0 && landedAnyHit {
-            playerBleedAmount = move.bleedAmount
-            playerBleedTurns = move.bleedTurns
+            playerBleedAmount = max(playerBleedAmount, move.bleedAmount)
+            playerBleedTurns = max(playerBleedTurns, move.bleedTurns)
             addFloat("Bleeding!", color: Theme.blood, onEnemy: false)
+        }
+
+        // Bes's trial gift: after acting, the gate rises against your turn.
+        if isChampion(foe), trial?.deity == .bes {
+            foe.block += 8
+            addFloat("UNBROKEN GATE +8", color: Deity.bes.tint, onEnemy: true, foe: foe.id)
         }
 
         if playerHP <= 0 {
@@ -2021,6 +2644,9 @@ final class BattleEngine {
     }
 
     private func startPlayerTurn() {
+        // The Echoing Staff's half-cast lands before anything else moves.
+        firePendingEcho()
+
         if regenTurns > 0 {
             playerHP = min(playerMaxHP, playerHP + regenAmount)
             regenTurns -= 1
@@ -2033,6 +2659,17 @@ final class BattleEngine {
             addFloat("-\(playerBleedAmount) Bleed", color: Theme.blood, onEnemy: false)
             if playerHP <= 0 {
                 finishDefeat("You bleed out...")
+                return
+            }
+        }
+
+        // Ra's trial: the champion's first strike leaves you burning.
+        if playerBurnTurns > 0 {
+            playerHP = max(0, playerHP - playerBurnAmount)
+            playerBurnTurns -= 1
+            addFloat("-\(playerBurnAmount) Burn", color: Theme.ember, onEnemy: false)
+            if playerHP <= 0 {
+                finishDefeat("The burning sun consumes you...")
                 return
             }
         }
@@ -2089,6 +2726,21 @@ final class BattleEngine {
             enemies[index].intent = enemies[index].def.pickMove(hpFraction: fraction)
         }
         turnNumber += 1
+
+        // Per-turn Chisel timers: the nock frees up, the current forgets and
+        // the knife's promise is renewed.
+        nockShiftedFaceID = nil
+        currentUsedThisTurn = false
+        returningKnifeUsedThisTurn = false
+
+        // Bastet's trial gift: every second turn of yours the champion
+        // vanishes behind one evade charge, gone at the turn's end.
+        if trialAccepted, trial?.deity == .bastet, turnNumber % 2 == 0,
+           let index = enemies.firstIndex(where: { $0.id == trialChampionID }), enemies[index].isAlive {
+            enemies[index].evadeCharges = 1
+            addFloat("EVASIVE — 1 CHARGE", color: Deity.bastet.tint, onEnemy: true, foe: enemies[index].id)
+        }
+
         let held = carriedSlots.count
         if reCoiled {
             withAnimation(.linear(duration: 0.5)) { shakeTrigger += 1 }
@@ -2130,6 +2782,36 @@ final class BattleEngine {
 
     // MARK: - Unordered combo grouping
 
+    /// Chisel-assisted matching: Prismatic Focus stands one Arcane rune in for
+    /// Fire, Frost or Life; Concealed Blade counts one Evade as a Swift Slash.
+    /// One assisted recipe per grouping pass — deterministic, order-free, and
+    /// the substituted face keeps its true identity for the gods.
+    private func chiselAssistedMatch(_ combo: ComboDef, kinds: [FaceKind]) -> (indices: [Int], substitution: (index: Int, kind: FaceKind))? {
+        if hasChisel("ch_prismatic"), classID == "magician", combo.source == .weapon {
+            let arcaneIndices = kinds.indices.filter { kinds[$0] == .runeArcane }
+            for rune in [FaceKind.runeFire, .runeFrost, .runeLife] {
+                for arcaneIndex in arcaneIndices {
+                    var trial = kinds
+                    trial[arcaneIndex] = rune
+                    if let indices = combo.match(from: trial), indices.contains(arcaneIndex) {
+                        return (indices, (arcaneIndex, rune))
+                    }
+                }
+            }
+        }
+        if hasChisel("ch_concealedBlade"), classID == "rogue", combo.source == .weapon {
+            let evadeIndices = kinds.indices.filter { kinds[$0] == .evade }
+            for evadeIndex in evadeIndices {
+                var trial = kinds
+                trial[evadeIndex] = .swiftSlash
+                if let indices = combo.match(from: trial), indices.contains(evadeIndex) {
+                    return (indices, (evadeIndex, .swiftSlash))
+                }
+            }
+        }
+        return nil
+    }
+
     /// Groups played faces into steps: every recipe that fits forms a single
     /// step, biggest and most specific first; everything left resolves alone.
     /// Order inside a step is play order; steps are ordered by their first
@@ -2148,12 +2830,27 @@ final class BattleEngine {
         }
 
         var changed = true
+        var substitutions = 0
         while changed {
             changed = false
             for combo in pool {
-                guard combo.faceCount <= remaining.count,
-                      let indices = combo.match(from: remaining.map(\.face)) else { continue }
-                let members = indices.map { remaining[$0] }
+                guard combo.faceCount <= remaining.count else { continue }
+                let kinds = remaining.map(\.matchFace)
+                var indices = combo.match(from: kinds)
+                var substituted: (index: Int, kind: FaceKind)? = nil
+                if indices == nil, substitutions < 1,
+                   let assisted = chiselAssistedMatch(combo, kinds: kinds) {
+                    indices = assisted.indices
+                    substituted = assisted.substitution
+                }
+                guard let indices else { continue }
+                var members = indices.map { remaining[$0] }
+                if let substituted {
+                    substitutions += 1
+                    if let local = indices.firstIndex(of: substituted.index) {
+                        members[local].effectiveFace = substituted.kind
+                    }
+                }
                 groups.append((combo, members))
                 var next: [RolledFace] = []
                 for (offset, face) in remaining.enumerated() where !indices.contains(offset) {
@@ -2202,6 +2899,17 @@ final class BattleEngine {
         }
 
         steps = ordered.sorted { $0.position < $1.position }.map(\.step)
+
+        // Relentless Advance: the first weapon combo of the turn costs one
+        // less stamina, never below one.
+        if relentlessActive, let index = steps.firstIndex(where: { $0.combo?.source == .weapon }) {
+            let step = steps[index]
+            steps[index] = PlanStep(
+                faces: step.faces, combo: step.combo,
+                momentumBonus: step.momentumBonus, focusBonus: step.focusBonus,
+                staminaDiscount: GameData.relentlessDiscount
+            )
+        }
         return steps
     }
 

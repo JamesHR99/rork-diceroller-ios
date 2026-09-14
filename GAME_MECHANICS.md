@@ -561,3 +561,89 @@ Ranked by how much they move the feel of a fight.
 1. Statuses refresh instead of stacking (`max()`), so Twin Fang twice in a row is no better than once. Intentional, but it quietly nerfs bleed builds.
 2. Player bleed **overwrites** with the new move's values rather than taking the max, so a weak hit can shorten an existing bleed.
 4. `enemyMark` is consumed by the next `damageEnemy` call, which may be a small single face rather than the big hit you were setting up.
+
+---
+
+## 10. Chisels of Ptah
+
+Ptah the craftsman rarely turns up in the spoils. A **Chisel of Ptah** reshapes the whole
+weapon — never a single die — and the gods and their blessings are untouched. Two different
+Chisels per run, maximum; both stay active and work together.
+
+**Finding one**
+- A gilded Chisel card can appear among post-battle spoils (`makeChiselOffer`). Claiming it
+  opens **Ptah's Workshop** (`WorkshopView`, screen `.workshop`): the first visit lays out all
+  three of the class's Chisels, a second offers the two not yet owned.
+- Drop odds (`GameData`): one is **guaranteed somewhere in the first four hours**
+  (`chiselFirstGuaranteeHour` = 4; from hour 3 onward the drop is certain, before that
+  `chiselEarlyChance` = 0.14 per spoils screen; after the window `chiselLateChance` = 0.05).
+  A second Chisel appears per-spoils at `chiselSecondChance` = 0.07 — a small share of runs.
+
+**The twelve Chisels** (three per class; optional ones are `isOptional`)
+
+| Class | Chisel | Effect |
+|---|---|---|
+| Archer | **Twin Bowstring** | Arrow combos fire two hits at 60% each (`twinSplitFraction`); splittable targets, each hit meets block separately; god effects land once |
+| Archer | **Siege Draw** *(optional)* | Overdraw an arrow combo for +1 stamina (`siegeStaminaCost`): +40% damage, pierce 0.5 |
+| Archer | **Adjustable Nock** | Once a turn, one held arrow counts one tier up/down for recipe matching; keeps god, crit and true identity for blessings |
+| Warrior | **Crescent Edge** | Damaging weapon combos strike a second foe for 35% (`crescentFraction`); no healing, statuses or god triggers carry |
+| Warrior | **Counterweight** *(optional)* | Spend up to 10 held shield (`counterweightMaxSpend`), +2 damage per point (`counterweightDamagePerPoint`) |
+| Warrior | **Relentless Advance** | Land a weapon combo → first weapon combo next turn costs 1 less stamina (`relentlessDiscount`), never below 1; skip a turn and it is gone |
+| Rogue | **Returning Knife** | First dagger thrown each turn returns as a held face next turn (a carry slot; its die sits out the draw; never twice from one appearance) |
+| Rogue | **Concealed Blade** | Once a turn an Evade face also counts as a Swift Slash in a weapon recipe, while still granting its evasion; its god answers the Evade role |
+| Rogue | **Assassin's Commitment** *(optional)* | Burn one evade charge (15%) before a damaging combo: +40% damage, pierce 0.5; the combo's own evasion cannot pay |
+| Magician | **Prismatic Focus** | Once a turn an Arcane rune stands in for Fire/Frost/Life in a spell; keeps god, crit and blessing role |
+| Magician | **Echoing Staff** *(optional)* | +1 stamina before a spell: it echoes at the start of next turn for half damage/heal/shield (`echoScale`); no statuses, gods or further echoes; slides to a living foe |
+| Magician | **Alternating Current** | Opposite rune-kind spell (matching vs mixed) banks 1 stamina next turn, once a turn; the first spell only sets the memory |
+
+**Implementation map**
+- Substitutions live on `RolledFace.effectiveFace` (`matchFace` is what recipes and printed
+  values read; the true `face` keeps its god and crit). `buildPlan`/`refreshCandidates` use
+  `chiselAssistedMatch` — one assisted recipe per grouping pass, deterministic, order-free.
+- Optional Chisels arm **by combo id** from a copper Ptah badge on the recipe chip in the
+  combo panel (`badgeChisel(for:)`, `toggleArmed`); the plan card wears a copper hammer and a
+  chisel line while armed. `displayedDamage`, `armedDamageMultiplier`, `armedPierce`,
+  `mainDamage`, `secondaryDamage`, `chiselLine` and `projectedDamage`/`planStaminaCost` all
+  fold the armed state into the forecast.
+- Secondary hits (Twin's second arrow, Crescent's splash, the echo) allocate through
+  `secondaryAllocations` (step ID → foe ID), defaulted to the weakest living foe other than
+  the main target, retappable in the allocation overlay's copper `2ND` chip.
+- The Echoing Staff stores a `PendingEcho` at resolution and `firePendingEcho` lands it at
+  the top of `startPlayerTurn`.
+
+## 11. Divine Trials
+
+Any ordinary fight can quietly be a god's **Trial**. The god appears as the fight opens,
+names its champion, states the exact power lent and the boon on offer — accept or fight on
+(declining costs nothing and offends nobody).
+
+**When one can happen** (`enterBattle`)
+- Only on `.battle` nodes, never the opening encounter, never before the starting relic is
+  armed **and** a blessing is carried (`patrons` non-empty), never on a herald or
+  serpent-lord, and never on the last quiet water before a boss (`leadsToBoss`).
+- Chance per eligible fight: `GameData.trialChance` (0.12). At most **one per run**
+  (`trialUsed`); accepting consumes it, declining does not.
+
+**The six trials** (`DivineTrial.all`, engine side in `foeActs`/`startPlayerTurn`)
+- **Ra, Burning Sun** — the champion's first health-damaging hit each turn sets the player
+  burning 2×2 (`playerBurn*` ticks in `startPlayerTurn`). Fully blocked or evaded = nothing.
+- **Sobek, Hungry River** — first health-damaging hit each turn: player bleed 2×2 and the
+  champion feeds 4 health.
+- **Anubis, Weighed Heart** — every 2nd enemy turn the champion passes **Sentence** instead
+  of attacking: 6 judgement on the player (`playerJudgement*`), falling at the end of your
+  next turn. Kill the judge and the sentence dies with it (`onEnemyDamaged`).
+- **Bes, Unbroken Gate** — after acting the champion raises 8 block.
+- **Horus, Watching Falcon** — every 3rd enemy turn the strike ignores half the player's
+  shield (evade still avoids it outright).
+- **Bastet, Vanishing Step** — every 2nd player turn the champion gains one evade charge
+  that expires at the end of that turn; the first damaging attack against it misses.
+
+**Champion and reward**
+- The champion (`isTrialChampion`) is ringed in the god's colour for the whole fight and
+  marked `CHAMPION` beside its badges; solo fights champion the lone foe, packs a random
+  member. The lent power never changes health or damage — the encounter is ordinary.
+- Winning: normal gold, plus the spoils screen becomes **a choice of three boons from the
+  attending god** — a patron claim, one of their upgrades, or their capstone if the run's
+  limits allow (`makeGodFavourOffers`). No pairing is handed over automatically.
+- Tuning: all sizes above live in `GameData` under the trial block; the codex names all six
+  trials once a run has met one (`hasMetTrial`).

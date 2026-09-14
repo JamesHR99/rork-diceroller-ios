@@ -35,6 +35,7 @@ final class GameManager {
         case battle
         case reward
         case shop
+        case workshop
         case event
         case rest
         case gameOver(won: Bool)
@@ -59,6 +60,14 @@ final class GameManager {
     private(set) var totalDamage = 0
     private(set) var totalCombos = 0
     private(set) var totalCrits = 0
+
+    // MARK: Ptah & the Trials
+    /// Chisel ids carried this run — at most two, both active together.
+    private(set) var ownedChisels: [String] = []
+    /// The Chisels Ptah's workshop currently lays out.
+    private(set) var workshopOptions: [ChiselDef] = []
+    /// True once this run has fought (and won) a god's Trial — one per run.
+    private(set) var trialUsed = false
 
     // MARK: The voyage
     private(set) var voyage = Voyage.generate()
@@ -246,6 +255,9 @@ final class GameManager {
         totalDamage = 0
         totalCombos = 0
         totalCrits = 0
+        ownedChisels = []
+        workshopOptions = []
+        trialUsed = false
         voyage = Voyage.generate()
         clearedNodeIDs = []
         lastClearedNodeID = nil
@@ -336,6 +348,15 @@ final class GameManager {
                 enemies = makePack(gate: node.gate, allowPack: true)
             }
         }
+        // Any ordinary fight can quietly turn out to be a god's Trial — never
+        // before the relic is armed and a blessing carried, never on a herald,
+        // a serpent-lord or the last quiet water before one.
+        var trial: DivineTrial? = nil
+        if node.kind == .battle, !isOpeningEncounter, !trialUsed, !patrons.isEmpty,
+           !leadsToBoss(node), Double.random(in: 0..<1) < GameData.trialChance {
+            trial = DivineTrial.random()
+        }
+
         battle = BattleEngine(
             enemies: enemies,
             dice: loadout.allDice,
@@ -348,9 +369,16 @@ final class GameManager {
             patrons: patrons,
             upgrades: activeUpgrades,
             capstoneID: activeCapstone?.id,
-            pairing: activePairing
+            pairing: activePairing,
+            chisels: Set(ownedChisels),
+            trial: trial
         )
         withAnimation { screen = .battle }
+    }
+
+    /// The last quiet water before a serpent-lord never hosts a Trial.
+    private func leadsToBoss(_ node: VoyageNode) -> Bool {
+        node.connections.contains { voyage.node($0)?.isBoss == true }
     }
 
     /// The very first fight of a run — nothing cleared behind you yet. The
@@ -408,6 +436,11 @@ final class GameManager {
         let baseGold = battle.enemies.reduce(0) { $0 + $1.def.goldReward }
         let earned = max(6, Int(Double(GameData.goldReward(base: baseGold, progress: progress)) * 0.6))
         gold += earned
+        // A won Trial hands the turn over to its god: the spoils become a
+        // choice of three of that god's own boons.
+        let wonTrial = battle.trialAccepted && battle.phase == .won
+        let trialGod = wonTrial ? battle.trial?.deity : nil
+        if wonTrial { trialUsed = true }
         self.battle = nil
 
         // The practice bout is not a god's audience: its spoils are a choice
@@ -434,7 +467,11 @@ final class GameManager {
         // where they reliably hold court. Most spoils are the river's own:
         // gold, a little health, rarely a face change.
         var spoils: [Offer]
-        if Int.random(in: 0..<100) < 28 {
+        if let trialGod {
+            visitingDeity = trialGod
+            isShrine = false
+            spoils = makeGodFavourOffers(deity: trialGod, count: 3, progress: progress)
+        } else if Int.random(in: 0..<100) < 28 {
             let deity = Deity.allCases.randomElement() ?? .ra
             visitingDeity = deity
             isShrine = false
@@ -449,9 +486,51 @@ final class GameManager {
         if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 14 {
             spoils.append(makeBreathOffer(priced: false))
         }
+        // The craftsman's own card, rare among the spoils: claiming it opens
+        // Ptah's workshop.
+        if ownedChisels.count < GameData.chiselMaxPerRun, shouldDropChisel() {
+            spoils.append(makeChiselOffer())
+        }
         rewardOffers = spoils
         statusMessage = "+\(earned) gold · \(currentHP)/\(maxHP) health"
+        if let trialGod {
+            statusMessage = "The trial is won — \(trialGod.name) offers a boon."
+        }
         withAnimation { screen = .reward }
+    }
+
+    /// Ptah rarely turns up in the spoils. One Chisel is guaranteed somewhere
+    /// in the first four hours; a second only reaches a small share of runs.
+    private func shouldDropChisel() -> Bool {
+        if ownedChisels.isEmpty {
+            if currentHour <= GameData.chiselFirstGuaranteeHour {
+                return currentHour >= 3 || Double.random(in: 0..<1) < GameData.chiselEarlyChance
+            }
+            return Double.random(in: 0..<1) < GameData.chiselLateChance
+        }
+        return Double.random(in: 0..<1) < GameData.chiselSecondChance
+    }
+
+    private func makeChiselOffer() -> Offer {
+        Offer(
+            name: "Chisel of Ptah",
+            detail: "The craftsman's own tool, struck cold in hammered copper. Claim it and Ptah reshapes your whole weapon at his workshop — never a single die, and your gods are untouched.",
+            symbol: "hammer.fill",
+            rarity: .signature,
+            comboHint: "Reshapes your weapon · two per run",
+            price: 0,
+            kind: .chisel
+        )
+    }
+
+    /// Ptah's workshop: the first visit lays out all three of the class's
+    /// Chisels; a second offers the two not yet owned.
+    func chooseChisel(_ chisel: ChiselDef) {
+        guard ownedChisels.count < GameData.chiselMaxPerRun,
+              workshopOptions.contains(where: { $0.id == chisel.id }) else { return }
+        ownedChisels.append(chisel.id)
+        Haptics.success()
+        leaveEncounter()
     }
 
     /// The river's own spoils: gold in hand, a little health, or — rarely —
@@ -517,6 +596,7 @@ final class GameManager {
         statusMessage = nil
         visitingDeity = nil
         isShrine = false
+        workshopOptions = []
     }
 
     func leaveEncounter() {
@@ -631,6 +711,12 @@ final class GameManager {
             statusMessage = "+\(amount) max stamina — the bar grows."
         case .reforgeDie:
             pendingSelection = .reforgeDie(title: offer.name)
+        case .chisel:
+            let owned = Set(ownedChisels)
+            let pool = ChiselCatalog.chisels(for: classID)
+            let options = ownedChisels.isEmpty ? pool : pool.filter { !owned.contains($0.id) }
+            workshopOptions = options.isEmpty ? pool : options
+            withAnimation { screen = .workshop }
         }
     }
 

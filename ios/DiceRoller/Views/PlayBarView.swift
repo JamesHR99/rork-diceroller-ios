@@ -135,7 +135,16 @@ struct PlayBarView: View {
 
             Spacer(minLength: 4)
 
-            if engine.projectedDamage > 0 {
+            if engine.hasEchoPending {
+                HStack(spacing: 3) {
+                    Image(systemName: "repeat").font(.system(size: 9, weight: .bold))
+                    Text("ECHO WAITS")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(0.8)
+                }
+                .foregroundStyle(Theme.ptahCopper)
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
+            } else if engine.projectedDamage > 0 {
                 HStack(spacing: 3) {
                     Image(systemName: "burst.fill").font(.system(size: 9))
                     Text("\(engine.projectedDamage) TOTAL DMG")
@@ -219,6 +228,16 @@ struct PlayBarView: View {
             .shadow(color: step.tint.opacity(isActive ? 0.85 : (step.isCombo ? 0.45 : 0)),
                     radius: isActive ? 12 : 6)
             .scaleEffect(isActive ? 1.06 : 1)
+            .overlay(alignment: .topTrailing) {
+                // A copper hammer when an optional Chisel rides this recipe.
+                if engine.isComboArmed(step) {
+                    Image(systemName: "hammer.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Theme.ptahCopper)
+                        .padding(5)
+                        .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 5)
+                }
+            }
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(engine.phase != .player)
@@ -276,6 +295,15 @@ struct PlayBarView: View {
                 .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchment.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
+
+            if let chiselLine = engine.chiselLine(for: step) {
+                Text(chiselLine)
+                    .font(.system(size: 8, weight: .black))
+                    .kerning(0.4)
+                    .foregroundStyle(Theme.ptahCopper)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
 
             critLine(step)
         }

@@ -17,8 +17,9 @@ struct RewardView: View {
 
     private var accent: Color { deity?.tint ?? Theme.gold }
 
-    /// The altar never holds more than three cards, so they all fit on screen.
-    private var offers: [Offer] { Array(game.rewardOffers.prefix(3)) }
+    /// The altar holds up to four cards — Ptah's Chisel card, when it turns
+    /// up, takes its place beside the rest.
+    private var offers: [Offer] { Array(game.rewardOffers.prefix(4)) }
 
     /// Spoils on the bank can draw more than one god's hand.
     private var hasSeveralGods: Bool {
@@ -82,6 +83,28 @@ struct RewardView: View {
             }
 
             NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+
+            // Chisels of Ptah carried this run, struck in his copper.
+            if !game.ownedChisels.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(game.ownedChisels, id: \.self) { id in
+                        HStack(spacing: 3) {
+                            Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Theme.ptahCopper)
+                            Text(ChiselCatalog.def(id)?.name ?? "Chisel")
+                                .font(.system(size: 8.5, weight: .black))
+                                .foregroundStyle(Theme.ptahCopper)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Theme.bg.opacity(0.7), in: .capsule)
+                        .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.5), lineWidth: 1))
+                    }
+                }
+            }
 
             Spacer(minLength: 6)
 

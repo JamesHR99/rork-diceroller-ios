@@ -10,6 +10,8 @@ struct InfoSheetView: View {
     let maxStamina: Int
     /// Dice this turn's draw put on the table; empty outside battle.
     let drawnDieIDs: Set<UUID>
+    /// True once this run has met a god's Trial — the codex then names all six.
+    let hasMetTrial: Bool
 
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .loadout
@@ -609,6 +611,109 @@ struct InfoSheetView: View {
                     "Serpent-lords always come alone — the river is only so wide.",
                 ]
             )
+
+            // MARK: Ptah's Chisels
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "hammer.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.ptahCopper)
+                    Text("CHISELS OF PTAH")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.ptahCopper)
+                        .kerning(1.5)
+                }
+                Text("Ptah the craftsman rarely turns up in the spoils. His Chisel reshapes your whole weapon — never a single die — and your gods and their blessings are untouched. Two different Chisels a run, both active together. The optional ones arm per action from a small copper badge on the recipe's own chip; tapping it folds their cost and outcome into the forecast before you commit.")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(ChiselCatalog.chisels(for: classID)) { chisel in
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 5) {
+                            Image(systemName: chisel.symbol)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Theme.ptahCopper)
+                            Text(chisel.name)
+                                .font(.fantasy(12, weight: .bold))
+                                .foregroundStyle(Theme.parchment)
+                            Text(chisel.isOptional ? "OPTIONAL" : "PASSIVE")
+                                .font(.system(size: 7, weight: .black))
+                                .kerning(0.8)
+                                .foregroundStyle(Theme.ptahCopper)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Theme.ptahCopper.opacity(0.14), in: .capsule)
+                        }
+                        Text(chisel.detail)
+                            .font(.system(size: 9.5))
+                            .foregroundStyle(Theme.parchmentDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("e.g. \(chisel.example)")
+                            .font(.paper(9.5))
+                            .italic()
+                            .foregroundStyle(Theme.parchmentDim.opacity(0.7))
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+
+            // MARK: Divine Trials
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.gold)
+                    Text("DIVINE TRIALS")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.gold)
+                        .kerning(1.5)
+                }
+                Text("Any ordinary fight can quietly be a god's Trial: a champion carrying that god's power, ringed in its colour for the whole fight. The encounter itself is ordinary — the god lends a mechanic, never health or damage. Declining costs nothing; at most one Trial per run, never before your relic is armed and a blessing carried, and never on a herald, a serpent-lord or the water before one. Win, and the god offers a choice of three of its own boons.")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if hasMetTrial {
+                    ForEach(DivineTrial.all) { trial in
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 5) {
+                                Image(systemName: trial.deity.symbol)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(trial.deity.tint)
+                                Text(trial.name)
+                                    .font(.fantasy(12, weight: .bold))
+                                    .foregroundStyle(Theme.parchment)
+                            }
+                            Text(trial.power)
+                                .font(.system(size: 9.5))
+                                .foregroundStyle(Theme.parchmentDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
+                    }
+                } else {
+                    Text("You have not yet met a Trial. When one rises, its god names the exact terms before the first blow — and all six possibilities are written here.")
+                        .font(.system(size: 9.5))
+                        .italic()
+                        .foregroundStyle(Theme.parchmentDim.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.bgCard, in: .rect(cornerRadius: 14))
 
             ruleCard(
                 icon: "shield.fill", tint: Theme.bronze, title: "ARMOUR",

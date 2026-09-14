@@ -42,6 +42,7 @@ struct FighterView: View {
         .frame(width: 190)
         .overlay(alignment: .top) { floaters }
         .overlay { aimRing }
+        .overlay { championRing }
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
         .onAppear {
@@ -81,6 +82,20 @@ struct FighterView: View {
                         .background(Theme.gold, in: .capsule)
                         .offset(y: 2)
                 }
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// A trial champion wears the attending god's colour for the whole fight —
+    /// a thin, persistent ring beneath the gold target ring.
+    @ViewBuilder
+    private var championRing: some View {
+        if side == .enemy, let foe, foe.isTrialChampion, engine.trialAccepted,
+           let trial = engine.trial, foe.isAlive {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(trial.deity.tint.opacity(0.8), lineWidth: 1.6)
+                .padding(.horizontal, -3)
+                .padding(.vertical, -3)
                 .allowsHitTesting(false)
         }
     }
@@ -270,7 +285,13 @@ struct FighterView: View {
                 if engine.evadeChance > 0 { badge(icon: "wind", text: "\(Int(engine.evadeChance * 100))%", tint: Theme.steel) }
                 if engine.regenTurns > 0 { badge(icon: "leaf.fill", text: "\(engine.regenAmount)×\(engine.regenTurns)", tint: Theme.forest) }
                 if engine.playerBleedTurns > 0 { badge(icon: "drop.fill", text: "\(engine.playerBleedAmount)×\(engine.playerBleedTurns)", tint: Theme.blood) }
+                if engine.playerBurnTurns > 0 { badge(icon: "flame.fill", text: "\(engine.playerBurnAmount)×\(engine.playerBurnTurns)", tint: Theme.ember) }
+                if engine.playerJudgementPending { badge(icon: "scalemass.fill", text: "\(engine.playerJudgementAmount)", tint: Deity.anubis.tint) }
             } else if let foe {
+                if foe.isTrialChampion, engine.trialAccepted {
+                    badge(icon: "crown.fill", text: "CHAMPION", tint: engine.trial?.deity.tint ?? Theme.gold)
+                }
+                if foe.evadeCharges > 0 { badge(icon: "wind", text: "EVADE", tint: Deity.bastet.tint) }
                 if foe.armourMax > 0 && foe.armour > 0 {
                     badge(icon: "shield.fill", text: "\(foe.armour)", tint: Theme.bronze)
                 }

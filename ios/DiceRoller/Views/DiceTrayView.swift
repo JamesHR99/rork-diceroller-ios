@@ -115,6 +115,21 @@ struct DiceTrayView: View {
                 .kerning(1.2)
                 .foregroundStyle(freezeArmed ? Theme.frost : Theme.gold)
 
+            // Chisels of Ptah, struck in his copper beside the title.
+            if !engine.chisels.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(engine.chisels.sorted(), id: \.self) { id in
+                        Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.ptahCopper)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Theme.bg.opacity(0.7), in: .capsule)
+                .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
+            }
+
             Text(hint)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim)
@@ -243,6 +258,26 @@ struct DiceTrayView: View {
                 Text("\(candidate.combo.staminaCost)")
                     .font(.system(size: 10, weight: .black).monospacedDigit())
                     .foregroundStyle(planned ? Theme.gold : Theme.parchmentDim)
+
+                // The Ptah badge: arms this recipe's optional Chisel — tap to
+                // see its cost and outcome fold into the forecast, tap again
+                // to disarm.
+                if let badgeChisel = engine.badgeChisel(for: candidate.combo.id) {
+                    let armed = engine.isArmed(badgeChisel, comboID: candidate.combo.id)
+                    Button {
+                        engine.toggleArmed(badgeChisel, comboID: candidate.combo.id)
+                    } label: {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(armed ? Theme.bg : Theme.ptahCopper)
+                            .frame(width: 20, height: 20)
+                            .background(armed ? Theme.ptahCopper : Theme.bg, in: .circle)
+                            .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(armed ? 1 : 0.6), lineWidth: 1))
+                            .shadow(color: armed ? Theme.ptahCopper.opacity(0.6) : .clear, radius: 5)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -478,18 +513,19 @@ private struct DiceTrayReelView: View {
             }
         } label: {
             VStack(spacing: 2) {
-                Image(systemName: face.face.symbol)
+                Image(systemName: face.matchFace.symbol)
                     .font(.system(size: iconSize, weight: .bold))
                     .foregroundStyle(iconTint(face))
                 // The face that actually landed always keeps its name — a crit
                 // is announced by the badge and the gold, never by hiding the
-                // roll you are trying to read.
+                // roll you are trying to read. A Chisel substitution shows the
+                // tier the engine will use, in Ptah's copper.
                 Text(reelLabel(face))
                     .font(.system(size: labelSize(for: face), weight: .heavy))
                     .kerning(0.2)
                     .foregroundStyle(face.isCrit
                                      ? Theme.gold
-                                     : (face.patron?.tint ?? face.face.tint))
+                                     : ((face.patron?.tint ?? face.matchFace.tint)))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 Text(bottomTag(face))
@@ -527,6 +563,7 @@ private struct DiceTrayReelView: View {
                 }
             }
             .overlay(alignment: .top) { critBadge(face) }
+            .overlay(alignment: .bottomTrailing) { nockControls(face) }
             .overlay { slamFlash(face) }
             .overlay { shockRing(face) }
             .overlay { critSparks(face) }
@@ -591,6 +628,34 @@ private struct DiceTrayReelView: View {
             .allowsHitTesting(false)
             .transition(.scale(scale: 0.4).combined(with: .opacity))
         }
+    }
+
+    /// Adjustable Nock: a held arrow may count one tier up or down, once a
+    /// turn — tap again on the shifted arrow to set it back true.
+    @ViewBuilder
+    private func nockControls(_ face: RolledFace) -> some View {
+        if engine.nockAvailable(for: face.id) {
+            HStack(spacing: 2) {
+                nockButton(face.id, up: false)
+                nockButton(face.id, up: true)
+            }
+            .padding(3)
+            .transition(.scale(scale: 0.6).combined(with: .opacity))
+        }
+    }
+
+    private func nockButton(_ faceID: UUID, up: Bool) -> some View {
+        Button {
+            engine.nockShift(faceID: faceID, up: up)
+        } label: {
+            Image(systemName: up ? "chevron.up" : "chevron.down")
+                .font(.system(size: 8, weight: .black))
+                .foregroundStyle(Theme.ptahCopper)
+                .frame(width: 15, height: 15)
+                .background(Theme.bg.opacity(0.88), in: .circle)
+                .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(0.7), lineWidth: 0.8))
+        }
+        .buttonStyle(PressableButtonStyle())
     }
 
     /// White-hot bloom on the face at the instant of the lock.
@@ -708,20 +773,22 @@ private struct DiceTrayReelView: View {
 
     // MARK: - Styling helpers
 
-    /// The settled reel's label — the face's own compact name.
+    /// The settled reel's label — the face the engine will actually use,
+    /// which is the true face unless a Chisel substituted a tier.
     private func reelLabel(_ face: RolledFace) -> String {
-        face.face.shortLabel
+        face.matchFace.shortLabel
     }
 
     private func iconTint(_ face: RolledFace) -> Color {
         if face.isCrit { return Theme.gold }
         if isFrozen { return Theme.frost }
         if let patron = face.patron { return patron.tint }
-        return face.face.tint
+        return face.matchFace.tint
     }
 
     private func borderTint(_ face: RolledFace) -> Color {
         if isFrozen { return Theme.frost }
+        if face.effectiveFace != nil { return Theme.ptahCopper }
         if face.isCrit { return Theme.gold }
         if isHeld { return Theme.frost.opacity(0.6) }
         if let patron = face.patron { return patron.tint.opacity(0.85) }
@@ -739,11 +806,12 @@ private struct DiceTrayReelView: View {
         return face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85)
     }
 
-    /// Quick "what will this do" tag under the face icon.
+    /// Quick "what will this do" tag under the face icon — read from the
+    /// substituted tier when a Chisel has shifted the face.
     private func bottomTag(_ face: RolledFace) -> String {
         if isFrozen { return "HELD NEXT" }
-        guard face.isCrit else { return face.face.soloTag }
-        let value = GameData.scaleUp(face.face.soloValue, by: GameData.faceCritMultiplier)
+        guard face.isCrit else { return face.matchFace.soloTag }
+        let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
         case .damage: return "\(value) dmg"
         case .block: return "+\(value) shield"

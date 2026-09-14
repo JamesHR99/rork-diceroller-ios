@@ -56,7 +56,7 @@ struct AllocationOverlayView: View {
     }
 
     private func row(_ step: PlanStep, order: Int) -> some View {
-        let isSelected = engine.selectedAllocationID == step.id
+        let isSelected = engine.selectedAllocationID == step.id && engine.selectedAllocationHit == 0
         return Button {
             engine.selectAllocation(step.id)
         } label: {
@@ -81,12 +81,18 @@ struct AllocationOverlayView: View {
                 Spacer(minLength: 6)
 
                 if step.damage > 0 {
-                    Text("\(step.damage)")
+                    Text("\(engine.mainDamage(for: step))")
                         .font(.system(size: 15, weight: .black).monospacedDigit())
                         .foregroundStyle(Theme.blood)
                 }
 
                 targetChip(step)
+
+                // Twin Bowstring's second arrow and Crescent Edge's splash:
+                // their own chip, defaulted to the weakest living foe.
+                if engine.hasSecondaryHit(step) {
+                    secondaryChip(step)
+                }
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
@@ -108,7 +114,7 @@ struct AllocationOverlayView: View {
     private func targetChip(_ step: PlanStep) -> some View {
         let foeID = engine.allocatedFoeID(for: step)
         let foe = engine.enemies.first { $0.id == foeID }
-        let isSelected = engine.selectedAllocationID == step.id
+        let isSelected = engine.selectedAllocationID == step.id && engine.selectedAllocationHit == 0
         return Button {
             engine.cycleTarget(for: step.id)
         } label: {
@@ -129,6 +135,34 @@ struct AllocationOverlayView: View {
             .frame(width: 104)
             .background(isSelected ? Theme.gold : Theme.bg, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.gold.opacity(isSelected ? 1 : 0.4), lineWidth: 1))
+        }
+        .buttonStyle(PressableButtonStyle())
+    }
+
+    /// The chisel-granted second hit's own target chip, in Ptah's copper.
+    private func secondaryChip(_ step: PlanStep) -> some View {
+        let foeID = engine.secondaryFoeID(for: step)
+        let foe = engine.enemies.first { $0.id == foeID }
+        let isSelected = engine.selectedAllocationID == step.id && engine.selectedAllocationHit == 1
+        return Button {
+            engine.selectSecondaryHit(step.id)
+        } label: {
+            HStack(spacing: 2) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 7, weight: .bold))
+                Text(foe?.displayName ?? "—")
+                    .font(.system(size: 8.5, weight: .black))
+                    .kerning(0.3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .foregroundStyle(isSelected ? Theme.bg : Theme.ptahCopper)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
+            .frame(width: 84)
+            .background(isSelected ? Theme.ptahCopper : Theme.bg, in: .capsule)
+            .overlay(Capsule().strokeBorder(
+                Theme.ptahCopper.opacity(isSelected ? 1 : 0.5), lineWidth: 1))
         }
         .buttonStyle(PressableButtonStyle())
     }

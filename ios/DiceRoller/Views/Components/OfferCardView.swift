@@ -109,6 +109,13 @@ struct OfferCardView: View {
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
+                } else if case .chisel = offer.kind {
+                    HStack(spacing: 4) {
+                        sealBadge("hammer.fill", tint: Theme.ptahCopper)
+                        Text("opens Ptah's workshop")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(Theme.parchmentDim)
+                    }
                 }
 
                 HStack(spacing: 4) {

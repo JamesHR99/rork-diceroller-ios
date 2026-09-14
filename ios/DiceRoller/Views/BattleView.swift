@@ -127,13 +127,22 @@ private struct BattleContentView: View {
                     .zIndex(6)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+
+            // A god's Trial: the sigil rises before the fight truly opens.
+            if engine.trialPromptVisible {
+                TrialPromptView(engine: engine)
+                    .zIndex(7)
+                    .transition(.opacity.combined(with: .scale(scale: 1.03)))
+            }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: engine.isAllocating)
+        .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
                               maxStamina: game.effectiveMaxStamina,
-                              drawnDieIDs: game.battle?.drawnDieIDs ?? [])
+                              drawnDieIDs: game.battle?.drawnDieIDs ?? [],
+                              hasMetTrial: game.trialUsed)
             }
         }
     }
@@ -223,6 +232,21 @@ private struct BattleContentView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(Theme.bgElevated, in: .capsule)
+
+            // Chisels of Ptah: small copper marks beside the turn.
+            if !engine.chisels.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(engine.chisels.sorted(), id: \.self) { id in
+                        Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.ptahCopper)
+                    }
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Theme.bgElevated, in: .capsule)
+                .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
+            }
 
             Text(engine.lastAction)
                 .font(.paper(12.5))

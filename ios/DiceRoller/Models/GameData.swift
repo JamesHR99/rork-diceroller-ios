@@ -265,4 +265,58 @@ enum GameData {
     /// Chance a regular fight's foe (or one pack member) spawns as an
     /// armoured elite wearing a bronze plate over its health.
     static let eliteArmourChance = 0.12
+
+    // MARK: - Chisels of Ptah
+
+    /// Different Chisels a single run may carry — both stay active together.
+    static let chiselMaxPerRun = 2
+
+    /// A first Chisel is guaranteed somewhere inside this in-game hour window.
+    static let chiselFirstGuaranteeHour = 4
+
+    /// Per-spoils odds of the first Chisel inside the guarantee window, before
+    /// the window's back half makes it certain.
+    static let chiselEarlyChance = 0.14
+
+    /// Per-spoils odds of the first Chisel after the window has closed.
+    static let chiselLateChance = 0.05
+
+    /// Per-spoils odds of a second Chisel once one is carried — a small share
+    /// of runs ever see one.
+    static let chiselSecondChance = 0.07
+
+    /// Twin Bowstring: each of the two hits, as a fraction of the combo.
+    static let twinSplitFraction = 0.6
+
+    /// Siege Draw: the overdraw's stamina cost, damage bonus and pierce.
+    static let siegeStaminaCost = 1
+    static let siegeDamageBonus = 0.4
+    static let siegePierce = 0.5
+
+    /// Crescent Edge: the splash a second foe takes, as a fraction.
+    static let crescentFraction = 0.35
+
+    /// Relentless Advance: stamina shaved off next turn's first weapon combo.
+    static let relentlessDiscount = 1
+
+    /// Counterweight: shield spend ceiling and damage per point spent.
+    static let counterweightMaxSpend = 10
+    static let counterweightDamagePerPoint = 2
+
+    /// Assassin's Commitment: the evade charge it burns and what it buys.
+    static let assassinEvadeCost = 0.15
+    static let assassinDamageBonus = 0.4
+    static let assassinPierce = 0.5
+
+    /// Echoing Staff: the extra stamina and the echo's output fraction.
+    static let echoStaminaCost = 1
+    static let echoScale = 0.5
+
+    // MARK: - Divine Trials
+
+    /// Chance an eligible ordinary fight is secretly a god's Trial.
+    static let trialChance = 0.12
+
+    /// Anubis's Sentence: the judgement a trial champion stores.
+    static let trialSentence = 6
 }

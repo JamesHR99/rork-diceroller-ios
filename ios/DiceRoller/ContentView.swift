@@ -34,6 +34,9 @@ struct ContentView: View {
             case .shop:
                 ShopView()
                     .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
+            case .workshop:
+                WorkshopView()
+                    .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
             case .event:
                 EventView()
                     .transition(.opacity)

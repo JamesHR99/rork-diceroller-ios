@@ -34,6 +34,12 @@ enum Theme {
     static let skyBlue = Color(red: 0.355, green: 0.720, blue: 0.940)
     static let duskViolet = Color(red: 0.665, green: 0.425, blue: 0.825)
 
+    /// Ptah's cold hammered copper — the craftsman's own metal, set apart
+    /// from the six gods' halos.
+    static let ptahCopper = Color(red: 0.760, green: 0.480, blue: 0.300)
+    /// Basalt grey — the dark stone Ptah's bench is cut from.
+    static let basalt = Color(red: 0.135, green: 0.130, blue: 0.150)
+
     /// Materials, used for rarity: clay, copper, lapis, gold leaf.
     static let clay = Color(red: 0.720, green: 0.585, blue: 0.470)
     static let copper = Color(red: 0.855, green: 0.475, blue: 0.245)
