@@ -602,7 +602,8 @@ struct InfoSheetView: View {
                 icon: "person.2.fill", tint: Theme.blood, title: "ENEMY PACKS",
                 lines: [
                     "Some fights put more than one foe on the deck — mostly pairs, occasionally three, all from the same stretch of the river.",
-                    "Tap a foe to aim at it. Your aim sticks until you tap another, and slides to the nearest living foe if your target falls mid-turn.",
+                    "Committing against a pack opens the targeting step: every attack in your plan is listed, and you send each one at a foe with a tap — or let them all land on the first living foe.",
+                    "Each blow carries its own god triggers and statuses to wherever you send it, and a fallen target's attack slides to the nearest living foe.",
                     "Every living foe shows its own intent, health and statuses — and on their turn they act one after another.",
                     "Pack members arrive with about half their usual health, and the purse and relic odds grow a little with the pack's size.",
                     "Serpent-lords always come alone — the river is only so wide.",

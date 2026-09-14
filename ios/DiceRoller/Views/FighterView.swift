@@ -2,7 +2,8 @@ import SwiftUI
 
 /// An animated fighter in the arena: sprite, name, health bar, status badges,
 /// and pose-driven attack/hurt/block/dodge motion. The player stands on the
-/// left; every foe on the right owns one of these, tapped to aim in pack fights.
+/// left; every foe on the right owns one of these, tapped during attack
+/// allocation to receive the selected blow.
 struct FighterView: View {
     enum Side {
         case player
@@ -21,10 +22,9 @@ struct FighterView: View {
     var foe: EnemyState? = nil
     /// Packs squeeze down so two or three foes fit on the deck.
     var packScale: CGFloat = 1
-    /// True when this foe is wearing your aim ring.
-    var isAimed: Bool = false
-    /// True for foes you are not aiming at in a pack — they sit back a touch.
-    var isDimmed: Bool = false
+    /// True while this foe wears the gold ring — the attack being allocated
+    /// points here, or the blow in flight was sent here.
+    var isTargeted: Bool = false
     var onTap: (() -> Void)? = nil
 
     @State private var aimPulse = false
@@ -42,7 +42,6 @@ struct FighterView: View {
         .frame(width: 190)
         .overlay(alignment: .top) { floaters }
         .overlay { aimRing }
-        .opacity(isDimmed ? 0.55 : 1)
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
         .onAppear {
@@ -64,10 +63,11 @@ struct FighterView: View {
         .allowsHitTesting(false)
     }
 
-    /// The gold aim ring with its TARGET tag, worn by the foe you are striking.
+    /// The gold ring with its TARGET tag, worn by the foe an attack is being
+    /// sent at — during allocation, and again as each blow lands.
     @ViewBuilder
     private var aimRing: some View {
-        if side == .enemy, isAimed, let foe, foe.isAlive {
+        if side == .enemy, isTargeted, let foe, foe.isAlive {
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(Theme.gold.opacity(aimPulse ? 0.45 : 1), lineWidth: 2.2)
                 .shadow(color: Theme.gold.opacity(0.8), radius: 12)

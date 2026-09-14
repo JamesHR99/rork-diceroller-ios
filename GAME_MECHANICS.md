@@ -309,7 +309,7 @@ raw × mark  →  pierce ignores (block × pierce)  →  remaining block absorbs
     →  the rest hits HP
 ```
 
-- All damage is routed to the **aimed foe** (`aimedFoe`); if your target died mid-turn, the aim slides to the nearest living foe.
+- All damage is routed to each attack's **assigned foe** (`allocations`: plan-step ID → foe ID). Solo fights skip targeting entirely; in packs, committing opens the allocation step where every attack (each combo as one unit, each solo face alone) is pointed at a foe. If your target died mid-turn, the attack slides to the nearest living foe.
 - `mark` is a one-shot multiplier and is **consumed by the next hit** (reset to 1.0), per foe.
 - Mark does **not** apply to bleed/poison/burn ticks or judgement detonations.
 - **Armour** sits between block and HP: direct hits chip it first, and pierce ignores a fraction of it exactly as it does block. Statuses never touch it. Armour never regenerates.
@@ -334,7 +334,7 @@ raw × mark  →  pierce ignores (block × pierce)  →  remaining block absorbs
 - Ra's burn caps at **12 stacks**; Sobek's bleed refreshes rather than stacking.
 - **Anubis's judgement** is stored per foe (`EnemyState.judgementAmount/pending`) and
   detonates against health at the end of your next player turn (`detonateJudgements`).
-- In packs, **every foe carries its own statuses** — they are applied to the aimed foe only.
+- In packs, **every foe carries its own statuses** — each attack carries its statuses and god triggers to whichever foe it was assigned to, not to a global aim.
 
 ---
 
@@ -377,7 +377,7 @@ enemy turn. The old full-block ("blocks everything") and agility rolls are gone.
 - Each member arrives as `EnemyDef.packMember()`: **HP ×0.55**, **gold ×0.7** — so a trio is
   much less than double a solo fight.
 - One pack member can additionally rise **armoured** (`eliteArmourChance`, 12% — same roll for solo fights).
-- Every living foe telegraphs its own intent; on their turn they act one after another. Your aim (`aimedID`) sticks until you tap another foe and redirects to the nearest living foe when your target falls.
+- Every living foe telegraphs its own intent; on their turn they act one after another. There is no persistent aim — attacks are allocated per turn at commit time (see §4), and a fallen target's attack redirects to the nearest living foe mid-resolution.
 - Serpent-lords and heralds never pack.
 
 ### The bestiary

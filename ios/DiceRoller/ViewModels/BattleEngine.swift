@@ -88,6 +88,18 @@ struct PlanStep: Identifiable {
     /// Fused combos cost less than their faces played apart.
     var staminaCost: Int { GameData.comboStaminaCost(faces: faces.count) }
 
+    /// True when this step touches a foe — direct damage or an enemy status —
+    /// so it is listed in the allocation overlay and needs a target.
+    var targetsEnemy: Bool {
+        if damage > 0 { return true }
+        if let combo {
+            return combo.bleedAmount > 0 || combo.poisonAmount > 0
+                || combo.burnAmount > 0 || combo.stagger > 0
+        }
+        guard let face = faces.first else { return false }
+        return face.face.soloKind == .poison || face.face == .runeFrost
+    }
+
     /// Every part of the chain is lifted by its critical dice. Recipes print
     /// their own value now — length no longer multiplies anything.
     var comboScale: Double {
@@ -358,9 +370,18 @@ final class BattleEngine {
     private var tookHealthDamageThisEnemyTurn = false
 
     // MARK: Enemy state
-    /// Which foe your attacks are aimed at. It sticks until you tap another,
-    /// and slides to the nearest living foe when your target falls mid-turn.
-    private(set) var aimedID: UUID?
+    /// Which foe each plan step is sent at: step ID → foe ID. Built when the
+    /// turn is committed (or defaulted for solo fights) and read during
+    /// resolution. Every blow carries its own statuses and god triggers to
+    /// whichever foe it lands on.
+    private(set) var allocations: [UUID: UUID] = [:]
+    /// True while the allocation overlay is up — attacks are being pointed at
+    /// foes before the turn fires.
+    private(set) var isAllocating = false
+    /// The attack row highlighted in the allocation overlay.
+    private(set) var selectedAllocationID: UUID?
+    /// The foe the blow currently being thrown was sent at.
+    private(set) var activeTargetID: UUID?
     /// Set for a beat when a boss re-coils, so the arena can announce it.
     private(set) var stageAnnouncement: String?
 
@@ -422,7 +443,6 @@ final class BattleEngine {
     ) {
         let foes = enemies.map { EnemyState(def: $0) }
         self.enemies = foes
-        self.aimedID = foes.first?.id
         self.classID = classID
         self.critBonus = critBonus
         self.maxStamina = maxStamina
@@ -485,43 +505,143 @@ final class BattleEngine {
         return (damage, foe.intent.heal, foe.intent.block)
     }
 
-    /// The foe your attacks are currently aimed at — or the nearest living one
-    /// once your target has fallen.
-    var aimedFoe: EnemyState? {
-        if let id = aimedID, let foe = enemies.first(where: { $0.id == id && $0.isAlive }) {
-            return foe
-        }
-        return enemies.first(where: \.isAlive)
+    var enemyDisplayName: String {
+        livingFoes.first?.displayName ?? enemies.last?.displayName ?? ""
     }
 
-    func aim(at id: UUID) {
-        guard phase == .player,
-              enemies.contains(where: { $0.id == id && $0.isAlive }),
-              aimedID != id else { return }
-        aimedID = id
+    // MARK: - Targeting
+
+    /// True when at least one step in the plan can touch a foe — damage or an
+    /// enemy status — so committing a pack fight opens the allocation overlay.
+    var needsAllocation: Bool {
+        livingFoes.count > 1 && turnPlan.contains(where: \.targetsEnemy)
+    }
+
+    /// The steps the allocation overlay lists, in play order.
+    var allocatableSteps: [PlanStep] {
+        turnPlan.filter(\.targetsEnemy)
+    }
+
+    /// The foe a step is currently pointed at, falling back to the first
+    /// living foe whenever the assignment is missing or has fallen.
+    func allocatedFoeID(for step: PlanStep) -> UUID? {
+        if let id = allocations[step.id],
+           enemies.contains(where: { $0.id == id && $0.isAlive }) {
+            return id
+        }
+        return livingFoes.first?.id
+    }
+
+    /// Damage the current allocation points at one foe.
+    func allocatedDamage(for foeID: UUID) -> Int {
+        turnPlan.reduce(0) { total, step in
+            guard step.targetsEnemy, allocatedFoeID(for: step) == foeID else { return total }
+            return total + step.damage
+        }
+    }
+
+    /// Who wears the gold ring: during allocation, the selected attack's
+    /// target; during resolution, the foe the blow in flight was sent at.
+    func isTargeted(foeID: UUID) -> Bool {
+        if isAllocating {
+            guard let selectedAllocationID,
+                  let step = turnPlan.first(where: { $0.id == selectedAllocationID }) else {
+                return false
+            }
+            return allocatedFoeID(for: step) == foeID
+        }
+        return activeTargetID == foeID
+    }
+
+    // MARK: - Allocation
+
+    /// Commit entry point. Solo fights — and plans that cannot touch a foe —
+    /// resolve straight away; packs open the allocation overlay first, with
+    /// every attack pre-assigned to the first living foe.
+    func beginCommit() {
+        guard canCommit else { return }
+        guard needsAllocation else {
+            commitTurn()
+            return
+        }
+        let steps = allocatableSteps
+        guard let defaultFoe = livingFoes.first?.id else { return }
+        allocations = Dictionary(uniqueKeysWithValues: steps.map { ($0.id, defaultFoe) })
+        selectedAllocationID = steps.first?.id
+        isAllocating = true
         Haptics.light()
     }
 
-    private func aimedIndex() -> Int? {
-        if let id = aimedID,
+    /// Tap an attack row in the overlay to select it.
+    func selectAllocation(_ stepID: UUID) {
+        guard isAllocating, allocatableSteps.contains(where: { $0.id == stepID }) else { return }
+        selectedAllocationID = stepID
+        Haptics.light()
+    }
+
+    /// Send the selected attack at this foe, then advance to the next attack
+    /// so a sweep down the list assigns quickly.
+    func assignSelected(to foeID: UUID) {
+        guard isAllocating, let stepID = selectedAllocationID,
+              enemies.contains(where: { $0.id == foeID && $0.isAlive }),
+              allocatableSteps.contains(where: { $0.id == stepID }) else { return }
+        allocations[stepID] = foeID
+        Haptics.light()
+        let steps = allocatableSteps
+        if let index = steps.firstIndex(where: { $0.id == stepID }), index + 1 < steps.count {
+            selectedAllocationID = steps[index + 1].id
+        }
+    }
+
+    /// Cycle the selected attack through the living foes.
+    func cycleTarget(for stepID: UUID) {
+        guard isAllocating,
+              let step = allocatableSteps.first(where: { $0.id == stepID }),
+              livingFoes.count > 1 else { return }
+        let living = livingFoes
+        let current = allocatedFoeID(for: step) ?? living[0].id
+        guard let index = living.firstIndex(where: { $0.id == current }) else { return }
+        allocations[step.id] = living[(index + 1) % living.count].id
+        selectedAllocationID = step.id
+        Haptics.light()
+    }
+
+    /// Back to planning — the plan is untouched.
+    func cancelAllocation() {
+        guard isAllocating else { return }
+        isAllocating = false
+        selectedAllocationID = nil
+        Haptics.light()
+    }
+
+    /// Fire the turn with the allocations as they stand.
+    func confirmAllocation() {
+        guard isAllocating else { return }
+        isAllocating = false
+        selectedAllocationID = nil
+        Haptics.medium()
+        commitTurn()
+    }
+
+    /// The living foe a step resolves against: its assigned target, or the
+    /// first living foe once that one has fallen mid-turn. The assignment is
+    /// repaired in place so later steps keep their intent.
+    private func targetIndex(for step: PlanStep) -> Int? {
+        if let id = allocations[step.id],
            let index = enemies.firstIndex(where: { $0.id == id && $0.isAlive }) {
             return index
         }
         guard let index = enemies.firstIndex(where: \.isAlive) else { return nil }
-        aimedID = enemies[index].id
+        allocations[step.id] = enemies[index].id
         return index
     }
 
-    var enemyHPFraction: Double { aimedFoe?.hpFraction ?? 0 }
-    var stagedHPFraction: Double { aimedFoe?.stagedHPFraction ?? 0 }
-
-    var enemyDisplayName: String {
-        aimedFoe?.displayName ?? enemies.last?.displayName ?? ""
-    }
-
-    var enemyHeat: Int {
-        guard let foe = aimedFoe else { return 0 }
-        return foe.def.heatPerTurn * max(0, turnNumber - 1)
+    /// Slides a fallen target onto the nearest living foe — damage never
+    /// fizzles because the assigned foe died earlier in the turn.
+    private func resolveTarget(_ target: Int?) -> Int? {
+        guard let target, enemies.indices.contains(target) else { return nil }
+        if enemies[target].isAlive { return target }
+        return enemies.firstIndex(where: \.isAlive)
     }
 
     var playedFaces: [RolledFace] {
@@ -932,21 +1052,23 @@ final class BattleEngine {
         for (index, step) in steps.enumerated() {
             activeStepIndex = index
             try? await Task.sleep(for: .milliseconds(260))
+            let target = targetIndex(for: step)
+            activeTargetID = target.map { enemies[$0].id }
             if let combo = step.combo {
                 let didCrit = Double.random(in: 0..<1) < step.comboCritChance
                 playerPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
                 noteStrikeGods(in: step.faces)
-                applyCombo(combo, step: step, crit: didCrit)
-                resolveBlessings(in: step)
-                pairingAfterAction(step: step, dealtDamage: combo.damage > 0)
+                applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
+                resolveBlessings(in: step, targetIndex: target)
+                pairingAfterAction(step: step, dealtDamage: combo.damage > 0, targetIndex: target)
                 let hang = 480 + min(step.faces.count, 5) * 90 + (didCrit ? 420 : 0)
                 try? await Task.sleep(for: .milliseconds(hang))
             } else if let face = step.faces.first {
                 playerPose = pose(for: face.face)
                 noteStrikeGods(in: [face])
-                let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus)
-                resolveBlessings(in: step)
-                pairingAfterAction(step: step, dealtDamage: dealt)
+                let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
+                resolveBlessings(in: step, targetIndex: target)
+                pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
                 try? await Task.sleep(for: .milliseconds(380))
             }
             resetPoses()
@@ -982,6 +1104,7 @@ final class BattleEngine {
         if phase != .won && phase != .lost {
             playerPose = .idle
             strikeGods = []
+            activeTargetID = nil
             for index in enemies.indices { enemies[index].pose = .idle }
         }
     }
@@ -998,7 +1121,8 @@ final class BattleEngine {
 
     // MARK: - Applying combos
 
-    private func applyCombo(_ combo: ComboDef, step: PlanStep, crit: Bool) {
+    private func applyCombo(_ combo: ComboDef, step: PlanStep, crit: Bool, targetIndex target: Int?) {
+        let foeID = target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
         combosLanded += 1
         nextTurnStamina += GameData.comboStaminaBank(faces: step.faces.count)
         announce(combo: combo, step: step, crit: crit)
@@ -1019,7 +1143,7 @@ final class BattleEngine {
             addFloat("\(step.faces.count)-CHAIN", color: combo.tint, onEnemy: false)
         }
         addFloat(combo.name.uppercased(), color: crit ? Theme.gold : combo.tint,
-                 onEnemy: combo.damage > 0 || combo.poisonAmount > 0, big: true)
+                 onEnemy: combo.damage > 0 || combo.poisonAmount > 0, big: true, foe: foeID)
         lastAction = crit ? "\(combo.name) CRITS! \(combo.flavor)" : "\(combo.name)! \(combo.flavor)"
 
         if combo.momentumNext > 0 {
@@ -1029,7 +1153,8 @@ final class BattleEngine {
         if combo.damage > 0 {
             var raw = GameData.scaleUp(combo.damage, by: multiplier) + step.momentumBonus + step.focusBonus
             raw = applyDamageBonuses(raw, step: step, scalesWithBleed: combo.scalesWithBleed,
-                                     scalesWithWounds: combo.scalesWithWounds, scalesWithBurn: combo.scalesWithBurn)
+                                     scalesWithWounds: combo.scalesWithWounds, scalesWithBurn: combo.scalesWithBurn,
+                                     targetIndex: target)
 
             // Capstone: Solar Flare — once a turn, a chain of three or more
             // holding a Ra attack face detonates the target's burn for 3 a
@@ -1037,18 +1162,19 @@ final class BattleEngine {
             if capstoneID == "ra_solarFlare", !capstoneUsedThisTurn,
                step.faces.count >= 3,
                step.faces.contains(where: { $0.patron == .ra && $0.face.isAttack }),
-               let foe = aimedFoe, foe.burnTurns > 0, foe.burnAmount > 0 {
+               let target, enemies.indices.contains(target),
+               enemies[target].burnTurns > 0, enemies[target].burnAmount > 0 {
                 capstoneUsedThisTurn = true
-                let stacks = foe.burnAmount
+                let stacks = enemies[target].burnAmount
                 addFloat("SOLAR FLARE", color: Deity.ra.tint, onEnemy: false, big: true)
-                damageEnemyDirect(foe.id, stacks * 3, label: "Flare")
-                applyBurn(2, turns: 2)
+                damageEnemyDirect(enemies[target].id, stacks * 3, label: "Flare")
+                applyBurn(2, turns: 2, targetIndex: target)
             }
 
-            let pierce = attackPierce(comboBase: combo.pierce, step: step, crit: crit)
-            let dealt = damageEnemy(raw, pierce: pierce)
+            let pierce = attackPierce(comboBase: combo.pierce, step: step, crit: crit, targetIndex: target)
+            let dealt = damageEnemy(raw, pierce: pierce, targetIndex: target)
             firstFeastCheck(dealt)
-            jawsOfTheNile(step: step)
+            jawsOfTheNile(step: step, targetIndex: target)
             if combo.lifesteal, dealt > 0 {
                 healPlayer(dealt, label: "Lifesteal")
             }
@@ -1058,15 +1184,15 @@ final class BattleEngine {
         }
         if combo.bleedAmount > 0 {
             applyBleed(GameData.scaleUp(combo.bleedAmount, by: multiplier),
-                       turns: crit ? combo.bleedTurns + 1 : combo.bleedTurns)
+                       turns: crit ? combo.bleedTurns + 1 : combo.bleedTurns, targetIndex: target)
         }
         if combo.poisonAmount > 0 {
             applyPoison(GameData.scaleUp(combo.poisonAmount, by: multiplier),
-                        turns: crit ? combo.poisonTurns + 1 : combo.poisonTurns)
+                        turns: crit ? combo.poisonTurns + 1 : combo.poisonTurns, targetIndex: target)
         }
         if combo.burnAmount > 0 {
             applyBurn(GameData.scaleUp(combo.burnAmount, by: multiplier),
-                      turns: crit ? combo.burnTurns + 1 : combo.burnTurns)
+                      turns: crit ? combo.burnTurns + 1 : combo.burnTurns, targetIndex: target)
         }
         if combo.heal > 0 {
             healPlayer(GameData.scaleUp(combo.heal, by: multiplier))
@@ -1082,11 +1208,9 @@ final class BattleEngine {
         if combo.evadePercent > 0 {
             gainEvade(Double(combo.evadePercent) / 100.0)
         }
-        if combo.stagger > 0 {
-            if let index = aimedIndex() {
-                enemies[index].stagger = max(enemies[index].stagger, min(0.85, combo.stagger * (crit ? 1.3 : 1.0)))
-            }
-            addFloat("Staggered", color: Theme.frost, onEnemy: true)
+        if combo.stagger > 0, let target, enemies.indices.contains(target), enemies[target].isAlive {
+            enemies[target].stagger = max(enemies[target].stagger, min(0.85, combo.stagger * (crit ? 1.3 : 1.0)))
+            addFloat("Staggered", color: Theme.frost, onEnemy: true, foe: foeID)
         }
         if combo.reflect > 0 {
             reflectFraction = max(reflectFraction, combo.reflect)
@@ -1102,11 +1226,12 @@ final class BattleEngine {
 
     /// Returns true when the face dealt damage.
     @discardableResult
-    private func applyFace(_ face: RolledFace, bonus: Int) -> Bool {
+    private func applyFace(_ face: RolledFace, bonus: Int, targetIndex target: Int?) -> Bool {
+        let foeID = target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
         let multiplier = face.isCrit ? GameData.faceCritMultiplier : 1.0
         let value = GameData.scaleUp(face.face.soloValue, by: multiplier)
         if face.isCrit {
-            addFloat("\(face.displayName.uppercased()) CRIT", color: Theme.gold, onEnemy: face.face.isAttack)
+            addFloat("\(face.displayName.uppercased()) CRIT", color: Theme.gold, onEnemy: face.face.isAttack, foe: foeID)
             withAnimation(.linear(duration: 0.3)) { shakeTrigger += 0.6 }
             Haptics.heavy()
         }
@@ -1114,20 +1239,20 @@ final class BattleEngine {
         if face.face.isAttack {
             var raw = value + bonus
             raw = applyDamageBonuses(raw, step: PlanStep(faces: [face], combo: nil),
-                                     scalesWithBleed: false, scalesWithWounds: false, scalesWithBurn: false)
-            let dealt = damageEnemy(raw, pierce: attackPierce(comboBase: 0, step: nil, crit: face.isCrit))
+                                     scalesWithBleed: false, scalesWithWounds: false, scalesWithBurn: false,
+                                     targetIndex: target)
+            let dealt = damageEnemy(raw, pierce: attackPierce(comboBase: 0, step: nil, crit: face.isCrit, targetIndex: target),
+                                    targetIndex: target)
             firstFeastCheck(dealt)
             lastAction = face.isCrit
                 ? "\(face.displayName) crits for \(dealt)!"
                 : "\(face.displayName) hits for \(dealt)."
-            if face.face == .runeFrost {
-                if let index = aimedIndex() {
-                    enemies[index].stagger = max(enemies[index].stagger, 0.2)
-                }
-                addFloat("Slowed", color: Theme.frost, onEnemy: true)
+            if face.face == .runeFrost, let target, enemies.indices.contains(target), enemies[target].isAlive {
+                enemies[target].stagger = max(enemies[target].stagger, 0.2)
+                addFloat("Slowed", color: Theme.frost, onEnemy: true, foe: foeID)
             }
             if face.face == .bomb {
-                applyBurn(face.isCrit ? 6 : 4, turns: 2)
+                applyBurn(face.isCrit ? 6 : 4, turns: 2, targetIndex: target)
             }
             return true
         }
@@ -1143,7 +1268,7 @@ final class BattleEngine {
             gainEvade(face.isCrit ? 0.20 : 0.15)
             lastAction = "You ready yourself — harder to hit this turn."
         case .poison:
-            applyPoison(value, turns: 2)
+            applyPoison(value, turns: 2, targetIndex: target)
             lastAction = "A drop of venom finds its mark."
         case .stamina:
             let gain = face.isCrit ? 2 : 1
@@ -1169,12 +1294,14 @@ final class BattleEngine {
         step: PlanStep,
         scalesWithBleed: Bool,
         scalesWithWounds: Bool,
-        scalesWithBurn: Bool
+        scalesWithBurn: Bool,
+        targetIndex target: Int?
     ) -> Int {
         var damage = base
         var percentPoints = 0
 
-        guard let foe = aimedFoe else { return damage }
+        guard let target, enemies.indices.contains(target) else { return damage }
+        let foe = enemies[target]
 
         // Consumed primes.
         if primeDamageFlat > 0 {
@@ -1187,7 +1314,7 @@ final class BattleEngine {
             primePercentPoints = 0
         }
         if primeBurnExtra > 0 {
-            applyBurn(primeBurnExtra, turns: 2)
+            applyBurn(primeBurnExtra, turns: 2, targetIndex: target)
             primeBurnExtra = 0
         }
         if primeHealAmount > 0 {
@@ -1228,9 +1355,10 @@ final class BattleEngine {
 
     /// Pierce for this attack: the recipe's own fraction, plus upgrade and
     /// pairing riders, capped at total.
-    private func attackPierce(comboBase: Double, step: PlanStep?, crit: Bool) -> Double {
+    private func attackPierce(comboBase: Double, step: PlanStep?, crit: Bool, targetIndex target: Int?) -> Double {
         var pierce = comboBase
-        guard let foe = aimedFoe else { return min(pierce, 1.0) }
+        guard let target, enemies.indices.contains(target) else { return min(pierce, 1.0) }
+        let foe = enemies[target]
 
         // Capstone: Eye of the Falcon — once per turn, a chain holding a held
         // Horus face and containing a critical face ignores all defences.
@@ -1264,11 +1392,13 @@ final class BattleEngine {
 
     /// Sobek's capstone: once a turn, an attack against a bleeding foe bites
     /// its bleed early — one tick paid without shortening it.
-    private func jawsOfTheNile(step: PlanStep) {
+    private func jawsOfTheNile(step: PlanStep, targetIndex target: Int?) {
         guard capstoneID == "sob_jaws", !capstoneUsedThisTurn,
               step.faces.contains(where: { $0.patron == .sobek }),
               step.faces.contains(where: { $0.face.isAttack }),
-              let foe = aimedFoe, foe.bleedTurns > 0, foe.bleedAmount > 0 else { return }
+              let target, enemies.indices.contains(target),
+              enemies[target].bleedTurns > 0, enemies[target].bleedAmount > 0 else { return }
+        let foe = enemies[target]
         capstoneUsedThisTurn = true
         let paid = min(foe.bleedAmount, 8)
         addFloat("JAWS OF THE NILE", color: Deity.sobek.tint, onEnemy: false, big: true)
@@ -1280,7 +1410,7 @@ final class BattleEngine {
 
     /// After an action lands, every god whose dice fed it answers the faces
     /// it read — once per role per action, in play order.
-    private func resolveBlessings(in step: PlanStep) {
+    private func resolveBlessings(in step: PlanStep, targetIndex target: Int?) {
         var fired: [Deity: Set<BlessingRole>] = [:]
         for face in step.faces {
             guard let god = face.patron else { continue }
@@ -1308,13 +1438,13 @@ final class BattleEngine {
             }
             if god == .bastet, role == .evade { bastetEvadeUsed = true }
 
-            land(answer, god: god, step: step)
+            land(answer, god: god, step: step, targetIndex: target)
         }
 
         // Held-face rewards ride the same action.
         if hasUpgrade("an_weighed"),
            step.faces.contains(where: { $0.wasHeld && $0.patron == .anubis && $0.face.isAttack }) {
-            applyJudgement(6)
+            applyJudgement(6, targetIndex: target)
         }
         if hasUpgrade("ho_thermal"), !thermalUsedThisTurn,
            step.faces.contains(where: { $0.wasHeld && $0.patron == .horus }) {
@@ -1325,13 +1455,20 @@ final class BattleEngine {
     }
 
     /// Lands one god's answer: flat values first, primes banked for later.
-    private func land(_ answer: GodAnswer, god: Deity, step: PlanStep) {
+    /// Everything that touches a foe lands on the step's own target.
+    private func land(_ answer: GodAnswer, god: Deity, step: PlanStep, targetIndex target: Int?) {
         guard !answer.isEmpty else { return }
-        addFloat(god.name.uppercased(), color: god.tint, onEnemy: answer.damage > 0 || answer.burn > 0 || answer.bleed > 0 || answer.judgement > 0)
+        let foeID = target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
+        addFloat(god.name.uppercased(), color: god.tint,
+                 onEnemy: answer.damage > 0 || answer.burn > 0 || answer.bleed > 0 || answer.judgement > 0,
+                 foe: foeID)
         if answer.damage > 0 {
             let raw = applyDamageBonuses(answer.damage, step: step,
-                                         scalesWithBleed: false, scalesWithWounds: false, scalesWithBurn: false)
-            let dealt = damageEnemy(raw, pierce: attackPierce(comboBase: answer.pierce, step: step, crit: false))
+                                         scalesWithBleed: false, scalesWithWounds: false, scalesWithBurn: false,
+                                         targetIndex: target)
+            let dealt = damageEnemy(raw, pierce: attackPierce(comboBase: answer.pierce, step: step, crit: false,
+                                                              targetIndex: target),
+                                    targetIndex: target)
             firstFeastCheck(dealt)
         } else if answer.pierce > 0 {
             // Horus's attack answer is pierce-only; it applies to this action.
@@ -1340,9 +1477,9 @@ final class BattleEngine {
         }
         if answer.shield > 0 { gainShield(answer.shield) }
         if answer.heal > 0 { healPlayer(answer.heal) }
-        if answer.burn > 0 { applyBurn(answer.burn, turns: 2) }
-        if answer.bleed > 0 { applyBleed(answer.bleed, turns: 2) }
-        if answer.judgement > 0 { applyJudgement(answer.judgement) }
+        if answer.burn > 0 { applyBurn(answer.burn, turns: 2, targetIndex: target) }
+        if answer.bleed > 0 { applyBleed(answer.bleed, turns: 2, targetIndex: target) }
+        if answer.judgement > 0 { applyJudgement(answer.judgement, targetIndex: target) }
         if answer.evadePercent > 0 { gainEvade(Double(answer.evadePercent) / 100.0) }
         if answer.primeDamage > 0 { primeBonus(damage: answer.primeDamage) }
         if answer.primePercent > 0 { primeBonus(percent: answer.primePercent) }
@@ -1366,7 +1503,7 @@ final class BattleEngine {
 
     /// Fires once an action has landed, for pairings keyed to the action
     /// itself. The rest fire on evades, shield absorptions and detonations.
-    private func pairingAfterAction(step: PlanStep, dealtDamage: Bool) {
+    private func pairingAfterAction(step: PlanStep, dealtDamage: Bool, targetIndex target: Int?) {
         guard let pairing else { return }
         let heldHorus = step.faces.contains(where: { $0.wasHeld && $0.patron == .horus })
         let heldRaAttack = step.faces.contains(where: { $0.wasHeld && $0.patron == .ra && $0.face.isAttack })
@@ -1375,11 +1512,11 @@ final class BattleEngine {
         case "pair_ra_horus" where !pairingFiredThisTurn && heldRaAttack && heldHorus:
             pairingFiredThisTurn = true
             addFloat("SUNSTRIKE", color: pairing.tint.tint, onEnemy: false, big: true)
-            earlyBurnTick()
+            earlyBurnTick(targetIndex: target)
         case "pair_anubis_horus" where !pairingFiredThisTurn && heldHorus:
             pairingFiredThisTurn = true
             addFloat("THE WEIGHING EYE", color: pairing.tint.tint, onEnemy: false, big: true)
-            applyJudgement(6)
+            applyJudgement(6, targetIndex: target)
         case "pair_bes_horus" where !pairingFiredThisTurn && heldHorus:
             pairingFiredThisTurn = true
             addFloat("WATCHFUL GUARDIAN", color: pairing.tint.tint, onEnemy: false, big: true)
@@ -1391,9 +1528,10 @@ final class BattleEngine {
     }
 
     /// Pays one burn tick immediately, without shortening the burn.
-    private func earlyBurnTick() {
-        guard let foe = aimedFoe, foe.burnTurns > 0, foe.burnAmount > 0 else { return }
-        damageEnemyDirect(foe.id, foe.burnAmount, label: "Burn")
+    private func earlyBurnTick(targetIndex target: Int?) {
+        guard let target, enemies.indices.contains(target),
+              enemies[target].burnTurns > 0, enemies[target].burnAmount > 0 else { return }
+        damageEnemyDirect(enemies[target].id, enemies[target].burnAmount, label: "Burn")
     }
 
     // MARK: - Shield, evade, healing, judgement
@@ -1432,16 +1570,16 @@ final class BattleEngine {
     /// Anubis stores damage against a foe; it detonates at the end of your
     /// next turn. Additions to an already-pending pile join it at once —
     /// doubled for the Second Reading.
-    private func applyJudgement(_ amount: Int) {
-        guard amount > 0, let index = aimedIndex() else { return }
+    private func applyJudgement(_ amount: Int, targetIndex target: Int?) {
+        guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
         var value = amount
-        if enemies[index].judgementPending, hasUpgrade("an_secondReading") {
+        if enemies[target].judgementPending, hasUpgrade("an_secondReading") {
             value *= 2
             addFloat("Second Reading", color: Deity.anubis.tint, onEnemy: false)
         }
-        enemies[index].judgementAmount = min(GameData.judgementCap, enemies[index].judgementAmount + value)
-        enemies[index].judgementPending = true
-        addFloat("Judgement \(enemies[index].judgementAmount)", color: Deity.anubis.tint, onEnemy: true)
+        enemies[target].judgementAmount = min(GameData.judgementCap, enemies[target].judgementAmount + value)
+        enemies[target].judgementPending = true
+        addFloat("Judgement \(enemies[target].judgementAmount)", color: Deity.anubis.tint, onEnemy: true, foe: enemies[target].id)
     }
 
     /// The end of your turn: stored judgement falls against health directly,
@@ -1488,25 +1626,25 @@ final class BattleEngine {
 
     // MARK: - Statuses
 
-    private func applyBurn(_ amount: Int, turns: Int) {
-        guard amount > 0, let index = aimedIndex() else { return }
-        enemies[index].burnAmount = min(12, max(enemies[index].burnAmount, amount))
-        enemies[index].burnTurns = max(enemies[index].burnTurns, turns)
-        addFloat("Burning!", color: Theme.ember, onEnemy: true)
+    private func applyBurn(_ amount: Int, turns: Int, targetIndex target: Int?) {
+        guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        enemies[target].burnAmount = min(12, max(enemies[target].burnAmount, amount))
+        enemies[target].burnTurns = max(enemies[target].burnTurns, turns)
+        addFloat("Burning!", color: Theme.ember, onEnemy: true, foe: enemies[target].id)
     }
 
-    private func applyPoison(_ amount: Int, turns: Int) {
-        guard amount > 0, let index = aimedIndex() else { return }
-        enemies[index].poisonAmount = max(enemies[index].poisonAmount, amount)
-        enemies[index].poisonTurns = max(enemies[index].poisonTurns, turns)
-        addFloat("Poisoned!", color: Theme.venom, onEnemy: true)
+    private func applyPoison(_ amount: Int, turns: Int, targetIndex target: Int?) {
+        guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        enemies[target].poisonAmount = max(enemies[target].poisonAmount, amount)
+        enemies[target].poisonTurns = max(enemies[target].poisonTurns, turns)
+        addFloat("Poisoned!", color: Theme.venom, onEnemy: true, foe: enemies[target].id)
     }
 
-    private func applyBleed(_ amount: Int, turns: Int) {
-        guard amount > 0, let index = aimedIndex() else { return }
-        enemies[index].bleedAmount = max(enemies[index].bleedAmount, amount)
-        enemies[index].bleedTurns = max(enemies[index].bleedTurns, turns)
-        addFloat("Bleeding!", color: Theme.blood, onEnemy: true)
+    private func applyBleed(_ amount: Int, turns: Int, targetIndex target: Int?) {
+        guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        enemies[target].bleedAmount = max(enemies[target].bleedAmount, amount)
+        enemies[target].bleedTurns = max(enemies[target].bleedTurns, turns)
+        addFloat("Bleeding!", color: Theme.blood, onEnemy: true, foe: enemies[target].id)
     }
 
     /// Sobek's Deep Water: his blessing's bleed ticks for 2 more.
@@ -1515,8 +1653,8 @@ final class BattleEngine {
     }
 
     @discardableResult
-    private func damageEnemy(_ raw: Int, pierce: Double) -> Int {
-        guard let index = aimedIndex() else { return 0 }
+    private func damageEnemy(_ raw: Int, pierce: Double, targetIndex target: Int?) -> Int {
+        guard let index = resolveTarget(target) else { return 0 }
         var foe = enemies[index]
         defer { enemies[index] = foe }
 
@@ -2100,7 +2238,7 @@ final class BattleEngine {
     // MARK: - Floating text
 
     private func addFloat(_ text: String, color: Color, onEnemy: Bool, big: Bool = false, foe: UUID? = nil) {
-        let target = onEnemy ? (foe ?? aimedFoe?.id) : nil
+        let target = onEnemy ? foe : nil
         let event = FloatText(text: text, color: color, onEnemy: onEnemy, foeID: target, big: big)
         floaters.append(event)
         Task {

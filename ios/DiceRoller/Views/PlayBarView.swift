@@ -448,7 +448,7 @@ struct PlayBarView: View {
 
     private var commitButton: some View {
         Button {
-            engine.commitTurn()
+            engine.beginCommit()
         } label: {
             VStack(spacing: 1) {
                 Image(systemName: "flame.fill")

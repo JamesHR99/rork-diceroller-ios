@@ -64,8 +64,9 @@ private struct BattleContentView: View {
 
                     // The tray owns the middle of the arena while you plan —
                     // the fight dims behind it — then clears away entirely so
-                    // the blows have the whole deck.
-                    if engine.phase == .player {
+                    // the blows have the whole deck. It also steps aside while
+                    // attacks are being allocated, leaving the foes tappable.
+                    if engine.phase == .player, !engine.isAllocating {
                         Theme.bg.opacity(0.45)
                             .allowsHitTesting(false)
                             .transition(.opacity)
@@ -118,7 +119,16 @@ private struct BattleContentView: View {
             if engine.phase == .won || engine.phase == .lost {
                 battleEndOverlay
             }
+
+            // The targeting step: with several foes standing, committing lists
+            // every attack so each can be sent at a chosen foe.
+            if engine.isAllocating {
+                AllocationOverlayView(engine: engine)
+                    .zIndex(6)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: engine.isAllocating)
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
@@ -156,7 +166,9 @@ private struct BattleContentView: View {
     }
 
     /// The foes stand together on the right of the deck — one, or packed up
-    /// two or three wide when the river sends company. Tap a foe to aim.
+    /// two or three wide when the river sends company. While attacks are being
+    /// allocated they are tapped to receive the selected blow; otherwise they
+    /// stand quiet — no aiming happens during planning.
     private var enemyGroup: some View {
         let foes = engine.enemies
         let scale: CGFloat = foes.count >= 3 ? 0.72 : (foes.count == 2 ? 0.84 : 1)
@@ -170,10 +182,34 @@ private struct BattleContentView: View {
                     accent: Theme.blood,
                     foe: foe,
                     packScale: scale,
-                    isAimed: engine.aimedID == foe.id,
-                    isDimmed: engine.isPack && engine.livingFoes.count > 1 && engine.aimedID != foe.id,
-                    onTap: { engine.aim(at: foe.id) }
+                    isTargeted: engine.isTargeted(foeID: foe.id),
+                    onTap: engine.isAllocating ? { engine.assignSelected(to: foe.id) } : nil
                 )
+                .overlay(alignment: .bottom) { allocationTotal(for: foe) }
+            }
+        }
+    }
+
+    /// The running damage total pointed at a foe while attacks are being
+    /// allocated — it builds up beside each fighter as blows are assigned.
+    @ViewBuilder
+    private func allocationTotal(for foe: EnemyState) -> some View {
+        if engine.isAllocating {
+            let total = engine.allocatedDamage(for: foe.id)
+            if total > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 8, weight: .bold))
+                    Text("\(total)")
+                        .font(.system(size: 11, weight: .black).monospacedDigit())
+                }
+                .foregroundStyle(Theme.bg)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Theme.ember, in: .capsule)
+                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
+                .offset(y: 44)
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
     }
