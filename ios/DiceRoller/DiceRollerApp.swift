@@ -1,0 +1,21 @@
+//
+//  DiceRollerApp.swift
+//  DiceRoller
+//
+//  Created by Rork on July 22, 2026.
+//
+
+import SwiftUI
+
+@main
+struct DiceRollerApp: App {
+    init() {
+        PaperFonts.registerBundled()
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
