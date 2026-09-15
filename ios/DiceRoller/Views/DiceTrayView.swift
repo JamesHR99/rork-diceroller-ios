@@ -54,7 +54,7 @@ struct DiceTrayView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 24, strength: 0.5)
+        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 24, strength: 0.55, shade: 0.45)
         .overlay(alignment: .bottom) {
             HieroglyphBand(tint: freezeArmed ? Theme.frost : Theme.gold, height: 9, opacity: 0.32)
                 .padding(.horizontal, 22)

@@ -78,7 +78,9 @@ struct ContentView: View {
     private var sceneDim: Double {
         switch game.screen {
         case .title: 0.05
-        case .chart: 0.26
+        // The chart is read, not watched — the river drops well back so the
+        // route markers are the brightest thing on screen.
+        case .chart: 0.55
         case .battle: 0.16
         case .gameOver: 0.28
         default: 0.52

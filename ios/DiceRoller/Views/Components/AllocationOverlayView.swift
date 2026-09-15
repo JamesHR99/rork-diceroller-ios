@@ -34,7 +34,7 @@ struct AllocationOverlayView: View {
         }
         .padding(12)
         .frame(maxWidth: 560)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 18, strength: 0.55)
+        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 18, strength: 0.55, shade: 0.45)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1.2)

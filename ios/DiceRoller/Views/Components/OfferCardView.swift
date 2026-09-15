@@ -128,7 +128,7 @@ struct OfferCardView: View {
             .padding(10)
             .frame(width: width)
             .frame(maxWidth: width == nil ? .infinity : nil, maxHeight: .infinity)
-            .papyrusPanel(tint: Theme.bgCard, cornerRadius: 16)
+            .papyrusPanel(tint: Theme.bgCard, cornerRadius: 16, shade: 0.5, ground: .card)
             .overlay(alignment: .bottom) {
                 GoldRule(height: 5, opacity: 0.6)
                     .padding(.horizontal, 14)

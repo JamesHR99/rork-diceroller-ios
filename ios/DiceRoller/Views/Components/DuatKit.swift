@@ -113,8 +113,10 @@ struct DuatSymbol: View {
 
 // MARK: - Papyrus sheets
 
-/// One of the two painted papyrus sheets, stretched from its middle so the
-/// inked border and corner ornaments keep their weight at any size.
+/// A painted plate stretched from its middle so its inked border and corner
+/// ornaments keep their weight at any size. Only used where a panel really is
+/// close to the plate's drawn proportions — wide trays use a plain ground and
+/// draw their own edge instead, so nothing smears.
 struct DuatSheet: View {
     let name: String
     var opacity: Double = 1
@@ -179,12 +181,13 @@ struct DuatPanel<Content: View>: View {
     var tint: Color = Theme.gold
     var cornerRadius: CGFloat = 16
     var showsBand: Bool = true
+    var ground: PapyrusGround = .panel
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         content()
             .background {
-                PapyrusSurface(sheet: DuatArt.panelLarge)
+                PapyrusSurface(ground: ground, tint: Theme.bgCard, shade: 0.4)
                     .clipShape(.rect(cornerRadius: cornerRadius))
             }
             .overlay(alignment: .top) {
@@ -203,8 +206,9 @@ struct DuatPanel<Content: View>: View {
 
 extension View {
     /// Wraps any view in the standard painted panel.
-    func duatPanel(tint: Color = Theme.gold, cornerRadius: CGFloat = 16, showsBand: Bool = true) -> some View {
-        DuatPanel(tint: tint, cornerRadius: cornerRadius, showsBand: showsBand) { self }
+    func duatPanel(tint: Color = Theme.gold, cornerRadius: CGFloat = 16,
+                   showsBand: Bool = true, ground: PapyrusGround = .panel) -> some View {
+        DuatPanel(tint: tint, cornerRadius: cornerRadius, showsBand: showsBand, ground: ground) { self }
     }
 
     /// Lays the four gold corner ornaments over a panel's corners.
@@ -306,10 +310,23 @@ enum DuatBarKind {
         case .armour: DuatArt.barFillArmour
         }
     }
+
+    /// The solid colour under the painted fill, so the level reads instantly.
+    var baseTint: Color {
+        switch self {
+        case .health: Theme.blood
+        case .shield: Theme.steel
+        case .armour: Theme.bronze
+        }
+    }
 }
 
-/// A painted resource bar: the inked channel, the proper fill revealed from
-/// the leading edge, and a lotus cap at each end.
+/// A painted resource bar: the gilded trough with its lotus caps, and a solid
+/// fill laid inside the channel so the remaining health is unmistakable.
+///
+/// The frame is drawn whole and the fill is inset to the exact trough
+/// measured off the artwork — that way the fill is never hidden under the
+/// bronze rim, which is what made an enemy's health impossible to read.
 struct DuatBar: View {
     let kind: DuatBarKind
     /// 0 through 1.
@@ -322,35 +339,56 @@ struct DuatBar: View {
 
     private var clamped: CGFloat { CGFloat(min(max(fraction, 0), 1)) }
 
-    var body: some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Theme.bg.opacity(0.85))
-                .frame(width: width, height: height * 0.62)
-
-            DuatImage(name: kind.fillArt, width: width, height: height * 0.52, fit: .stretch)
-                .modifier(TintWash(tint: tint))
-                .mask(alignment: .leading) {
-                    Rectangle().frame(width: width * clamped)
-                }
-                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: clamped)
-
-            DuatImage(name: DuatArt.barTrack, width: width, height: height, fit: .stretch)
-                .allowsHitTesting(false)
-        }
-        .frame(width: width, height: height)
-        .overlay(alignment: .leading) { cap(mirrored: false) }
-        .overlay(alignment: .trailing) { cap(mirrored: true) }
+    /// The frame keeps its drawn proportions, so a wider bar is a taller bar.
+    private var frameHeight: CGFloat {
+        max(height, width / DuatArt.BarFrame.aspect)
     }
 
-    @ViewBuilder
-    private func cap(mirrored: Bool) -> some View {
-        if showsCaps {
-            DuatImage(name: DuatArt.barEndcap, height: height * 1.7, fit: .fit)
-                .scaleEffect(x: mirrored ? -1 : 1)
-                .offset(x: (mirrored ? 1 : -1) * height * 0.62)
+    private var troughWidth: CGFloat { width * DuatArt.BarFrame.troughWidth }
+    private var troughHeight: CGFloat { frameHeight * DuatArt.BarFrame.troughHeight }
+    /// How far the channel's centre sits from the bar's centre.
+    private var troughOffset: CGFloat {
+        (DuatArt.BarFrame.troughX + DuatArt.BarFrame.troughWidth / 2 - 0.5) * width
+    }
+
+    var body: some View {
+        ZStack {
+            Capsule()
+                .fill(Color.black.opacity(0.9))
+                .frame(width: troughWidth, height: troughHeight)
+                .offset(x: troughOffset)
+
+            fill
+
+            Image(DuatArt.barFrame)
+                .resizable()
+                .frame(width: width, height: frameHeight)
                 .allowsHitTesting(false)
         }
+        .frame(width: width, height: frameHeight)
+    }
+
+    /// The colour that runs in the channel. A painted fill plate is washed
+    /// over it where the pack has one, so the bar still reads as ink.
+    private var fill: some View {
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: troughHeight / 2)
+                .fill(
+                    LinearGradient(colors: [kind.baseTint.opacity(0.95), kind.baseTint],
+                                   startPoint: .top, endPoint: .bottom)
+                )
+                .overlay {
+                    DuatImage(name: kind.fillArt, width: troughWidth, height: troughHeight, fit: .stretch)
+                        .opacity(0.55)
+                        .blendMode(.overlay)
+                }
+                .frame(width: max(troughWidth * clamped, clamped > 0 ? 3 : 0), height: troughHeight)
+                .shadow(color: kind.baseTint.opacity(0.7), radius: 4)
+        }
+        .frame(width: troughWidth, height: troughHeight, alignment: .leading)
+        .offset(x: troughOffset)
+        .modifier(TintWash(tint: tint))
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: clamped)
     }
 }
 

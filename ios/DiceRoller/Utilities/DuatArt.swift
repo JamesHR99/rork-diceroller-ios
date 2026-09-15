@@ -129,6 +129,25 @@ enum DuatArt {
     static let barFillShield = "duat_ui_bar_fill_shield"
     static let barFillArmour = "duat_ui_bar_fill_armour"
 
+    /// The empty bar frame: one long trough with a lotus cap at each end,
+    /// drawn so the fill can be laid inside its channel and actually be seen.
+    static let barFrame = "health_bar_frame_empty"
+
+    /// Where the trough sits inside `barFrame`, measured off the drawing.
+    enum BarFrame {
+        static let aspect: CGFloat = 10.92
+        static let troughX: CGFloat = 0.0882
+        static let troughWidth: CGFloat = 0.8229
+        static let troughY: CGFloat = 0.2117
+        static let troughHeight: CGFloat = 0.5693
+    }
+
+    /// The two plain painted grounds every panel and card sits on. They carry
+    /// no border and no ornament, so text stays readable over them and they
+    /// can be scaled to any shape without the frame art smearing.
+    static let groundPanel = "papyrus_dark_panel"
+    static let groundCard = "egyptian_papyrus_bg"
+
     static let staminaFull = "duat_ui_stamina_full"
     static let staminaEmpty = "duat_ui_stamina_empty"
     static let staminaReserve = "duat_ui_stamina_reserve"

@@ -203,16 +203,11 @@ struct FighterView: View {
     }
 
     private var nameRow: some View {
-        HStack(spacing: 6) {
-            Text(side == .player ? heroName : (foe?.displayName ?? ""))
-                .font(.fantasy(15, weight: .bold))
-                .foregroundStyle(Theme.parchment)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-            Text("\(currentHP)/\(maxHP)")
-                .font(.system(size: 11, weight: .bold).monospacedDigit())
-                .foregroundStyle(Theme.parchmentDim)
-        }
+        Text(side == .player ? heroName : (foe?.displayName ?? ""))
+            .font(.fantasy(15, weight: .bold))
+            .foregroundStyle(Theme.parchment)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
     }
 
     private var currentHP: Int { side == .player ? engine.playerHP : (foe?.hp ?? 0) }
@@ -222,14 +217,25 @@ struct FighterView: View {
 
     /// The painted health channel, its fill revealed from the leading edge.
     /// A hero's runs in their own accent; everything out of the river bleeds.
+    /// The numbers ride the bar itself so a foe's remaining health is legible
+    /// at a glance even when the fill is nearly gone.
     private var healthBar: some View {
         DuatBar(
             kind: .health,
             fraction: Double(currentHP) / Double(max(maxHP, 1)),
-            width: 152,
-            height: 13,
+            width: 160,
+            height: 15,
             tint: side == .player ? accent : nil
         )
+        .overlay {
+            Text("\(currentHP)/\(maxHP)")
+                .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                .foregroundStyle(Theme.parchment)
+                .shadow(color: .black, radius: 2.5)
+                .shadow(color: .black.opacity(0.9), radius: 1)
+                .contentTransition(.numericText())
+                .allowsHitTesting(false)
+        }
     }
 
     /// The bronze plate worn over health. Direct hits chip it away first;
@@ -241,33 +247,18 @@ struct FighterView: View {
         return DuatBar(
             kind: .armour,
             fraction: Double(fraction),
-            width: 152,
-            height: 11,
-            showsCaps: false
+            width: 132,
+            height: 11
         )
-        .overlay(alignment: .leading) {
-            // Cracks open across the plate as it thins.
-            ZStack(alignment: .leading) {
-                if fraction <= 0.67 { crackMark.offset(x: 152 * 0.67) }
-                if fraction <= 0.34 { crackMark.offset(x: 152 * 0.34) }
-            }
-            .allowsHitTesting(false)
-        }
         .overlay(alignment: .trailing) {
             HStack(spacing: 2) {
-                DuatIcon(name: DuatArt.Status.armour, size: 9)
+                DuatIcon(name: DuatArt.Status.armour, size: 10)
                 Text("\(foe.armour)")
-                    .font(.system(size: 8, weight: .black).monospacedDigit())
+                    .font(.system(size: 9, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.bronze)
             }
-            .offset(x: 28)
+            .offset(x: 26)
         }
-    }
-
-    private var crackMark: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.6))
-            .frame(width: 1.4, height: 9)
     }
 
     /// Everything riding this fighter right now, each on its painted mark.

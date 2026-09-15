@@ -21,7 +21,7 @@ struct PlayBarView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 18, strength: 0.45)
+        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 18, strength: 0.5, shade: 0.42)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(engine.hasCombo ? Theme.ember.opacity(0.55) : Theme.gold.opacity(0.18),
@@ -101,7 +101,7 @@ struct PlayBarView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .frame(maxWidth: .infinity)
-        .background(Theme.bg.opacity(0.65), in: .rect(cornerRadius: 14))
+        .background(Theme.bg.opacity(0.8), in: .rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
@@ -168,13 +168,8 @@ struct PlayBarView: View {
                     }
                 }
 
-                if engine.phase == .player {
-                    ForEach(0..<emptySlotCount, id: \.self) { _ in
-                        DuatImage(name: DuatArt.turnSlot, width: 50, height: bodyHeight, fit: .stretch)
-                            .opacity(0.5)
-                            .frame(width: 50, height: bodyHeight)
-                    }
-                }
+                // Nothing stands in for stamina you have not spent — an empty
+                // plan just reads as empty.
             }
             .padding(.horizontal, 1)
             .frame(minHeight: bodyHeight, alignment: .leading)
@@ -182,10 +177,6 @@ struct PlayBarView: View {
         .frame(height: bodyHeight)
         .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.activeStepIndex)
-    }
-
-    private var emptySlotCount: Int {
-        max(0, min(engine.stamina, engine.maxStamina))
     }
 
     @ViewBuilder
