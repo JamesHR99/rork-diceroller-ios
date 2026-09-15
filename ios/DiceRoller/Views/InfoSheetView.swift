@@ -496,7 +496,8 @@ struct InfoSheetView: View {
                     "A recipe asks for ingredients and quantities, never a tap order — any arrangement of the faces fuses into one step. Three Swift Slashes make the same chain whichever tap they arrived from.",
                     "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
                     "Fused combos cost less than their faces played apart: 3 faces cost 2, 4 cost 3, 5 cost 4. A chain of three or more banks a single stamina point for next turn.",
-                    "The combo panel above the tray lists every chain the roll could make, with the letters its dice wear.",
+                    "Each die wears a coloured letter for every chain it could feed. Tap a letter to fuse that chain; tap it again once it turns gold to break it apart.",
+                    "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
                 ]
             )
 

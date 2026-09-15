@@ -260,6 +260,22 @@ struct ComboCandidate: Identifiable {
     }
 }
 
+/// One letter carved under a die: the chain that letter names, in that
+/// chain's own colour. The letters are the compact read of the roll — tapping
+/// one fuses or dissolves its chain, so the full combo list underneath the
+/// tray is optional rather than the only way to form a combo.
+struct ComboMarker: Identifiable, Equatable {
+    let comboID: String
+    let name: String
+    let letter: String
+    let color: Color
+    let staminaCost: Int
+    /// True when the whole chain is already locked into the turn plan.
+    let isPlanned: Bool
+
+    var id: String { comboID }
+}
+
 /// The banner, shockwave and sparks thrown by a chain as it resolves.
 struct ComboFlash: Identifiable, Equatable {
     let id = UUID()
@@ -512,7 +528,7 @@ final class BattleEngine {
     /// Every chain this roll could make, longest first — rebuilt whenever the
     /// board changes rather than on every redraw.
     private(set) var comboCandidates: [ComboCandidate] = []
-    private(set) var comboMarkers: [UUID: [(letter: String, color: Color)]] = [:]
+    private(set) var comboMarkers: [UUID: [ComboMarker]] = [:]
 
     // MARK: Effects & stats
     private(set) var comboFlash: ComboFlash?
@@ -1079,7 +1095,7 @@ final class BattleEngine {
         let assignedIDs = Set(buildPlan(from: playedFaces).filter(\.isCombo).flatMap { $0.faces.map(\.id) })
         let free = rolled.filter { !assignedIDs.contains($0.id) }
         var found: [ComboCandidate] = []
-        var markers: [UUID: [(letter: String, color: Color)]] = [:]
+        var markers: [UUID: [ComboMarker]] = [:]
 
         var assisted = 0
         for combo in comboPool {
@@ -1106,8 +1122,16 @@ final class BattleEngine {
             let letter = Self.letter(at: found.count)
             found.append(ComboCandidate(combo: combo, slots: slots, placedCount: placed,
                                         letter: letter, isForced: forced))
+            let marker = ComboMarker(
+                comboID: combo.id,
+                name: combo.name,
+                letter: letter,
+                color: combo.tint,
+                staminaCost: combo.staminaCost,
+                isPlanned: forced && placed == slots.count
+            )
             for face in slots {
-                markers[face.id, default: []].append((letter, combo.tint))
+                markers[face.id, default: []].append(marker)
             }
         }
         comboCandidates = found.sorted { lhs, rhs in
