@@ -32,7 +32,8 @@ struct RestView: View {
 
             HStack(spacing: 18) {
                 restCard(
-                    icon: "moon.zzz.fill",
+                    art: DuatArt.Status.health,
+                    fallback: "moon.zzz.fill",
                     tint: Theme.nileGreen,
                     title: "Sleep by the Hull",
                     detail: "Restore \(healAmount) health.",
@@ -42,7 +43,8 @@ struct RestView: View {
                 }
 
                 restCard(
-                    icon: "hammer.fill",
+                    art: DuatArt.upgradeWhetstone,
+                    fallback: "hammer.fill",
                     tint: Theme.gold,
                     title: "Work the Whetstone",
                     detail: "Reforge one face on any die into something better.",
@@ -74,7 +76,8 @@ struct RestView: View {
     }
 
     private func restCard(
-        icon: String,
+        art: String,
+        fallback: String,
         tint: Color,
         title: String,
         detail: String,
@@ -83,9 +86,7 @@ struct RestView: View {
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(tint)
+                DuatSymbol(art: art, fallback: fallback, size: 44, tint: tint)
                     .frame(width: 62, height: 62)
                     .background(Theme.bg, in: .circle)
                     .overlay(Circle().strokeBorder(tint.opacity(0.5), lineWidth: 1.5))

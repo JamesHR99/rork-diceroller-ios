@@ -102,22 +102,30 @@ struct ComboFlashView: View {
     private var banner: some View {
         VStack(spacing: 4) {
             HStack(spacing: 8) {
-                Text("\(flash.chain)-CHAIN")
-                    .font(.system(size: 10 + weight * 3, weight: .black))
-                    .kerning(2)
-                    .foregroundStyle(Theme.bg)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(flash.tint, in: .capsule)
+                HStack(spacing: 4) {
+                    DuatImage(name: DuatArt.chainConnector, width: 14, fit: .fit)
+                        .colorMultiply(Theme.bg)
+                    Text("\(flash.chain)-CHAIN")
+                        .font(.system(size: 10 + weight * 3, weight: .black))
+                        .kerning(2)
+                        .foregroundStyle(Theme.bg)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(flash.tint, in: .capsule)
 
                 if flash.crit {
-                    Text("CRITICAL")
-                        .font(.system(size: 11, weight: .black))
-                        .kerning(2.4)
-                        .foregroundStyle(Theme.gold)
+                    HStack(spacing: 4) {
+                        DuatIcon(name: DuatArt.Status.critical, size: 14)
+                        Text("CRITICAL")
+                            .font(.system(size: 11, weight: .black))
+                            .kerning(2.4)
+                            .foregroundStyle(Theme.gold)
+                    }
                 }
             }
 
+            // The chain's name burning on the painted banner.
             Text(flash.name.uppercased())
                 .font(.fantasy(bannerSize, weight: .black))
                 .kerning(2.5)
@@ -128,8 +136,15 @@ struct ComboFlashView: View {
                 .shadow(color: flash.tint.opacity(0.9), radius: 18)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 14)
+                .background {
+                    DuatImage(name: DuatArt.banner, fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .colorMultiply(flash.tint)
+                }
 
-            HieroglyphBand(tint: flash.tint, height: 8, opacity: 0.55)
+            GoldRule(height: 5, opacity: 0.7)
                 .frame(width: 220 + weight * 120)
 
             Text(flash.summary)

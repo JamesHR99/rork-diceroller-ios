@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// The living Duat scene that sits behind every screen: a deep star field, a
-/// far bank of dunes and broken pylons drifting past, and slow black water with
-/// the sun disc's reflection rolling across it.
+/// The living Duat scene that sits behind every screen, built from the painted
+/// scenery plates: a deep star field, the distant ruins drifting past, black
+/// water with the sun's reflection rolling over it, the solar barque riding
+/// above, and reeds framing the foreground.
 ///
-/// The layers scroll at different speeds so the barque always feels like it is
-/// travelling, even while the player is reading a card.
+/// Every plate in the pack is a single still image, so all the motion here is
+/// code: the layers scroll at different speeds, the reeds sway from their
+/// stems, the mist creeps, the halo breathes and the embers rise. The barque
+/// always feels like it is travelling, even while the player reads a card.
 struct DuatSceneView: View {
     let gate: Gate
     /// Where the water begins, as a fraction of the view's height.
@@ -18,304 +21,337 @@ struct DuatSceneView: View {
     var discGlow: Double = 1
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: speed == 0)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate * speed
+        GeometryReader { proxy in
+            let size = proxy.size
+            let horizon = size.height * waterline
 
-            Canvas(rendersAsynchronously: true) { ctx, size in
-                draw(ctx: &ctx, size: size, time: time)
+            ZStack {
+                skyWash(size: size, horizon: horizon)
+                starField(size: size, horizon: horizon)
+                sunDisc(size: size, horizon: horizon)
+                ruins(size: size, horizon: horizon)
+                water(size: size, horizon: horizon)
+                reflection(size: size, horizon: horizon)
+                if gate.hasSerpent { coil(size: size, horizon: horizon) }
+                mist(size: size, horizon: horizon)
+                barque(size: size, horizon: horizon)
+                if gate.hasEmbers { brazier(size: size, horizon: horizon) }
+                reeds(size: size, horizon: horizon)
+                if gate.hasEmbers { embers(size: size) }
             }
-            .drawingGroup()
+            .frame(width: size.width, height: size.height)
+            .clipped()
         }
         .overlay(Color.black.opacity(dim).allowsHitTesting(false))
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 
-    // MARK: - Drawing
-
-    private func draw(ctx: inout GraphicsContext, size: CGSize, time: Double) {
-        let horizon = size.height * waterline
-
-        drawSky(&ctx, size: size, horizon: horizon, time: time)
-        drawStars(&ctx, size: size, horizon: horizon, time: time)
-        drawHorizonGlow(&ctx, size: size, horizon: horizon)
-        drawDunes(&ctx, size: size, horizon: horizon, time: time)
-        drawPylons(&ctx, size: size, horizon: horizon, time: time)
-        drawWater(&ctx, size: size, horizon: horizon, time: time)
-        if gate.hasReeds { drawReeds(&ctx, size: size, horizon: horizon, time: time) }
-        if gate.hasEmbers { drawEmbers(&ctx, size: size, horizon: horizon, time: time) }
-        if gate.hasSerpent { drawSerpent(&ctx, size: size, horizon: horizon, time: time) }
+    /// A drifting layer: `period` seconds to travel its own width, drawn twice
+    /// end to end so the wrap never shows. Stopped dead when the scene is
+    /// paused, and sped up or slowed with the rest of the scene.
+    private func drift(_ period: Double, width: CGFloat) -> some ViewModifier {
+        DriftModifier(period: period / max(speed, 0.0001), width: width, isRunning: speed > 0)
     }
 
-    /// The hand-painted papyrus sheet the whole river scene is brushed onto —
-    /// its fibres and uneven ink stay faintly visible under every layer.
-    private func drawPainting(_ ctx: inout GraphicsContext, size: CGSize) {
-        let resolved = ctx.resolve(Image("solar_barque_duat_river"))
-        let saved = ctx.opacity
-        ctx.opacity = 0.32
-        ctx.draw(resolved, in: CGRect(x: 0, y: 0, width: size.width, height: size.height))
-        ctx.opacity = saved
-    }
+    // MARK: - Sky and stars
 
-    private func drawSky(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        let rect = CGRect(x: 0, y: 0, width: size.width, height: horizon)
-        ctx.fill(
-            Path(rect),
-            with: .linearGradient(
-                Gradient(colors: [gate.skyTop, gate.skyTop, gate.skyHorizon]),
-                startPoint: .zero,
-                endPoint: CGPoint(x: 0, y: horizon)
+    private func skyWash(size: CGSize, horizon: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [gate.skyTop, gate.skyTop, gate.skyHorizon],
+                startPoint: .top,
+                endPoint: .bottom
             )
-        )
-    }
-
-    private func drawStars(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        // The star field drifts a fraction of the speed of the bank.
-        let drift = CGFloat((time * 3).truncatingRemainder(dividingBy: Double(size.width + 1)))
-        for star in StarField.stars {
-            let x = (star.x * size.width - drift).truncatingRemainder(dividingBy: size.width + 1)
-            let px = x < 0 ? x + size.width : x
-            let py = star.y * horizon
-            let twinkle = 0.35 + 0.65 * (0.5 + 0.5 * sin(time * star.speed + star.phase))
-            // Apep is eating the stars in the last gate.
-            let gateFade = gate == .coils ? 0.35 : 1.0
-            let radius = star.radius
-            let rect = CGRect(x: px - radius, y: py - radius, width: radius * 2, height: radius * 2)
-            ctx.fill(
-                Path(ellipseIn: rect),
-                with: .color(Theme.parchment.opacity(twinkle * star.brightness * gateFade))
-            )
+            .frame(height: horizon)
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [.clear, gate.discColor.opacity(0.22 * discGlow)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: horizon * 0.45)
+            }
+            Spacer(minLength: 0)
         }
     }
 
-    private func drawHorizonGlow(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat) {
-        let glowHeight = horizon * 0.45
-        let rect = CGRect(x: 0, y: horizon - glowHeight, width: size.width, height: glowHeight)
-        ctx.fill(
-            Path(rect),
-            with: .linearGradient(
-                Gradient(colors: [.clear, gate.discColor.opacity(0.20 * discGlow)]),
-                startPoint: CGPoint(x: 0, y: rect.minY),
-                endPoint: CGPoint(x: 0, y: rect.maxY)
-            )
-        )
-    }
-
-    private func drawDunes(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        // Two ridges at different speeds give the far bank depth.
-        drawRidge(&ctx, size: size, horizon: horizon, time: time,
-                  speed: 6, amplitude: horizon * 0.09, base: horizon * 0.06,
-                  wavelength: size.width * 0.7, color: gate.bank.opacity(0.65))
-        drawRidge(&ctx, size: size, horizon: horizon, time: time,
-                  speed: 13, amplitude: horizon * 0.055, base: horizon * 0.02,
-                  wavelength: size.width * 0.4, color: gate.bank)
-    }
-
-    private func drawRidge(
-        _ ctx: inout GraphicsContext,
-        size: CGSize,
-        horizon: CGFloat,
-        time: Double,
-        speed: Double,
-        amplitude: CGFloat,
-        base: CGFloat,
-        wavelength: CGFloat,
-        color: Color
-    ) {
-        var path = Path()
-        let offset = CGFloat(time * speed)
-        path.move(to: CGPoint(x: 0, y: horizon))
-        var x: CGFloat = 0
-        while x <= size.width {
-            let theta = Double((x + offset) / max(wavelength, 1)) * 2 * .pi
-            let y = horizon - base - amplitude * CGFloat(0.5 + 0.5 * sin(theta) + 0.25 * sin(theta * 2.3))
-            path.addLine(to: CGPoint(x: x, y: y))
-            x += 8
+    /// Painted star glints, scattered deterministically and twinkling on their
+    /// own phases. Apep eats most of them in the last gate.
+    private func starField(size: CGSize, horizon: CGFloat) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            let fade = gate == .coils ? 0.3 : 1.0
+            ZStack {
+                ForEach(Array(StarField.stars.enumerated()), id: \.offset) { _, star in
+                    let twinkle = 0.3 + 0.7 * (0.5 + 0.5 * sin(time * star.speed + star.phase))
+                    DuatImage(name: "duat_environment_star", height: star.size, fit: .fit)
+                        .opacity(twinkle * star.brightness * fade)
+                        .position(x: star.x * size.width, y: star.y * horizon)
+                }
+            }
         }
-        path.addLine(to: CGPoint(x: size.width, y: horizon))
-        path.closeSubpath()
-        ctx.fill(path, with: .color(color))
+        .allowsHitTesting(false)
     }
 
-    private func drawPylons(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        let span = size.width * 1.5
-        let offset = CGFloat((time * 11).truncatingRemainder(dividingBy: Double(span)))
-        for ruin in Ruins.all {
-            let x = ruin.x * span - offset
-            guard x > -80, x < size.width + 80 else { continue }
-            let height = horizon * ruin.height
-            let width = height * ruin.widthRatio
-            let baseY = horizon - horizon * 0.02
+    // MARK: - Ra's disc
 
-            var path = Path()
-            path.move(to: CGPoint(x: x - width / 2, y: baseY))
-            path.addLine(to: CGPoint(x: x - width * 0.34, y: baseY - height))
-            path.addLine(to: CGPoint(x: x + width * 0.34, y: baseY - height))
-            path.addLine(to: CGPoint(x: x + width / 2, y: baseY))
-            path.closeSubpath()
-            ctx.fill(path, with: .color(gate.bank.opacity(0.92)))
+    /// The disc hangs over the barque with its halo behind it. The three disc
+    /// states are matched to one displayed diameter, so a gate change is a
+    /// crossfade rather than a jump in size.
+    private func sunDisc(size: CGSize, horizon: CGFloat) -> some View {
+        let diameter = min(size.width * 0.16, horizon * 0.52)
+        return TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            let breath = 0.5 + 0.5 * sin(time * 0.35)
+            ZStack {
+                DuatImage(name: "duat_environment_sun_halo", height: diameter * 2.1, fit: .fit)
+                    .opacity((0.22 + 0.2 * breath) * discGlow)
+                    .scaleEffect(1 + 0.04 * breath)
 
-            // A thin lit edge where the disc catches the stone.
-            var edge = Path()
-            edge.move(to: CGPoint(x: x + width * 0.34, y: baseY - height))
-            edge.addLine(to: CGPoint(x: x + width / 2, y: baseY))
-            ctx.stroke(edge, with: .color(gate.discColor.opacity(0.16 * discGlow)), lineWidth: 1)
+                DuatImage(name: gate.sunArt, height: diameter, fit: .fit)
+                    .shadow(color: gate.discColor.opacity(0.55 * discGlow), radius: diameter * 0.35)
+                    .id(gate)
+                    .transition(.opacity)
+            }
+            .position(x: size.width * 0.5, y: horizon * 0.42)
+        }
+        .animation(.easeInOut(duration: 1.2), value: gate)
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Bank
+
+    /// The distant ruins, furthest back and slowest — a long drift so the far
+    /// bank reads as depth rather than speed.
+    private func ruins(size: CGSize, horizon: CGFloat) -> some View {
+        let height = horizon * 0.42
+        let layerWidth = size.width * 1.35
+        return DuatImage(name: "duat_environment_ruins", width: layerWidth, height: height, fit: .fill)
+            .frame(width: layerWidth, height: height)
+            .colorMultiply(gate.bank.opacity(0.95))
+            .modifier(drift(74, width: layerWidth))
+            .frame(width: size.width, height: height, alignment: .leading)
+            .clipped()
+            .position(x: size.width / 2, y: horizon - height * 0.5)
+            .opacity(0.9)
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Water
+
+    private func water(size: CGSize, horizon: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            LinearGradient(
+                colors: [gate.waterTop, gate.waterBottom],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: size.height - horizon)
         }
     }
 
-    private func drawWater(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        let rect = CGRect(x: 0, y: horizon, width: size.width, height: size.height - horizon)
-        ctx.fill(
-            Path(rect),
-            with: .linearGradient(
-                Gradient(colors: [gate.waterTop, gate.waterBottom]),
-                startPoint: CGPoint(x: 0, y: horizon),
-                endPoint: CGPoint(x: 0, y: size.height)
-            )
-        )
-
-        // The reflected disc: a wobbling column of light straight down the middle.
-        let columnWidth = size.width * 0.16
-        let centre = size.width * 0.5
-        var reflection = Path()
-        reflection.move(to: CGPoint(x: centre - columnWidth * 0.18, y: horizon))
-        reflection.addLine(to: CGPoint(x: centre - columnWidth, y: size.height))
-        reflection.addLine(to: CGPoint(x: centre + columnWidth, y: size.height))
-        reflection.addLine(to: CGPoint(x: centre + columnWidth * 0.18, y: horizon))
-        reflection.closeSubpath()
-        ctx.fill(
-            reflection,
-            with: .linearGradient(
-                Gradient(colors: [gate.reflection.opacity(0.26 * discGlow), .clear]),
-                startPoint: CGPoint(x: 0, y: horizon),
-                endPoint: CGPoint(x: 0, y: size.height)
-            )
-        )
-
-        // Ripple lines, faster and wider the nearer the bottom of the frame.
+    /// The painted reflection lying on the water — jade, ember or violet by
+    /// gate. Two copies at different speeds and opacities so the surface is
+    /// never still.
+    private func reflection(size: CGSize, horizon: CGFloat) -> some View {
         let waterHeight = size.height - horizon
-        let lines = 16
-        for index in 0..<lines {
-            let progress = Double(index) / Double(lines)
-            let y = horizon + waterHeight * CGFloat(pow(progress, 1.6)) + 2
-            let phase = time * (0.6 + progress * 2.4) + Double(index) * 1.7
-            let wobble = CGFloat(sin(phase)) * CGFloat(8 + progress * 44)
-            let width = size.width * CGFloat(0.16 + progress * 0.5)
-            let alpha = (0.05 + progress * 0.16) * (0.6 + 0.4 * (0.5 + 0.5 * sin(phase * 1.4)))
+        let nearWidth = size.width * 1.5
+        let farWidth = size.width * 1.8
+        return ZStack {
+            DuatImage(name: gate.rippleArt, width: nearWidth, height: waterHeight * 0.62, fit: .fill)
+                .frame(width: nearWidth, height: waterHeight * 0.62)
+                .modifier(drift(38, width: nearWidth))
+                .opacity(0.48 * discGlow)
 
-            var line = Path()
-            let start = centre + wobble - width / 2
-            line.move(to: CGPoint(x: start, y: y))
-            line.addLine(to: CGPoint(x: start + width, y: y))
-            ctx.stroke(
-                line,
-                with: .color(gate.reflection.opacity(alpha * discGlow)),
-                style: StrokeStyle(lineWidth: 1 + CGFloat(progress) * 1.6, lineCap: .round)
-            )
-
-            // A faint counter-ripple away from the reflected column.
-            var edgeLine = Path()
-            let edgeY = y + 3
-            edgeLine.move(to: CGPoint(x: 0, y: edgeY))
-            edgeLine.addLine(to: CGPoint(x: size.width, y: edgeY))
-            ctx.stroke(
-                edgeLine,
-                with: .color(Theme.parchment.opacity(0.018 + progress * 0.022)),
-                lineWidth: 0.6
-            )
+            DuatImage(name: gate.rippleArt, width: farWidth, height: waterHeight * 0.9, fit: .fill)
+                .frame(width: farWidth, height: waterHeight * 0.9)
+                .scaleEffect(y: -1)
+                .modifier(drift(23, width: farWidth))
+                .opacity(0.3 * discGlow)
+                .offset(y: waterHeight * 0.26)
         }
+        .frame(width: size.width, height: waterHeight, alignment: .leading)
+        .clipped()
+        .position(x: size.width / 2, y: horizon + waterHeight / 2)
+        .blendMode(.plusLighter)
+        .animation(.easeInOut(duration: 1.2), value: gate)
+        .allowsHitTesting(false)
     }
 
-    private func drawReeds(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        for reed in Reeds.all {
-            let x = reed.leftSide ? reed.offset * size.width * 0.16 : size.width - reed.offset * size.width * 0.16
-            let height = (size.height - horizon) * reed.height + horizon * 0.1
-            let baseY = size.height * 0.98
-            let sway = CGFloat(sin(time * reed.speed + reed.phase)) * 10
-
-            var path = Path()
-            path.move(to: CGPoint(x: x, y: baseY))
-            path.addQuadCurve(
-                to: CGPoint(x: x + sway, y: baseY - height),
-                control: CGPoint(x: x + sway * 0.3, y: baseY - height * 0.55)
-            )
-            ctx.stroke(path, with: .color(gate.bank.opacity(0.85)),
-                       style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
-
-            // A seed head at the tip.
-            let tip = CGRect(x: x + sway - 2.4, y: baseY - height - 4, width: 4.8, height: 8)
-            ctx.fill(Path(ellipseIn: tip), with: .color(gate.bank.opacity(0.9)))
-        }
-    }
-
-    /// The last gate: something enormous turns just under the surface. Three
-    /// arcs of a coil break the water at different phases, so it reads as one
-    /// body rolling past rather than three separate shapes.
-    private func drawSerpent(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
+    /// The last gate: Apep's coil rolls under the surface, its lower ends
+    /// masked by the water so it reads as one body breaking through.
+    private func coil(size: CGSize, horizon: CGFloat) -> some View {
         let waterHeight = size.height - horizon
-        let scaleTint = Color(red: 0.180, green: 0.110, blue: 0.240)
-
-        for index in 0..<3 {
-            let lane = Double(index)
-            let depth = 0.30 + lane * 0.26
-            let baseY = horizon + waterHeight * CGFloat(depth)
-            let travel = (time * (7 + lane * 4) + lane * 260)
-                .truncatingRemainder(dividingBy: Double(size.width + 420)) - 210
-            let x = CGFloat(travel)
-            let span = size.width * CGFloat(0.30 + lane * 0.08)
-            let rise = CGFloat(10 + lane * 7) * CGFloat(0.6 + 0.4 * sin(time * 0.7 + lane))
-
-            var coil = Path()
-            coil.move(to: CGPoint(x: x, y: baseY))
-            coil.addQuadCurve(
-                to: CGPoint(x: x + span, y: baseY),
-                control: CGPoint(x: x + span * 0.5, y: baseY - rise * 2.6)
-            )
-            coil.addQuadCurve(
-                to: CGPoint(x: x, y: baseY),
-                control: CGPoint(x: x + span * 0.5, y: baseY + rise * 0.9)
-            )
-            coil.closeSubpath()
-            ctx.fill(coil, with: .color(scaleTint.opacity(0.42 + lane * 0.10)))
-
-            // A wet highlight along the crest where the disc catches the scales.
-            var crest = Path()
-            crest.move(to: CGPoint(x: x + span * 0.12, y: baseY - rise * 0.5))
-            crest.addQuadCurve(
-                to: CGPoint(x: x + span * 0.88, y: baseY - rise * 0.5),
-                control: CGPoint(x: x + span * 0.5, y: baseY - rise * 2.2)
-            )
-            ctx.stroke(
-                crest,
-                with: .color(gate.reflection.opacity(0.16 * discGlow)),
-                style: StrokeStyle(lineWidth: 1.4, lineCap: .round)
-            )
+        let layerWidth = size.width * 1.4
+        return TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            let roll = CGFloat(sin(time * 0.5)) * waterHeight * 0.05
+            DuatImage(name: "duat_environment_coil", width: layerWidth, height: waterHeight * 0.52, fit: .fill)
+                .frame(width: layerWidth, height: waterHeight * 0.52)
+                .modifier(drift(27, width: layerWidth))
+                .offset(y: roll)
+                .frame(width: size.width, alignment: .leading)
+                .clipped()
+                .position(x: size.width / 2, y: horizon + waterHeight * 0.52)
+                .opacity(0.8)
         }
+        .allowsHitTesting(false)
     }
 
-    private func drawEmbers(_ ctx: inout GraphicsContext, size: CGSize, horizon: CGFloat, time: Double) {
-        for ember in Embers.all {
-            let cycle = (time * ember.speed + ember.phase).truncatingRemainder(dividingBy: 1)
-            let rise = CGFloat(1 - cycle)
-            let y = size.height * rise
-            let x = ember.x * size.width + CGFloat(sin(time * 1.6 + ember.phase * 6)) * 14
-            let alpha = (1 - abs(cycle - 0.4) * 1.6) * 0.8
-            guard alpha > 0 else { continue }
-            let radius = ember.radius
-            let rect = CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)
-            ctx.fill(Path(ellipseIn: rect), with: .color(Theme.ember.opacity(alpha)))
+    /// Mist creeping across the water, two bands at different speeds.
+    private func mist(size: CGSize, horizon: CGFloat) -> some View {
+        let waterHeight = size.height - horizon
+        let highWidth = size.width * 1.6
+        let lowWidth = size.width * 2
+        return ZStack {
+            DuatImage(name: "duat_environment_mist", width: highWidth, height: waterHeight * 0.34, fit: .fill)
+                .frame(width: highWidth, height: waterHeight * 0.34)
+                .modifier(drift(46, width: highWidth))
+                .opacity(0.3)
+                .offset(y: -waterHeight * 0.18)
+
+            DuatImage(name: "duat_environment_mist", width: lowWidth, height: waterHeight * 0.5, fit: .fill)
+                .frame(width: lowWidth, height: waterHeight * 0.5)
+                .scaleEffect(x: -1)
+                .modifier(drift(31, width: lowWidth))
+                .opacity(0.2)
+                .offset(y: waterHeight * 0.2)
+        }
+        .frame(width: size.width, height: waterHeight, alignment: .leading)
+        .clipped()
+        .position(x: size.width / 2, y: horizon + waterHeight / 2)
+        .colorMultiply(gate.reflection.opacity(0.9))
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Foreground
+
+    /// The barque itself, riding the water with a slow vertical roll.
+    private func barque(size: CGSize, horizon: CGFloat) -> some View {
+        let width = size.width * 0.62
+        return TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            let bob = CGFloat(sin(time * 0.6)) * 5
+            let lean = sin(time * 0.43) * 0.7
+            DuatImage(name: "duat_environment_barque", width: width, fit: .fit)
+                .rotationEffect(.degrees(lean))
+                .position(x: size.width * 0.5, y: horizon + (size.height - horizon) * 0.22 + bob)
+                .opacity(0.9)
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// The second gate's brazier, its flame flickering on the coals.
+    private func brazier(size: CGSize, horizon: CGFloat) -> some View {
+        let height = (size.height - horizon) * 0.34
+        return TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            let flicker = 0.88 + 0.12 * sin(time * 5.1)
+            let lean = sin(time * 2.3) * 2.4
+            ZStack(alignment: .bottom) {
+                DuatImage(name: "duat_environment_brazier", height: height, fit: .fit)
+
+                DuatImage(name: "duat_environment_flame", height: height * 0.95, fit: .fit)
+                    .scaleEffect(x: flicker, y: 1 / flicker, anchor: .bottom)
+                    .rotationEffect(.degrees(lean), anchor: .bottom)
+                    .offset(y: -height * 0.52)
+                    .opacity(0.92)
+                    .shadow(color: Theme.ember.opacity(0.7), radius: height * 0.3)
+            }
+            .position(x: size.width * 0.14, y: size.height - height * 0.42)
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Reeds framing both edges of the frame, pivoting near their bundled
+    /// stem base so they sway rather than slide.
+    private func reeds(size: CGSize, horizon: CGFloat) -> some View {
+        let height = size.height * 0.52
+        return TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            ZStack {
+                DuatImage(name: "duat_environment_reeds_left", height: height, fit: .fit)
+                    .rotationEffect(.degrees(sin(time * 0.7) * 2.2), anchor: .bottom)
+                    .position(x: size.width * 0.06, y: size.height - height * 0.5 + 6)
+
+                DuatImage(name: "duat_environment_reeds_right", height: height * 1.05, fit: .fit)
+                    .rotationEffect(.degrees(sin(time * 0.58 + 1.4) * 2.6), anchor: .bottom)
+                    .position(x: size.width * 0.95, y: size.height - height * 0.52 + 6)
+            }
+            .colorMultiply(gate.hasReeds ? Color.white : gate.bank.opacity(0.95))
+            .opacity(gate.hasReeds ? 0.95 : 0.55)
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Embers rising through the frame in the second gate.
+    private func embers(size: CGSize) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: speed == 0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate * speed
+            ZStack {
+                ForEach(Array(Embers.all.enumerated()), id: \.offset) { _, ember in
+                    let cycle = (time * ember.speed + ember.phase).truncatingRemainder(dividingBy: 1)
+                    let rise = CGFloat(1 - cycle)
+                    let alpha = max(0, 1 - abs(cycle - 0.4) * 1.6) * 0.85
+                    DuatImage(name: "duat_environment_ember", height: ember.size, fit: .fit)
+                        .opacity(alpha)
+                        .position(
+                            x: ember.x * size.width + CGFloat(sin(time * 1.6 + ember.phase * 6)) * 16,
+                            y: size.height * rise
+                        )
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Drift
+
+/// Scrolls a layer sideways forever, with a second copy trailing it so the
+/// wrap is invisible. The layer slides exactly its own width before looping,
+/// which is what makes the seam land on itself instead of jumping.
+private struct DriftModifier: ViewModifier {
+    /// Seconds to travel one full layer width.
+    let period: Double
+    /// The layer's own width — the exact distance it must slide to repeat.
+    let width: CGFloat
+    let isRunning: Bool
+
+    @State private var shift: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .leading) {
+                // The trailing copy, laid end to end with the original.
+                content.offset(x: width)
+            }
+            .offset(x: shift)
+            .onAppear { start() }
+            .onChange(of: isRunning) { _, _ in start() }
+            .onChange(of: period) { _, _ in start() }
+            .onChange(of: width) { _, _ in start() }
+    }
+
+    private func start() {
+        shift = 0
+        guard isRunning, period > 0, width > 0 else { return }
+        withAnimation(.linear(duration: period).repeatForever(autoreverses: false)) {
+            shift = -width
         }
     }
 }
 
 // MARK: - Precomputed scenery
 
-/// Deterministic star field so the sky is stable between redraws.
+/// Deterministic star field so the sky is stable between launches.
 private enum StarField {
     struct Star {
         let x: CGFloat
         let y: CGFloat
-        let radius: CGFloat
+        let size: CGFloat
         let brightness: Double
         let phase: Double
         let speed: Double
@@ -323,56 +359,14 @@ private enum StarField {
 
     static let stars: [Star] = {
         var generator = SeededGenerator(seed: 20260802)
-        return (0..<110).map { _ in
+        return (0..<44).map { _ in
             Star(
                 x: CGFloat(Double.random(in: 0...1, using: &generator)),
-                y: CGFloat(Double.random(in: 0.02...0.92, using: &generator)),
-                radius: CGFloat(Double.random(in: 0.5...1.7, using: &generator)),
-                brightness: Double.random(in: 0.25...0.95, using: &generator),
+                y: CGFloat(Double.random(in: 0.02...0.88, using: &generator)),
+                size: CGFloat(Double.random(in: 5...13, using: &generator)),
+                brightness: Double.random(in: 0.3...0.95, using: &generator),
                 phase: Double.random(in: 0...6.28, using: &generator),
                 speed: Double.random(in: 0.4...1.8, using: &generator)
-            )
-        }
-    }()
-}
-
-private enum Ruins {
-    struct Ruin {
-        let x: CGFloat
-        let height: CGFloat
-        let widthRatio: CGFloat
-    }
-
-    static let all: [Ruin] = {
-        var generator = SeededGenerator(seed: 771233)
-        return (0..<9).map { index in
-            Ruin(
-                x: CGFloat(Double(index) / 9.0 + Double.random(in: -0.03...0.03, using: &generator)),
-                height: CGFloat(Double.random(in: 0.10...0.30, using: &generator)),
-                widthRatio: CGFloat(Double.random(in: 0.35...0.75, using: &generator))
-            )
-        }
-    }()
-}
-
-private enum Reeds {
-    struct Reed {
-        let leftSide: Bool
-        let offset: CGFloat
-        let height: CGFloat
-        let phase: Double
-        let speed: Double
-    }
-
-    static let all: [Reed] = {
-        var generator = SeededGenerator(seed: 5150)
-        return (0..<14).map { index in
-            Reed(
-                leftSide: index % 2 == 0,
-                offset: CGFloat(Double.random(in: 0.05...1.0, using: &generator)),
-                height: CGFloat(Double.random(in: 0.35...0.95, using: &generator)),
-                phase: Double.random(in: 0...6.28, using: &generator),
-                speed: Double.random(in: 0.5...1.3, using: &generator)
             )
         }
     }()
@@ -381,17 +375,17 @@ private enum Reeds {
 private enum Embers {
     struct Ember {
         let x: CGFloat
-        let radius: CGFloat
+        let size: CGFloat
         let phase: Double
         let speed: Double
     }
 
     static let all: [Ember] = {
         var generator = SeededGenerator(seed: 90210)
-        return (0..<26).map { _ in
+        return (0..<18).map { _ in
             Ember(
                 x: CGFloat(Double.random(in: 0...1, using: &generator)),
-                radius: CGFloat(Double.random(in: 0.8...2.2, using: &generator)),
+                size: CGFloat(Double.random(in: 7...17, using: &generator)),
                 phase: Double.random(in: 0...1, using: &generator),
                 speed: Double.random(in: 0.05...0.14, using: &generator)
             )

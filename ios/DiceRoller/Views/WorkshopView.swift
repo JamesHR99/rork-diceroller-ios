@@ -44,9 +44,7 @@ struct WorkshopView: View {
     private var rail: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
-                Image(systemName: "hammer.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(accent)
+                DuatIcon(name: DuatArt.upgradeHammer, size: 22)
                     .shadow(color: accent.opacity(0.7), radius: 9)
                 CarvedTitle(text: "Ptah's Workshop", size: 14, kerning: 1.8)
             }
@@ -61,9 +59,11 @@ struct WorkshopView: View {
             HStack(spacing: 8) {
                 ForEach(0..<GameData.chiselMaxPerRun, id: \.self) { index in
                     HStack(spacing: 5) {
-                        Image(systemName: index < ownedDefs.count ? "hammer.fill" : "hammer")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(index < ownedDefs.count ? accent : Theme.parchmentDim.opacity(0.5))
+                        DuatSymbol(art: index < ownedDefs.count ? ownedDefs[index].artName : DuatArt.upgradeHammer,
+                                   fallback: "hammer",
+                                   size: 14,
+                                   tint: index < ownedDefs.count ? accent : Theme.parchmentDim.opacity(0.5))
+                            .opacity(index < ownedDefs.count ? 1 : 0.4)
                         Text(index < ownedDefs.count
                              ? ownedDefs[index].name
                              : "empty socket")
@@ -98,15 +98,10 @@ struct WorkshopView: View {
 
     /// The chisel-and-plumb-line mark, struck rather than painted.
     private var chiselMark: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: "hammer.fill")
-                .font(.system(size: 44, weight: .black))
-                .foregroundStyle(
-                    LinearGradient(colors: [Theme.parchment, accent],
-                                   startPoint: .top, endPoint: .bottom)
-                )
+        VStack(alignment: .leading, spacing: 6) {
+            DuatIcon(name: DuatArt.upgradeHammer, size: 62)
                 .shadow(color: accent.opacity(0.55), radius: 16)
-            HieroglyphBand(tint: accent, height: 7, opacity: 0.5)
+            GoldRule(height: 5, opacity: 0.6)
                 .frame(width: 130)
         }
         .opacity(risen ? 1 : 0)
@@ -142,10 +137,8 @@ struct WorkshopView: View {
         } label: {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(spacing: 6) {
-                    Image(systemName: chisel.symbol)
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundStyle(accent)
-                        .frame(width: 40, height: 40)
+                    DuatSymbol(art: chisel.artName, fallback: chisel.symbol, size: 30, tint: accent)
+                        .frame(width: 42, height: 42)
                         .background(Theme.bg.opacity(0.8), in: .rect(cornerRadius: 11))
                         .overlay(RoundedRectangle(cornerRadius: 11)
                             .strokeBorder(accent.opacity(0.6), lineWidth: 1))
@@ -188,24 +181,20 @@ struct WorkshopView: View {
                 Text(isStruck ? "STRUCK!" : "TAKE IT")
                     .font(.fantasy(14, weight: .black))
                     .kerning(1.6)
-                    .foregroundStyle(isStruck ? Theme.bg : Theme.parchment)
+                    .foregroundStyle(Theme.parchment)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(
-                        isStruck
-                            ? AnyShapeStyle(accent)
-                            : AnyShapeStyle(Theme.bg.opacity(0.85)),
-                        in: .capsule
-                    )
-                    .overlay(Capsule().strokeBorder(accent.opacity(isStruck ? 0 : 0.8), lineWidth: 1.2))
+                    .frame(height: 42)
+                    .background {
+                        DuatImage(name: DuatArt.button(.primary, isStruck ? .pressed : .normal),
+                                  fit: .stretch)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .modifier(TintWash(tint: isStruck ? accent : nil))
+                    }
+                    .clipShape(.rect(cornerRadius: 12))
             }
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(colors: [Theme.bgElevated, Theme.bgCard],
-                               startPoint: .top, endPoint: .bottom),
-                in: .rect(cornerRadius: 16)
-            )
+            .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(accent.opacity(isStruck ? 1 : 0.5),

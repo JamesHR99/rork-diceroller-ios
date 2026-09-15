@@ -73,9 +73,8 @@ struct InfoSheetView: View {
     private var header: some View {
         HStack {
             HStack(spacing: 8) {
-                Image(systemName: hero.symbol)
-                    .font(.system(size: 16))
-                    .foregroundStyle(hero.accent)
+                DuatSymbol(art: DuatArt.classSigil(classID), fallback: hero.symbol,
+                           size: 22, tint: hero.accent)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("CODEX OF THE NIGHT")
                         .font(.fantasy(17, weight: .black))
@@ -90,9 +89,7 @@ struct InfoSheetView: View {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(Theme.parchmentDim)
+                DuatIcon(name: DuatArt.utilityClose, size: 24)
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -112,13 +109,17 @@ struct InfoSheetView: View {
                         Image(systemName: entry.symbol).font(.system(size: 10.5, weight: .bold))
                         Text(entry.label).font(.system(size: 11.5, weight: .black))
                     }
-                    .foregroundStyle(tab == entry ? Theme.bg : Theme.parchmentDim)
+                    .foregroundStyle(tab == entry ? Theme.parchment : Theme.parchmentDim)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 34)
-                    .background(
-                        tab == entry ? AnyShapeStyle(hero.accent) : AnyShapeStyle(Theme.bgCard),
-                        in: .capsule
-                    )
+                    .frame(height: 36)
+                    .background {
+                        DuatImage(name: tab == entry ? DuatArt.tabSelected : DuatArt.tabUnselected,
+                                  fit: .stretch)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .modifier(TintWash(tint: tab == entry ? hero.accent : nil))
+                            .opacity(tab == entry ? 1 : 0.6)
+                    }
+                    .clipShape(.capsule)
                 }
                 .buttonStyle(PressableButtonStyle())
             }
@@ -148,10 +149,9 @@ struct InfoSheetView: View {
             ForEach(loadout.pieces) { piece in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        Image(systemName: piece.symbol)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(hero.accent)
-                            .frame(width: 26, height: 26)
+                        DuatSymbol(art: piece.slot.artName, fallback: piece.symbol,
+                                   size: 20, tint: hero.accent)
+                            .frame(width: 28, height: 28)
                             .background(Theme.bg, in: .rect(cornerRadius: 7))
                         Text(piece.name)
                             .font(.fantasy(16, weight: .bold))
@@ -201,9 +201,7 @@ struct InfoSheetView: View {
 
             if loadout.item == nil {
                 HStack(spacing: 8) {
-                    Image(systemName: "bag")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.parchmentDim)
+                    DuatIcon(name: DuatArt.slotItem, size: 20).opacity(0.5)
                     Text("Item slot empty — the river gives up a relic after the practice bout. Relics bring three dice, items two.")
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.parchmentDim)
@@ -220,9 +218,7 @@ struct InfoSheetView: View {
         return VStack(alignment: .leading, spacing: 3) {
             ForEach(faces, id: \.self) { face in
                 HStack(spacing: 5) {
-                    Image(systemName: face.symbol)
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(face.tint)
+                    DuatSymbol(art: face.artName, fallback: face.symbol, size: 13, tint: face.tint)
                         .frame(width: 14)
                     Text("\(face.label) — \(face.soloEffect)")
                         .font(.system(size: 9.5))
@@ -352,15 +348,13 @@ struct InfoSheetView: View {
     private func pairingRow(_ pairing: PairingDef) -> some View {
         HStack(alignment: .top, spacing: 9) {
             HStack(spacing: 4) {
-                Image(systemName: pairing.first.symbol)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(pairing.first.tint)
+                DuatSymbol(art: pairing.first.artName, fallback: pairing.first.symbol,
+                           size: 18, tint: pairing.first.tint)
                 Text("&")
                     .font(.system(size: 9, weight: .black))
                     .foregroundStyle(Theme.parchmentDim)
-                Image(systemName: pairing.second.symbol)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(pairing.second.tint)
+                DuatSymbol(art: pairing.second.artName, fallback: pairing.second.symbol,
+                           size: 18, tint: pairing.second.tint)
             }
             .frame(width: 66, alignment: .leading)
 
@@ -446,9 +440,8 @@ struct InfoSheetView: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(GodKit.upgrades(for: deity)) { upgrade in
                     HStack(alignment: .top, spacing: 5) {
-                        Image(systemName: upgrade.symbol)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(deity.tint)
+                        DuatSymbol(art: deity.artName, fallback: upgrade.symbol,
+                                   size: 13, tint: deity.tint)
                             .frame(width: 13)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(upgrade.name)
@@ -463,9 +456,8 @@ struct InfoSheetView: View {
                 }
                 if let capstone {
                     HStack(alignment: .top, spacing: 5) {
-                        Image(systemName: capstone.symbol)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Theme.gold)
+                        DuatSymbol(art: DuatArt.Status.champion, fallback: capstone.symbol,
+                                   size: 13, tint: Theme.gold)
                             .frame(width: 13)
                         VStack(alignment: .leading, spacing: 0) {
                             Text("\(capstone.name) — CAPSTONE")
@@ -504,7 +496,8 @@ struct InfoSheetView: View {
                     "A recipe asks for ingredients and quantities, never a tap order — any arrangement of the faces fuses into one step. Three Swift Slashes make the same chain whichever tap they arrived from.",
                     "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
                     "Fused combos cost less than their faces played apart: 3 faces cost 2, 4 cost 3, 5 cost 4. A chain of three or more banks a single stamina point for next turn.",
-                    "The combo panel above the tray lists every chain the roll could make, with the letters its dice wear.",
+                    "Each die wears a coloured letter for every chain it could feed. Tap a letter to fuse that chain; tap it again once it turns gold to break it apart.",
+                    "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
                 ]
             )
 
@@ -558,9 +551,8 @@ struct InfoSheetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "link")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.gold)
+                    DuatImage(name: DuatArt.chainConnector, width: 16, fit: .fit)
+                        .colorMultiply(Theme.gold)
                     Text("COMBO CRITS")
                         .font(.system(size: 11, weight: .black))
                         .foregroundStyle(Theme.gold)
@@ -616,9 +608,7 @@ struct InfoSheetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "hammer.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ptahCopper)
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 16)
                     Text("CHISELS OF PTAH")
                         .font(.system(size: 11, weight: .black))
                         .foregroundStyle(Theme.ptahCopper)
@@ -632,9 +622,8 @@ struct InfoSheetView: View {
                 ForEach(ChiselCatalog.chisels(for: classID)) { chisel in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 5) {
-                            Image(systemName: chisel.symbol)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Theme.ptahCopper)
+                            DuatSymbol(art: chisel.artName, fallback: chisel.symbol,
+                                       size: 15, tint: Theme.ptahCopper)
                             Text(chisel.name)
                                 .font(.fantasy(12, weight: .bold))
                                 .foregroundStyle(Theme.parchment)
@@ -669,9 +658,7 @@ struct InfoSheetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.gold)
+                    DuatIcon(name: DuatArt.Status.champion, size: 16)
                     Text("DIVINE TRIALS")
                         .font(.system(size: 11, weight: .black))
                         .foregroundStyle(Theme.gold)
@@ -686,9 +673,8 @@ struct InfoSheetView: View {
                     ForEach(DivineTrial.all) { trial in
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 5) {
-                                Image(systemName: trial.deity.symbol)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(trial.deity.tint)
+                                DuatSymbol(art: trial.deity.artName, fallback: trial.deity.symbol,
+                                           size: 15, tint: trial.deity.tint)
                                 Text(trial.name)
                                     .font(.fantasy(12, weight: .bold))
                                     .foregroundStyle(Theme.parchment)

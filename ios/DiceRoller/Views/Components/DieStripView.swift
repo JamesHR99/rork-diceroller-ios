@@ -34,12 +34,10 @@ struct FaceTileView: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Image(systemName: face.kind.symbol)
-                .font(.system(size: size * 0.46, weight: .bold))
-                .foregroundStyle(patron == nil ? AnyShapeStyle(face.kind.tint) : AnyShapeStyle(
-                    LinearGradient(colors: [face.kind.tint, Theme.gold],
-                                   startPoint: .top, endPoint: .bottom)
-                ))
+            DuatSymbol(art: face.kind.artName,
+                       fallback: face.kind.symbol,
+                       size: size * 0.74,
+                       tint: face.kind.tint)
                 .frame(width: size, height: size)
                 .background(
                     patron == nil
@@ -95,9 +93,10 @@ struct ComboRecipeView: View {
         HStack(spacing: 3) {
             ForEach(Array(combo.required.enumerated()), id: \.offset) { index, ingredient in
                 HStack(spacing: 1) {
-                    Image(systemName: ingredient.pattern.symbol)
-                        .font(.system(size: tileSize * 0.45, weight: .bold))
-                        .foregroundStyle(ingredient.pattern.isWildcard ? Theme.parchmentDim : ingredient.pattern.tint)
+                    DuatSymbol(art: ingredient.pattern.artName,
+                               fallback: ingredient.pattern.symbol,
+                               size: tileSize * 0.72,
+                               tint: ingredient.pattern.isWildcard ? Theme.parchmentDim : ingredient.pattern.tint)
                         .frame(width: tileSize, height: tileSize)
                         .background(Theme.bgElevated, in: .rect(cornerRadius: 5))
                         .overlay(
@@ -133,22 +132,24 @@ struct RunStatusBar: View {
 
     var body: some View {
         HStack(spacing: compact ? 6 : 8) {
-            pill(icon: "heart.fill", text: "\(game.currentHP)/\(game.maxHP)", tint: Theme.blood)
-            pill(icon: "circle.hexagongrid.fill", text: "\(game.gold)", tint: Theme.gold)
-            pill(icon: "dice.fill", text: "\(game.diceCount)/\(Loadout.maxDice)", tint: Theme.steel)
+            pill(DuatArt.Status.health, "heart.fill", "\(game.currentHP)/\(game.maxHP)", Theme.blood)
+            pill(DuatArt.currency, "circle.hexagongrid.fill", "\(game.gold)", Theme.gold)
+            pill(DuatArt.DieFrame.ready.rawValue, "dice.fill",
+                 "\(game.diceCount)/\(Loadout.maxDice)", Theme.steel)
             if let hero = game.heroClass, !compact {
-                pill(icon: hero.symbol, text: hero.name, tint: hero.accent)
+                pill(DuatArt.classSigil(hero.id) ?? "", hero.symbol, hero.name, hero.accent)
             }
         }
         .fixedSize()
     }
 
-    private func pill(icon: String, text: String, tint: Color) -> some View {
+    private func pill(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: icon).font(.system(size: 10, weight: .bold))
-            Text(text).font(.system(size: 11, weight: .black).monospacedDigit())
+            DuatSymbol(art: art, fallback: fallback, size: 13, tint: tint)
+            Text(text)
+                .font(.system(size: 11, weight: .black).monospacedDigit())
+                .foregroundStyle(tint)
         }
-        .foregroundStyle(tint)
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .background(Theme.bgElevated, in: .capsule)

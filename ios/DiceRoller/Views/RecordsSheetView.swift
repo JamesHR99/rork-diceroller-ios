@@ -20,9 +20,7 @@ struct RecordsSheetView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.parchmentDim)
+                    DuatIcon(name: DuatArt.utilityClose, size: 17)
                         .frame(width: 34, height: 34)
                         .background(Theme.bgCard, in: .circle)
                 }

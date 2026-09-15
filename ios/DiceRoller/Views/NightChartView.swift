@@ -8,7 +8,7 @@ struct NightChartView: View {
     @State private var pulse = false
     @State private var showInfo = false
 
-    private let columnWidth: CGFloat = 52
+    private let columnWidth: CGFloat = 62
     private let mapHeight: CGFloat = 244
     private let topInset: CGFloat = 30
     private let edgePadding: CGFloat = 20
@@ -55,9 +55,7 @@ struct NightChartView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
-                    Image(systemName: gate.symbol)
-                        .font(.system(size: 12, weight: .black))
-                        .foregroundStyle(gate.accent)
+                    DuatSymbol(art: gate.artName, fallback: gate.symbol, size: 20, tint: gate.accent)
                         .shadow(color: gate.accent.opacity(0.7), radius: 6)
                     CarvedTitle(text: gate.name, size: 18, kerning: 3, showsRule: false)
                         .fixedSize()
@@ -87,10 +85,12 @@ struct NightChartView: View {
                 showInfo = true
             } label: {
                 VStack(spacing: 2) {
-                    Image(systemName: "book.closed.fill").font(.system(size: 12, weight: .bold))
-                    Text("CODEX").font(.system(size: 7.5, weight: .black)).kerning(0.8)
+                    DuatIcon(name: DuatArt.utilityCodex, size: 17)
+                    Text("CODEX")
+                        .font(.system(size: 7.5, weight: .black))
+                        .kerning(0.8)
+                        .foregroundStyle(Theme.gold)
                 }
-                .foregroundStyle(Theme.gold)
                 .frame(width: 46, height: 42)
                 .background(Theme.bgElevated.opacity(0.9), in: .rect(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
@@ -117,13 +117,14 @@ struct NightChartView: View {
         HStack(spacing: 12) {
             ForEach([StageKind.battle, .shrine, .ferryman, .mooring, .omen, .herald], id: \.self) { kind in
                 HStack(spacing: 4) {
-                    Image(systemName: kind.symbol)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(kind.tint)
+                    DuatSymbol(art: kind.artName, fallback: kind.symbol, size: 20, tint: kind.tint)
                     Text(kind.label)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Theme.parchmentDim)
+                        .font(.system(size: 9.5, weight: .bold))
+                        .foregroundStyle(Theme.parchment.opacity(0.85))
                 }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Theme.bg.opacity(0.6), in: .capsule)
             }
             Spacer()
             if let message = game.statusMessage {
@@ -275,14 +276,23 @@ struct NightChartView: View {
                 }
 
                 HStack(spacing: 3) {
+                    // The painted hour tick, with the current-hour pointer on
+                    // the water you are sailing right now.
+                    DuatImage(name: hour == game.currentHour ? DuatArt.nightCurrent : DuatArt.nightHour,
+                              height: hour == game.currentHour ? 13 : 11,
+                              fit: .fit)
+                        .colorMultiply(hour == game.currentHour ? Theme.gold : Theme.parchmentDim)
+                        .opacity(hour == game.currentHour ? 1 : 0.45)
+
                     Text(Voyage.romanNumeral(hour))
                         .font(.system(size: 8.5, weight: .black))
                         .kerning(1)
                         .foregroundStyle(hour == game.currentHour ? Theme.gold : Theme.parchmentDim.opacity(0.5))
+
                     if hour % 4 == 0 {
-                        Image(systemName: "lizard.fill")
-                            .font(.system(size: 7, weight: .black))
-                            .foregroundStyle(Theme.blood.opacity(0.75))
+                        DuatImage(name: DuatArt.nightBoundary, height: 11, fit: .fit)
+                            .colorMultiply(Theme.blood)
+                            .opacity(0.8)
                     }
                 }
                 .position(x: edgePadding + (CGFloat(offset) + 2) * columnWidth, y: mapHeight - 10)
@@ -296,61 +306,67 @@ struct NightChartView: View {
         let cleared = game.clearedNodeIDs.contains(node.id)
         let available = game.isNodeAvailable(node)
         let isLast = game.lastClearedNodeID == node.id
-        let size: CGFloat = node.isBoss ? 56 : 40
+        let size: CGFloat = node.isBoss ? 68 : 52
         let tint = node.kind.tint
+
+        // Which painted marker this stop wears: the barque's current mooring,
+        // water already behind you, an open channel, a serpent-lord's gate, or
+        // a channel that closed when you chose otherwise.
+        let marker: DuatArt.RouteState = isLast ? .selected
+            : cleared ? .cleared
+            : node.isBoss ? .boss
+            : available ? .available
+            : .locked
 
         return Button {
             game.enter(node)
         } label: {
             ZStack {
                 if available {
-                    Circle()
-                        .strokeBorder(tint.opacity(0.5), lineWidth: 2)
-                        .frame(width: size + 16, height: size + 16)
-                        .scaleEffect(pulse ? 1.08 : 0.94)
-                        .opacity(pulse ? 0.35 : 0.9)
+                    DuatImage(name: DuatArt.RouteState.available.rawValue,
+                              height: size + 18, fit: .fit)
+                        .colorMultiply(tint)
+                        .scaleEffect(pulse ? 1.1 : 0.96)
+                        .opacity(pulse ? 0.22 : 0.5)
+                        .blur(radius: 3)
                 }
 
-                Circle()
-                    .fill(
-                        available
-                            ? AnyShapeStyle(LinearGradient(colors: [tint, tint.opacity(0.6)],
-                                                           startPoint: .top, endPoint: .bottom))
-                            : AnyShapeStyle(Theme.bgElevated.opacity(0.9))
-                    )
-                    .frame(width: size, height: size)
-                    .overlay(
-                        Circle().strokeBorder(
-                            node.isBoss ? Theme.blood.opacity(0.8) : tint.opacity(available ? 0 : 0.35),
-                            lineWidth: node.isBoss ? 1.5 : 1
-                        )
-                    )
+                DuatImage(name: marker.rawValue, height: size, fit: .fit)
+                    .modifier(TintWash(tint: available || isLast ? tint : nil))
+                    .opacity(available || isLast || cleared ? 0.95 : 0.45)
 
-                if node.isBoss {
-                    Circle()
-                        .strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1)
-                        .frame(width: size + 8, height: size + 8)
-                }
-
-                Image(systemName: isLast ? "sailboat.fill" : (cleared ? "checkmark" : node.kind.symbol))
-                    .font(.system(size: node.isBoss ? 26 : 15, weight: .bold))
-                    .foregroundStyle(
-                        available ? Theme.bg
-                        : isLast ? Theme.gold
-                        : cleared ? Theme.forest
-                        : Theme.parchmentDim.opacity(0.55)
-                    )
+                // What happens at this stop, drawn large and sitting on its
+                // own dark disc so it reads against the painted marker.
+                DuatSymbol(art: node.kind.artName,
+                           fallback: node.kind.symbol,
+                           size: node.isBoss ? 40 : 30,
+                           tint: available ? Theme.parchment
+                               : isLast ? Theme.gold
+                               : cleared ? Theme.forest
+                               : Theme.parchmentDim.opacity(0.7))
+                    .padding(node.isBoss ? 7 : 5)
+                    .background {
+                        Circle()
+                            .fill(Theme.bg.opacity(0.82))
+                            .overlay(Circle().strokeBorder(tint.opacity(0.55), lineWidth: 1))
+                    }
+                    .opacity(cleared && !isLast ? 0.55 : 1)
+                    .shadow(color: .black.opacity(0.8), radius: 5)
             }
+            .frame(width: size + 18, height: size + 18)
             .shadow(color: available ? tint.opacity(pulse ? 0.85 : 0.4) : .clear, radius: pulse ? 14 : 6)
             .overlay(alignment: .bottom) {
                 if node.isBoss {
                     Text(EnemyContent.enemy(hour: node.hour, isHerald: false).name.uppercased())
-                        .font(.system(size: 6.5, weight: .black))
+                        .font(.system(size: 7.5, weight: .black))
                         .kerning(0.8)
-                        .foregroundStyle(Theme.blood.opacity(0.9))
+                        .foregroundStyle(Theme.blood)
                         .lineLimit(1)
                         .fixedSize()
-                        .offset(y: 17)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Theme.bg.opacity(0.85), in: .capsule)
+                        .offset(y: 18)
                 }
             }
             .contentShape(Rectangle().inset(by: -8))

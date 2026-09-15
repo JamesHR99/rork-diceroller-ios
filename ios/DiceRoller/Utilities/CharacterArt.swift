@@ -79,16 +79,16 @@ enum CharacterArt {
         "boneplateDevourer": "devourer_spawn_creature",
     ]
 
-    /// Candidate plate names per frame, most specific first. The art pipeline
-    /// files drawings under names of its own choosing, so each frame lists
-    /// every name it may have landed under and the first that exists wins.
+    /// Candidate plate names per frame, most specific first. The Duat pack's
+    /// painted poses lead every list; the older pipeline names follow, so a
+    /// frame the pack did not draw still finds whatever else exists.
     private static let heroPlates: [String: [FrameKey: [String]]] = [
         "archer": [
             .idle: ["egyptian_archer_idle", "egyptian_archer_bow_down", "egyptian_archer_demigod"],
             .windup: ["hero_archer_windup", "archer_bow_drawn_attack"],
             .strike: ["hero_archer_strike", "egyptian_archer_strike"],
             .follow: ["hero_archer_followthrough", "egyptian_archer_bow_down"],
-            .guardUp: ["hero_archer_guard"],
+            .guardUp: ["duat_hero_archer_guardUp", "hero_archer_guard"],
             .hurt: ["hero_archer_hurt", "egyptian_archer_hurt"],
             .dodge: ["hero_archer_dodge", "egyptian_archer_dodge"],
             .defeat: ["hero_archer_defeat", "egyptian_archer_defeat_pose"],
@@ -111,36 +111,54 @@ enum CharacterArt {
             .strike: ["rogue_frame_strike", "egyptian_rogue_strike_pose"],
             .follow: ["hero_rogue_followthrough", "egyptian_rogue_strike_pose"],
             .guardUp: ["rogue_frame_guard", "egyptian_rogue_guard_pose_2"],
-            .hurt: ["hero_rogue_hurt"],
+            .hurt: ["duat_hero_rogue_hurt", "hero_rogue_hurt"],
             .dodge: ["rogue_frame_dodge", "egyptian_rogue_dodge_4"],
-            .defeat: ["hero_rogue_defeat"],
+            .defeat: ["duat_hero_rogue_defeat", "hero_rogue_defeat"],
             .victory: ["hero_rogue_victory", "egyptian_rogue_victory_2"],
         ],
         "magician": [
             .idle: ["egyptian_priest_magician", "egyptian_priest_wand"],
             .windup: ["hero_magician_windup", "priest_magician_staff_attack_3"],
             .strike: ["hero_magician_strike", "egyptian_priest_staff_attack_11"],
-            .follow: ["hero_magician_followthrough"],
+            .follow: ["duat_hero_magician_follow", "hero_magician_followthrough"],
             .guardUp: ["hero_magician_guard", "egyptian_priest_guard_staff_3"],
             .hurt: ["hero_magician_hurt", "egyptian_priest_hurt_2"],
-            .dodge: ["hero_magician_dodge"],
-            .defeat: ["hero_magician_defeat"],
-            .victory: ["hero_magician_victory"],
+            .dodge: ["duat_hero_magician_dodge", "hero_magician_dodge"],
+            .defeat: ["duat_hero_magician_defeat", "hero_magician_defeat"],
+            .victory: ["duat_hero_magician_victory", "hero_magician_victory"],
         ],
+    ]
+
+    /// The painted pose each hero falls back to when nothing else was drawn —
+    /// their strongest plate from the Duat pack, standing in for the resting
+    /// pose so a painted figure is always on the deck. The warrior has no
+    /// painted pose yet and keeps his inked figure until his art lands.
+    private static let heroRestingPlates: [String: String] = [
+        "archer": "duat_hero_archer_guardUp",
+        "rogue": "duat_hero_rogue_hurt",
+        "magician": "duat_hero_magician_follow",
     ]
 
     /// Resolved sets are cached — `UIImage(named:)` hits the catalogue, and a
     /// fighter's set is asked for on every frame of every battle.
     private static var cache: [String: FrameSet] = [:]
 
-    static func demigod(_ classID: String) -> String? { demigods[classID] }
+    /// The portrait plate for one of the four demigods, falling back to their
+    /// painted Duat pose when the older portrait was never filed.
+    static func demigod(_ classID: String) -> String? {
+        DuatArt.resolve(demigods[classID]) ?? DuatArt.resolve(heroRestingPlates[classID])
+    }
 
-    static func god(_ deity: Deity) -> String? { gods[deity] }
+    /// A god's portrait, falling back to their painted Duat sigil.
+    static func god(_ deity: Deity) -> String? {
+        DuatArt.resolve(gods[deity]) ?? deity.artName
+    }
 
     /// A herald wears the face of the guardian it was promoted from; pack and
-    /// elite variants wear theirs too.
+    /// elite variants wear theirs too. Nothing out of the river is drawn yet,
+    /// so they all stand in the Straw Effigy's pose for now.
     static func foe(_ enemyID: String) -> String? {
-        foes[baseID(enemyID)]
+        DuatArt.resolve(foes[baseID(enemyID)]) ?? DuatArt.resolve(DuatArt.strawEffigy)
     }
 
     /// Strips the promotion suffixes a foe may carry so variants share art.
@@ -155,17 +173,20 @@ enum CharacterArt {
     static func heroFrames(_ classID: String) -> FrameSet {
         resolve(cacheKey: "hero.\(classID)",
                 plates: heroPlates[classID] ?? [:],
-                base: demigods[classID])
+                base: demigods[classID],
+                painted: heroRestingPlates[classID])
     }
 
     /// The full animation set for a foe, shared by its promoted variants.
-    /// Foes not yet redrawn resolve to their single portrait and animate on
-    /// code-driven motion alone until their plates land.
+    /// Nothing out of the river has been redrawn yet except the Straw Effigy,
+    /// so every foe stands in its pose until their own plates land — a painted
+    /// figure beats a glyph, and the code-driven motion does the acting.
     static func foeFrames(_ enemyID: String) -> FrameSet {
         let id = baseID(enemyID)
         return resolve(cacheKey: "foe.\(id)",
                        plates: foePlates(for: id),
-                       base: foes[id])
+                       base: foes[id],
+                       painted: DuatArt.strawEffigy)
     }
 
     /// Extra plate names a foe's frames landed under. The art pipeline names
@@ -210,21 +231,28 @@ enum CharacterArt {
     }
 
     /// Keeps the first candidate that actually exists in the catalogue.
+    /// `painted` is the Duat plate this fighter rests on when its own idle was
+    /// never drawn — it is the last resort before the inked glyph.
     private static func resolve(cacheKey: String,
                                 plates: [FrameKey: [String]],
-                                base: String?) -> FrameSet {
+                                base: String?,
+                                painted: String? = nil) -> FrameSet {
         if let cached = cache[cacheKey] { return cached }
 
         var found: [FrameKey: String] = [:]
         for (key, candidates) in plates {
-            for name in candidates where UIImage(named: name) != nil {
+            for name in candidates where DuatArt.exists(name) {
                 found[key] = name
                 break
             }
         }
-        // A character with no drawn idle still animates off its portrait.
-        if found[.idle] == nil, let base, UIImage(named: base) != nil {
+        // A character with no drawn idle still animates off its portrait, and
+        // failing that, off whichever painted pose it does own.
+        if found[.idle] == nil, let base, DuatArt.exists(base) {
             found[.idle] = base
+        }
+        if found[.idle] == nil, let painted, DuatArt.exists(painted) {
+            found[.idle] = painted
         }
 
         let set = FrameSet(frames: found)

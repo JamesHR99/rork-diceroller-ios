@@ -28,6 +28,13 @@ struct DiceTrayView: View {
 
     private var reelHeight: CGFloat { min(126, reelWidth * 1.28) }
 
+    /// The full combo rail under the tray: every chain spelled out with its
+    /// name, effect, cost and Chisel badge. Off by default — the letters
+    /// carved under each die carry the same read in a fraction of the height,
+    /// and the arena is short. The rail is kept whole so it can be switched
+    /// back on by flipping this to true.
+    static let showsComboRail = false
+
     var body: some View {
         VStack(spacing: 10) {
             header
@@ -54,7 +61,7 @@ struct DiceTrayView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 24, strength: 0.5)
+        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 24, strength: 0.55, shade: 0.45)
         .overlay(alignment: .bottom) {
             HieroglyphBand(tint: freezeArmed ? Theme.frost : Theme.gold, height: 9, opacity: 0.32)
                 .padding(.horizontal, 22)
@@ -119,9 +126,10 @@ struct DiceTrayView: View {
             if !engine.chisels.isEmpty {
                 HStack(spacing: 2) {
                     ForEach(engine.chisels.sorted(), id: \.self) { id in
-                        Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Theme.ptahCopper)
+                        DuatSymbol(art: DuatArt.chisel(id),
+                                   fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
+                                   size: 13,
+                                   tint: Theme.ptahCopper)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -140,8 +148,8 @@ struct DiceTrayView: View {
 
             if engine.frozenCount > 0 {
                 HStack(spacing: 3) {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 9, weight: .bold))
+                    DuatSymbol(art: DuatArt.interactionHeld, fallback: "snowflake",
+                               size: 12, tint: Theme.frost)
                     Text("\(engine.frozenCount) CARRIES OVER · DIE STILL ROLLS")
                         .font(.system(size: 9, weight: .black))
                 }
@@ -152,8 +160,8 @@ struct DiceTrayView: View {
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             } else if engine.carriedCount > 0 {
                 HStack(spacing: 3) {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 9, weight: .bold))
+                    DuatSymbol(art: DuatArt.interactionHeld, fallback: "snowflake",
+                               size: 12, tint: Theme.frost.opacity(0.8))
                     Text("\(engine.carriedCount) HELD FACE\(engine.carriedCount > 1 ? "S" : "") IN HAND")
                         .font(.system(size: 9, weight: .black))
                 }
@@ -183,7 +191,8 @@ struct DiceTrayView: View {
     /// choice, never naming a single one of them.
     private var chainsBadge: some View {
         HStack(spacing: 3) {
-            Image(systemName: "link").font(.system(size: 9, weight: .black))
+            DuatImage(name: DuatArt.chainConnector, width: 14, fit: .fit)
+                .colorMultiply(Theme.parchment)
             Text("\(engine.chainsInHand) CHAIN\(engine.chainsInHand > 1 ? "S" : "") STILL IN REACH")
                 .font(.system(size: 9, weight: .black).monospacedDigit())
                 .contentTransition(.numericText())
@@ -205,7 +214,8 @@ struct DiceTrayView: View {
         if engine.canRoll { return "Roll to begin the turn · the order changes every roll" }
         if engine.isRolling { return "The drums wind down, one by one..." }
         if !engine.comboCandidates.isEmpty {
-            return "Tap a recipe to fuse it · letters match the marks on your dice"
+            let count = engine.comboCandidates.count
+            return "Tap a letter under a die to fuse that chain · \(count) in reach"
         }
         return "Chain faces together — alone they barely scratch · FREEZE holds one face"
     }
@@ -217,7 +227,7 @@ struct DiceTrayView: View {
     /// it. Tap to fuse; tap a planned one to dissolve it back into solos.
     @ViewBuilder
     private var comboPanel: some View {
-        if !engine.canRoll && !engine.isRolling && !engine.comboCandidates.isEmpty {
+        if Self.showsComboRail && !engine.canRoll && !engine.isRolling && !engine.comboCandidates.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(engine.comboCandidates) { candidate in
@@ -267,9 +277,10 @@ struct DiceTrayView: View {
                     Button {
                         engine.toggleArmed(badgeChisel, comboID: candidate.combo.id)
                     } label: {
-                        Image(systemName: "hammer.fill")
-                            .font(.system(size: 9, weight: .black))
-                            .foregroundStyle(armed ? Theme.bg : Theme.ptahCopper)
+                        DuatSymbol(art: badgeChisel.artName ?? DuatArt.upgradeHammer,
+                                   fallback: "hammer.fill",
+                                   size: 13,
+                                   tint: armed ? Theme.bg : Theme.ptahCopper)
                             .frame(width: 20, height: 20)
                             .background(armed ? Theme.ptahCopper : Theme.bg, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(armed ? 1 : 0.6), lineWidth: 1))
@@ -301,19 +312,19 @@ struct DiceTrayView: View {
             Button {
                 engine.rollAll()
             } label: {
-                VStack(spacing: 3) {
-                    Image(systemName: "dice.fill")
-                        .font(.system(size: 26, weight: .bold))
+                VStack(spacing: 4) {
+                    DuatIcon(name: DuatArt.interactionRoll, size: 40)
                     Text("ROLL")
                         .font(.fantasy(16, weight: .black))
                         .kerning(1.4)
+                        .foregroundStyle(Theme.parchment)
                 }
-                .foregroundStyle(Theme.bg)
                 .frame(width: 96, height: reelHeight)
-                .background(
-                    LinearGradient(colors: [Theme.gold, Theme.ember], startPoint: .top, endPoint: .bottom),
-                    in: .rect(cornerRadius: 16)
-                )
+                .background {
+                    DuatImage(name: DuatArt.button(.primary, .highlighted), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 16))
                 .shadow(color: Theme.ember.opacity(0.55), radius: 12, y: 2)
             }
             .buttonStyle(PressableButtonStyle())
@@ -380,12 +391,12 @@ private struct DiceTrayReelView: View {
                 spinningReel
             case .rolled(let face):
                 if engine.playOrder.contains(face.id) {
-                    emptyReel(icon: "arrow.down")
+                    emptyReel(spent: false)
                 } else {
                     settledReel(face)
                 }
             case .spent:
-                emptyReel(icon: "checkmark")
+                emptyReel(spent: true)
             }
         }
         .frame(width: width, height: height)
@@ -397,17 +408,12 @@ private struct DiceTrayReelView: View {
 
     private var idleReel: some View {
         VStack(spacing: 4) {
-            Image(systemName: "dice")
-                .font(.system(size: iconSize * 0.85, weight: .bold))
-                .foregroundStyle(Theme.parchmentDim.opacity(0.5))
+            Spacer(minLength: 0)
             reelName
         }
+        .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: corner))
-        .overlay(
-            RoundedRectangle(cornerRadius: corner)
-                .strokeBorder(Theme.parchmentDim.opacity(0.2), style: StrokeStyle(lineWidth: 1.4, dash: [5, 5]))
-        )
+        .dieFrame(.empty, opacity: 0.75)
     }
 
     private var spinningReel: some View {
@@ -420,18 +426,18 @@ private struct DiceTrayReelView: View {
         return VStack(spacing: 4) {
             ZStack {
                 // Neighbouring faces bleeding past the drum window.
-                Image(systemName: ghostAbove.kind.symbol)
-                    .font(.system(size: iconSize * 0.78, weight: .bold))
-                    .foregroundStyle(ghostAbove.kind.tint.opacity(0.22))
+                DuatSymbol(art: ghostAbove.kind.artName, fallback: ghostAbove.kind.symbol,
+                           size: iconSize * 0.88, tint: ghostAbove.kind.tint)
+                    .opacity(0.22)
                     .offset(y: -iconSize * 0.92)
-                Image(systemName: ghostBelow.kind.symbol)
-                    .font(.system(size: iconSize * 0.78, weight: .bold))
-                    .foregroundStyle(ghostBelow.kind.tint.opacity(0.22))
+                DuatSymbol(art: ghostBelow.kind.artName, fallback: ghostBelow.kind.symbol,
+                           size: iconSize * 0.88, tint: ghostBelow.kind.tint)
+                    .opacity(0.22)
                     .offset(y: iconSize * 0.92)
 
-                Image(systemName: face.kind.symbol)
-                    .font(.system(size: iconSize, weight: .bold))
-                    .foregroundStyle(face.kind.tint.opacity(drumSpeed == 0 ? 1 : 0.85))
+                DuatSymbol(art: face.kind.artName, fallback: face.kind.symbol,
+                           size: iconSize * 1.12, tint: face.kind.tint)
+                    .opacity(drumSpeed == 0 ? 1 : 0.85)
                     .id(spinIndex)
                     .transition(.asymmetric(
                         insertion: .move(edge: .top).combined(with: .opacity),
@@ -445,7 +451,7 @@ private struct DiceTrayReelView: View {
             reelName
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bgCard, in: .rect(cornerRadius: corner))
+        .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: corner))
         .overlay {
             // Curved-glass shading so the reel reads as a spinning drum.
             LinearGradient(
@@ -455,12 +461,8 @@ private struct DiceTrayReelView: View {
             )
             .allowsHitTesting(false)
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: corner)
-                .strokeBorder(Theme.gold.opacity(imminent ? 0.95 : 0.45),
-                              lineWidth: imminent ? 2.4 : 1.5)
-        )
         .clipShape(.rect(cornerRadius: corner))
+        .dieFrame(.rolling, tint: imminent ? Theme.gold : nil)
         .shadow(color: Theme.gold.opacity(imminent ? 0.55 : 0), radius: 12)
         .scaleEffect(imminent ? 1.05 : 1)
         .animation(.spring(response: 0.18, dampingFraction: 0.6), value: imminent)
@@ -513,9 +515,11 @@ private struct DiceTrayReelView: View {
             }
         } label: {
             VStack(spacing: 2) {
-                Image(systemName: face.matchFace.symbol)
-                    .font(.system(size: iconSize, weight: .bold))
-                    .foregroundStyle(iconTint(face))
+                DuatSymbol(art: face.matchFace.artName,
+                           fallback: face.matchFace.symbol,
+                           size: iconSize * 1.2,
+                           tint: iconTint(face))
+                    .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isFrozen))
                 // The face that actually landed always keeps its name — a crit
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
@@ -537,29 +541,25 @@ private struct DiceTrayReelView: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.bgCard, in: .rect(cornerRadius: corner))
+            .background(Theme.bg.opacity(0.45), in: .rect(cornerRadius: corner))
             .overlay { frostLayer }
-            .overlay(
-                RoundedRectangle(cornerRadius: corner)
-                    .strokeBorder(borderTint(face), lineWidth: isFrozen ? 2.4 : (face.isCrit ? 2.4 : 1.6))
-            )
+            .clipShape(.rect(cornerRadius: corner))
+            .dieFrame(settledFrame(face), tint: frameTint(face))
             .overlay { armedHalo }
-            .overlay(alignment: .bottomLeading) { chainCountBadge(face) }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
-                    Circle().fill(Theme.gold).frame(width: 5, height: 5).padding(5)
+                    DuatIcon(name: DuatArt.interactionImbue, size: 11).padding(3)
                 }
             }
             .overlay(alignment: .topLeading) {
                 // A patron god's sigil rides the die whose faces they answer.
                 if let patron = face.patron {
-                    Image(systemName: patron.symbol)
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundStyle(patron.tint)
-                        .frame(width: 16, height: 16)
+                    DuatSymbol(art: patron.artName, fallback: patron.symbol,
+                               size: 13, tint: patron.tint)
+                        .frame(width: 18, height: 18)
                         .background(Theme.bg.opacity(0.85), in: .circle)
                         .overlay(Circle().strokeBorder(patron.tint.opacity(0.8), lineWidth: 1))
-                        .padding(4)
+                        .padding(3)
                 }
             }
             .overlay(alignment: .top) { critBadge(face) }
@@ -578,6 +578,9 @@ private struct DiceTrayReelView: View {
             .opacity(isDeadWeight(face) ? 0.6 : 1)
         }
         .buttonStyle(PressableButtonStyle())
+        // The chain letters ride outside the die's own button so their taps
+        // land on them rather than on the die underneath.
+        .overlay(alignment: .bottomLeading) { chainCountBadge(face) }
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
@@ -595,6 +598,25 @@ private struct DiceTrayReelView: View {
         }
     }
 
+    /// Which painted frame a settled reel wears. A held face and a critical
+    /// each have their own drawing; everything else is a ready die.
+    private func settledFrame(_ face: RolledFace) -> DuatArt.DieFrame {
+        if isFrozen || isHeld { return .held }
+        if face.isCrit { return .critical }
+        return .ready
+    }
+
+    /// The colour washed over the painted frame — the state coding the border
+    /// used to carry.
+    private func frameTint(_ face: RolledFace) -> Color? {
+        if isFrozen { return Theme.frost }
+        if face.effectiveFace != nil { return Theme.ptahCopper }
+        if face.isCrit { return nil }
+        if isHeld { return Theme.frost }
+        if let patron = face.patron { return patron.tint }
+        return nil
+    }
+
     /// How many chains this die could still feed from where the plan stands.
     private func count(_ face: RolledFace) -> Int { chainCounts[face.id] ?? 0 }
 
@@ -603,31 +625,55 @@ private struct DiceTrayReelView: View {
         !freezeArmed && !chainCounts.isEmpty && count(face) == 0
     }
 
-    /// The letters carved on a die: every chain the combo panel lists that
-    /// this die could feed, coloured to match the list. Tap the panel entry to
-    /// fuse the chain; the letters fall away as dice commit elsewhere.
+    /// The letters carved on a die: every chain this die could feed, each in
+    /// its chain's own colour. These are the whole combo read now that the
+    /// rail under the tray is folded away — tap a letter to fuse that chain,
+    /// tap a gold one to dissolve it. Letters fall away as dice commit
+    /// elsewhere, so a die's remaining options are always literally on it.
     @ViewBuilder
     private func chainCountBadge(_ face: RolledFace) -> some View {
         let markers = engine.comboMarkers[face.id] ?? []
         if !markers.isEmpty && !freezeArmed {
-            HStack(spacing: 1.5) {
-                ForEach(Array(markers.prefix(3).enumerated()), id: \.offset) { _, marker in
-                    Text(marker.letter)
-                        .font(.system(size: max(7.5, width * 0.1), weight: .black))
-                        .foregroundStyle(Theme.bg)
-                        .frame(width: max(10, width * 0.15), height: max(10, width * 0.15))
-                        .background(marker.color, in: .circle)
-                        .overlay(Circle().strokeBorder(Theme.bg.opacity(0.6), lineWidth: 0.5))
+            HStack(spacing: 2) {
+                ForEach(markers.prefix(4)) { marker in
+                    chainLetter(marker)
+                }
+                if markers.count > 4 {
+                    Text("+\(markers.count - 4)")
+                        .font(.system(size: max(6.5, width * 0.085), weight: .black))
+                        .foregroundStyle(Theme.parchmentDim)
                 }
             }
             .padding(.horizontal, 3)
-            .padding(.vertical, 1.5)
+            .padding(.vertical, 2)
             .background(Theme.bg.opacity(0.85), in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.45), lineWidth: 1))
             .padding(4)
-            .allowsHitTesting(false)
             .transition(.scale(scale: 0.4).combined(with: .opacity))
         }
+    }
+
+    /// One tappable chain letter. A planned chain wears gold and a ring so a
+    /// glance tells you which chains you have already committed to.
+    private func chainLetter(_ marker: ComboMarker) -> some View {
+        let diameter = max(13, width * 0.185)
+        return Button {
+            engine.toggleCombo(marker.comboID)
+        } label: {
+            Text(marker.letter)
+                .font(.system(size: max(8.5, width * 0.115), weight: .black))
+                .foregroundStyle(Theme.bg)
+                .frame(width: diameter, height: diameter)
+                .background(marker.isPlanned ? Theme.gold : marker.color, in: .circle)
+                .overlay(
+                    Circle().strokeBorder(marker.isPlanned ? Theme.gold : Theme.bg.opacity(0.6),
+                                          lineWidth: marker.isPlanned ? 1.6 : 0.5)
+                        .padding(marker.isPlanned ? -1.6 : 0)
+                )
+                .shadow(color: marker.isPlanned ? Theme.gold.opacity(0.7) : .clear, radius: 4)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel("\(marker.name), \(marker.staminaCost) stamina")
     }
 
     /// Adjustable Nock: a held arrow may count one tier up or down, once a
@@ -648,9 +694,9 @@ private struct DiceTrayReelView: View {
         Button {
             engine.nockShift(faceID: faceID, up: up)
         } label: {
-            Image(systemName: up ? "chevron.up" : "chevron.down")
-                .font(.system(size: 8, weight: .black))
-                .foregroundStyle(Theme.ptahCopper)
+            DuatImage(name: DuatArt.utilityForward, width: 9, fit: .fit)
+                .colorMultiply(Theme.ptahCopper)
+                .rotationEffect(.degrees(up ? -90 : 90))
                 .frame(width: 15, height: 15)
                 .background(Theme.bg.opacity(0.88), in: .circle)
                 .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(0.7), lineWidth: 0.8))
@@ -672,8 +718,7 @@ private struct DiceTrayReelView: View {
     private func critBadge(_ face: RolledFace) -> some View {
         if face.isCrit && !isFrozen {
             HStack(spacing: 2) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: max(6.5, width * 0.075), weight: .black))
+                DuatIcon(name: DuatArt.Status.critical, size: max(9, width * 0.11))
                 Text("CRIT")
                     .font(.system(size: max(7, width * 0.085), weight: .black))
                     .kerning(0.6)
@@ -749,9 +794,8 @@ private struct DiceTrayReelView: View {
                     )
                 )
                 .overlay(alignment: .bottomTrailing) {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.frost.opacity(isFrozen ? 0.9 : 0.5))
+                    DuatIcon(name: DuatArt.interactionHeld, size: 14)
+                        .opacity(isFrozen ? 0.95 : 0.55)
                         .padding(4)
                 }
                 .opacity(isFrozen ? (frostPulse ? 1 : 0.75) : 1)
@@ -823,13 +867,15 @@ private struct DiceTrayReelView: View {
         }
     }
 
-    private func emptyReel(icon: String) -> some View {
-        RoundedRectangle(cornerRadius: corner)
-            .strokeBorder(Theme.parchmentDim.opacity(0.14), style: StrokeStyle(lineWidth: 1.4, dash: [5, 5]))
+    /// A reel whose face has gone down to the plan, or been spent outright.
+    private func emptyReel(spent: Bool) -> some View {
+        Color.clear
+            .dieFrame(spent ? .spent : .empty, opacity: spent ? 0.8 : 0.6)
             .overlay {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.parchmentDim.opacity(0.3))
+                if spent {
+                    DuatIcon(name: DuatArt.interactionSpent, size: 20)
+                        .opacity(0.65)
+                }
             }
     }
 

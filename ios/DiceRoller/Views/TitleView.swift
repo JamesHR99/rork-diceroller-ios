@@ -56,16 +56,13 @@ struct TitleView: View {
         VStack(spacing: 10) {
             Spacer(minLength: 0)
 
-            // Ra's disc, low and burning.
+            // Ra's disc, low and burning inside its halo.
             ZStack {
-                Circle()
-                    .fill(RadialGradient(colors: [Theme.sunGold.opacity(glowPulse ? 0.55 : 0.28), .clear],
-                                         center: .center, startRadius: 2, endRadius: 74))
-                    .frame(width: 130, height: 130)
-                Circle()
-                    .fill(RadialGradient(colors: [Theme.parchment, Theme.sunGold, Theme.emberDeep],
-                                         center: .init(x: 0.4, y: 0.35), startRadius: 0, endRadius: 26))
-                    .frame(width: 42, height: 42)
+                DuatImage(name: "duat_environment_sun_halo", height: 122, fit: .fit)
+                    .opacity(glowPulse ? 0.55 : 0.3)
+                    .scaleEffect(glowPulse ? 1.05 : 1)
+
+                DuatImage(name: "duat_environment_sun_bright", height: 58, fit: .fit)
                     .shadow(color: Theme.sunGold.opacity(0.9), radius: glowPulse ? 26 : 12)
             }
             .frame(height: 84)
@@ -89,7 +86,7 @@ struct TitleView: View {
                     .minimumScaleFactor(0.6)
             }
 
-            HieroglyphBand(tint: Theme.gold, height: 9, opacity: 0.55)
+            WingedDivider(height: 26, opacity: 0.9)
                 .frame(width: 210)
 
             Text("Guard Ra's barque until dawn.")
@@ -112,13 +109,14 @@ struct TitleView: View {
                         .kerning(1.6)
                         .opacity(0.75)
                 }
-                .foregroundStyle(Theme.bg)
+                .foregroundStyle(Theme.parchment)
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(
-                    LinearGradient(colors: [Theme.gold, hero.accent], startPoint: .top, endPoint: .bottom),
-                    in: .capsule
-                )
+                .frame(height: 56)
+                .background {
+                    DuatImage(name: DuatArt.button(.primary, .highlighted), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 16))
                 .shadow(color: hero.accent.opacity(0.55), radius: 16, y: 4)
             }
             .buttonStyle(PressableButtonStyle())
@@ -135,14 +133,13 @@ struct TitleView: View {
             Haptics.light()
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 11, weight: .bold))
+                DuatIcon(name: DuatArt.utilityRecords, size: 15)
                 Text(bestLine)
                     .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.gold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(Theme.gold)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(Theme.bgCard.opacity(0.85), in: .capsule)
@@ -166,32 +163,24 @@ struct TitleView: View {
                     }
                     Haptics.light()
                 } label: {
-                    Image(systemName: entry.symbol)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(index == selectedIndex ? Theme.bg : entry.accent)
+                    DuatSymbol(art: DuatArt.classSigil(entry.id),
+                               fallback: entry.symbol,
+                               size: 22,
+                               tint: entry.accent)
                         .frame(width: 54, height: 40)
-                        .background(
-                            index == selectedIndex ? AnyShapeStyle(entry.accent) : AnyShapeStyle(Theme.bgCard.opacity(0.85)),
-                            in: .rect(cornerRadius: 9)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 9)
-                                .strokeBorder(entry.accent.opacity(index == selectedIndex ? 0 : 0.4), lineWidth: 1)
-                        )
+                        .background {
+                            DuatImage(name: DuatArt.button(.secondary,
+                                                           index == selectedIndex ? .selected : .normal),
+                                      fit: .stretch)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .modifier(TintWash(tint: index == selectedIndex ? entry.accent : nil))
+                        }
+                        .clipShape(.rect(cornerRadius: 9))
                 }
                 .buttonStyle(PressableButtonStyle())
             }
         }
         .padding(.bottom, 6)
-    }
-}
-
-/// Springy press-down style shared by primary buttons.
-struct PressableButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

@@ -64,38 +64,43 @@ struct FighterView: View {
         .allowsHitTesting(false)
     }
 
-    /// The gold ring with its TARGET tag, worn by the foe an attack is being
-    /// sent at — during allocation, and again as each blow lands.
+    /// The painted target ring worn by the foe an attack is being sent at —
+    /// during allocation, and again as each blow lands. It sits under the
+    /// fighter's feet like a mark drawn on the deck.
     @ViewBuilder
     private var aimRing: some View {
         if side == .enemy, isTargeted, let foe, foe.isAlive {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Theme.gold.opacity(aimPulse ? 0.45 : 1), lineWidth: 2.2)
-                .shadow(color: Theme.gold.opacity(0.8), radius: 12)
-                .overlay(alignment: .top) {
-                    Text("TARGET")
-                        .font(.system(size: 8, weight: .black))
-                        .kerning(2)
-                        .foregroundStyle(Theme.bg)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Theme.gold, in: .capsule)
-                        .offset(y: 2)
-                }
-                .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                DuatImage(name: DuatArt.targetRing, width: 150, fit: .fit)
+                    .colorMultiply(Theme.gold)
+                    .opacity(aimPulse ? 0.65 : 1)
+                    .shadow(color: Theme.gold.opacity(0.8), radius: 12)
+                    .offset(y: 18)
+            }
+            .overlay(alignment: .top) {
+                Text("TARGET")
+                    .font(.system(size: 8, weight: .black))
+                    .kerning(2)
+                    .foregroundStyle(Theme.bg)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Theme.gold, in: .capsule)
+                    .offset(y: 2)
+            }
+            .allowsHitTesting(false)
         }
     }
 
-    /// A trial champion wears the attending god's colour for the whole fight —
-    /// a thin, persistent ring beneath the gold target ring.
+    /// A trial champion wears the attending god's halo for the whole fight —
+    /// their sigil burning quietly behind the figure.
     @ViewBuilder
     private var championRing: some View {
         if side == .enemy, let foe, foe.isTrialChampion, engine.trialAccepted,
            let trial = engine.trial, foe.isAlive {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(trial.deity.tint.opacity(0.8), lineWidth: 1.6)
-                .padding(.horizontal, -3)
-                .padding(.vertical, -3)
+            HaloedSigilView(deity: trial.deity, diameter: 86, breathes: true)
+                .opacity(0.5)
+                .offset(y: -18)
                 .allowsHitTesting(false)
         }
     }
@@ -187,9 +192,7 @@ struct FighterView: View {
         if pose == .attack, !strikeGods.isEmpty {
             HStack(spacing: 6) {
                 ForEach(strikeGods.prefix(2), id: \.self) { god in
-                    Image(systemName: god.symbol)
-                        .font(.system(size: 30, weight: .black))
-                        .foregroundStyle(god.tint)
+                    DuatSymbol(art: god.artName, fallback: god.symbol, size: 34, tint: god.tint)
                         .shadow(color: god.tint.opacity(0.9), radius: 14)
                 }
             }
@@ -200,16 +203,11 @@ struct FighterView: View {
     }
 
     private var nameRow: some View {
-        HStack(spacing: 6) {
-            Text(side == .player ? heroName : (foe?.displayName ?? ""))
-                .font(.fantasy(15, weight: .bold))
-                .foregroundStyle(Theme.parchment)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-            Text("\(currentHP)/\(maxHP)")
-                .font(.system(size: 11, weight: .bold).monospacedDigit())
-                .foregroundStyle(Theme.parchmentDim)
-        }
+        Text(side == .player ? heroName : (foe?.displayName ?? ""))
+            .font(.fantasy(15, weight: .bold))
+            .foregroundStyle(Theme.parchment)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
     }
 
     private var currentHP: Int { side == .player ? engine.playerHP : (foe?.hp ?? 0) }
@@ -217,91 +215,114 @@ struct FighterView: View {
         side == .player ? engine.playerMaxHP : max(foe?.def.maxHP ?? 1, 1)
     }
 
+    /// The painted health channel, its fill revealed from the leading edge.
+    /// A hero's runs in their own accent; everything out of the river bleeds.
+    /// The numbers ride the bar itself so a foe's remaining health is legible
+    /// at a glance even when the fill is nearly gone.
     private var healthBar: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.bg)
-                Capsule()
-                    .fill(LinearGradient(
-                        colors: side == .player ? [Theme.forest, accent] : [Theme.blood, Theme.ember],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ))
-                    .frame(width: proxy.size.width * CGFloat(currentHP) / CGFloat(max(maxHP, 1)))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: currentHP)
-            }
+        DuatBar(
+            kind: .health,
+            fraction: Double(currentHP) / Double(max(maxHP, 1)),
+            width: 160,
+            height: 15,
+            tint: side == .player ? accent : nil
+        )
+        .overlay {
+            Text("\(currentHP)/\(maxHP)")
+                .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                .foregroundStyle(Theme.parchment)
+                .shadow(color: .black, radius: 2.5)
+                .shadow(color: .black.opacity(0.9), radius: 1)
+                .contentTransition(.numericText())
+                .allowsHitTesting(false)
         }
-        .frame(width: 152, height: 9)
     }
 
     /// The bronze plate worn over health. Direct hits chip it away first;
     /// cracks open as it thins, and once it is gone the health is bare.
     private func armourBar(_ foe: EnemyState) -> some View {
-        GeometryReader { proxy in
-            let fraction = foe.armourMax > 0
-                ? CGFloat(foe.armour) / CGFloat(foe.armourMax)
-                : 0
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.bg)
-                Capsule()
-                    .fill(LinearGradient(
-                        colors: [Theme.bronze, Theme.goldDeep],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ))
-                    .frame(width: proxy.size.width * fraction)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: foe.armour)
-                if fraction <= 0.67 {
-                    crackMark.offset(x: proxy.size.width * 0.67)
-                }
-                if fraction <= 0.34 {
-                    crackMark.offset(x: proxy.size.width * 0.34)
-                }
-            }
-        }
-        .frame(width: 152, height: 7)
+        let fraction = foe.armourMax > 0
+            ? CGFloat(foe.armour) / CGFloat(foe.armourMax)
+            : 0
+        return DuatBar(
+            kind: .armour,
+            fraction: Double(fraction),
+            width: 132,
+            height: 11
+        )
         .overlay(alignment: .trailing) {
-            HStack(spacing: 1) {
-                Image(systemName: "shield.fill")
-                    .font(.system(size: 6.5, weight: .bold))
+            HStack(spacing: 2) {
+                DuatIcon(name: DuatArt.Status.armour, size: 10)
                 Text("\(foe.armour)")
-                    .font(.system(size: 8, weight: .black).monospacedDigit())
+                    .font(.system(size: 9, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.bronze)
             }
-            .foregroundStyle(Theme.bronze)
             .offset(x: 26)
         }
     }
 
-    private var crackMark: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.6))
-            .frame(width: 1.4, height: 9)
-    }
-
+    /// Everything riding this fighter right now, each on its painted mark.
     private var badgeRow: some View {
         HStack(spacing: 3) {
             if side == .player {
-                if engine.playerShield > 0 { badge(icon: "shield.fill", text: "\(engine.playerShield)", tint: Theme.steel) }
-                if engine.evadeChance > 0 { badge(icon: "wind", text: "\(Int(engine.evadeChance * 100))%", tint: Theme.steel) }
-                if engine.regenTurns > 0 { badge(icon: "leaf.fill", text: "\(engine.regenAmount)×\(engine.regenTurns)", tint: Theme.forest) }
-                if engine.playerBleedTurns > 0 { badge(icon: "drop.fill", text: "\(engine.playerBleedAmount)×\(engine.playerBleedTurns)", tint: Theme.blood) }
-                if engine.playerBurnTurns > 0 { badge(icon: "flame.fill", text: "\(engine.playerBurnAmount)×\(engine.playerBurnTurns)", tint: Theme.ember) }
-                if engine.playerJudgementPending { badge(icon: "scalemass.fill", text: "\(engine.playerJudgementAmount)", tint: Deity.anubis.tint) }
+                if engine.playerShield > 0 {
+                    badge(DuatArt.Status.shield, "shield.fill", "\(engine.playerShield)", Theme.steel)
+                }
+                if engine.evadeChance > 0 {
+                    badge(DuatArt.Status.evade, "wind", "\(Int(engine.evadeChance * 100))%", Theme.steel)
+                }
+                if engine.regenTurns > 0 {
+                    badge(DuatArt.Status.regeneration, "leaf.fill",
+                          "\(engine.regenAmount)×\(engine.regenTurns)", Theme.forest)
+                }
+                if engine.playerBleedTurns > 0 {
+                    badge(DuatArt.Status.bleed, "drop.fill",
+                          "\(engine.playerBleedAmount)×\(engine.playerBleedTurns)", Theme.blood)
+                }
+                if engine.playerBurnTurns > 0 {
+                    badge(DuatArt.Status.burn, "flame.fill",
+                          "\(engine.playerBurnAmount)×\(engine.playerBurnTurns)", Theme.ember)
+                }
+                if engine.playerJudgementPending {
+                    badge(DuatArt.Status.judgement, "scalemass.fill",
+                          "\(engine.playerJudgementAmount)", Deity.anubis.tint)
+                }
             } else if let foe {
                 if foe.isTrialChampion, engine.trialAccepted {
-                    badge(icon: "crown.fill", text: "CHAMPION", tint: engine.trial?.deity.tint ?? Theme.gold)
+                    badge(DuatArt.Status.champion, "crown.fill", "CHAMPION",
+                          engine.trial?.deity.tint ?? Theme.gold)
                 }
-                if foe.evadeCharges > 0 { badge(icon: "wind", text: "EVADE", tint: Deity.bastet.tint) }
+                if foe.evadeCharges > 0 {
+                    badge(DuatArt.Status.evade, "wind", "EVADE", Deity.bastet.tint)
+                }
                 if foe.armourMax > 0 && foe.armour > 0 {
-                    badge(icon: "shield.fill", text: "\(foe.armour)", tint: Theme.bronze)
+                    badge(DuatArt.Status.armour, "shield.fill", "\(foe.armour)", Theme.bronze)
                 }
-                if foe.block > 0 { badge(icon: "shield.lefthalf.filled", text: "\(foe.block)", tint: Theme.steel) }
-                if foe.judgementPending { badge(icon: "scalemass.fill", text: "\(foe.judgementAmount)", tint: Deity.anubis.tint) }
-                if foe.bleedTurns > 0 { badge(icon: "drop.fill", text: "\(foe.bleedAmount)×\(foe.bleedTurns)", tint: Theme.blood) }
-                if foe.poisonTurns > 0 { badge(icon: "drop.triangle.fill", text: "\(foe.poisonAmount)×\(foe.poisonTurns)", tint: Theme.venom) }
-                if foe.burnTurns > 0 { badge(icon: "flame.fill", text: "\(foe.burnAmount)×\(foe.burnTurns)", tint: Theme.ember) }
-                if foe.stagger > 0 { badge(icon: "snowflake", text: "\(Int(foe.stagger * 100))%", tint: Theme.frost) }
-                if foe.mark > 1 { badge(icon: "scope", text: "MARK", tint: Theme.venom) }
+                if foe.block > 0 {
+                    badge(DuatArt.Status.shield, "shield.lefthalf.filled", "\(foe.block)", Theme.steel)
+                }
+                if foe.judgementPending {
+                    badge(DuatArt.Status.judgement, "scalemass.fill",
+                          "\(foe.judgementAmount)", Deity.anubis.tint)
+                }
+                if foe.bleedTurns > 0 {
+                    badge(DuatArt.Status.bleed, "drop.fill",
+                          "\(foe.bleedAmount)×\(foe.bleedTurns)", Theme.blood)
+                }
+                if foe.poisonTurns > 0 {
+                    badge(DuatArt.Status.poison, "drop.triangle.fill",
+                          "\(foe.poisonAmount)×\(foe.poisonTurns)", Theme.venom)
+                }
+                if foe.burnTurns > 0 {
+                    badge(DuatArt.Status.burn, "flame.fill",
+                          "\(foe.burnAmount)×\(foe.burnTurns)", Theme.ember)
+                }
+                if foe.stagger > 0 {
+                    badge(DuatArt.Status.frost, "snowflake", "\(Int(foe.stagger * 100))%", Theme.frost)
+                }
+                if foe.mark > 1 {
+                    badge(DuatArt.Status.marked, "scope", "MARK", Theme.venom)
+                }
             }
         }
         .frame(height: 18)
@@ -309,12 +330,13 @@ struct FighterView: View {
                    value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.block ?? 0) + (foe?.armour ?? 0))
     }
 
-    private func badge(icon: String, text: String, tint: Color) -> some View {
+    private func badge(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {
         HStack(spacing: 2) {
-            Image(systemName: icon).font(.system(size: 7.5, weight: .bold))
-            Text(text).font(.system(size: 9, weight: .bold).monospacedDigit())
+            DuatSymbol(art: art, fallback: fallback, size: 11, tint: tint)
+            Text(text)
+                .font(.system(size: 9, weight: .bold).monospacedDigit())
+                .foregroundStyle(tint)
         }
-        .foregroundStyle(tint)
         .padding(.horizontal, 5)
         .padding(.vertical, 2.5)
         .background(tint.opacity(0.15), in: .capsule)

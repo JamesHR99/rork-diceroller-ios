@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "health_bar_frame_empty.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

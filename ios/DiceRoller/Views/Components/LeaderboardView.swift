@@ -25,8 +25,7 @@ struct LeaderboardView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            Image(systemName: "hourglass")
-                .font(.system(size: 11, weight: .bold))
+            DuatIcon(name: DuatArt.utilityRecords, size: 14)
             Text("DEEPEST VOYAGES")
                 .font(.system(size: 10, weight: .black))
                 .kerning(1.4)
@@ -40,9 +39,8 @@ struct LeaderboardView: View {
 
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(Theme.parchmentDim.opacity(0.6))
+            DuatImage(name: "duat_environment_star", height: 26, fit: .fit)
+                .opacity(0.55)
             Text("No voyage recorded yet.")
                 .font(.paper(13.5))
                 .italic()
@@ -64,9 +62,10 @@ struct LeaderboardView: View {
                 .frame(width: 18, height: 18)
                 .background(rank <= 3 ? AnyShapeStyle(medalTint(rank)) : AnyShapeStyle(Theme.bg), in: .circle)
 
-            Image(systemName: record.classSymbol)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(classTint(record.classID))
+            DuatSymbol(art: DuatArt.classSigil(record.classID),
+                       fallback: record.classSymbol,
+                       size: 15,
+                       tint: classTint(record.classID))
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -75,9 +74,7 @@ struct LeaderboardView: View {
                         .font(.fantasy(12, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                     if record.sawDawn {
-                        Image(systemName: "sun.horizon.fill")
-                            .font(.system(size: 8))
-                            .foregroundStyle(Theme.sunGold)
+                        DuatImage(name: "duat_environment_sun_bright", height: 12, fit: .fit)
                     }
                     if isNew {
                         Text("THIS RUN")
