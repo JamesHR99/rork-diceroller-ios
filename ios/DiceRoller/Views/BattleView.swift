@@ -237,9 +237,10 @@ private struct BattleContentView: View {
             if !engine.chisels.isEmpty {
                 HStack(spacing: 2) {
                     ForEach(engine.chisels.sorted(), id: \.self) { id in
-                        Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Theme.ptahCopper)
+                        DuatSymbol(art: DuatArt.chisel(id),
+                                   fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
+                                   size: 13,
+                                   tint: Theme.ptahCopper)
                     }
                 }
                 .padding(.horizontal, 7)
@@ -264,13 +265,12 @@ private struct BattleContentView: View {
                 showInfo = true
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 10, weight: .bold))
+                    DuatIcon(name: DuatArt.utilityCodex, size: 14)
                     Text("CODEX")
                         .font(.system(size: 10, weight: .black))
                         .kerning(1)
+                        .foregroundStyle(Theme.gold)
                 }
-                .foregroundStyle(Theme.gold)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)
                 .background(Theme.bgElevated, in: .capsule)
@@ -299,9 +299,8 @@ private struct BattleContentView: View {
         let strike = engine.projectedStrike(for: foe)
         let move = foe.intent
         return HStack(spacing: 6) {
-            Image(systemName: "eye.fill")
-                .font(.system(size: 9))
-                .foregroundStyle(Theme.parchmentDim)
+            DuatIcon(name: DuatArt.Status.marked, size: 13)
+                .opacity(0.8)
 
             if !compact {
                 Text("Intent:")
@@ -316,12 +315,9 @@ private struct BattleContentView: View {
             }
 
             ForEach(Array(move.faces.enumerated()), id: \.offset) { _, face in
-                Image(systemName: face.symbol)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(face.tint)
-                    .frame(width: 20, height: 20)
-                    .background(Theme.bg, in: .rect(cornerRadius: 5))
-                    .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(face.tint.opacity(0.4), lineWidth: 1))
+                DuatSymbol(art: face.artName, fallback: face.symbol, size: 17, tint: face.tint)
+                    .frame(width: 21, height: 21)
+                    .background(Theme.bg.opacity(0.7), in: .rect(cornerRadius: 5))
             }
 
             Text(move.comboName ?? move.name)
@@ -331,40 +327,47 @@ private struct BattleContentView: View {
                 .minimumScaleFactor(0.7)
 
             if strike.damage > 0 {
-                outcomeBadge("burst.fill", "\(strike.damage)", Theme.blood)
+                outcomeBadge(DuatArt.Status.piercing, "burst.fill", "\(strike.damage)", Theme.blood)
             }
             if strike.heal > 0 {
-                outcomeBadge("heart.fill", "+\(strike.heal)", Theme.forest)
+                outcomeBadge(DuatArt.Status.health, "heart.fill", "+\(strike.heal)", Theme.forest)
             }
             if strike.block > 0 {
-                outcomeBadge("shield.fill", "+\(strike.block)", Theme.steel)
+                outcomeBadge(DuatArt.Status.shield, "shield.fill", "+\(strike.block)", Theme.steel)
             }
             if move.bleedAmount > 0, move.bleedTurns > 0 {
-                outcomeBadge("drop.fill", "\(move.bleedAmount)×\(move.bleedTurns)", Theme.blood.opacity(0.85))
+                outcomeBadge(DuatArt.Status.bleed, "drop.fill",
+                             "\(move.bleedAmount)×\(move.bleedTurns)", Theme.blood.opacity(0.85))
             }
             if foe.stagger > 0 {
-                outcomeBadge("snowflake", "weakened", Theme.frost)
+                outcomeBadge(DuatArt.Status.frost, "snowflake", "weakened", Theme.frost)
             }
             if heat > 0 {
-                outcomeBadge("thermometer.high", "+\(heat)", Theme.ember)
+                outcomeBadge(DuatArt.Status.burn, "thermometer.high", "+\(heat)", Theme.ember)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(Theme.bg.opacity(0.85), in: .capsule)
-        .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.25), lineWidth: 0.75))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background {
+            // The painted intent plate: what is about to hit you, on a slab.
+            DuatImage(name: DuatArt.enemyIntent, fit: .stretch)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+        }
     }
 
     /// One icon-and-number pair reading what the telegraphed move will do.
-    private func outcomeBadge(_ icon: String, _ value: String, _ tint: Color) -> some View {
+    private func outcomeBadge(_ art: String, _ fallback: String, _ value: String, _ tint: Color) -> some View {
         HStack(spacing: 2) {
-            Image(systemName: icon).font(.system(size: 8, weight: .bold))
-            Text(value).font(.system(size: 10, weight: .black).monospacedDigit())
+            DuatSymbol(art: art, fallback: fallback, size: 12, tint: tint)
+            Text(value)
+                .font(.system(size: 10, weight: .black).monospacedDigit())
+                .foregroundStyle(tint)
         }
-        .foregroundStyle(tint)
     }
 
-    /// Announces a serpent-lord re-coiling into a new stage.
+    /// Announces a serpent-lord re-coiling into a new stage, on the painted
+    /// banner with the name burning over it.
     private func stageBanner(_ text: String) -> some View {
         VStack {
             Spacer()
@@ -372,10 +375,13 @@ private struct BattleContentView: View {
                 .font(.fantasy(15, weight: .black))
                 .kerning(2)
                 .foregroundStyle(Theme.parchment)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(Theme.blood.opacity(0.35), in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.blood, lineWidth: 1.2))
+                .padding(.horizontal, 44)
+                .padding(.vertical, 14)
+                .background {
+                    DuatImage(name: DuatArt.banner, fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .colorMultiply(Theme.blood)
+                }
                 .shadow(color: Theme.blood.opacity(0.7), radius: 18)
             Spacer()
         }
@@ -436,7 +442,7 @@ private struct BattleContentView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.6)
 
-                    HieroglyphBand(tint: Theme.gold, height: 8, opacity: 0.5)
+                    GoldRule(height: 6, opacity: 0.85)
                         .frame(width: 300)
 
                     Text(foes[0].def.title)
@@ -446,13 +452,12 @@ private struct BattleContentView: View {
 
                     if anyArmoured {
                         HStack(spacing: 5) {
-                            Image(systemName: "shield.fill")
-                                .font(.system(size: 9, weight: .bold))
+                            DuatIcon(name: DuatArt.Status.armour, size: 13)
                             Text("ARMOURED — BREAK THE PLATE BEFORE THE HEALTH")
                                 .font(.system(size: 9, weight: .black))
                                 .kerning(1.2)
+                                .foregroundStyle(Theme.bronze)
                         }
-                        .foregroundStyle(Theme.bronze)
                     }
 
                     if let blurb = foes.first?.def.blurb, !blurb.isEmpty {
@@ -470,13 +475,13 @@ private struct BattleContentView: View {
                     } label: {
                         Text(foes[0].def.isBoss ? "Stand Between It and Ra" : "Take Up Your Dice")
                             .font(.fantasy(16, weight: .bold))
-                            .foregroundStyle(Theme.bg)
-                            .frame(width: 260, height: 44)
-                            .background(
-                                LinearGradient(colors: [Theme.gold, Theme.ember],
-                                               startPoint: .top, endPoint: .bottom),
-                                in: .capsule
-                            )
+                            .foregroundStyle(Theme.parchment)
+                            .frame(width: 260, height: 48)
+                            .background {
+                                DuatImage(name: DuatArt.button(.primary, .normal), fit: .stretch)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
+                            .clipShape(.rect(cornerRadius: 14))
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.top, 4)
@@ -491,18 +496,23 @@ private struct BattleContentView: View {
     private var battleEndOverlay: some View {
         let won = engine.phase == .won
         return HStack(spacing: 24) {
-            Image(systemName: won ? "sun.max.fill" : "sun.dust.fill")
-                .font(.system(size: 46))
-                .foregroundStyle(won ? Theme.gold : Theme.blood)
+            DuatImage(name: won ? "duat_environment_sun_bright" : "duat_environment_sun_extinguished",
+                      height: 76, fit: .fit)
                 .shadow(color: (won ? Theme.gold : Theme.blood).opacity(0.7), radius: 18)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(won ? "THE WAY IS CLEAR" : "THE DISC GOES OUT")
-                    .font(.fantasy(30, weight: .black))
+                    .font(.fantasy(28, weight: .black))
                     .foregroundStyle(Theme.parchment)
                     .kerning(3)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 12)
+                    .background {
+                        DuatImage(name: won ? DuatArt.bannerVictory : DuatArt.bannerDefeat, fit: .stretch)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
 
                 Text(won
                      ? "\(engine.isPack ? "The pack" : engine.enemyDisplayName) sinks back into the water. \(engine.combosLanded) combos, \(engine.critsLanded) crit dice."
@@ -515,16 +525,14 @@ private struct BattleContentView: View {
                 } label: {
                     Text(won ? "Take the Spoils" : "See the Tale")
                         .font(.fantasy(16, weight: .bold))
-                        .foregroundStyle(Theme.bg)
-                        .frame(width: 220, height: 46)
-                        .background(
-                            LinearGradient(
-                                colors: won ? [Theme.gold, Theme.ember] : [Theme.parchmentDim, Theme.steel],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            in: .capsule
-                        )
+                        .foregroundStyle(Theme.parchment)
+                        .frame(width: 220, height: 48)
+                        .background {
+                            DuatImage(name: DuatArt.button(won ? .primary : .secondary, .normal),
+                                      fit: .stretch)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                        .clipShape(.rect(cornerRadius: 14))
                 }
                 .buttonStyle(PressableButtonStyle())
             }

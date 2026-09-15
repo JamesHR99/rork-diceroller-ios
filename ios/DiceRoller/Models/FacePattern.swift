@@ -38,6 +38,9 @@ enum FacePattern: Hashable {
 
     var symbol: String { iconFace.symbol }
 
+    /// The painted plate for this slot, drawn from its representative face.
+    var artName: String? { iconFace.artName }
+
     var tint: Color { iconFace.tint }
 
     var label: String {

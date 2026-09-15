@@ -43,13 +43,15 @@ struct GameOverView: View {
                     } label: {
                         Text(won ? "Sail Again Tonight" : "Try Again Tomorrow Night")
                             .font(.fantasy(17, weight: .bold))
-                            .foregroundStyle(Theme.bg)
+                            .foregroundStyle(Theme.parchment)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(
-                                LinearGradient(colors: [Theme.gold, accent], startPoint: .top, endPoint: .bottom),
-                                in: .capsule
-                            )
+                            .frame(height: 48)
+                            .background {
+                                DuatImage(name: DuatArt.button(.primary, won ? .highlighted : .normal),
+                                          fit: .stretch)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
+                            .clipShape(.rect(cornerRadius: 14))
                             .shadow(color: accent.opacity(0.5), radius: 14, y: 4)
                     }
                     .buttonStyle(PressableButtonStyle())
@@ -76,17 +78,14 @@ struct GameOverView: View {
     private var endingScene: some View {
         ZStack {
             if won {
-                // Sun climbing out of the water behind the barque.
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Theme.parchment, Theme.sunGold, Theme.ember.opacity(0.55), .clear],
-                            center: .center, startRadius: 4, endRadius: 240
-                        )
-                    )
-                    .frame(width: 420, height: 420)
-                    .offset(y: sunRise ? 130 : 320)
-                    .blur(radius: 6)
+                // Ra's disc climbing out of the water behind the barque.
+                ZStack {
+                    DuatImage(name: "duat_environment_sun_halo", height: 400, fit: .fit)
+                        .opacity(0.55)
+                    DuatImage(name: "duat_environment_sun_bright", height: 190, fit: .fit)
+                        .shadow(color: Theme.sunGold.opacity(0.8), radius: 60)
+                }
+                .offset(y: sunRise ? 130 : 320)
 
                 LinearGradient(
                     colors: [.clear, Theme.sunGold.opacity(0.18), Theme.ember.opacity(0.10)],
@@ -115,14 +114,14 @@ struct GameOverView: View {
 
     private var verdictColumn: some View {
         VStack(spacing: 10) {
-            Image(systemName: won ? "sun.horizon.fill" : "sun.dust.fill")
-                .font(.system(size: 46))
-                .foregroundStyle(won ? Theme.sunGold : Theme.blood)
+            DuatImage(name: won ? "duat_environment_sun_bright" : "duat_environment_sun_extinguished",
+                      height: 68, fit: .fit)
                 .shadow(color: (won ? Theme.sunGold : Theme.blood).opacity(0.75), radius: 24)
                 .scaleEffect(appeared ? 1 : 0.4)
 
+            // The verdict on its painted banner.
             Text(won ? "DAWN" : "DEVOURED")
-                .font(.fantasy(won ? 40 : 32, weight: .black))
+                .font(.fantasy(won ? 38 : 30, weight: .black))
                 .foregroundStyle(
                     LinearGradient(colors: won ? [Theme.parchment, Theme.sunGold] : [Theme.parchment, Theme.blood],
                                    startPoint: .top, endPoint: .bottom)
@@ -130,8 +129,14 @@ struct GameOverView: View {
                 .kerning(8)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+                .padding(.horizontal, 34)
+                .padding(.vertical, 16)
+                .background {
+                    DuatImage(name: won ? DuatArt.bannerVictory : DuatArt.bannerDefeat, fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
 
-            HieroglyphBand(tint: won ? Theme.gold : Theme.blood, height: 9, opacity: 0.55)
+            WingedDivider(height: 22, opacity: 0.8)
                 .frame(width: 240)
 
             Text(won
@@ -191,10 +196,10 @@ struct GameOverView: View {
 
     private var panelToggle: some View {
         HStack(spacing: 4) {
-            toggleTab(title: "THIS VOYAGE", icon: "chart.bar.fill", active: !showRecords) {
+            toggleTab(title: "THIS VOYAGE", art: DuatArt.utilityCodex, active: !showRecords) {
                 showRecords = false
             }
-            toggleTab(title: "RECORDS", icon: "hourglass", active: showRecords) {
+            toggleTab(title: "RECORDS", art: DuatArt.utilityRecords, active: showRecords) {
                 showRecords = true
             }
         }
@@ -202,53 +207,59 @@ struct GameOverView: View {
         .background(Theme.bg.opacity(0.75), in: .capsule)
     }
 
-    private func toggleTab(title: String, icon: String, active: Bool, action: @escaping () -> Void) -> some View {
+    /// A painted codex tab — the selected drawing when it holds the panel.
+    private func toggleTab(title: String, art: String, active: Bool, action: @escaping () -> Void) -> some View {
         Button {
             action()
             Haptics.light()
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: icon).font(.system(size: 10, weight: .bold))
+                DuatIcon(name: art, size: 13)
                 Text(title)
                     .font(.system(size: 10, weight: .black))
                     .kerning(1)
+                    .foregroundStyle(active ? Theme.parchment : Theme.parchmentDim)
             }
-            .foregroundStyle(active ? Theme.bg : Theme.parchmentDim)
             .frame(maxWidth: .infinity)
-            .frame(height: 28)
-            .background(active ? AnyShapeStyle(Theme.gold) : AnyShapeStyle(Color.clear), in: .capsule)
+            .frame(height: 30)
+            .background {
+                DuatImage(name: active ? DuatArt.tabSelected : DuatArt.tabUnselected, fit: .stretch)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(active ? 1 : 0.55)
+            }
+            .clipShape(.capsule)
         }
         .buttonStyle(PressableButtonStyle())
     }
 
     private var statsPanel: some View {
         VStack(spacing: 8) {
-            statRow(icon: "hourglass", label: "Hours cleared",
-                    value: "\(game.hoursCleared)/\(Voyage.totalHours)", tint: Theme.gold)
-            statRow(icon: "flame.fill", label: "Damage dealt", value: "\(game.totalDamage)", tint: Theme.ember)
-            statRow(icon: "link", label: "Combos landed", value: "\(game.totalCombos)", tint: Theme.gold)
-            statRow(icon: "sparkles", label: "Critical dice", value: "\(game.totalCrits)", tint: Theme.gold)
-            statRow(icon: "dice.fill", label: "Dice carried", value: "\(game.diceCount)/\(Loadout.maxDice)", tint: Theme.steel)
-            statRow(icon: game.heroClass?.symbol ?? "person.fill", label: "Demigod",
-                    value: game.heroClass?.name ?? "—", tint: accent)
+            statRow(DuatArt.nightCurrent, "hourglass", "Hours cleared",
+                    "\(game.hoursCleared)/\(Voyage.totalHours)", Theme.gold)
+            statRow(DuatArt.Status.burn, "flame.fill", "Damage dealt", "\(game.totalDamage)", Theme.ember)
+            statRow(DuatArt.chainConnector, "link", "Combos landed", "\(game.totalCombos)", Theme.gold)
+            statRow(DuatArt.Status.critical, "sparkles", "Critical dice", "\(game.totalCrits)", Theme.gold)
+            statRow(DuatArt.DieFrame.ready.rawValue, "dice.fill", "Dice carried",
+                    "\(game.diceCount)/\(Loadout.maxDice)", Theme.steel)
+            statRow(DuatArt.classSigil(game.classID) ?? "", game.heroClass?.symbol ?? "person.fill",
+                    "Demigod", game.heroClass?.name ?? "—", accent)
             if let followed = game.followedDeities.first, followed.dice > 0 {
-                statRow(icon: followed.deity.symbol, label: "Closest god",
-                        value: "\(followed.deity.name) ×\(followed.dice)", tint: followed.deity.tint)
+                statRow(followed.deity.artName ?? "", followed.deity.symbol, "Closest god",
+                        "\(followed.deity.name) ×\(followed.dice)", followed.deity.tint)
             }
             if let best = game.bestRecord {
-                Divider().background(Theme.parchmentDim.opacity(0.2))
-                statRow(icon: "crown.fill", label: "Deepest ever",
-                        value: best.sawDawn ? "Dawn · \(best.className)" : "\(best.hourLabel) · \(best.className)",
-                        tint: Theme.gold)
+                GoldRule(height: 4, opacity: 0.5)
+                statRow(DuatArt.Status.champion, "crown.fill", "Deepest ever",
+                        best.sawDawn ? "Dawn · \(best.className)" : "\(best.hourLabel) · \(best.className)",
+                        Theme.gold)
             }
         }
     }
 
-    private func statRow(icon: String, label: String, value: String, tint: Color) -> some View {
+    private func statRow(_ art: String, _ fallback: String, _ label: String,
+                         _ value: String, _ tint: Color) -> some View {
         HStack {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tint)
+            DuatSymbol(art: art, fallback: fallback, size: 16, tint: tint)
                 .frame(width: 22)
             Text(label)
                 .font(.system(size: 12, weight: .semibold))

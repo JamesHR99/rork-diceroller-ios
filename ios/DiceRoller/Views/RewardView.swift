@@ -54,9 +54,10 @@ struct RewardView: View {
     private var rail: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
-                Image(systemName: game.isShrine ? "building.columns.fill" : "sparkles")
-                    .font(.system(size: 15))
-                    .foregroundStyle(accent)
+                DuatSymbol(art: game.isShrine ? StageKind.shrine.artName : deity?.artName,
+                           fallback: game.isShrine ? "building.columns.fill" : "sparkles",
+                           size: 20,
+                           tint: accent)
                     .shadow(color: accent.opacity(0.6), radius: 9)
 
                 CarvedTitle(text: game.isShrine
@@ -89,9 +90,10 @@ struct RewardView: View {
                 HStack(spacing: 4) {
                     ForEach(game.ownedChisels, id: \.self) { id in
                         HStack(spacing: 3) {
-                            Image(systemName: ChiselCatalog.def(id)?.symbol ?? "hammer.fill")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(Theme.ptahCopper)
+                            DuatSymbol(art: DuatArt.chisel(id),
+                                       fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
+                                       size: 13,
+                                       tint: Theme.ptahCopper)
                             Text(ChiselCatalog.def(id)?.name ?? "Chisel")
                                 .font(.system(size: 8.5, weight: .black))
                                 .foregroundStyle(Theme.ptahCopper)
@@ -129,18 +131,18 @@ struct RewardView: View {
                      ? "Choose a Favour"
                      : (deity == nil ? "Claim the Spoils" : "Accept the Blessing"))
                     .font(.fantasy(15, weight: .bold))
-                    .foregroundStyle(selectedID == nil ? Theme.parchmentDim : Theme.bg)
+                    .foregroundStyle(selectedID == nil ? Theme.parchmentDim : Theme.parchment)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        selectedID == nil
-                            ? AnyShapeStyle(Theme.bgCard.opacity(0.9))
-                            : AnyShapeStyle(LinearGradient(colors: [Theme.parchment, accent],
-                                                           startPoint: .top, endPoint: .bottom)),
-                        in: .capsule
-                    )
+                    .frame(height: 46)
+                    .background {
+                        DuatImage(name: DuatArt.button(.primary, selectedID == nil ? .disabled : .highlighted),
+                                  fit: .stretch)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .modifier(TintWash(tint: selectedID == nil ? nil : accent))
+                    }
+                    .clipShape(.rect(cornerRadius: 14))
                     .shadow(color: selectedID == nil ? .clear : accent.opacity(0.4), radius: 12, y: 3)
             }
             .buttonStyle(PressableButtonStyle())
@@ -149,15 +151,21 @@ struct RewardView: View {
             Button {
                 game.skipReward()
             } label: {
-                Text(game.isShrine ? "Offer 15 gold" : "Take 15 gold")
-                    .font(.fantasy(12.5, weight: .bold))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 34)
-                    .background(Theme.bgCard.opacity(0.9), in: .capsule)
-                    .overlay(Capsule().strokeBorder(Theme.parchmentDim.opacity(0.25), lineWidth: 1))
+                HStack(spacing: 5) {
+                    DuatIcon(name: DuatArt.currency, size: 14)
+                    Text(game.isShrine ? "Offer 15 gold" : "Take 15 gold")
+                        .font(.fantasy(12.5, weight: .bold))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background {
+                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -206,18 +214,10 @@ struct RewardView: View {
                             .blur(radius: 12)
                             .offset(y: 26)
 
-                        Circle()
-                            .fill(RadialGradient(colors: [accent.opacity(0.35), .clear],
-                                                 center: .center, startRadius: 2, endRadius: 40))
-                            .frame(width: 78, height: 78)
-
-                        PortraitMedallionView(art: CharacterArt.god(deity),
-                                              fallbackSymbol: deity.symbol,
-                                              tint: accent,
-                                              diameter: 72)
+                        HaloedSigilView(deity: deity, diameter: 80)
                             .shadow(color: accent.opacity(shimmer ? 0.7 : 0.35), radius: shimmer ? 16 : 8)
                     }
-                    .frame(width: 74, height: 74)
+                    .frame(width: 80, height: 80)
                     .scaleEffect(risen ? 1 : 0.7)
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -256,9 +256,10 @@ struct RewardView: View {
             HStack(spacing: 5) {
                 HStack(spacing: 3) {
                     ForEach(0..<4, id: \.self) { index in
-                        Image(systemName: index < earned ? "seal.fill" : "seal")
-                            .font(.system(size: 7, weight: .bold))
-                            .foregroundStyle(index < earned ? accent : Theme.bgCard)
+                        DuatImage(name: index < earned ? DuatArt.nightCleared : DuatArt.nightHour,
+                                  height: 10, fit: .fit)
+                            .colorMultiply(index < earned ? accent : Theme.parchmentDim)
+                            .opacity(index < earned ? 1 : 0.35)
                     }
                 }
                 Text(dice == 0

@@ -132,9 +132,8 @@ struct SelectionOverlayView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: headerSymbol)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(claimDeity?.tint ?? Theme.gold)
+            DuatSymbol(art: headerArt, fallback: headerSymbol,
+                       size: 34, tint: claimDeity?.tint ?? Theme.gold)
                 .frame(width: 50, height: 50)
                 .background(Theme.bgCard, in: .circle)
                 .overlay(Circle().strokeBorder((claimDeity?.tint ?? Theme.gold).opacity(0.4), lineWidth: 1.5))
@@ -174,6 +173,19 @@ struct SelectionOverlayView: View {
         case .swapDie: "arrow.triangle.2.circlepath"
         case .swapItem: "bag.fill"
         default: "sparkles"
+        }
+    }
+
+    /// The painted mark for whatever choice is being made.
+    private var headerArt: String? {
+        switch selection {
+        case .reforge(let kind, _): kind.artName
+        case .reforgeDie: DuatArt.resolve(DuatArt.interactionReforge)
+        case .patron(let deity, _, _): deity.artName
+        case .imbue: DuatArt.resolve(DuatArt.interactionImbue)
+        case .swapDie: DuatArt.resolve(DuatArt.interactionSwap)
+        case .swapItem: DuatArt.resolve(DuatArt.slotItem)
+        default: DuatArt.resolve(DuatArt.interactionReforge)
         }
     }
 
@@ -387,9 +399,8 @@ struct SelectionOverlayView: View {
 
     private func dieChip(_ die: Die, isActive: Bool) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: die.slot.symbol)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(die.rarity.tint)
+            DuatSymbol(art: die.slot.artName, fallback: die.slot.symbol,
+                       size: 18, tint: die.rarity.tint)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(die.name)
@@ -474,9 +485,8 @@ struct SelectionOverlayView: View {
     private func dieCard(_ die: Die, highlighted: Bool, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: die.slot.symbol)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(die.rarity.tint)
+                DuatSymbol(art: die.slot.artName, fallback: die.slot.symbol,
+                           size: 14, tint: die.rarity.tint)
                 Text(die.name)
                     .font(.fantasy(13, weight: .bold))
                     .foregroundStyle(Theme.parchment)
@@ -484,9 +494,8 @@ struct SelectionOverlayView: View {
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
                 if let patron = die.patron {
-                    Image(systemName: patron.symbol)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(patron.tint)
+                    DuatSymbol(art: patron.artName, fallback: patron.symbol,
+                               size: 14, tint: patron.tint)
                 } else {
                     Text(die.rarity.label.uppercased())
                         .font(.system(size: 7.5, weight: .black))
@@ -497,7 +506,7 @@ struct SelectionOverlayView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+        .papyrusPanel(tint: Theme.bgCard, cornerRadius: 14)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(highlighted ? tint : Theme.parchmentDim.opacity(0.2),
@@ -512,18 +521,19 @@ struct SelectionOverlayView: View {
             itemCard(
                 title: "CURRENTLY CARRIED",
                 name: game.loadout?.item?.name ?? "None",
+                art: carriedItemArt,
                 symbol: game.loadout?.item?.symbol ?? "bag",
                 faces: game.loadout?.item?.dice.first?.faces.map(\.kind) ?? [],
                 tint: Theme.parchmentDim
             )
 
-            Image(systemName: "arrow.right")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.gold)
+            DuatImage(name: DuatArt.utilityForward, width: 24, fit: .fit)
+                .colorMultiply(Theme.gold)
 
             itemCard(
                 title: "NEW ITEM",
                 name: incoming.name,
+                art: incoming.artName,
                 symbol: incoming.symbol,
                 faces: incoming.faces,
                 tint: incoming.rarity.tint
@@ -532,26 +542,33 @@ struct SelectionOverlayView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func itemCard(title: String, name: String, symbol: String, faces: [FaceKind], tint: Color) -> some View {
+    /// The painted drawing of whatever item is in the slot right now.
+    private var carriedItemArt: String? {
+        guard let name = game.loadout?.item?.name else { return nil }
+        if let item = SharedContent.items.first(where: { $0.name == name }) {
+            return item.artName
+        }
+        // Relics name their dice after themselves, so the piece name matches.
+        return RelicContent.relics.first { name.hasPrefix($0.name) }?.artName
+    }
+
+    private func itemCard(title: String, name: String, art: String?, symbol: String,
+                          faces: [FaceKind], tint: Color) -> some View {
         VStack(spacing: 8) {
             Text(title)
                 .font(.system(size: 9, weight: .black))
                 .kerning(1.2)
                 .foregroundStyle(tint)
-            Image(systemName: symbol)
-                .font(.system(size: 26, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 54, height: 54)
+            DuatSymbol(art: art, fallback: symbol, size: 40, tint: tint)
+                .frame(width: 56, height: 56)
                 .background(Theme.bg, in: .circle)
             Text(name)
                 .font(.fantasy(15, weight: .bold))
                 .foregroundStyle(Theme.parchment)
             HStack(spacing: 4) {
                 ForEach(Array(faces.enumerated()), id: \.offset) { _, face in
-                    Image(systemName: face.symbol)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(face.tint)
-                        .frame(width: 22, height: 22)
+                    DuatSymbol(art: face.artName, fallback: face.symbol, size: 17, tint: face.tint)
+                        .frame(width: 23, height: 23)
                         .background(Theme.bgElevated, in: .rect(cornerRadius: 5))
                 }
             }
@@ -561,7 +578,7 @@ struct SelectionOverlayView: View {
         }
         .padding(16)
         .frame(width: 240)
-        .background(Theme.bgCard, in: .rect(cornerRadius: 18))
+        .papyrusPanel(tint: Theme.bgCard, cornerRadius: 18)
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(tint.opacity(0.4), lineWidth: 1.5))
     }
 }

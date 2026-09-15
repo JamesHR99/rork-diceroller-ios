@@ -27,29 +27,22 @@ struct OfferCardView: View {
                     Spacer(minLength: 0)
                     if !offer.isFree {
                         HStack(spacing: 3) {
-                            Image(systemName: "circle.hexagongrid.fill").font(.system(size: 8, weight: .bold))
+                            DuatIcon(name: DuatArt.currency, size: 12)
                             Text("\(offer.price)")
                                 .font(.system(size: 11, weight: .black).monospacedDigit())
+                                .foregroundStyle(affordable ? Theme.gold : Theme.blood)
                         }
-                        .foregroundStyle(affordable ? Theme.gold : Theme.blood)
                     }
                 }
 
-                Image(systemName: offer.symbol)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(isSelected ? Theme.gold : offer.tint)
-                    .frame(width: 42, height: 42)
-                    .background(
-                        offer.deity == nil
-                            ? AnyShapeStyle(Theme.bg)
-                            : AnyShapeStyle(RadialGradient(colors: [offer.tint.opacity(0.35), Theme.bg],
-                                                           center: .center, startRadius: 1, endRadius: 30)),
-                        in: .rect(cornerRadius: 11)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 11)
-                            .strokeBorder(offer.deity == nil ? .clear : offer.tint.opacity(0.6), lineWidth: 1)
-                    )
+                // What is on offer, inside its rarity's painted frame.
+                DuatSymbol(art: offer.artName, fallback: offer.symbol,
+                           size: 34, tint: isSelected ? Theme.gold : offer.tint)
+                    .frame(width: 46, height: 46)
+                    .background {
+                        DuatImage(name: offer.rarity.frameArt, width: 52, height: 52, fit: .fit)
+                            .modifier(TintWash(tint: offer.deity?.tint))
+                    }
                     .shadow(color: offer.deity?.tint.opacity(0.5) ?? .clear, radius: 8)
 
                 Text(offer.name)
@@ -71,29 +64,30 @@ struct OfferCardView: View {
                     DieStripView(die: die, tileSize: 15, showCrit: false)
                 } else if case .patron = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge(offer.deity?.symbol ?? "sparkles", tint: offer.deity?.tint ?? Theme.gold)
+                        sealBadge(offer.deity?.artName, offer.deity?.symbol ?? "sparkles",
+                                  tint: offer.deity?.tint ?? Theme.gold)
                         Text(offer.isReplacingPatron ? "takes a claimed die" : "claims one die")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
                 } else if case .upgrade(let upgrade) = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge(upgrade.symbol, tint: offer.tint)
+                        sealBadge(offer.deity?.artName, upgrade.symbol, tint: offer.tint)
                         Text("one upgrade · needs a blessed die")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
                 } else if case .capstone = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge("crown.fill", tint: offer.tint)
+                        sealBadge(DuatArt.Status.champion, "crown.fill", tint: offer.tint)
                         Text("capstone · one per run")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
                 } else if case .pairing(let pairing) = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge(pairing.first.symbol, tint: pairing.first.tint)
-                        sealBadge(pairing.second.symbol, tint: pairing.second.tint)
+                        sealBadge(pairing.first.artName, pairing.first.symbol, tint: pairing.first.tint)
+                        sealBadge(pairing.second.artName, pairing.second.symbol, tint: pairing.second.tint)
                         Text("2 gods · once per turn")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
@@ -104,14 +98,14 @@ struct OfferCardView: View {
                     faceDigest(FaceProfile(relic.dice.flatMap { $0 }), diceCount: relic.dice.count)
                 } else if case .breath = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge("wind.circle.fill", tint: Theme.gold)
+                        sealBadge(DuatArt.Status.stamina, "wind.circle.fill", tint: Theme.gold)
                         Text("permanent · once per offer")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                     }
                 } else if case .chisel = offer.kind {
                     HStack(spacing: 4) {
-                        sealBadge("hammer.fill", tint: Theme.ptahCopper)
+                        sealBadge(DuatArt.upgradeHammer, "hammer.fill", tint: Theme.ptahCopper)
                         Text("opens Ptah's workshop")
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
@@ -119,14 +113,14 @@ struct OfferCardView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Image(systemName: "link")
-                        .font(.system(size: 7, weight: .bold))
+                    DuatImage(name: DuatArt.chainConnector, width: 12, fit: .fit)
+                        .colorMultiply(Theme.gold)
                     Text(offer.comboHint)
                         .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Theme.gold.opacity(0.9))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-                .foregroundStyle(Theme.gold.opacity(0.9))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(Theme.gold.opacity(0.12), in: .capsule)
@@ -134,26 +128,18 @@ struct OfferCardView: View {
             .padding(10)
             .frame(width: width)
             .frame(maxWidth: width == nil ? .infinity : nil, maxHeight: .infinity)
-            .background(
-                LinearGradient(colors: [Theme.bgCard, Theme.bgElevated],
-                               startPoint: .top, endPoint: .bottom),
-                in: .rect(cornerRadius: 16)
-            )
+            .papyrusPanel(tint: Theme.bgCard, cornerRadius: 16)
             .overlay(alignment: .bottom) {
-                HieroglyphBand(tint: offer.tint, height: 7, opacity: 0.28)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 3)
+                GoldRule(height: 5, opacity: 0.6)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 4)
             }
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(isSelected ? Theme.gold : offer.tint.opacity(offer.deity == nil ? 0.35 : 0.55),
                                   lineWidth: isSelected ? 2 : 1)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .inset(by: 3)
-                    .strokeBorder(Theme.rule.opacity(0.16), lineWidth: 0.75)
-            )
+            .goldCorners(size: 16, inset: 1, opacity: isSelected ? 0.9 : 0.45)
             .shadow(color: isSelected ? Theme.gold.opacity(0.35) : .clear, radius: 10)
             .scaleEffect(isSelected ? 1.03 : 1)
             .opacity(affordable ? 1 : 0.5)
@@ -169,9 +155,8 @@ struct OfferCardView: View {
             HStack(spacing: 3) {
                 ForEach(profile.signature.prefix(3)) { tally in
                     HStack(spacing: 2) {
-                        Image(systemName: tally.kind.symbol)
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundStyle(tally.kind.tint)
+                        DuatSymbol(art: tally.kind.artName, fallback: tally.kind.symbol,
+                                   size: 13, tint: tally.kind.tint)
                         if tally.count > 1 {
                             Text("\u{00D7}\(tally.count)")
                                 .font(.system(size: 7.5, weight: .black).monospacedDigit())
@@ -195,11 +180,9 @@ struct OfferCardView: View {
     }
 
     /// A small god-sigil tile used on blessing cards.
-    private func sealBadge(_ symbol: String, tint: Color) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: 9, weight: .bold))
-            .foregroundStyle(tint)
-            .frame(width: 20, height: 20)
+    private func sealBadge(_ art: String?, _ symbol: String, tint: Color) -> some View {
+        DuatSymbol(art: art, fallback: symbol, size: 15, tint: tint)
+            .frame(width: 21, height: 21)
             .background(tint.opacity(0.16), in: .rect(cornerRadius: 5))
             .overlay(RoundedRectangle(cornerRadius: 5)
                 .strokeBorder(tint.opacity(0.55), lineWidth: 1))

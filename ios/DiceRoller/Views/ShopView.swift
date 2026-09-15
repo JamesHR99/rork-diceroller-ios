@@ -35,9 +35,8 @@ struct ShopView: View {
     private var rail: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 7) {
-                Image(systemName: "ferry.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Theme.gold)
+                DuatSymbol(art: StageKind.ferryman.artName, fallback: "ferry.fill",
+                           size: 22, tint: Theme.gold)
                     .shadow(color: Theme.gold.opacity(0.6), radius: 10)
 
                 CarvedTitle(text: "The Ferryman", size: 15, kerning: 2.2)
@@ -67,17 +66,19 @@ struct ShopView: View {
 
             Button { showInfo = true } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 11, weight: .bold))
+                    DuatIcon(name: DuatArt.utilityCodex, size: 15)
                     Text("CODEX")
                         .font(.system(size: 9.5, weight: .black))
                         .kerning(1.2)
+                        .foregroundStyle(Theme.gold)
                 }
-                .foregroundStyle(Theme.gold)
                 .frame(maxWidth: .infinity)
-                .frame(height: 34)
-                .background(Theme.bgElevated.opacity(0.9), in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
+                .frame(height: 36)
+                .background {
+                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
 
@@ -86,13 +87,14 @@ struct ShopView: View {
             } label: {
                 Text("Push Off")
                     .font(.fantasy(16, weight: .bold))
-                    .foregroundStyle(Theme.bg)
+                    .foregroundStyle(Theme.parchment)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        LinearGradient(colors: [Theme.gold, Theme.ember], startPoint: .top, endPoint: .bottom),
-                        in: .capsule
-                    )
+                    .frame(height: 46)
+                    .background {
+                        DuatImage(name: DuatArt.button(.primary, .normal), fit: .stretch)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .clipShape(.rect(cornerRadius: 14))
                     .shadow(color: Theme.ember.opacity(0.4), radius: 12, y: 3)
             }
             .buttonStyle(PressableButtonStyle())
@@ -151,9 +153,8 @@ struct ShopView: View {
                         BarqueView(gate: game.gate, width: 220, discGlow: 0.15, animated: false)
                             .opacity(0.45)
                         // The hooded figure at the tiller.
-                        Image(systemName: "figure.stand")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundStyle(Theme.bg)
+                        DuatImage(name: DuatArt.strawEffigy, height: 62, fit: .fit)
+                            .colorMultiply(Theme.bg)
                             .shadow(color: Theme.gold.opacity(0.5), radius: 14)
                             .offset(y: -30)
                     }

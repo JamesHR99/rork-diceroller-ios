@@ -21,9 +21,8 @@ struct TrialPromptView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 7) {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(tint)
+                            DuatSymbol(art: DuatArt.Status.champion, fallback: "crown.fill",
+                                       size: 14, tint: tint)
                             Text("A DIVINE TRIAL")
                                 .font(.system(size: 10, weight: .black))
                                 .kerning(3)
@@ -40,7 +39,7 @@ struct TrialPromptView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
 
-                        HieroglyphBand(tint: tint, height: 7, opacity: 0.5)
+                        GoldRule(height: 5, opacity: 0.8)
                             .frame(width: 260)
 
                         Text(trial.power)
@@ -71,13 +70,15 @@ struct TrialPromptView: View {
                             } label: {
                                 Text("Take the Trial")
                                     .font(.fantasy(15, weight: .bold))
-                                    .foregroundStyle(Theme.bg)
-                                    .frame(width: 210, height: 44)
-                                    .background(
-                                        LinearGradient(colors: [Theme.gold, tint],
-                                                       startPoint: .top, endPoint: .bottom),
-                                        in: .capsule
-                                    )
+                                    .foregroundStyle(Theme.parchment)
+                                    .frame(width: 210, height: 46)
+                                    .background {
+                                        DuatImage(name: DuatArt.button(.primary, .highlighted),
+                                                  fit: .stretch)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .colorMultiply(tint)
+                                    }
+                                    .clipShape(.rect(cornerRadius: 14))
                             }
                             .buttonStyle(PressableButtonStyle())
 
@@ -92,9 +93,12 @@ struct TrialPromptView: View {
                                 Text("Fight On — no penalty")
                                     .font(.fantasy(13, weight: .bold))
                                     .foregroundStyle(Theme.parchmentDim)
-                                    .frame(width: 220, height: 44)
-                                    .background(Theme.bgCard.opacity(0.9), in: .capsule)
-                                    .overlay(Capsule().strokeBorder(Theme.parchmentDim.opacity(0.3), lineWidth: 1))
+                                    .frame(width: 220, height: 46)
+                                    .background {
+                                        DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    }
+                                    .clipShape(.rect(cornerRadius: 14))
                             }
                             .buttonStyle(PressableButtonStyle())
                         }
@@ -112,7 +116,7 @@ struct TrialPromptView: View {
         }
     }
 
-    /// The god's sigil rising over the arena on a shaft of light.
+    /// The god's sigil rising over the arena inside its painted halo.
     private func sigil(_ trial: DivineTrial, tint: Color) -> some View {
         ZStack {
             Capsule()
@@ -121,15 +125,7 @@ struct TrialPromptView: View {
                 .frame(width: 70, height: 150)
                 .blur(radius: 12)
 
-            Circle()
-                .fill(RadialGradient(colors: [tint.opacity(0.4), .clear],
-                                     center: .center, startRadius: 2, endRadius: 64))
-                .frame(width: 130, height: 130)
-
-            PortraitMedallionView(art: CharacterArt.god(trial.deity),
-                                  fallbackSymbol: trial.deity.symbol,
-                                  tint: tint,
-                                  diameter: 100)
+            HaloedSigilView(deity: trial.deity, diameter: 118)
                 .shadow(color: tint.opacity(0.75), radius: 20)
 
             Text(trial.deity.name.uppercased())

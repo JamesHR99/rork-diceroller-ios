@@ -27,9 +27,8 @@ struct EventView: View {
     private func storyColumn(_ event: RunEvent) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Image(systemName: event.symbol)
-                    .font(.system(size: 24))
-                    .foregroundStyle(Theme.duskViolet)
+                DuatSymbol(art: StageKind.omen.artName, fallback: event.symbol,
+                           size: 34, tint: Theme.duskViolet)
                     .frame(width: 50, height: 50)
                     .background(Theme.bgCard, in: .circle)
                     .overlay(Circle().strokeBorder(Theme.duskViolet.opacity(0.55), lineWidth: 1.5))
@@ -48,7 +47,7 @@ struct EventView: View {
                 }
             }
 
-            HieroglyphBand(tint: Theme.gold, height: 8, opacity: 0.4)
+            GoldRule(height: 6, opacity: 0.75)
                 .frame(width: 300)
 
             Text(event.body)
@@ -82,12 +81,13 @@ struct EventView: View {
                     } label: {
                         Text("Row On")
                             .font(.fantasy(16, weight: .bold))
-                            .foregroundStyle(Theme.bg)
-                            .frame(width: 240, height: 46)
-                            .background(
-                                LinearGradient(colors: [Theme.gold, Theme.ember], startPoint: .top, endPoint: .bottom),
-                                in: .capsule
-                            )
+                            .foregroundStyle(Theme.parchment)
+                            .frame(width: 240, height: 48)
+                            .background {
+                                DuatImage(name: DuatArt.button(.primary, .normal), fit: .stretch)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
+                            .clipShape(.rect(cornerRadius: 14))
                     }
                     .buttonStyle(PressableButtonStyle())
                 }
@@ -122,9 +122,8 @@ struct EventView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.duskViolet)
+                DuatImage(name: DuatArt.utilityForward, width: 14, fit: .fit)
+                    .colorMultiply(Theme.duskViolet)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 11)

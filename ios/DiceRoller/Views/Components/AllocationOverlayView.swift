@@ -119,15 +119,15 @@ struct AllocationOverlayView: View {
             engine.cycleTarget(for: step.id)
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: "target")
-                    .font(.system(size: 8, weight: .bold))
+                DuatSymbol(art: DuatArt.Status.marked, fallback: "target",
+                           size: 12, tint: isSelected ? Theme.bg : Theme.parchment)
                 Text(foe?.displayName ?? "—")
                     .font(.system(size: 9.5, weight: .black))
                     .kerning(0.4)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Image(systemName: "chevron.right.2")
-                    .font(.system(size: 7.5, weight: .bold))
+                DuatImage(name: DuatArt.utilityForward, width: 9, fit: .fit)
+                    .colorMultiply(isSelected ? Theme.bg : Theme.parchment)
             }
             .foregroundStyle(isSelected ? Theme.bg : Theme.parchment)
             .padding(.horizontal, 8)
@@ -148,8 +148,8 @@ struct AllocationOverlayView: View {
             engine.selectSecondaryHit(step.id)
         } label: {
             HStack(spacing: 2) {
-                Image(systemName: "arrow.triangle.branch")
-                    .font(.system(size: 7, weight: .bold))
+                DuatImage(name: DuatArt.chainConnector, width: 11, fit: .fit)
+                    .colorMultiply(isSelected ? Theme.bg : Theme.ptahCopper)
                 Text(foe?.displayName ?? "—")
                     .font(.system(size: 8.5, weight: .black))
                     .kerning(0.3)
@@ -180,16 +180,20 @@ struct AllocationOverlayView: View {
             Button {
                 engine.cancelAllocation()
             } label: {
-                Text("BACK")
-                    .font(.fantasy(12, weight: .black))
-                    .kerning(1.2)
-                    .foregroundStyle(Theme.parchmentDim)
-                    .frame(width: 118, height: 44)
-                    .background(Theme.bg, in: .rect(cornerRadius: 13))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 13)
-                            .strokeBorder(Theme.parchmentDim.opacity(0.4), lineWidth: 1.2)
-                    )
+                HStack(spacing: 5) {
+                    DuatImage(name: DuatArt.utilityBack, width: 13, fit: .fit)
+                        .colorMultiply(Theme.parchmentDim)
+                    Text("BACK")
+                        .font(.fantasy(12, weight: .black))
+                        .kerning(1.2)
+                        .foregroundStyle(Theme.parchmentDim)
+                }
+                .frame(width: 118, height: 46)
+                .background {
+                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 13))
             }
             .buttonStyle(PressableButtonStyle())
 
@@ -197,20 +201,19 @@ struct AllocationOverlayView: View {
                 engine.confirmAllocation()
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 13, weight: .bold))
+                    DuatIcon(name: DuatArt.Status.burn, size: 18)
                     Text("STRIKE")
                         .font(.fantasy(14, weight: .black))
                         .kerning(1.5)
+                        .foregroundStyle(Theme.parchment)
                 }
-                .foregroundStyle(Theme.bg)
                 .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    LinearGradient(colors: [Theme.gold, Theme.ember],
-                                   startPoint: .top, endPoint: .bottom),
-                    in: .rect(cornerRadius: 13)
-                )
+                .frame(height: 46)
+                .background {
+                    DuatImage(name: DuatArt.button(.primary, .highlighted), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 13))
                 .shadow(color: Theme.ember.opacity(0.45), radius: 10, y: 2)
             }
             .buttonStyle(PressableButtonStyle())
