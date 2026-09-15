@@ -175,7 +175,8 @@ struct FighterView: View {
                 height: portraitHeight,
                 accent: accent,
                 fallbackSymbol: side == .player ? heroSymbol : (foe?.def.symbol ?? "questionmark"),
-                mirrorFallback: side == .enemy
+                mirrorFallback: side == .enemy,
+                characterID: side == .player ? heroClassID : nil
             )
             .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 12 : 26)
             .opacity(pose == .defeat ? 0.42 : 1)

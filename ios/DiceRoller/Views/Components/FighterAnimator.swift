@@ -184,18 +184,30 @@ struct AnimatedFighterSprite: View {
     let fallbackSymbol: String
     /// Mirrors the glyph fallback only — the drawings already face correctly.
     var mirrorFallback: Bool = false
+    /// Which character is standing here, for looking up its hand-drawn sheets.
+    /// A character with a sheet for this action plays real frame-by-frame
+    /// animation; everyone else falls back to the single-drawing pose set.
+    var characterID: String? = nil
 
     @State private var beat = FrameBeat(key: .idle)
     @State private var breathing = false
+    /// Which plate of the drawn clip is showing, when one is playing.
+    @State private var clipFrame = 0
+
+    /// The hand-drawn clip for this action, if the character owns one.
+    private var clip: SpriteClip? {
+        SpriteClipLibrary.clip(for: characterID, pose: pose)
+    }
 
     var body: some View {
-        figure(beat.key)
+        currentFigure
             .overlay { hurtWash }
             .background { smearGhost }
             .scaleEffect(x: beat.scaleX, y: beat.scaleY, anchor: .bottom)
             .rotationEffect(.degrees(beat.rotation * facing), anchor: .bottom)
             .offset(x: beat.lunge * facing, y: beat.rise + breathDrift)
             .task(id: pose) { await play() }
+            .task(id: pose) { await playClip() }
             .onAppear {
                 withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                     breathing = true
@@ -203,9 +215,22 @@ struct AnimatedFighterSprite: View {
             }
     }
 
-    /// Nobody stands perfectly still — the idle drawing drifts on a slow breath.
+    /// The drawn plate on screen this instant: a frame of the sheet when one is
+    /// playing, otherwise the pose drawing the timeline is holding.
+    @ViewBuilder
+    private var currentFigure: some View {
+        if let clip {
+            plate(clip.frame(clipFrame))
+        } else {
+            figure(beat.key)
+        }
+    }
+
+    /// Nobody stands perfectly still — a single-drawing idle drifts on a slow
+    /// breath. A drawn idle loop already breathes on its own, so it is left
+    /// alone rather than bobbing twice.
     private var breathDrift: CGFloat {
-        guard pose == .idle else { return 0 }
+        guard pose == .idle, clip == nil else { return 0 }
         return breathing ? -2.5 : 1.5
     }
 
@@ -218,12 +243,21 @@ struct AnimatedFighterSprite: View {
                      mirrorFallback: mirrorFallback)
     }
 
+    /// One named plate of a drawn sheet, at the fighter's height.
+    private func plate(_ name: String) -> some View {
+        PortraitView(art: name,
+                     fallbackSymbol: fallbackSymbol,
+                     tint: accent,
+                     height: height,
+                     mirrorFallback: mirrorFallback)
+    }
+
     /// A ghost of the figure trailing behind fast movement, so a snap reads as
     /// speed instead of teleporting.
     @ViewBuilder
     private var smearGhost: some View {
         if beat.smear > 0 {
-            figure(beat.key)
+            currentFigure
                 .opacity(0.34 * beat.smear)
                 .blur(radius: 5 * beat.smear)
                 .offset(x: -22 * facing * CGFloat(beat.smear))
@@ -231,10 +265,11 @@ struct AnimatedFighterSprite: View {
         }
     }
 
-    /// Blood-red ink washing the figure on the frame a blow lands.
+    /// Blood-red ink washing the figure on the frame a blow lands. A drawn
+    /// recoil paints its own impact, so the wash stays off it.
     @ViewBuilder
     private var hurtWash: some View {
-        if beat.key == .hurt {
+        if beat.key == .hurt, clip == nil {
             figure(.hurt)
                 .colorMultiply(Theme.blood)
                 .opacity(0.7)
@@ -247,7 +282,12 @@ struct AnimatedFighterSprite: View {
     /// `.task(id:)` cancels this the moment the pose changes, so a new action
     /// interrupts the old one cleanly instead of queueing behind it.
     private func play() async {
+        // A drawn clip carries the pose itself, so the code-driven travel is
+        // dialled back to a nudge — the art should not be dragged across the
+        // deck on top of its own animation.
+        let hasClip = clip != nil
         let score = FrameTimeline.beats(for: pose, weapon: weapon)
+            .map { hasClip ? $0.softened() : $0 }
         for step in score {
             let motion: Animation = step.snap
                 ? .interpolatingSpring(stiffness: 620, damping: 16)
@@ -256,8 +296,48 @@ struct AnimatedFighterSprite: View {
             try? await Task.sleep(for: .seconds(step.hold))
             if Task.isCancelled { return }
         }
+        let settled = FrameTimeline.rest(for: pose)
         withAnimation(.spring(response: 0.34, dampingFraction: 0.75)) {
-            beat = FrameTimeline.rest(for: pose)
+            beat = hasClip ? settled.softened() : settled
         }
+    }
+
+    /// Steps a hand-drawn clip plate by plate. Looping clips run until the pose
+    /// changes; one-shots play once and hold on their rest frame, so a fighter
+    /// left mid-action settles on a drawing rather than snapping back.
+    private func playClip() async {
+        guard let clip, !clip.isEmpty else { return }
+        clipFrame = 0
+        var index = 0
+        while true {
+            clipFrame = index
+            try? await Task.sleep(for: .seconds(clip.frameDuration))
+            if Task.isCancelled { return }
+            index += 1
+            if index >= clip.frames.count {
+                guard clip.loops else {
+                    clipFrame = clip.restIndex
+                    return
+                }
+                index = 0
+            }
+        }
+    }
+}
+
+extension FrameBeat {
+    /// The same beat with its travel and distortion eased off, for a fighter
+    /// whose action is already drawn frame by frame. The weight stays — a
+    /// fraction of the lunge still sells the step into a blow — without the art
+    /// sliding out from under its own animation.
+    func softened() -> FrameBeat {
+        var eased = self
+        eased.lunge = lunge * 0.28
+        eased.rise = rise * 0.4
+        eased.scaleX = 1 + (scaleX - 1) * 0.3
+        eased.scaleY = 1 + (scaleY - 1) * 0.3
+        eased.rotation = rotation * 0.25
+        eased.smear = smear * 0.45
+        return eased
     }
 }
