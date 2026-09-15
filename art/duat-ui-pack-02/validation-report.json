@@ -1,0 +1,22 @@
+{
+  "pngCount": 170,
+  "checks": [
+    "PNG decode",
+    "RGBA mode",
+    "alpha includes 0 and values >=250",
+    "unique Xcode names",
+    "imageset file references",
+    "supplied export PNG byte preservation",
+    "ZIP integrity",
+    "seven character exports visually composited on dark, ivory and green"
+  ],
+  "alphaNote": "Two extracted original character frames retain their source maximum alpha of 254. This is genuine transparency; maximum opacity is approximately 99.6%.",
+  "excluded": [],
+  "notValidated": [
+    "iOS build/runtime",
+    "browser screenshot rendering",
+    "device small-size readability",
+    "pixel-identical state geometry",
+    "final panel nine-slice appearance on device"
+  ]
+}

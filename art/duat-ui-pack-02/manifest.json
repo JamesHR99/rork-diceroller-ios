@@ -1,0 +1,6330 @@
+{
+  "pack": "DiceRoller UI Art Pack 02",
+  "delivery": {
+    "status": "cumulative-static-art-delivery",
+    "reason": "170 transparent PNG assets are supplied, including seven completed hero pose exports. New timed animation sheets and optional inventory expansions remain unfinished."
+  },
+  "repository": "JamesHR99/rork-diceroller-ios",
+  "reviewedCommit": "b1f37f13a1e9548f0909ed2460309bb17ca7c776",
+  "generator": "built-in image_gen",
+  "cumulativeAssetCount": 170,
+  "includesPack01": true,
+  "countsByGroup": {
+    "faces": 21,
+    "ui": 59,
+    "deities": 6,
+    "navigation": 10,
+    "items": 7,
+    "relics": 6,
+    "chisels": 12,
+    "status": 7,
+    "utility": 6,
+    "interactions": 6,
+    "slots": 3,
+    "upgrades": 2,
+    "environment": 17,
+    "enemies": 1,
+    "heroes": 7
+  },
+  "rejectedExportsExcluded": [],
+  "assets": [
+    {
+      "id": "duat_face_arrow1",
+      "label": "Arrow I",
+      "group": "faces",
+      "faceKind": "arrow1",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow1.imageset/duat_face_arrow1.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.900854,
+      "visibleBoundsAlpha16": [
+        70,
+        66,
+        1199,
+        1196
+      ],
+      "contentRectPixels": [
+        66,
+        62,
+        1137,
+        1138
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "bf95b199952285c60233c0d930d534b3c0a2c893f5f4d1bd1aeed3f75856199e"
+    },
+    {
+      "id": "duat_face_arrow2",
+      "label": "Arrow II",
+      "group": "faces",
+      "faceKind": "arrow2",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow2.imageset/duat_face_arrow2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.847367,
+      "visibleBoundsAlpha16": [
+        101,
+        81,
+        1154,
+        1175
+      ],
+      "contentRectPixels": [
+        97,
+        77,
+        1061,
+        1102
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ee1cf7b1b2ac39a5577c9059e98bae46c1f13095dbb2159faa7e677355ad48fd"
+    },
+    {
+      "id": "duat_face_arrow3",
+      "label": "Arrow III",
+      "group": "faces",
+      "faceKind": "arrow3",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow3.imageset/duat_face_arrow3.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.822596,
+      "visibleBoundsAlpha16": [
+        191,
+        49,
+        1056,
+        1187
+      ],
+      "contentRectPixels": [
+        187,
+        45,
+        873,
+        1146
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a4e47c26799a73d8f5af9c41153b6935916c25e468ecb34b231d859dc14dcacb"
+    },
+    {
+      "id": "duat_face_bowSmack",
+      "label": "Bow Smack",
+      "group": "faces",
+      "faceKind": "bowSmack",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_bowSmack.imageset/duat_face_bowSmack.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.779407,
+      "visibleBoundsAlpha16": [
+        101,
+        16,
+        1163,
+        1210
+      ],
+      "contentRectPixels": [
+        97,
+        12,
+        1070,
+        1202
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "3287fd0ce2fb5e7a0b5979e2970b55191bfe4b3c4aea92e027464df712e28258"
+    },
+    {
+      "id": "duat_face_overhead",
+      "label": "Overhead",
+      "group": "faces",
+      "faceKind": "overhead",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_overhead.imageset/duat_face_overhead.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.823712,
+      "visibleBoundsAlpha16": [
+        260,
+        105,
+        1038,
+        1137
+      ],
+      "contentRectPixels": [
+        256,
+        101,
+        786,
+        1040
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "48bcba2a4fa8f45a522a9678dfff2b5d6f7e915f2f2f2d6374b6fc10c59931b5"
+    },
+    {
+      "id": "duat_face_sideSwing",
+      "label": "Side Swing",
+      "group": "faces",
+      "faceKind": "sideSwing",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_sideSwing.imageset/duat_face_sideSwing.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.779998,
+      "visibleBoundsAlpha16": [
+        54,
+        197,
+        1203,
+        1034
+      ],
+      "contentRectPixels": [
+        50,
+        193,
+        1157,
+        845
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "39039ad04a60b22d4e7b9b26f2a802a5cc856e845f68afd25c1e6077327e0a9e"
+    },
+    {
+      "id": "duat_face_swiftSlash",
+      "label": "Swift Slash",
+      "group": "faces",
+      "faceKind": "swiftSlash",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_swiftSlash.imageset/duat_face_swiftSlash.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.833296,
+      "visibleBoundsAlpha16": [
+        158,
+        131,
+        1132,
+        1123
+      ],
+      "contentRectPixels": [
+        154,
+        127,
+        982,
+        1000
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "602b9344e09fd7a3d4a6e32c63b32a5bb3cb7d572a17d5bdad4bde7c5df926e7"
+    },
+    {
+      "id": "duat_face_daggerThrow",
+      "label": "Dagger Throw",
+      "group": "faces",
+      "faceKind": "daggerThrow",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_daggerThrow.imageset/duat_face_daggerThrow.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.922578,
+      "visibleBoundsAlpha16": [
+        67,
+        479,
+        1223,
+        744
+      ],
+      "contentRectPixels": [
+        63,
+        475,
+        1164,
+        273
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "49bf3a43a9dc5ef807695800dc7aa4c85d3424a4336cc4b50daeefcc01f4ac14"
+    },
+    {
+      "id": "duat_face_runeFire",
+      "label": "Fire Rune",
+      "group": "faces",
+      "faceKind": "runeFire",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeFire.imageset/duat_face_runeFire.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.727753,
+      "visibleBoundsAlpha16": [
+        144,
+        136,
+        1109,
+        1111
+      ],
+      "contentRectPixels": [
+        140,
+        132,
+        973,
+        983
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "36f0cc84756533ff1002921fb2eae8a27d70b8d893cedac22d6c1140cd1003af"
+    },
+    {
+      "id": "duat_face_runeFrost",
+      "label": "Frost Rune",
+      "group": "faces",
+      "faceKind": "runeFrost",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeFrost.imageset/duat_face_runeFrost.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.673601,
+      "visibleBoundsAlpha16": [
+        127,
+        115,
+        1124,
+        1125
+      ],
+      "contentRectPixels": [
+        123,
+        111,
+        1005,
+        1018
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "c5815901df0dc51c1b73316126a05c8ac868749aac91e9a5decafb7a748c64f0"
+    },
+    {
+      "id": "duat_face_runeLife",
+      "label": "Life Rune",
+      "group": "faces",
+      "faceKind": "runeLife",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeLife.imageset/duat_face_runeLife.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.737245,
+      "visibleBoundsAlpha16": [
+        73,
+        75,
+        1181,
+        1164
+      ],
+      "contentRectPixels": [
+        69,
+        71,
+        1116,
+        1097
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "39a6ea34b8f8524f6f7cb7a91ab94a7360bab40a86920192611424a57457f83c"
+    },
+    {
+      "id": "duat_face_runeArcane",
+      "label": "Arcane Rune",
+      "group": "faces",
+      "faceKind": "runeArcane",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeArcane.imageset/duat_face_runeArcane.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.734049,
+      "visibleBoundsAlpha16": [
+        169,
+        134,
+        1082,
+        1076
+      ],
+      "contentRectPixels": [
+        165,
+        130,
+        921,
+        950
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a00acfc4921f7ed0568f397ed2bb29cfe6a5d64b452bad42a2a4af62308e25e9"
+    },
+    {
+      "id": "duat_face_wandZap",
+      "label": "Wand Zap",
+      "group": "faces",
+      "faceKind": "wandZap",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_wandZap.imageset/duat_face_wandZap.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.851504,
+      "visibleBoundsAlpha16": [
+        212,
+        109,
+        1152,
+        1084
+      ],
+      "contentRectPixels": [
+        208,
+        105,
+        948,
+        983
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "52119f1a2e9b5c0b051cafc46eac82f6cbe71605d763362b8839b416b485e0fa"
+    },
+    {
+      "id": "duat_face_channel",
+      "label": "Channel",
+      "group": "faces",
+      "faceKind": "channel",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_channel.imageset/duat_face_channel.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.733203,
+      "visibleBoundsAlpha16": [
+        234,
+        58,
+        1022,
+        1143
+      ],
+      "contentRectPixels": [
+        230,
+        54,
+        796,
+        1093
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9bb9aaa8fa98337badd26875bffce1398e30b11d2840dd957200339d10bde14c"
+    },
+    {
+      "id": "duat_face_block",
+      "label": "Block",
+      "group": "faces",
+      "faceKind": "block",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_block.imageset/duat_face_block.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.51941,
+      "visibleBoundsAlpha16": [
+        261,
+        57,
+        994,
+        1198
+      ],
+      "contentRectPixels": [
+        257,
+        53,
+        741,
+        1149
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "5d99fd0549f1f17a541e14ab8790a54b5de82419d306e322bb9eb684796483c4"
+    },
+    {
+      "id": "duat_face_evade",
+      "label": "Evade",
+      "group": "faces",
+      "faceKind": "evade",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_evade.imageset/duat_face_evade.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.779963,
+      "visibleBoundsAlpha16": [
+        203,
+        94,
+        1088,
+        1030
+      ],
+      "contentRectPixels": [
+        199,
+        90,
+        893,
+        944
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "0d9a9e0e68ccbecd8ccdffbeea12e8e544bffae4390d1f872a70c3626562a696"
+    },
+    {
+      "id": "duat_face_heal",
+      "label": "Heal",
+      "group": "faces",
+      "faceKind": "heal",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_heal.imageset/duat_face_heal.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.717423,
+      "visibleBoundsAlpha16": [
+        213,
+        239,
+        1042,
+        1013
+      ],
+      "contentRectPixels": [
+        209,
+        235,
+        837,
+        782
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9e95af169f880aa53c2b9758a3013168abd121e3c1e96b4170118e20e634314d"
+    },
+    {
+      "id": "duat_face_focus",
+      "label": "Focus",
+      "group": "faces",
+      "faceKind": "focus",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_focus.imageset/duat_face_focus.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.654355,
+      "visibleBoundsAlpha16": [
+        114,
+        181,
+        1142,
+        1086
+      ],
+      "contentRectPixels": [
+        110,
+        177,
+        1036,
+        913
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8fe1c3dd0205e03d3321a4727dcaa9c3b5b704b879a6bd37f724088d35f61446"
+    },
+    {
+      "id": "duat_face_energize",
+      "label": "Energize",
+      "group": "faces",
+      "faceKind": "energize",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_energize.imageset/duat_face_energize.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.830227,
+      "visibleBoundsAlpha16": [
+        217,
+        145,
+        1037,
+        1113
+      ],
+      "contentRectPixels": [
+        213,
+        141,
+        828,
+        976
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "532ade71c2207d94fc2136a19ee5891253faae7e69446ba4b3149bc4c6709c3b"
+    },
+    {
+      "id": "duat_face_bomb",
+      "label": "Bomb",
+      "group": "faces",
+      "faceKind": "bomb",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_bomb.imageset/duat_face_bomb.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.691871,
+      "visibleBoundsAlpha16": [
+        253,
+        48,
+        1111,
+        1169
+      ],
+      "contentRectPixels": [
+        249,
+        44,
+        866,
+        1129
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "cad0703da752d1441ec59f9fa82dba56b93b516d0b55ff8d32226246d44891aa"
+    },
+    {
+      "id": "duat_face_poison",
+      "label": "Poison",
+      "group": "faces",
+      "faceKind": "poison",
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_poison.imageset/duat_face_poison.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.740015,
+      "visibleBoundsAlpha16": [
+        299,
+        110,
+        955,
+        1140
+      ],
+      "contentRectPixels": [
+        295,
+        106,
+        664,
+        1038
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f97871d648421480c973ec273554fe253afa00703315f49c2408c37a3811ccc5"
+    },
+    {
+      "id": "duat_ui_panel_large",
+      "label": "Large papyrus panel",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_panel_large.imageset/duat_ui_panel_large.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.245247,
+      "visibleBoundsAlpha16": [
+        55,
+        61,
+        1200,
+        1190
+      ],
+      "contentRectPixels": [
+        51,
+        57,
+        1153,
+        1137
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "d004ba08f204b8cccc66a59a3026aedb72494aee69214b3042986fb6c1003dc5",
+      "nineSliceAfterContentCropPixels": {
+        "top": 307,
+        "left": 288,
+        "bottom": 307,
+        "right": 288
+      },
+      "resizeNotes": "Suggested caps for moderate resizing after contentRect crop. Mid-edge ornament and paper texture can stretch; use separate corner/divider pieces for large aspect-ratio changes."
+    },
+    {
+      "id": "duat_ui_card_small",
+      "label": "Small papyrus card",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_card_small.imageset/duat_ui_card_small.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.652566,
+      "visibleBoundsAlpha16": [
+        358,
+        107,
+        897,
+        1143
+      ],
+      "contentRectPixels": [
+        354,
+        103,
+        547,
+        1044
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8d06a70409bd9d94f0ea1dcc9f38c0907b603388939abc0955070080a54833d1",
+      "nineSliceAfterContentCropPixels": {
+        "top": 282,
+        "left": 137,
+        "bottom": 282,
+        "right": 137
+      },
+      "resizeNotes": "Suggested caps for moderate resizing after contentRect crop. Mid-edge ornament and paper texture can stretch; use separate corner/divider pieces for large aspect-ratio changes."
+    },
+    {
+      "id": "duat_ui_button_primary_normal",
+      "label": "Primary action button \u2014 normal",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_normal.imageset/duat_ui_button_primary_normal.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.869806,
+      "visibleBoundsAlpha16": [
+        88,
+        525,
+        1167,
+        729
+      ],
+      "contentRectPixels": [
+        84,
+        521,
+        1087,
+        212
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ce0fb796e21b802bad3168f8f5a3f5c95f2994c752778fd22db3874c60b04e29"
+    },
+    {
+      "id": "duat_ui_cartouche",
+      "label": "Cartouche label",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_cartouche.imageset/duat_ui_cartouche.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.853595,
+      "visibleBoundsAlpha16": [
+        174,
+        493,
+        1072,
+        758
+      ],
+      "contentRectPixels": [
+        170,
+        489,
+        906,
+        273
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "23879c321b1df9fa96141ecb443187be073cf468588f704391d68ac90905c4a5"
+    },
+    {
+      "id": "duat_ui_button_primary_pressed",
+      "label": "Primary action button \u2014 pressed",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_pressed.imageset/duat_ui_button_primary_pressed.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.838311,
+      "visibleBoundsAlpha16": [
+        40,
+        503,
+        1215,
+        740
+      ],
+      "contentRectPixels": [
+        36,
+        499,
+        1183,
+        245
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "97eab53f3198ac92b7d2dcae540475fe943dc7664c67447cfe54e6423b4d0f89"
+    },
+    {
+      "id": "duat_ui_button_primary_disabled",
+      "label": "Primary action button \u2014 disabled",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_disabled.imageset/duat_ui_button_primary_disabled.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.867688,
+      "visibleBoundsAlpha16": [
+        48,
+        530,
+        1206,
+        732
+      ],
+      "contentRectPixels": [
+        44,
+        526,
+        1166,
+        210
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "d37312763e178b6841678c285fbb4af46b3d5ba591c6e99c4fb8ab4290ae9492"
+    },
+    {
+      "id": "duat_ui_button_primary_highlighted",
+      "label": "Primary action button \u2014 highlighted",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_highlighted.imageset/duat_ui_button_primary_highlighted.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.859727,
+      "visibleBoundsAlpha16": [
+        27,
+        515,
+        1228,
+        723
+      ],
+      "contentRectPixels": [
+        23,
+        511,
+        1209,
+        216
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "377bf4c72a5a09bb63a4534b6fb7bbac4213c815d344f791a10dd4d0b75ff91d"
+    },
+    {
+      "id": "duat_ui_die_empty",
+      "label": "Dice frame \u2014 empty",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_empty.imageset/duat_ui_die_empty.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.752867,
+      "visibleBoundsAlpha16": [
+        208,
+        208,
+        1048,
+        1029
+      ],
+      "contentRectPixels": [
+        204,
+        204,
+        848,
+        829
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "efb8608249e9180e767da0bb6dde381b3d27ef93f0bbbe376e1c6861db3a0e7b",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_ready",
+      "label": "Dice frame \u2014 ready",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_ready.imageset/duat_ui_die_ready.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.742158,
+      "visibleBoundsAlpha16": [
+        208,
+        209,
+        1045,
+        1019
+      ],
+      "contentRectPixels": [
+        204,
+        205,
+        845,
+        818
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "11a93c3792458b1237103dfd80435c622aa7e76306112ea50f70d21305003ca8",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_rolling",
+      "label": "Dice frame \u2014 rolling",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_rolling.imageset/duat_ui_die_rolling.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.776252,
+      "visibleBoundsAlpha16": [
+        155,
+        127,
+        1162,
+        1091
+      ],
+      "contentRectPixels": [
+        151,
+        123,
+        1015,
+        972
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "05efb10e671e8de4614a8adb00a71a5f5f678ed7ac873f374e12e543f2fe8b96",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_selected",
+      "label": "Dice frame \u2014 selected",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_selected.imageset/duat_ui_die_selected.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.715051,
+      "visibleBoundsAlpha16": [
+        185,
+        188,
+        1069,
+        1045
+      ],
+      "contentRectPixels": [
+        181,
+        184,
+        892,
+        865
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "fe946a4fd282f09bafc199e40a0ca956bd82febd26eff5587ff7f0bd9931edb8",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_held",
+      "label": "Dice frame \u2014 held",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_held.imageset/duat_ui_die_held.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.699319,
+      "visibleBoundsAlpha16": [
+        137,
+        109,
+        1115,
+        1087
+      ],
+      "contentRectPixels": [
+        133,
+        105,
+        986,
+        986
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "52fdd7dfe018f4c59469e297aec0886c8deea42ed14421c1199b597d05e1d746",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_spent",
+      "label": "Dice frame \u2014 spent",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_spent.imageset/duat_ui_die_spent.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.709749,
+      "visibleBoundsAlpha16": [
+        182,
+        184,
+        1073,
+        1047
+      ],
+      "contentRectPixels": [
+        178,
+        180,
+        899,
+        871
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "d896eb96627637b7db8870d5e9271341967edc2ab99ff82d5dfeb09c7f6bf954",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_die_critical",
+      "label": "Dice frame \u2014 critical",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "die-frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_critical.imageset/duat_ui_die_critical.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.763018,
+      "visibleBoundsAlpha16": [
+        119,
+        123,
+        1135,
+        1099
+      ],
+      "contentRectPixels": [
+        115,
+        119,
+        1024,
+        984
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "95e0687ced2c1062d5044cc30595fbe5a75c832ca065d26f62c4f976728dbdbd",
+      "safeFaceWindowNormalizedToCanvas": [
+        0.34,
+        0.34,
+        0.32,
+        0.32
+      ]
+    },
+    {
+      "id": "duat_ui_button_secondary_normal",
+      "label": "Secondary button \u2014 normal",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_normal.imageset/duat_ui_button_secondary_normal.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.832249,
+      "visibleBoundsAlpha16": [
+        75,
+        499,
+        1179,
+        751
+      ],
+      "contentRectPixels": [
+        71,
+        495,
+        1112,
+        260
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "2c5a34ae200a45e2c07cd5ce23b01bde100abf224fe34be2feb86b6347b6c458"
+    },
+    {
+      "id": "duat_ui_button_secondary_pressed",
+      "label": "Secondary button \u2014 pressed",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_pressed.imageset/duat_ui_button_secondary_pressed.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.828664,
+      "visibleBoundsAlpha16": [
+        61,
+        496,
+        1193,
+        741
+      ],
+      "contentRectPixels": [
+        57,
+        492,
+        1140,
+        253
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ceca173e62667fe230e62469c24282980737e4e62de9f1a1cdb2553fe5c6117a"
+    },
+    {
+      "id": "duat_ui_button_secondary_disabled",
+      "label": "Secondary button \u2014 disabled",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_disabled.imageset/duat_ui_button_secondary_disabled.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.902208,
+      "visibleBoundsAlpha16": [
+        112,
+        553,
+        1142,
+        701
+      ],
+      "contentRectPixels": [
+        108,
+        549,
+        1038,
+        156
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "296493cf188dec3ec32df9fd1132687166d02cf3c6b272284f866f0fc13f3256"
+    },
+    {
+      "id": "duat_ui_button_secondary_selected",
+      "label": "Secondary button \u2014 selected",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "button",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_selected.imageset/duat_ui_button_secondary_selected.png",
+      "width": 2146,
+      "height": 733,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.616725,
+      "visibleBoundsAlpha16": [
+        77,
+        197,
+        2070,
+        519
+      ],
+      "contentRectPixels": [
+        73,
+        193,
+        2001,
+        330
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "2f13ae663c361ae5d153bcb240b33cdaf57f67c856ff1b8e96a90e6ecd8651cb"
+    },
+    {
+      "id": "duat_ui_rarity_clay",
+      "label": "Rarity frame \u2014 clay",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_clay.imageset/duat_ui_rarity_clay.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.827789,
+      "visibleBoundsAlpha16": [
+        167,
+        170,
+        1089,
+        1060
+      ],
+      "contentRectPixels": [
+        163,
+        166,
+        930,
+        898
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "4b118bb8e03c22a5d10e5a445552542787480d61bf617af5161a1100412b6374"
+    },
+    {
+      "id": "duat_ui_rarity_copper",
+      "label": "Rarity frame \u2014 copper",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_copper.imageset/duat_ui_rarity_copper.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.848126,
+      "visibleBoundsAlpha16": [
+        134,
+        155,
+        1120,
+        1094
+      ],
+      "contentRectPixels": [
+        130,
+        151,
+        994,
+        947
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "630115355ec649670b2c78001ca860b39cd36c3775347e16df79658733202b29"
+    },
+    {
+      "id": "duat_ui_rarity_lapis",
+      "label": "Rarity frame \u2014 lapis",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_lapis.imageset/duat_ui_rarity_lapis.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.796245,
+      "visibleBoundsAlpha16": [
+        146,
+        169,
+        1108,
+        1083
+      ],
+      "contentRectPixels": [
+        142,
+        165,
+        970,
+        922
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "dcacc50dde053ea363e793e7225688769dec5698482da8241503ae9aebc2021b"
+    },
+    {
+      "id": "duat_ui_rarity_goldLeaf",
+      "label": "Rarity frame \u2014 goldLeaf",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_goldLeaf.imageset/duat_ui_rarity_goldLeaf.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.79601,
+      "visibleBoundsAlpha16": [
+        78,
+        102,
+        1176,
+        1151
+      ],
+      "contentRectPixels": [
+        74,
+        98,
+        1106,
+        1057
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "0f7e0a20345804219d42aa35398ec85b8b4b38bbcee8f805496ba1f286e0d10c"
+    },
+    {
+      "id": "duat_ui_class_archer",
+      "label": "Class card frame \u2014 archer",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_archer.imageset/duat_ui_class_archer.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.904586,
+      "visibleBoundsAlpha16": [
+        245,
+        10,
+        1009,
+        1238
+      ],
+      "contentRectPixels": [
+        241,
+        6,
+        772,
+        1236
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "5775e396011d956d3839a4fd6a1e8d8f8eba84579c26a925290df824bac3eacd"
+    },
+    {
+      "id": "duat_ui_class_warrior",
+      "label": "Class card frame \u2014 warrior",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_warrior.imageset/duat_ui_class_warrior.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.888782,
+      "visibleBoundsAlpha16": [
+        284,
+        43,
+        971,
+        1172
+      ],
+      "contentRectPixels": [
+        280,
+        39,
+        695,
+        1137
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7e9e091450c7a24c6e3758607ae4844b0f2fd8ad7cfd9e655ea2b1e4f965636c"
+    },
+    {
+      "id": "duat_ui_class_rogue",
+      "label": "Class card frame \u2014 rogue",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_rogue.imageset/duat_ui_class_rogue.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.890644,
+      "visibleBoundsAlpha16": [
+        290,
+        16,
+        965,
+        1149
+      ],
+      "contentRectPixels": [
+        286,
+        12,
+        683,
+        1141
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8bb952de22aa17dc35984bbda31a5a22ac72f40e0f3ddf7e1ce6c70b7b07c9f0"
+    },
+    {
+      "id": "duat_ui_class_magician",
+      "label": "Class card frame \u2014 magician",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_magician.imageset/duat_ui_class_magician.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.876523,
+      "visibleBoundsAlpha16": [
+        322,
+        80,
+        932,
+        1140
+      ],
+      "contentRectPixels": [
+        318,
+        76,
+        618,
+        1068
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "d38c881411bd3dd1b9224fbed03c1458bb72e4ed4bfad47d7cf82245edaa92d0"
+    },
+    {
+      "id": "duat_ui_chain_connector",
+      "label": "Turn-plan chain connector",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_chain_connector.imageset/duat_ui_chain_connector.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.754644,
+      "visibleBoundsAlpha16": [
+        84,
+        394,
+        1171,
+        868
+      ],
+      "contentRectPixels": [
+        80,
+        390,
+        1095,
+        482
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "bd5a19daf4488afa0d31919be81a79a271d6ab617e028af6135151af6c728391"
+    },
+    {
+      "id": "duat_ui_tab_unselected",
+      "label": "Tab selector \u2014 unselected",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "outline",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_tab_unselected.imageset/duat_ui_tab_unselected.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.928857,
+      "visibleBoundsAlpha16": [
+        60,
+        524,
+        1194,
+        729
+      ],
+      "contentRectPixels": [
+        56,
+        520,
+        1142,
+        213
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "014df291b0cf8dfdd6fa865eef6d8b9875fdab604661fd069af69e0c5cadb449"
+    },
+    {
+      "id": "duat_ui_tab_selected",
+      "label": "Tab selector \u2014 selected",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "outline",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_tab_selected.imageset/duat_ui_tab_selected.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.892554,
+      "visibleBoundsAlpha16": [
+        42,
+        484,
+        1212,
+        785
+      ],
+      "contentRectPixels": [
+        38,
+        480,
+        1178,
+        309
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8aa13cac07455dbae6d221e67811aabc25f413e0461455af7b5394fbe909f9bc"
+    },
+    {
+      "id": "duat_ui_turn_slot",
+      "label": "Turn-plan face slot",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_turn_slot.imageset/duat_ui_turn_slot.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.699618,
+      "visibleBoundsAlpha16": [
+        177,
+        185,
+        1077,
+        1068
+      ],
+      "contentRectPixels": [
+        173,
+        181,
+        908,
+        891
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "c4277c507b0fd78e6a5e68474abd7ced9079bf6667113c3910e4e15973a73de7"
+    },
+    {
+      "id": "duat_ui_cost_badge",
+      "label": "Stamina cost badge",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "badge",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_cost_badge.imageset/duat_ui_cost_badge.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.631339,
+      "visibleBoundsAlpha16": [
+        128,
+        185,
+        1126,
+        1081
+      ],
+      "contentRectPixels": [
+        124,
+        181,
+        1006,
+        904
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "240f2190f2a97b8e4f505f17e645f491f0acffe718fc7713ca802ce71b77815f"
+    },
+    {
+      "id": "duat_ui_echo_marker",
+      "label": "Next-turn / echo marker",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_echo_marker.imageset/duat_ui_echo_marker.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.65803,
+      "visibleBoundsAlpha16": [
+        109,
+        74,
+        1173,
+        1184
+      ],
+      "contentRectPixels": [
+        105,
+        70,
+        1072,
+        1118
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "4a2708bf918a4fb5451935ed2e002929d3b0b322b001184267a4a734192010cc"
+    },
+    {
+      "id": "duat_ui_enemy_intent",
+      "label": "Enemy intent plate",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_enemy_intent.imageset/duat_ui_enemy_intent.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.785069,
+      "visibleBoundsAlpha16": [
+        53,
+        440,
+        1202,
+        795
+      ],
+      "contentRectPixels": [
+        49,
+        436,
+        1157,
+        363
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "fa001035c314148eb75b44854ede467f82c2c0c1dbf80f1ffe0b338aec5899d7"
+    },
+    {
+      "id": "duat_ui_bar_track",
+      "label": "Resource bar track",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "bar",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_track.imageset/duat_ui_bar_track.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.921325,
+      "visibleBoundsAlpha16": [
+        22,
+        577,
+        1233,
+        677
+      ],
+      "contentRectPixels": [
+        18,
+        573,
+        1219,
+        108
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7b87d38012c4b1e5d9ef2bd554eb5a055753bd1d09967cf67713d9c351eea977"
+    },
+    {
+      "id": "duat_ui_bar_fill_health",
+      "label": "Health bar fill",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "bar",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_health.imageset/duat_ui_bar_fill_health.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.952998,
+      "visibleBoundsAlpha16": [
+        65,
+        595,
+        1189,
+        658
+      ],
+      "contentRectPixels": [
+        61,
+        591,
+        1132,
+        71
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "0a207db43c29f280c716ef6a4b497fea414a4ae7aa738b05373fb549667c6414"
+    },
+    {
+      "id": "duat_ui_bar_fill_shield",
+      "label": "Shield bar fill",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "bar",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_shield.imageset/duat_ui_bar_fill_shield.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.959944,
+      "visibleBoundsAlpha16": [
+        86,
+        602,
+        1168,
+        656
+      ],
+      "contentRectPixels": [
+        82,
+        598,
+        1090,
+        62
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "e12a41e90a80b48f25a5489bc80ed6742b41bb051d5c50d99ed438ce2114d2d2"
+    },
+    {
+      "id": "duat_ui_divider_gold",
+      "label": "Gold and lapis divider",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "ornament",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_divider_gold.imageset/duat_ui_divider_gold.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.9497,
+      "visibleBoundsAlpha16": [
+        33,
+        596,
+        1221,
+        661
+      ],
+      "contentRectPixels": [
+        29,
+        592,
+        1196,
+        73
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f155e4f670b88900a066ba835afa6ac2b0faf2c45cd6e259d518b7a5731acc3d"
+    },
+    {
+      "id": "duat_ui_bar_endcap",
+      "label": "Resource bar end cap",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "ornament",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_endcap.imageset/duat_ui_bar_endcap.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.802482,
+      "visibleBoundsAlpha16": [
+        238,
+        222,
+        1017,
+        1029
+      ],
+      "contentRectPixels": [
+        234,
+        218,
+        787,
+        815
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f488376ed06f4f8ebc3e563ac6983b79689e68919e4deb04ad34f8d9a3cf71d5"
+    },
+    {
+      "id": "duat_ui_bar_fill_armour",
+      "label": "Armour bar fill",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "bar",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_armour.imageset/duat_ui_bar_fill_armour.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.956488,
+      "visibleBoundsAlpha16": [
+        87,
+        597,
+        1167,
+        656
+      ],
+      "contentRectPixels": [
+        83,
+        593,
+        1088,
+        67
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f50c23689ffd9df5f6011296f5ce446466b451e46b32a34081f716e5c6731ee3"
+    },
+    {
+      "id": "duat_ui_stamina_full",
+      "label": "Stamina pip \u2014 full",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_full.imageset/duat_ui_stamina_full.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.859797,
+      "visibleBoundsAlpha16": [
+        366,
+        225,
+        888,
+        1030
+      ],
+      "contentRectPixels": [
+        362,
+        221,
+        530,
+        813
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "07021151045ab9b3b495474e2f6fad6774b687d885f0d694290534349af77262"
+    },
+    {
+      "id": "duat_ui_stamina_empty",
+      "label": "Stamina pip \u2014 empty",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_empty.imageset/duat_ui_stamina_empty.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.877165,
+      "visibleBoundsAlpha16": [
+        362,
+        265,
+        892,
+        968
+      ],
+      "contentRectPixels": [
+        358,
+        261,
+        538,
+        711
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "fe60f47f793f7e6092f1d621d0038c6319f1892bd7fd72ab3b3107cccd9b9647"
+    },
+    {
+      "id": "duat_ui_target_ring",
+      "label": "Target selection ring",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "outline",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_target_ring.imageset/duat_ui_target_ring.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.881904,
+      "visibleBoundsAlpha16": [
+        51,
+        377,
+        1204,
+        903
+      ],
+      "contentRectPixels": [
+        47,
+        373,
+        1161,
+        534
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "c8ec23684651329d1d879cbc9af20ce2677b5fe81b7d6bfb75e00f730566d8a6"
+    },
+    {
+      "id": "duat_ui_night_hour",
+      "label": "Night dial hour mark",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_hour.imageset/duat_ui_night_hour.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.923388,
+      "visibleBoundsAlpha16": [
+        468,
+        349,
+        787,
+        879
+      ],
+      "contentRectPixels": [
+        464,
+        345,
+        327,
+        538
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "27e259231c70cb13d17085d952a0e9af15300900593bd99d094b3f7cad63cf3f"
+    },
+    {
+      "id": "duat_ui_night_current",
+      "label": "Night dial current-hour marker",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_current.imageset/duat_ui_night_current.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.893092,
+      "visibleBoundsAlpha16": [
+        312,
+        306,
+        943,
+        930
+      ],
+      "contentRectPixels": [
+        308,
+        302,
+        639,
+        632
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "bc7fd799b45207841ca2d46d8f85d6cc3c2532d28392dc1349cbd262e456d3d9"
+    },
+    {
+      "id": "duat_ui_night_cleared",
+      "label": "Night dial cleared mark",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_cleared.imageset/duat_ui_night_cleared.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.90323,
+      "visibleBoundsAlpha16": [
+        315,
+        297,
+        1036,
+        940
+      ],
+      "contentRectPixels": [
+        311,
+        293,
+        729,
+        651
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a0b072dac6a46b0c1d38bca89958d552fdc88c6a58e2d3815134ceaafe98c2ec"
+    },
+    {
+      "id": "duat_ui_night_boundary",
+      "label": "Night dial gate boundary",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_boundary.imageset/duat_ui_night_boundary.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.608113,
+      "visibleBoundsAlpha16": [
+        83,
+        228,
+        1171,
+        999
+      ],
+      "contentRectPixels": [
+        79,
+        224,
+        1096,
+        779
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "4daeef1216541a155839f5fecc64f84dd88e858916232e428f17edbe6160167d"
+    },
+    {
+      "id": "duat_ui_route_available",
+      "label": "Route node \u2014 available",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_available.imageset/duat_ui_route_available.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.856895,
+      "visibleBoundsAlpha16": [
+        37,
+        50,
+        1216,
+        1195
+      ],
+      "contentRectPixels": [
+        33,
+        46,
+        1187,
+        1153
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "602dd43628e61ebb1d6919536244ee3fc39f6b7f940b797caf282e1181ce66c0"
+    },
+    {
+      "id": "duat_ui_route_selected",
+      "label": "Route node \u2014 selected",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_selected.imageset/duat_ui_route_selected.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.784178,
+      "visibleBoundsAlpha16": [
+        13,
+        6,
+        1241,
+        1242
+      ],
+      "contentRectPixels": [
+        9,
+        2,
+        1236,
+        1244
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "86bd70ebfaaa4409d1a9fbdf5442f55aee73a22903b8bd034d120bf65b24feb5"
+    },
+    {
+      "id": "duat_ui_route_cleared",
+      "label": "Route node \u2014 cleared",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_cleared.imageset/duat_ui_route_cleared.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.70067,
+      "visibleBoundsAlpha16": [
+        53,
+        41,
+        1201,
+        1163
+      ],
+      "contentRectPixels": [
+        49,
+        37,
+        1156,
+        1130
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9757449705c489043f1de7a64346df9fe90fff9ace76606991d2bd98888daf36"
+    },
+    {
+      "id": "duat_ui_route_locked",
+      "label": "Route node \u2014 locked",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_locked.imageset/duat_ui_route_locked.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.724015,
+      "visibleBoundsAlpha16": [
+        57,
+        8,
+        1195,
+        1215
+      ],
+      "contentRectPixels": [
+        53,
+        4,
+        1146,
+        1215
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "c480f5c1293f70c3fd069f76dd3b80b15ee7b78843a78f4e8e7e6e26c3840ba6"
+    },
+    {
+      "id": "duat_ui_route_boss",
+      "label": "Route node \u2014 boss",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_boss.imageset/duat_ui_route_boss.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.762233,
+      "visibleBoundsAlpha16": [
+        117,
+        68,
+        1137,
+        1186
+      ],
+      "contentRectPixels": [
+        113,
+        64,
+        1028,
+        1126
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f7d83d8bed68e065a54ad737fd6b4b87b5709e038278adc5b63d9db82f8dfce7"
+    },
+    {
+      "id": "duat_ui_banner",
+      "label": "Shared arrival and reward banner",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner.imageset/duat_ui_banner.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.6699,
+      "visibleBoundsAlpha16": [
+        35,
+        212,
+        1948,
+        548
+      ],
+      "contentRectPixels": [
+        31,
+        208,
+        1921,
+        344
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a79294a1feb479a7e03e46d18b90bc5efe10d6d73ac4356dd83dd825a6920b4f"
+    },
+    {
+      "id": "duat_ui_corner_gold",
+      "label": "Gold corner ornament",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "ornament",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_corner_gold.imageset/duat_ui_corner_gold.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.819215,
+      "visibleBoundsAlpha16": [
+        61,
+        67,
+        1165,
+        1156
+      ],
+      "contentRectPixels": [
+        57,
+        63,
+        1112,
+        1097
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "5fcbfecb228d523bd7c68a132e202683597f7f941eeea23e5343832473bb8f82"
+    },
+    {
+      "id": "duat_ui_stamina_reserve",
+      "label": "Stamina reserve indicator",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_reserve.imageset/duat_ui_stamina_reserve.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.777844,
+      "visibleBoundsAlpha16": [
+        282,
+        208,
+        1050,
+        1006
+      ],
+      "contentRectPixels": [
+        278,
+        204,
+        776,
+        806
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "bb8ee2040a0b2f18024b4d225abe120f76edfa852248f1717990a680c8abe19b"
+    },
+    {
+      "id": "duat_deity_ra",
+      "label": "Ra divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_ra.imageset/duat_deity_ra.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.692897,
+      "visibleBoundsAlpha16": [
+        68,
+        47,
+        1185,
+        1158
+      ],
+      "contentRectPixels": [
+        64,
+        43,
+        1125,
+        1119
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b8de2088dab665a9048f8d6ef68ef8678b3afbac32abd0cd83a06029585ad452"
+    },
+    {
+      "id": "duat_deity_sobek",
+      "label": "Sobek divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_sobek.imageset/duat_deity_sobek.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.570022,
+      "visibleBoundsAlpha16": [
+        108,
+        169,
+        1186,
+        1084
+      ],
+      "contentRectPixels": [
+        104,
+        165,
+        1086,
+        923
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7b2a244557dafe967363a13a48d2ac25dc00a76972066bc1e5d8eb79ad6feeea"
+    },
+    {
+      "id": "duat_deity_anubis",
+      "label": "Anubis divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_anubis.imageset/duat_deity_anubis.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.708559,
+      "visibleBoundsAlpha16": [
+        260,
+        6,
+        1031,
+        1196
+      ],
+      "contentRectPixels": [
+        256,
+        2,
+        779,
+        1198
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "e05edc8388cac007f66415425ff928dbd1b4d760cae4c9597c6edd36db75b6b8"
+    },
+    {
+      "id": "duat_deity_bes",
+      "label": "Bes divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_bes.imageset/duat_deity_bes.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.576855,
+      "visibleBoundsAlpha16": [
+        169,
+        122,
+        1086,
+        1136
+      ],
+      "contentRectPixels": [
+        165,
+        118,
+        925,
+        1022
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "987d736edf81822b3bf59a5a638f68cb8e053e8a2599f394f92baff4ed6374c8"
+    },
+    {
+      "id": "duat_deity_horus",
+      "label": "Horus divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_horus.imageset/duat_deity_horus.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.574348,
+      "visibleBoundsAlpha16": [
+        150,
+        97,
+        1146,
+        1153
+      ],
+      "contentRectPixels": [
+        146,
+        93,
+        1004,
+        1064
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "3b2f2f28b15b755c7cb7e54c2b79861c0ef89aca3ac57b0955d86eb699f9270b"
+    },
+    {
+      "id": "duat_deity_bastet",
+      "label": "Bastet divine sigil",
+      "group": "deities",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_bastet.imageset/duat_deity_bastet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.698391,
+      "visibleBoundsAlpha16": [
+        314,
+        42,
+        940,
+        1187
+      ],
+      "contentRectPixels": [
+        310,
+        38,
+        634,
+        1153
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "6ce8bcf30adccc27e9e621a229461c63123067c68577c8a632f4bb63b2e8c0ca"
+    },
+    {
+      "id": "duat_route_guardian",
+      "label": "Guardian encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_guardian.imageset/duat_route_guardian.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.547979,
+      "visibleBoundsAlpha16": [
+        124,
+        49,
+        1167,
+        1174
+      ],
+      "contentRectPixels": [
+        120,
+        45,
+        1051,
+        1133
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "796652b7e72e79d84cf0b3950d00f656c82d41697ec15246bbe01ee972afe883"
+    },
+    {
+      "id": "duat_route_herald",
+      "label": "Herald encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_herald.imageset/duat_route_herald.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.82697,
+      "visibleBoundsAlpha16": [
+        330,
+        21,
+        925,
+        1229
+      ],
+      "contentRectPixels": [
+        326,
+        17,
+        603,
+        1216
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b93e05eced5e82b06ee54dc0ded96927e97e5c50f7b88ec8349bb92973711fe2"
+    },
+    {
+      "id": "duat_route_shrine",
+      "label": "Shrine encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_shrine.imageset/duat_route_shrine.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.587629,
+      "visibleBoundsAlpha16": [
+        110,
+        217,
+        1145,
+        1037
+      ],
+      "contentRectPixels": [
+        106,
+        213,
+        1043,
+        828
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "824fd035061a1d10cb910d1e81204e182d0b97512c8b19a515c08540a88eb1d7"
+    },
+    {
+      "id": "duat_route_ferryman",
+      "label": "Ferryman encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_ferryman.imageset/duat_route_ferryman.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.712704,
+      "visibleBoundsAlpha16": [
+        111,
+        194,
+        1147,
+        1075
+      ],
+      "contentRectPixels": [
+        107,
+        190,
+        1044,
+        889
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "5cfdf9c8a40e7d88f4de663bf138f9b4ac77c5a773b700382f12dab233023b5f"
+    },
+    {
+      "id": "duat_route_mooring",
+      "label": "Mooring encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_mooring.imageset/duat_route_mooring.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.628355,
+      "visibleBoundsAlpha16": [
+        132,
+        216,
+        1148,
+        1045
+      ],
+      "contentRectPixels": [
+        128,
+        212,
+        1024,
+        837
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "83726a3beca8adfde6540bf90e972519e2b4ec21903a29acd480a93f49f8f43a"
+    },
+    {
+      "id": "duat_route_omen",
+      "label": "Omen encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_omen.imageset/duat_route_omen.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.792752,
+      "visibleBoundsAlpha16": [
+        252,
+        149,
+        1002,
+        1111
+      ],
+      "contentRectPixels": [
+        248,
+        145,
+        758,
+        970
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "36bee09d8611734eb76f9af097bbf04a20460c6181700233d7602ace03c24b38"
+    },
+    {
+      "id": "duat_route_serpentLord",
+      "label": "Serpent-Lord encounter",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_serpentLord.imageset/duat_route_serpentLord.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.635351,
+      "visibleBoundsAlpha16": [
+        275,
+        54,
+        1020,
+        1204
+      ],
+      "contentRectPixels": [
+        271,
+        50,
+        753,
+        1158
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "07c4614159237556c1cb7cacbae08256b4dc8102b24a3d2b7e695b3c8e18a94d"
+    },
+    {
+      "id": "duat_gate_reeds",
+      "label": "Gate of Reeds emblem",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_reeds.imageset/duat_gate_reeds.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.704608,
+      "visibleBoundsAlpha16": [
+        175,
+        91,
+        1079,
+        1163
+      ],
+      "contentRectPixels": [
+        171,
+        87,
+        912,
+        1080
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a419f6e494e5296488511ec196e259fcc3bcad20046c29d0c0d1f85848e56082"
+    },
+    {
+      "id": "duat_gate_fire",
+      "label": "Gate of Fire emblem",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_fire.imageset/duat_gate_fire.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.652235,
+      "visibleBoundsAlpha16": [
+        156,
+        100,
+        1098,
+        1111
+      ],
+      "contentRectPixels": [
+        152,
+        96,
+        950,
+        1019
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "35855381ff72a8e06cee1f50a0aa3e32ac7e6964b8446e1f3fa44ce0b091a3bf"
+    },
+    {
+      "id": "duat_gate_coils",
+      "label": "Gate of Coils emblem",
+      "group": "navigation",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_coils.imageset/duat_gate_coils.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.602147,
+      "visibleBoundsAlpha16": [
+        129,
+        71,
+        1117,
+        1206
+      ],
+      "contentRectPixels": [
+        125,
+        67,
+        996,
+        1143
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "2052b30bca95943b4b95228ddb2f9eb83c9a36144763b053d92f17cdbe647e22"
+    },
+    {
+      "id": "duat_item_healingPotion",
+      "label": "Healing Potion",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_healingPotion.imageset/duat_item_healingPotion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.624368,
+      "visibleBoundsAlpha16": [
+        226,
+        21,
+        1027,
+        1208
+      ],
+      "contentRectPixels": [
+        222,
+        17,
+        809,
+        1195
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "172e3117a46b4e19cb4d83c13dc2f1e61cb6f89e10b937fc0b529f408d652144"
+    },
+    {
+      "id": "duat_item_smokeBomb",
+      "label": "Smoke Bomb",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_smokeBomb.imageset/duat_item_smokeBomb.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.755985,
+      "visibleBoundsAlpha16": [
+        296,
+        16,
+        963,
+        1167
+      ],
+      "contentRectPixels": [
+        292,
+        12,
+        675,
+        1159
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "dacc9aec8b964cb47c6cdafd90db81f02f802488bfdecd1493abc5fe77c534fc"
+    },
+    {
+      "id": "duat_item_poisonVial",
+      "label": "Poison Vial",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_poisonVial.imageset/duat_item_poisonVial.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.861268,
+      "visibleBoundsAlpha16": [
+        480,
+        34,
+        771,
+        1153
+      ],
+      "contentRectPixels": [
+        476,
+        30,
+        299,
+        1127
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "948aa6335b07d75222b014fbaff0f1577ffbd33acf5385eaec90d98d1810b5fa"
+    },
+    {
+      "id": "duat_item_explosiveCharge",
+      "label": "Explosive Charge",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_explosiveCharge.imageset/duat_item_explosiveCharge.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.7342,
+      "visibleBoundsAlpha16": [
+        269,
+        47,
+        985,
+        1053
+      ],
+      "contentRectPixels": [
+        265,
+        43,
+        724,
+        1014
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "0ca06381e2bb2cb9936cddcece4d644cd3e8eaae4cc2f1abad82294372282348"
+    },
+    {
+      "id": "duat_item_alchemistsKit",
+      "label": "Alchemist's Kit",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_alchemistsKit.imageset/duat_item_alchemistsKit.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.532293,
+      "visibleBoundsAlpha16": [
+        134,
+        122,
+        1133,
+        1131
+      ],
+      "contentRectPixels": [
+        130,
+        118,
+        1007,
+        1017
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8c44e3549f779e2b42cb798d0ba652e2cf72808536ae2cf1b745bb3642eae614"
+    },
+    {
+      "id": "duat_item_warlocksCharm",
+      "label": "Warlock's Charm",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_warlocksCharm.imageset/duat_item_warlocksCharm.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.830106,
+      "visibleBoundsAlpha16": [
+        443,
+        15,
+        815,
+        1161
+      ],
+      "contentRectPixels": [
+        439,
+        11,
+        380,
+        1154
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7200f457c4d1a00873969c95a46c19892debd03985bfc9e03fd9a99995f4b25b"
+    },
+    {
+      "id": "duat_item_phoenixFlask",
+      "label": "Phoenix Flask",
+      "group": "items",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_phoenixFlask.imageset/duat_item_phoenixFlask.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.634134,
+      "visibleBoundsAlpha16": [
+        180,
+        15,
+        1074,
+        1231
+      ],
+      "contentRectPixels": [
+        176,
+        11,
+        902,
+        1224
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9712542780ec5577dbbbe603f7567ba038efe96471026f556a3639851a55628b"
+    },
+    {
+      "id": "duat_relic_brazierOfDawn",
+      "label": "Brazier of the Dawn",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_brazierOfDawn.imageset/duat_relic_brazierOfDawn.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.675219,
+      "visibleBoundsAlpha16": [
+        192,
+        18,
+        1061,
+        1210
+      ],
+      "contentRectPixels": [
+        188,
+        14,
+        877,
+        1200
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "64e484663d53243c17b4d6e9f5dffec12dfa8e99d953d1630ce4da7d5463837b"
+    },
+    {
+      "id": "duat_relic_vialOfNile",
+      "label": "Vial of the Nile",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_vialOfNile.imageset/duat_relic_vialOfNile.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.665535,
+      "visibleBoundsAlpha16": [
+        185,
+        106,
+        1069,
+        1147
+      ],
+      "contentRectPixels": [
+        181,
+        102,
+        892,
+        1049
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9d00bbf8898eee868fd2c015bbbe3aefeb68eb017e1a3c567c085abfaf6fae05"
+    },
+    {
+      "id": "duat_relic_wardOfBes",
+      "label": "Ward of Bes",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_wardOfBes.imageset/duat_relic_wardOfBes.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.596815,
+      "visibleBoundsAlpha16": [
+        211,
+        9,
+        1043,
+        1198
+      ],
+      "contentRectPixels": [
+        207,
+        5,
+        840,
+        1197
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "eb582d95d2f62c4da90ea8ed15553ead478e6500fc1c3575c9417861cab28731"
+    },
+    {
+      "id": "duat_relic_eyeOfHorus",
+      "label": "Eye of Horus",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_eyeOfHorus.imageset/duat_relic_eyeOfHorus.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.637481,
+      "visibleBoundsAlpha16": [
+        78,
+        38,
+        1201,
+        1153
+      ],
+      "contentRectPixels": [
+        74,
+        34,
+        1131,
+        1123
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "61f9712cfad30a10113d79b6aad005d1bb7d025674305f8481dae387712ea4e8"
+    },
+    {
+      "id": "duat_relic_ferrymansToll",
+      "label": "The Ferryman's Toll",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_ferrymansToll.imageset/duat_relic_ferrymansToll.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.728791,
+      "visibleBoundsAlpha16": [
+        258,
+        108,
+        1053,
+        1147
+      ],
+      "contentRectPixels": [
+        254,
+        104,
+        803,
+        1047
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ceaa96e254f9424700645c7beea7c5a41a92ee6c9acf580754df378aff84d154"
+    },
+    {
+      "id": "duat_relic_canopicHeart",
+      "label": "Canopic Heart",
+      "group": "relics",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_canopicHeart.imageset/duat_relic_canopicHeart.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.657803,
+      "visibleBoundsAlpha16": [
+        304,
+        20,
+        950,
+        1232
+      ],
+      "contentRectPixels": [
+        300,
+        16,
+        654,
+        1220
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f6a5a7949791fd66c291a3d5902099abc13388d860db3098cd3dc50af9dd7307"
+    },
+    {
+      "id": "duat_chisel_twinBowstring",
+      "label": "Twin Bowstring",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_twinBowstring.imageset/duat_chisel_twinBowstring.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.874207,
+      "visibleBoundsAlpha16": [
+        280,
+        17,
+        1143,
+        1226
+      ],
+      "contentRectPixels": [
+        276,
+        13,
+        871,
+        1217
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "97c5039e1ed1aff246d1a2b851fa4a1fd0e9cba0aed9982cda5dc25c9fbff0f9"
+    },
+    {
+      "id": "duat_chisel_siegeDraw",
+      "label": "Siege Draw",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_siegeDraw.imageset/duat_chisel_siegeDraw.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.719228,
+      "visibleBoundsAlpha16": [
+        47,
+        5,
+        1210,
+        1246
+      ],
+      "contentRectPixels": [
+        43,
+        1,
+        1171,
+        1249
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "da667792c5dad649890e421f421148377a79b84c19d015eaceb47793667f68df"
+    },
+    {
+      "id": "duat_chisel_adjustableNock",
+      "label": "Adjustable Nock",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_adjustableNock.imageset/duat_chisel_adjustableNock.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.56616,
+      "visibleBoundsAlpha16": [
+        47,
+        66,
+        1222,
+        1173
+      ],
+      "contentRectPixels": [
+        43,
+        62,
+        1183,
+        1115
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b3a65a1c4b2b6638b9a77f4f5b66367cffb7e5f9aa04da6be2ae0fe45128bf21"
+    },
+    {
+      "id": "duat_chisel_crescentEdge",
+      "label": "Crescent Edge",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_crescentEdge.imageset/duat_chisel_crescentEdge.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.800925,
+      "visibleBoundsAlpha16": [
+        66,
+        10,
+        1189,
+        1212
+      ],
+      "contentRectPixels": [
+        62,
+        6,
+        1131,
+        1210
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a1fc4d896ee7b50f07a16a5870ab48c80b7ce4cc87a3c94ecb61bfa4310993f5"
+    },
+    {
+      "id": "duat_chisel_counterweight",
+      "label": "Counterweight",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_counterweight.imageset/duat_chisel_counterweight.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.784395,
+      "visibleBoundsAlpha16": [
+        316,
+        14,
+        934,
+        1233
+      ],
+      "contentRectPixels": [
+        312,
+        10,
+        626,
+        1227
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ab5dc9bcdc17905d2e1375adbe9131111774bb84ac3c792850bf560521aade68"
+    },
+    {
+      "id": "duat_chisel_relentlessAdvance",
+      "label": "Relentless Advance",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_relentlessAdvance.imageset/duat_chisel_relentlessAdvance.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.600838,
+      "visibleBoundsAlpha16": [
+        73,
+        149,
+        1154,
+        1118
+      ],
+      "contentRectPixels": [
+        69,
+        145,
+        1089,
+        977
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "542c215673fd21df55e455a6f9badff853a9ce7a0fec27aaae16bfa79da6edf6"
+    },
+    {
+      "id": "duat_chisel_returningKnife",
+      "label": "Returning Knife",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_returningKnife.imageset/duat_chisel_returningKnife.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.657415,
+      "visibleBoundsAlpha16": [
+        80,
+        83,
+        1189,
+        1158
+      ],
+      "contentRectPixels": [
+        76,
+        79,
+        1117,
+        1083
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "e9f2c044d18f0439b63f4cc282b8e22aea2bd842a6f4b5e2926d75c7da1886b2"
+    },
+    {
+      "id": "duat_chisel_concealedBlade",
+      "label": "Concealed Blade",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_concealedBlade.imageset/duat_chisel_concealedBlade.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.578516,
+      "visibleBoundsAlpha16": [
+        255,
+        92,
+        1131,
+        1166
+      ],
+      "contentRectPixels": [
+        251,
+        88,
+        884,
+        1082
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a88134ecf46812192096ee5490a9200944c1af39aa985a8342c829b93265a300"
+    },
+    {
+      "id": "duat_chisel_assassinsCommitment",
+      "label": "Assassin's Commitment",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_assassinsCommitment.imageset/duat_chisel_assassinsCommitment.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.68063,
+      "visibleBoundsAlpha16": [
+        55,
+        46,
+        1199,
+        1137
+      ],
+      "contentRectPixels": [
+        51,
+        42,
+        1152,
+        1099
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a92cb7f64ed43c68847530435cd21ce5a6b26866b2c42693bab9988e809418fe"
+    },
+    {
+      "id": "duat_chisel_prismaticFocus",
+      "label": "Prismatic Focus",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_prismaticFocus.imageset/duat_chisel_prismaticFocus.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.779491,
+      "visibleBoundsAlpha16": [
+        81,
+        16,
+        1172,
+        1192
+      ],
+      "contentRectPixels": [
+        77,
+        12,
+        1099,
+        1184
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b2f078776511b5dbd4da3d7ad5e37cb70de8cb7193e3daf6279bcba201894a18"
+    },
+    {
+      "id": "duat_chisel_echoingStaff",
+      "label": "Echoing Staff",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_echoingStaff.imageset/duat_chisel_echoingStaff.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.836846,
+      "visibleBoundsAlpha16": [
+        355,
+        70,
+        912,
+        1187
+      ],
+      "contentRectPixels": [
+        351,
+        66,
+        565,
+        1125
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "feb170d867387a050bba1c30d6bbaa26fa37737707c843376c4884c9399ab705"
+    },
+    {
+      "id": "duat_chisel_alternatingCurrent",
+      "label": "Alternating Current",
+      "group": "chisels",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_alternatingCurrent.imageset/duat_chisel_alternatingCurrent.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.710699,
+      "visibleBoundsAlpha16": [
+        177,
+        24,
+        1078,
+        1209
+      ],
+      "contentRectPixels": [
+        173,
+        20,
+        909,
+        1193
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ac0b5af548add550c54032bcb795715ea647432107b0b5c6d4b5fbb6d530a27d"
+    },
+    {
+      "id": "duat_status_bronzeArmour",
+      "label": "Bronze armour",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_bronzeArmour.imageset/duat_status_bronzeArmour.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.680888,
+      "visibleBoundsAlpha16": [
+        260,
+        129,
+        992,
+        1127
+      ],
+      "contentRectPixels": [
+        256,
+        125,
+        740,
+        1006
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ed4bfd7c1354e30451c6051532f0afcc0ed1a76f40b1426b627641e3784f1369"
+    },
+    {
+      "id": "duat_status_bleed",
+      "label": "Bleed",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_bleed.imageset/duat_status_bleed.png",
+      "width": 1268,
+      "height": 1240,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.72628,
+      "visibleBoundsAlpha16": [
+        301,
+        96,
+        967,
+        1138
+      ],
+      "contentRectPixels": [
+        297,
+        92,
+        674,
+        1050
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "1241c3a34f6ef378928f403d7175033469192dbe83cde99decac1034722c5d64"
+    },
+    {
+      "id": "duat_status_judgement",
+      "label": "Judgement",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_judgement.imageset/duat_status_judgement.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.711581,
+      "visibleBoundsAlpha16": [
+        42,
+        65,
+        1212,
+        1192
+      ],
+      "contentRectPixels": [
+        38,
+        61,
+        1178,
+        1135
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f77ec13930f9aa6c7908eea8410fb0c45807ffe4335c0244d8fb656c8e968f91"
+    },
+    {
+      "id": "duat_status_markedTarget",
+      "label": "Marked target",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_markedTarget.imageset/duat_status_markedTarget.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.720252,
+      "visibleBoundsAlpha16": [
+        74,
+        56,
+        1180,
+        1184
+      ],
+      "contentRectPixels": [
+        70,
+        52,
+        1114,
+        1136
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "498388069c8ffacf688ea555645d33ca6f18cc62ea41c89ac522d5be2e10aa13"
+    },
+    {
+      "id": "duat_status_critical",
+      "label": "Critical hit",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_critical.imageset/duat_status_critical.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.722471,
+      "visibleBoundsAlpha16": [
+        46,
+        39,
+        1203,
+        1171
+      ],
+      "contentRectPixels": [
+        42,
+        35,
+        1165,
+        1140
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a1a587ee42016698530dbf9e02e670cb2b205edd949225d4ffc97420b1e01fb0"
+    },
+    {
+      "id": "duat_status_piercing",
+      "label": "Piercing damage",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_piercing.imageset/duat_status_piercing.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.736085,
+      "visibleBoundsAlpha16": [
+        17,
+        167,
+        1228,
+        987
+      ],
+      "contentRectPixels": [
+        13,
+        163,
+        1219,
+        828
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a90dac62b46911df82f3d35d5f384a386a7219ffc47b5b6f7044157476683723"
+    },
+    {
+      "id": "duat_status_champion",
+      "label": "Champion",
+      "group": "status",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_champion.imageset/duat_status_champion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.687697,
+      "visibleBoundsAlpha16": [
+        259,
+        52,
+        1000,
+        1111
+      ],
+      "contentRectPixels": [
+        255,
+        48,
+        749,
+        1067
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "952174a5318077bb78dbe5394f71bc4d8eea0cd1d782b3920c24e147345831ed"
+    },
+    {
+      "id": "duat_utility_back",
+      "label": "Back",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_back.imageset/duat_utility_back.png",
+      "width": 1367,
+      "height": 1150,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.882821,
+      "visibleBoundsAlpha16": [
+        404,
+        179,
+        973,
+        987
+      ],
+      "contentRectPixels": [
+        400,
+        175,
+        577,
+        816
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "1fba6c709b8732cb4ed3c0b71ca35d0d96fe283a1d5ec8ed777fd4cff2584643"
+    },
+    {
+      "id": "duat_utility_forward",
+      "label": "Forward",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_forward.imageset/duat_utility_forward.png",
+      "width": 1240,
+      "height": 1269,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.819878,
+      "visibleBoundsAlpha16": [
+        292,
+        223,
+        967,
+        1057
+      ],
+      "contentRectPixels": [
+        288,
+        219,
+        683,
+        842
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a762acbed9980914faa339be27ac400333d5e1b0768a0db99c8a5ac22befd35b"
+    },
+    {
+      "id": "duat_utility_close",
+      "label": "Close",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_close.imageset/duat_utility_close.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.752099,
+      "visibleBoundsAlpha16": [
+        194,
+        207,
+        1060,
+        1050
+      ],
+      "contentRectPixels": [
+        190,
+        203,
+        874,
+        851
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "5f6c78cca55fc41ded928348a2d5ccff5af249d05f7506bdd2de5eadbb152ad0"
+    },
+    {
+      "id": "duat_utility_codex",
+      "label": "Codex",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_codex.imageset/duat_utility_codex.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.673738,
+      "visibleBoundsAlpha16": [
+        129,
+        240,
+        1132,
+        1025
+      ],
+      "contentRectPixels": [
+        125,
+        236,
+        1011,
+        793
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "1b680b17e66134d10afbbfa298e60c61d97e0bac502b03ad0b4e358cf5e9e618"
+    },
+    {
+      "id": "duat_utility_records",
+      "label": "Records",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_records.imageset/duat_utility_records.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.744389,
+      "visibleBoundsAlpha16": [
+        341,
+        180,
+        912,
+        1083
+      ],
+      "contentRectPixels": [
+        337,
+        176,
+        579,
+        911
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "3dceacab3133685abe8d80f799a416d6b08dec16cddd2209ad0e4611dca73013"
+    },
+    {
+      "id": "duat_utility_currency",
+      "label": "Gold currency",
+      "group": "utility",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_currency.imageset/duat_utility_currency.png",
+      "width": 1275,
+      "height": 1234,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.499213,
+      "visibleBoundsAlpha16": [
+        132,
+        130,
+        1143,
+        1112
+      ],
+      "contentRectPixels": [
+        128,
+        126,
+        1019,
+        990
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f42f560b522641ddacea4611bf82d7f90d6963e7ba9cfeb978fefc44d3bf6355"
+    },
+    {
+      "id": "duat_interaction_roll",
+      "label": "Roll dice",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_roll.imageset/duat_interaction_roll.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.596349,
+      "visibleBoundsAlpha16": [
+        128,
+        193,
+        1203,
+        1100
+      ],
+      "contentRectPixels": [
+        124,
+        189,
+        1083,
+        915
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "30c6706e79c321f84cf2705654b9c171e2cc4f27f4f5caf1f9e1283533017fd8"
+    },
+    {
+      "id": "duat_interaction_held",
+      "label": "Held or frozen die",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_held.imageset/duat_interaction_held.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.714521,
+      "visibleBoundsAlpha16": [
+        287,
+        143,
+        961,
+        1080
+      ],
+      "contentRectPixels": [
+        283,
+        139,
+        682,
+        945
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b491801a84784fb1ca4b2c383763814be391fb4aa8537e3785c10ce5a7dde950"
+    },
+    {
+      "id": "duat_interaction_spent",
+      "label": "Spent die",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_spent.imageset/duat_interaction_spent.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.736045,
+      "visibleBoundsAlpha16": [
+        279,
+        234,
+        986,
+        1030
+      ],
+      "contentRectPixels": [
+        275,
+        230,
+        715,
+        804
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9e9cc8efd2028652d70c60144c3722eba9e4fd7c957a47975b44cec866ac65fa"
+    },
+    {
+      "id": "duat_interaction_reforge",
+      "label": "Reforge",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_reforge.imageset/duat_interaction_reforge.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.710226,
+      "visibleBoundsAlpha16": [
+        97,
+        102,
+        1178,
+        1151
+      ],
+      "contentRectPixels": [
+        93,
+        98,
+        1089,
+        1057
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "44fc3a3e83c1547ad58894281ee6f8cacb6796a44db1aa7fddf962c7a51d79e5"
+    },
+    {
+      "id": "duat_interaction_imbue",
+      "label": "Imbue",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_imbue.imageset/duat_interaction_imbue.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.786922,
+      "visibleBoundsAlpha16": [
+        322,
+        77,
+        934,
+        1126
+      ],
+      "contentRectPixels": [
+        318,
+        73,
+        620,
+        1057
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "20c273e69566d6b20c0506f3a15481fad88522d9c65cf2d95d88e60eb7be3f4b"
+    },
+    {
+      "id": "duat_interaction_swap",
+      "label": "Swap",
+      "group": "interactions",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_swap.imageset/duat_interaction_swap.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.728738,
+      "visibleBoundsAlpha16": [
+        129,
+        167,
+        1113,
+        1075
+      ],
+      "contentRectPixels": [
+        125,
+        163,
+        992,
+        916
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "2f03d254d1fe86c79bb6329fdff4ce556b5dc76f0c76162fd427714153d1f5eb"
+    },
+    {
+      "id": "duat_slot_weapon",
+      "label": "Weapon slot",
+      "group": "slots",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_weapon.imageset/duat_slot_weapon.png",
+      "width": 1311,
+      "height": 1200,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.853097,
+      "visibleBoundsAlpha16": [
+        192,
+        80,
+        1136,
+        1120
+      ],
+      "contentRectPixels": [
+        188,
+        76,
+        952,
+        1048
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "8d15c1ea8f2b8f3966cd5457aacffad0027feb47e4150934afeb2220afdcd56d"
+    },
+    {
+      "id": "duat_slot_armour",
+      "label": "Armour slot",
+      "group": "slots",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_armour.imageset/duat_slot_armour.png",
+      "width": 1222,
+      "height": 1287,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.479496,
+      "visibleBoundsAlpha16": [
+        108,
+        42,
+        1128,
+        1243
+      ],
+      "contentRectPixels": [
+        104,
+        38,
+        1028,
+        1209
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7ea62093e389a9187ef9c2fb959be8defe06e83ff55eebba0a3407e033dbb0a4"
+    },
+    {
+      "id": "duat_slot_item",
+      "label": "Item slot",
+      "group": "slots",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_item.imageset/duat_slot_item.png",
+      "width": 1302,
+      "height": 1208,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.657919,
+      "visibleBoundsAlpha16": [
+        250,
+        105,
+        1047,
+        1056
+      ],
+      "contentRectPixels": [
+        246,
+        101,
+        805,
+        959
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "611f0d0433502d0cdff3b23e1162c33c20538f34218e09f1d0bc61e46ccf3352"
+    },
+    {
+      "id": "duat_upgrade_hammer",
+      "label": "Ptah workshop",
+      "group": "upgrades",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_upgrade_hammer.imageset/duat_upgrade_hammer.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.767971,
+      "visibleBoundsAlpha16": [
+        146,
+        69,
+        1110,
+        1129
+      ],
+      "contentRectPixels": [
+        142,
+        65,
+        972,
+        1068
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "95a70c2d87d4c6853543df395899f39c8624416f1ca7d0992681c22401b144be"
+    },
+    {
+      "id": "duat_upgrade_whetstone",
+      "label": "Whetstone upgrade",
+      "group": "upgrades",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_upgrade_whetstone.imageset/duat_upgrade_whetstone.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.801772,
+      "visibleBoundsAlpha16": [
+        102,
+        235,
+        1160,
+        973
+      ],
+      "contentRectPixels": [
+        98,
+        231,
+        1066,
+        746
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "1dd850a86ed602e21ebbd2a99fe0ba7ddba1be4eb2c459cb14a9fe30069e449c"
+    },
+    {
+      "id": "duat_trial_halo",
+      "label": "Divine trial halo",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "frame",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_trial_halo.imageset/duat_trial_halo.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.845469,
+      "visibleBoundsAlpha16": [
+        29,
+        3,
+        1226,
+        1237
+      ],
+      "contentRectPixels": [
+        25,
+        0,
+        1205,
+        1241
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "492634cddd770b0a4b59929b2180569a1c36985b827ba13ec3f43aae0fa39232",
+      "safeSigilWindowNormalizedToCanvas": [
+        0.34,
+        0.38,
+        0.32,
+        0.32
+      ],
+      "compositingNotes": "Place a deity sigil in this conservative open-center window. The feather shifts the ring center below the canvas center."
+    },
+    {
+      "id": "duat_ui_banner_victory",
+      "label": "Victory banner",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner_victory.imageset/duat_ui_banner_victory.png",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.606684,
+      "visibleBoundsAlpha16": [
+        32,
+        129,
+        2141,
+        594
+      ],
+      "contentRectPixels": [
+        28,
+        125,
+        2117,
+        473
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "6e469690eb0ec38b71888c1567a849bd5c3a48386d8ade722077b71bd2948210"
+    },
+    {
+      "id": "duat_ui_banner_defeat",
+      "label": "Defeat banner",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "panel",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner_defeat.imageset/duat_ui_banner_defeat.png",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.635877,
+      "visibleBoundsAlpha16": [
+        13,
+        111,
+        2159,
+        609
+      ],
+      "contentRectPixels": [
+        9,
+        107,
+        2154,
+        506
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "430a93b6fe9a3ae861febecd156729d6f6345dae69f6577a526930a951a9f4bc"
+    },
+    {
+      "id": "duat_ui_hieroglyph_strip",
+      "label": "Hieroglyph strip",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_hieroglyph_strip.imageset/duat_ui_hieroglyph_strip.png",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.852583,
+      "visibleBoundsAlpha16": [
+        5,
+        257,
+        2167,
+        467
+      ],
+      "contentRectPixels": [
+        1,
+        253,
+        2170,
+        218
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "ea6a146d2bafb5fa6bcbb1042eac53ab7701e49f3a161c29496c467c373a8df3"
+    },
+    {
+      "id": "duat_ui_divider_winged",
+      "label": "Winged divider",
+      "group": "ui",
+      "faceKind": null,
+      "kind": "icon",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_divider_winged.imageset/duat_ui_divider_winged.png",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.805858,
+      "visibleBoundsAlpha16": [
+        110,
+        232,
+        2062,
+        494
+      ],
+      "contentRectPixels": [
+        106,
+        228,
+        1960,
+        270
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b070b75c242f525588c9325d567610d55681243d88d47b5a0dbd59266c1c9078"
+    },
+    {
+      "id": "duat_environment_barque",
+      "label": "Solar barque",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_barque.imageset/duat_environment_barque.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.694393,
+      "visibleBoundsAlpha16": [
+        19,
+        62,
+        1764,
+        789
+      ],
+      "contentRectPixels": [
+        15,
+        58,
+        1753,
+        735
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "e3b166a8bb63bdec01c7d456ea1ea94de44b0ffbd10b88a251a434e9dd1c165b"
+    },
+    {
+      "id": "duat_environment_sun_bright",
+      "label": "Bright sun disc",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_bright.imageset/duat_environment_sun_bright.png",
+      "width": 1278,
+      "height": 1230,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.389596,
+      "visibleBoundsAlpha16": [
+        81,
+        54,
+        1189,
+        1148
+      ],
+      "contentRectPixels": [
+        77,
+        50,
+        1116,
+        1102
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "dfd7a37b2b0e544bd4ac17272d4827c0f7cec2f5f95827ec148a34b7212507f7"
+    },
+    {
+      "id": "duat_environment_sun_weakened",
+      "label": "Weakened sun disc",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_weakened.imageset/duat_environment_sun_weakened.png",
+      "width": 1226,
+      "height": 1283,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.397465,
+      "visibleBoundsAlpha16": [
+        60,
+        92,
+        1162,
+        1176
+      ],
+      "contentRectPixels": [
+        56,
+        88,
+        1110,
+        1092
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "033139ecf53d3d810fa979d6368a8dc46b49ec7054f87ecce554850ef79fbf36"
+    },
+    {
+      "id": "duat_environment_sun_extinguished",
+      "label": "Nearly extinguished sun disc",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_extinguished.imageset/duat_environment_sun_extinguished.png",
+      "width": 1261,
+      "height": 1247,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.559211,
+      "visibleBoundsAlpha16": [
+        160,
+        156,
+        1101,
+        1081
+      ],
+      "contentRectPixels": [
+        156,
+        152,
+        949,
+        933
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "3f8c0a3d9c2afd37f595508d89bc3e788487f084d67070b1ab03e32184660e5c"
+    },
+    {
+      "id": "duat_environment_sun_halo",
+      "label": "Separate sun halo",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_halo.imageset/duat_environment_sun_halo.png",
+      "width": 1261,
+      "height": 1247,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.610262,
+      "visibleBoundsAlpha16": [
+        11,
+        8,
+        1251,
+        1228
+      ],
+      "contentRectPixels": [
+        7,
+        4,
+        1248,
+        1228
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "f6384a99a3766f67f44a83f09fabd2e362f83efb5672b58d883216076908bbae"
+    },
+    {
+      "id": "duat_environment_ripple_jade",
+      "label": "Jade river reflection",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_jade.imageset/duat_environment_ripple_jade.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.731059,
+      "visibleBoundsAlpha16": [
+        79,
+        259,
+        1715,
+        673
+      ],
+      "contentRectPixels": [
+        75,
+        255,
+        1644,
+        422
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "eb309b6b84d8c6560a214eb3b6dc24f3231bda6d2e159ab765a7a92d2495a1f1"
+    },
+    {
+      "id": "duat_environment_ripple_ember",
+      "label": "Ember river reflection",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_ember.imageset/duat_environment_ripple_ember.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.807463,
+      "visibleBoundsAlpha16": [
+        72,
+        266,
+        1703,
+        618
+      ],
+      "contentRectPixels": [
+        68,
+        262,
+        1639,
+        360
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "2274555a45c6b703475e641bf47d5d080151ce3d7bb42423f96cbc0c9a73c2f2"
+    },
+    {
+      "id": "duat_environment_ripple_violet",
+      "label": "Violet river reflection",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_violet.imageset/duat_environment_ripple_violet.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.802383,
+      "visibleBoundsAlpha16": [
+        74,
+        266,
+        1704,
+        648
+      ],
+      "contentRectPixels": [
+        70,
+        262,
+        1638,
+        390
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "3b5d4c4db03f02eaa75841f6daa5c32979f3b2628c8c53237077e3edf94a35c1"
+    },
+    {
+      "id": "duat_environment_reeds_left",
+      "label": "Left papyrus reeds",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_reeds_left.imageset/duat_environment_reeds_left.png",
+      "width": 1312,
+      "height": 1199,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.720596,
+      "visibleBoundsAlpha16": [
+        147,
+        30,
+        1065,
+        1168
+      ],
+      "contentRectPixels": [
+        143,
+        26,
+        926,
+        1146
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "4263a90d4140879ddd6de153af216494fd2b914945e2957de125caf4c273eea6"
+    },
+    {
+      "id": "duat_environment_reeds_right",
+      "label": "Right papyrus reeds",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_reeds_right.imageset/duat_environment_reeds_right.png",
+      "width": 1312,
+      "height": 1199,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.710338,
+      "visibleBoundsAlpha16": [
+        208,
+        17,
+        1284,
+        1184
+      ],
+      "contentRectPixels": [
+        204,
+        13,
+        1084,
+        1175
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "bc9060dbaf20ef3ed2bca7d73ebdc8dce158eba4bf5dd56a7807620c03b3950a"
+    },
+    {
+      "id": "duat_environment_brazier",
+      "label": "Brazier prop",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_brazier.imageset/duat_environment_brazier.png",
+      "width": 1337,
+      "height": 1176,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.619381,
+      "visibleBoundsAlpha16": [
+        70,
+        129,
+        1268,
+        1065
+      ],
+      "contentRectPixels": [
+        66,
+        125,
+        1206,
+        944
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "178a9ef82052895257e9e6c1ef412701052a2805c18af2de5085a1c478639c01"
+    },
+    {
+      "id": "duat_environment_flame",
+      "label": "Brazier flame",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_flame.imageset/duat_environment_flame.png",
+      "width": 1312,
+      "height": 1199,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.722661,
+      "visibleBoundsAlpha16": [
+        313,
+        13,
+        1041,
+        1188
+      ],
+      "contentRectPixels": [
+        309,
+        9,
+        736,
+        1183
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "1d9c9d4322932fb3ac120f08ee639c00313b2960a2e508f473f2880653cea754"
+    },
+    {
+      "id": "duat_environment_ember",
+      "label": "Ember particle",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ember.imageset/duat_environment_ember.png",
+      "width": 1243,
+      "height": 1265,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.914206,
+      "visibleBoundsAlpha16": [
+        527,
+        237,
+        767,
+        962
+      ],
+      "contentRectPixels": [
+        523,
+        233,
+        248,
+        733
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "7175e22dbee085ac6f366cf5ab573fdf32958b20e7108f2a69fda00a13c8ddfe"
+    },
+    {
+      "id": "duat_environment_mist",
+      "label": "River mist strip",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_mist.imageset/duat_environment_mist.png",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.78499,
+      "visibleBoundsAlpha16": [
+        7,
+        168,
+        2164,
+        514
+      ],
+      "contentRectPixels": [
+        3,
+        164,
+        2165,
+        354
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b0aacbc06fd0e6866092763e0b1d5a3e32ad7d01596d33ce0a1b0847228e9817"
+    },
+    {
+      "id": "duat_environment_star",
+      "label": "Star glint",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_star.imageset/duat_environment_star.png",
+      "width": 1270,
+      "height": 1239,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.925492,
+      "visibleBoundsAlpha16": [
+        323,
+        81,
+        946,
+        1116
+      ],
+      "contentRectPixels": [
+        319,
+        77,
+        631,
+        1043
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "55ab51cd1b966b086e9bdf8c1bbf095b105f8ae4df2213d0df510d49131d04d2"
+    },
+    {
+      "id": "duat_environment_coil",
+      "label": "Apep surface coil",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_coil.imageset/duat_environment_coil.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.603488,
+      "visibleBoundsAlpha16": [
+        28,
+        99,
+        1759,
+        840
+      ],
+      "contentRectPixels": [
+        24,
+        95,
+        1739,
+        749
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "367026c2ef50b5299b76b2644f2140cc7d49ad19ada04461cfbca395b227b76b"
+    },
+    {
+      "id": "duat_environment_ruins",
+      "label": "Distant ruins",
+      "group": "environment",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ruins.imageset/duat_environment_ruins.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.612716,
+      "visibleBoundsAlpha16": [
+        18,
+        102,
+        1758,
+        785
+      ],
+      "contentRectPixels": [
+        14,
+        98,
+        1748,
+        691
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "44f6e40ef3d5b809090a22b13659cb1612e0f656062b3224eabbd10445de7315"
+    },
+    {
+      "id": "duat_enemy_strawEffigy",
+      "label": "Straw Effigy",
+      "group": "enemies",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_enemy_strawEffigy.imageset/duat_enemy_strawEffigy.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.694113,
+      "visibleBoundsAlpha16": [
+        30,
+        7,
+        1087,
+        1338
+      ],
+      "contentRectPixels": [
+        26,
+        3,
+        1065,
+        1339
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "84593dcde4c8882ad214ea00d16d4b054f352d407c3d5b5f92cfa68ee0a77da3",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.56,
+        0.97
+      ],
+      "pose": "idle",
+      "facing": "left"
+    },
+    {
+      "id": "duat_hero_rogue_defeat",
+      "label": "Rogue \u00b7 defeat",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_rogue_defeat.imageset/duat_hero_rogue_defeat.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.612478,
+      "visibleBoundsAlpha16": [
+        24,
+        257,
+        995,
+        1360
+      ],
+      "contentRectPixels": [
+        20,
+        253,
+        979,
+        1111
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "05e78b3efa1cd08391126e340a0fac5d088c4cf45bae283f2d3b8c3b02040ab3",
+      "heroClass": "rogue",
+      "pose": "defeat",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "rogue_reference.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.52,
+        0.831
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_magician_dodge",
+      "label": "Magician \u00b7 dodge",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_dodge.imageset/duat_hero_magician_dodge.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.502488,
+      "visibleBoundsAlpha16": [
+        10,
+        16,
+        1018,
+        1500
+      ],
+      "contentRectPixels": [
+        6,
+        12,
+        1016,
+        1492
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "39a4ead186468710bf8f527e41e7b9b470975824aba5525bc58633cddbdc790c",
+      "heroClass": "magician",
+      "pose": "dodge",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "magician_reference.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.6,
+        0.969
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_magician_defeat",
+      "label": "Magician \u00b7 defeat",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_defeat.imageset/duat_hero_magician_defeat.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.588028,
+      "visibleBoundsAlpha16": [
+        12,
+        15,
+        1008,
+        1515
+      ],
+      "contentRectPixels": [
+        8,
+        11,
+        1004,
+        1508
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9a6eb4c7a2c8d6450418fb147d9bdf3b4e748fc4d05118adf0a6a08c9ec5ca8b",
+      "heroClass": "magician",
+      "pose": "defeat",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "magician_reference.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.58,
+        0.904
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_magician_victory",
+      "label": "Magician \u00b7 victory",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_victory.imageset/duat_hero_magician_victory.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.468144,
+      "visibleBoundsAlpha16": [
+        37,
+        11,
+        1013,
+        1493
+      ],
+      "contentRectPixels": [
+        33,
+        7,
+        984,
+        1490
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "01fb04eb17d981f0c975ea293e8a0971df5c24c27093112c8024fb8eddac5392",
+      "heroClass": "magician",
+      "pose": "victory",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination; checker-contaminated blue glow isolated with chroma-derived alpha while solid spell highlights were protected",
+      "referenceImage": "magician_reference.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.6,
+        0.967
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_archer_guardUp",
+      "label": "Archer \u00b7 guard",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_archer_guardUp.imageset/duat_hero_archer_guardUp.png",
+      "width": 436,
+      "height": 484,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentPixelFraction": 0.674909,
+      "visibleBoundsAlpha16": [
+        34,
+        47,
+        397,
+        451
+      ],
+      "contentRectPixels": [
+        30,
+        43,
+        371,
+        412
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "213817de5a3bcb6218c7f97b19d12066e67d99e8d2bdcce4d7f178d8e51978d5",
+      "heroClass": "archer",
+      "pose": "guardUp",
+      "productionMethod": "Original guard frame with teal colour-key mask and narrow edge decontamination; no redraw or resampling.",
+      "sourceFrameZeroBased": 2,
+      "sourceRectPixels": [
+        748,
+        70,
+        1120,
+        490
+      ],
+      "paddingPixels": [
+        32,
+        32,
+        32,
+        32
+      ],
+      "referenceImage": "archer_block_sheet.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.5,
+        0.919
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_rogue_hurt",
+      "label": "Rogue \u00b7 hurt",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_rogue_hurt.imageset/duat_hero_rogue_hurt.png",
+      "width": 448,
+      "height": 576,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixelFraction": 0.593618,
+      "visibleBoundsAlpha16": [
+        41,
+        122,
+        402,
+        544
+      ],
+      "contentRectPixels": [
+        37,
+        118,
+        369,
+        430
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "9f84eb3e3e676e1e19daf54c4293e2835d2ed0b437ccfe63695a334b3ee964a6",
+      "heroClass": "rogue",
+      "pose": "hurt",
+      "productionMethod": "Exact original RGBA hurt frame, cropped without resampling or repainting.",
+      "sourceFrameZeroBased": 3,
+      "sourceRectPixels": [
+        1152,
+        0,
+        1536,
+        512
+      ],
+      "paddingPixels": [
+        32,
+        32,
+        32,
+        32
+      ],
+      "referenceImage": "rogue_take_damage_sheet.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.5,
+        0.939
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    },
+    {
+      "id": "duat_hero_magician_follow",
+      "label": "Magician \u00b7 follow-through",
+      "group": "heroes",
+      "faceKind": null,
+      "kind": "sprite",
+      "path": "ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_follow.imageset/duat_hero_magician_follow.png",
+      "width": 448,
+      "height": 576,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixelFraction": 0.610383,
+      "visibleBoundsAlpha16": [
+        77,
+        66,
+        408,
+        512
+      ],
+      "contentRectPixels": [
+        73,
+        62,
+        339,
+        454
+      ],
+      "contentRectRule": "Alpha >= 16 bounding box plus four pixels of padding; original PNG unchanged. Faint peripheral pixels can lie outside this suggested display crop.",
+      "frameCount": 1,
+      "loop": false,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sha256": "dafd8d3f2f481b63bf1eeb4c4414e79540db630ac7b1261cb5e7f572d705a28a",
+      "heroClass": "magician",
+      "pose": "follow",
+      "productionMethod": "Original RGBA follow-through frame; alpha and RGB retained on figure; preceding frame beam and unrelated left droplets isolated out.",
+      "sourceFrameZeroBased": 6,
+      "sourceRectPixels": [
+        768,
+        512,
+        1152,
+        1024
+      ],
+      "paddingPixels": [
+        32,
+        32,
+        32,
+        32
+      ],
+      "referenceImage": "magician_attack_sheet.png",
+      "suggestedGroundAnchorNormalizedToCanvas": [
+        0.52,
+        0.887
+      ],
+      "facing": "right",
+      "alignmentNotes": "Static pose; suggested ground anchor requires in-game alignment. Native resolution varies between extracted source frames and revised portrait masters."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "resolved via attached characters.zip",
+  "source": "User-attached characters.zip",
+  "findings": [
+    "Archer source sheets have opaque teal backgrounds",
+    "Rogue and magician source sheets have real alpha 0..254",
+    "Archer attack and damage filenames are reversed",
+    "Three original poses extracted and four direct-reference pose revisions cleaned into transparent exports"
+  ],
+  "deliveredHeroPoseCount": 7,
+  "newTimedAnimations": 0,
+  "githubWrites": 0
+}

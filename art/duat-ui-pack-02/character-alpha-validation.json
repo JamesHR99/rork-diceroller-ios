@@ -1,0 +1,123 @@
+{
+  "assets": [
+    {
+      "id": "duat_hero_rogue_defeat",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 963345,
+      "partiallyTransparentPixels": 16105,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "05e78b3efa1cd08391126e340a0fac5d088c4cf45bae283f2d3b8c3b02040ab3",
+      "solidForegroundRGBPreservedExactly": true
+    },
+    {
+      "id": "duat_hero_magician_dodge",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 790345,
+      "partiallyTransparentPixels": 11187,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "39a4ead186468710bf8f527e41e7b9b470975824aba5525bc58633cddbdc790c",
+      "solidForegroundRGBPreservedExactly": true
+    },
+    {
+      "id": "duat_hero_magician_defeat",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 924888,
+      "partiallyTransparentPixels": 7125,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "9a6eb4c7a2c8d6450418fb147d9bdf3b4e748fc4d05118adf0a6a08c9ec5ca8b",
+      "solidForegroundRGBPreservedExactly": true
+    },
+    {
+      "id": "duat_hero_magician_victory",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 736327,
+      "partiallyTransparentPixels": 14658,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "01fb04eb17d981f0c975ea293e8a0971df5c24c27093112c8024fb8eddac5392",
+      "solidForegroundRGBPreservedExactly": true
+    },
+    {
+      "id": "duat_hero_archer_guardUp",
+      "dimensions": [
+        436,
+        484
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 142422,
+      "partiallyTransparentPixels": 3942,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "213817de5a3bcb6218c7f97b19d12066e67d99e8d2bdcce4d7f178d8e51978d5"
+    },
+    {
+      "id": "duat_hero_rogue_hurt",
+      "dimensions": [
+        448,
+        576
+      ],
+      "alphaRange": [
+        0,
+        254
+      ],
+      "fullyTransparentPixels": 153182,
+      "partiallyTransparentPixels": 104866,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "9f84eb3e3e676e1e19daf54c4293e2835d2ed0b437ccfe63695a334b3ee964a6"
+    },
+    {
+      "id": "duat_hero_magician_follow",
+      "dimensions": [
+        448,
+        576
+      ],
+      "alphaRange": [
+        0,
+        254
+      ],
+      "fullyTransparentPixels": 157508,
+      "partiallyTransparentPixels": 100540,
+      "allOuterBorderPixelsTransparent": true,
+      "sha256": "dafd8d3f2f481b63bf1eeb4c4414e79540db630ac7b1261cb5e7f572d705a28a"
+    }
+  ],
+  "visualChecks": [
+    "all seven composited on dark navy, ivory and green",
+    "magician staff and spell inspected enlarged",
+    "pale robe highlights protected",
+    "bowstring and complete footwear checked"
+  ],
+  "limitations": [
+    "No iOS device rendering or animation playback test",
+    "Pose alignment and scale are suggested, not runtime validated"
+  ]
+}

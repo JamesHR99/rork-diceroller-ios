@@ -1,0 +1,1026 @@
+{
+  "generator": "built-in image_gen",
+  "note": "Three hero poses are extracted from original sheets. The four revised hero masters were generated using the original portrait as an input, then received user-authorized pixel-based background removal. Extraction instructions are not generation calls.",
+  "assets": [
+    {
+      "id": "duat_face_arrow1",
+      "prompt": "Use case: stylized-concept. Asset type: production game dice-face icon, square 512x512 master. Subject: ONE bronze arrow with ivory fletching angled from lower left to upper right, sharp luminous ember-orange arrowhead. Clearly one arrow only. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_arrow2",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: TWO parallel bronze arrows, ivory fletching, sharp ember-orange arrowheads, fanned slightly apart, clearly two arrows. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_arrow3",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: THREE bronze arrows fanned out, ivory fletching, blazing ember-orange arrowheads, clearly three arrows. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_bowSmack",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: An Egyptian recurved gold-and-lapis bow sweeping sideways with a broad ember-orange impact chevron; visible taut string. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_overhead",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A broad bronze Egyptian khopesh chopping vertically DOWN from above, one strong steel-blue downwards motion crescent. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_sideSwing",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bronze Egyptian khopesh swinging HORIZONTALLY left to right with a wide steel-blue crescent trail. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_swiftSlash",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A small curved Egyptian dagger with a sharp diagonal venom-jade slash, short quick zigzag motion accent. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_daggerThrow",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A single Egyptian throwing dagger flying horizontally to the right, three short jade speed streaks behind the handle. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_runeFire",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bold ember-orange FLAME silhouette in a small antique-gold rune diamond; no lettering. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_runeFrost",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bold icy-cyan six-armed SNOWFLAKE in a small antique-gold rune diamond; no lettering. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_runeLife",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bold jade-green LOTUS SPROUT with two leaves in a small antique-gold rune diamond; no lettering. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_runeArcane",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bold violet faceted ARCANE STAR with a diamond core in a small antique-gold rune diamond; no lettering. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_wandZap",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: An Egyptian ibis-headed short gold wand tilted diagonally emitting one sharp violet lightning bolt. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_channel",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: Two gold hands cupping a levitating bright violet orb, three restrained upward sparks; calm stored magic. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_block",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A broad Egyptian round-topped SHIELD of antique gold and steel slate, central lapis boss; very strong defensive silhouette. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_evade",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A small winged Egyptian sandal swept sideways by three ivory-blue wind ribbons; escape motion. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_heal",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A solid jade-green stylized HEART with a small gold ankh at center, warm ivory healing sparkle. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_focus",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A bold gold Eye of Horus, circular amber pupil and a small sharp glint; strong eye silhouette. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_energize",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A single bright antique-gold LIGHTNING BOLT enclosed by a thin broken circular gold energy ring. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_bomb",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A red-black round Egyptian ceramic explosive with a short burning gold fuse and small red impact rays. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_face_poison",
+      "prompt": "Use case: stylized-concept. Asset type: single production game dice-face icon, square master. Subject: A venom-green teardrop with a small ivory skull symbol inset, dark gold rim; very strong droplet silhouette. Original Egyptian Duat game art in the Hades 1 / Hades 2 art style: bold black ink contours, angular cel-painted highlights, restrained hand-painted texture, ivory, warm antique gold and lapis with a single semantic accent. Match the style, goldwork and graphic line quality of the provided existing Egyptian hero reference, without depicting the hero. An elegant readable silhouette at 32px. No words, letters, labels, numerals, watermark or mockup. A single centered asset, isolated on genuine transparent RGBA background, never a checkerboard or solid matte. Generous 15% transparent padding on all sides.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_panel_large",
+      "prompt": "Use case: background-extraction. Edit target: the supplied square Egyptian papyrus UI panel. Remove the ENTIRE grey checkerboard outside the gold frame and replace those pixels with ACTUAL transparent alpha=0. Preserve the gold and lapis frame, the corner ornaments, and the opaque ivory paper interior exactly. Keep square dimensions and full object. Deliver a genuine RGBA PNG with clear empty pixels outside. Do not draw or simulate a transparency grid. No new elements.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_card_small",
+      "prompt": "A single ornate tall rectangular Egyptian PAPYRUS CARD, width half its height, ivory paper center completely blank, gold frame with small blue lapis corner gems. Show the entire isolated card. Square 1024x1024 canvas. A single small centered object floating in EMPTY TRANSPARENT SPACE. Transparent PNG, actual RGBA alpha channel, background removed. Hades 1/2 Egyptian fantasy illustration, bold black ink outlines, angular painted antique gold and blue lapis. No lettering, numerals, characters, shadows cast outside the object, or glow. Object occupies only middle 65 percent of canvas. Match provided Egyptian hero's ornament style.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_primary_normal",
+      "prompt": "A single small wide rectangular Egyptian lapis-and-gold BUTTON plaque, width three times its height. Completely blank dark blue lapis center, straight gold rim, modest stylized lotus decorations at either end. Show complete isolated button, centered with plenty of empty space above and below. Square 1024x1024 canvas. A single small centered object floating in EMPTY TRANSPARENT SPACE. Transparent PNG, actual RGBA alpha channel, background removed. Hades 1/2 Egyptian fantasy illustration, bold black ink outlines, angular painted antique gold and blue lapis. No lettering, numerals, characters, shadows cast outside the object, or glow. Object occupies only middle 65 percent of canvas. Match provided Egyptian hero's ornament style.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_cartouche",
+      "prompt": "A single small wide elongated Egyptian CARTOUCHE name plaque. Width three times its height. Blackened papyrus interior completely blank. Gold rope-shaped oval rim with thin lapis stripe and a short straight vertical closing bar at the right. Show complete isolated plaque in ample empty space. Square 1024x1024 canvas. A single small centered object floating in EMPTY TRANSPARENT SPACE. Transparent PNG, actual RGBA alpha channel, background removed. Hades 1/2 Egyptian fantasy illustration, bold black ink outlines, angular painted antique gold and blue lapis. No lettering, numerals, characters, shadows cast outside the object, or glow. Object occupies only middle 65 percent of canvas. Match provided Egyptian hero's ornament style.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_primary_pressed",
+      "prompt": "A single small, wide RECTANGULAR Egyptian BUTTON plaque, width FIVE times its height. A completely blank lapis face between straight antique gold rails, with exactly one upright blue-and-gold lotus flower ornament at each end. Button horizontally centered at middle of image, width 80% and height 16% of square canvas. Square canvas with ample empty space above and below. Transparent PNG, actual RGBA alpha, no background. Hades 1/2 Egyptian fantasy illustration matching the provided hero goldwork, bold black ink lines, restrained angular painted materials. No lettering, numerals, symbols in center, glow beyond silhouette or extra objects. PRESSED state: dark navy lapis center, deep recessed inner bevel and a subtle highlight along the lower inside gold rail. Gold is warm and slightly dim.",
+      "productionMethod": "image generation",
+      "referenceImage": "egyptian_archer_idle.png"
+    },
+    {
+      "id": "duat_ui_button_primary_disabled",
+      "prompt": "A single small, wide RECTANGULAR Egyptian BUTTON plaque, width FIVE times its height. A completely blank lapis face between straight antique gold rails, with exactly one upright blue-and-gold lotus flower ornament at each end. Button horizontally centered at middle of image, width 80% and height 16% of square canvas. Square canvas with ample empty space above and below. Transparent PNG, actual RGBA alpha, no background. Hades 1/2 Egyptian fantasy illustration matching the provided hero goldwork, bold black ink lines, restrained angular painted materials. No lettering, numerals, symbols in center, glow beyond silhouette or extra objects. DISABLED state: slate gray desaturated lapis center and dull bronze goldwork. Low contrast. Fully visible object, no reduced alpha inside the button.",
+      "productionMethod": "image generation",
+      "referenceImage": "egyptian_archer_idle.png"
+    },
+    {
+      "id": "duat_ui_button_primary_highlighted",
+      "prompt": "A single small, wide RECTANGULAR Egyptian BUTTON plaque, width FIVE times its height. A completely blank lapis face between straight antique gold rails, with exactly one upright blue-and-gold lotus flower ornament at each end. Button horizontally centered at middle of image, width 80% and height 16% of square canvas. Square canvas with ample empty space above and below. Transparent PNG, actual RGBA alpha, no background. Hades 1/2 Egyptian fantasy illustration matching the provided hero goldwork, bold black ink lines, restrained angular painted materials. No lettering, numerals, symbols in center, glow beyond silhouette or extra objects. HIGHLIGHTED state: vivid lapis face, pale sunlight along gold border and bright ivory glints on lotus tips, confined to the object.",
+      "productionMethod": "image generation",
+      "referenceImage": "egyptian_archer_idle.png"
+    },
+    {
+      "id": "duat_ui_die_empty",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Muted dark bronze frame, inset dark slate inner bevel, no light or gems glowing.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_ready",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Warm bright gold frame with calm lapis inlay, four small soft gold highlights at corners.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_rolling",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Gold frame with three short sweeping gold motion marks hugging the outside corners, conveying spinning dice, still a clean square frame.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_selected",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Strong pale gold inner edge and four little inward-pointing gold corner chevrons; restrained amber selection glow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_held",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Lapis frame edged with icy cyan frost crystals, one tiny locked clasp ornament on top, pale blue rim.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_spent",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Worn dark bronze frame, desaturated slate inlay, a small extinguished ember crack at lower edge; visibly inactive.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_die_critical",
+      "prompt": "A single small square Egyptian DIE SLOT BEZEL, front view. A thick antique-gold square frame with chamfered corners, lapis inlay and modest geometric corner carvings; big completely EMPTY center window for a separate dice icon. Nothing in the central opening. Outer frame occupies 65% of square image width and height, lots of empty room on all sides. Transparent PNG: both the exterior and center opening are actual empty alpha=0. Hades 1/2 art style matching the reference Egyptian hero: bold ink outlines, angular painted gold, lapis blue, clean readable shape. No letters, numbers, die pips, pictures in center or background. STATE: Bright sun-gold frame with sharp short solar rays at four corners and warm ivory highlights. Celebratory without covering center.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_secondary_normal",
+      "prompt": "A single SMALL horizontal rectangular secondary button plaque with clipped corners, width THREE times its height. Slim bronze double rim, small lapis geometric endcaps, entirely blank dark papyrus center. Front view, centered in middle of square canvas with lots of empty space on all sides; object uses 70% canvas width and 23% canvas height. Genuine transparent PNG with RGBA alpha outside the object. Hades 1/2 style Egyptian game art, bold black contours and angular painted metal matching provided hero. No text, numbers, symbols in center, external shadows or background. NORMAL enabled state, warm bronze rim, blank dark papyrus center.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_secondary_pressed",
+      "prompt": "A single SMALL horizontal rectangular secondary button plaque with clipped corners, width THREE times its height. Slim bronze double rim, small lapis geometric endcaps, entirely blank dark papyrus center. Front view, centered in middle of square canvas with lots of empty space on all sides; object uses 70% canvas width and 23% canvas height. Genuine transparent PNG with RGBA alpha outside the object. Hades 1/2 style Egyptian game art, bold black contours and angular painted metal matching provided hero. No text, numbers, symbols in center, external shadows or background. PRESSED state, darker recessed papyrus center, subdued bronze top edge and small lower-edge highlight.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_secondary_disabled",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style, bold black ink outlines and angular antique-gold facets. one very small slim horizontal disabled secondary menu button, simple chamfered rectangular bronze rim, tiny muted lapis triangles at each end, blank opaque dark papyrus center, desaturated dull gold with almost no highlights. Object occupies central 70 percent of width and 14 percent of height. True transparent cutout, square canvas, no text.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_button_secondary_selected",
+      "prompt": "A single SMALL horizontal rectangular secondary button plaque with clipped corners, width THREE times its height. Slim bronze double rim, small lapis geometric endcaps, entirely blank dark papyrus center. Front view, centered in middle of square canvas with lots of empty space on all sides; object uses 70% canvas width and 23% canvas height. Genuine transparent PNG with RGBA alpha outside the object. Hades 1/2 style Egyptian game art, bold black contours and angular painted metal matching provided hero. No text, numbers, symbols in center, external shadows or background. SELECTED state, bright gold inner rim and one small centered gold diamond at each end, blank dark papyrus center.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_rarity_clay",
+      "prompt": "One small SQUARE rarity border with clipped corners, a thin double rim and four restrained fan-shaped Egyptian corner ornaments. Center is a large completely empty transparent opening. Width and height each 65% of canvas. Material is unpolished warm fired clay, pale sand carved edges. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_rarity_copper",
+      "prompt": "One small SQUARE rarity border with clipped corners, a thin double rim and four restrained fan-shaped Egyptian corner ornaments. Center is a large completely empty transparent opening. Width and height each 65% of canvas. Material is hammered reddish copper, deep umber recesses. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_rarity_lapis",
+      "prompt": "One small SQUARE rarity border with clipped corners, a thin double rim and four restrained fan-shaped Egyptian corner ornaments. Center is a large completely empty transparent opening. Width and height each 65% of canvas. Material is deep royal blue lapis stone with fine antique gold edges. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_rarity_goldLeaf",
+      "prompt": "One small SQUARE rarity border with clipped corners, a thin double rim and four restrained fan-shaped Egyptian corner ornaments. Center is a large completely empty transparent opening. Width and height each 65% of canvas. Material is radiant hammered gold leaf, ivory highlight edges and tiny lapis inlays. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_class_archer",
+      "prompt": "Transparent background PNG. One tall open rectangular Egyptian portrait border for an ARCHER. Thin antique gold rails, an amber diamond in each corner, and an archery WEAPON crowning top center: a small recurved LONG BOW with taut bowstring and one arrow nocked across it. Bold black ink and angular gold facets, Hades game style. Clear transparent opening, empty transparent space outside, centered on square canvas, no person, no ribbon or fabric, no text.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_class_warrior",
+      "prompt": "One tall Egyptian hero portrait card BORDER, width two-thirds its height, entirely empty transparent center for a separate portrait. Slim gold double rim with steel blue stone corner accents and a small khopesh sigil built into the top rim. Occupies 50% canvas width and 75% canvas height, broad padding all sides. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_class_rogue",
+      "prompt": "One tall Egyptian hero portrait card BORDER, width two-thirds its height, entirely empty transparent center for a separate portrait. Slim gold double rim with venom jade stone corner accents and a small crossed dagger sigil built into the top rim. Occupies 50% canvas width and 75% canvas height, broad padding all sides. A single small Egyptian ornament centered on a square canvas, full object with broad empty padding. Genuine transparent PNG with real RGBA alpha outside the object and through any open window. Flat front view. Hades 1/2 Egyptian fantasy art matching the provided hero's ink contours and angular painted materials. No text, numerals, labels, shadow behind the object, or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_class_magician",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style, bold black ink outlines and angular antique-gold facets. one small tall rectangular OPEN picture frame, fine antique-gold rim, violet diamond at each corner, small winged wand sigil crowning the top. Portrait opening is truly empty transparent, as is the outside. Frame occupies central 40 percent of width and 65 percent of height. True transparent cutout, square canvas, no text.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_chain_connector",
+      "prompt": "Transparent background PNG. One Egyptian gold chain icon: two interlocking thick gold links horizontally, bold black ink outline and angular gold painted facets in Hades game art style. Single centered isolated cutout, square canvas, ample empty transparent padding, no text.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_tab_unselected",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single narrow horizontal gold-bronze rectangular outline, clipped Egyptian corners, very fine rim, entirely empty center, quiet unselected menu tab. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_tab_selected",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single narrow horizontal gold rectangular outline, clipped Egyptian corners, entirely empty center, brighter lapis accents with one small downward gold triangular tick at bottom center, selected menu tab. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_turn_slot",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single small square recessed slot frame for a dice-face token, worn dark bronze rim, four tiny triangular ivory corner marks, transparent open center. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_cost_badge",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single small round gold-rimmed jade enamel coin badge with absolutely blank opaque dark jade interior for a live cost number. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_echo_marker",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: two closely nested rightward arrows shaped from curved ivory and lapis Egyptian feathers, clear double-chevron forward echo silhouette. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_enemy_intent",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a small wide shallow rectangular dark papyrus forecast plate, thin antique gold border with clipped corners, tiny ominous red diamond ornament at the top center, completely blank center for live text. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_bar_track",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single very slim long horizontal dark papyrus inset resource bar, tiny thin bronze outline, flat ends, completely empty and uniform interior. Uniform thickness and straight edges. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_bar_fill_health",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single very slim straight horizontal strip of ruby-red enamel, brighter angular red highlight along its upper edge, flat ends, no border or container. Uniform thickness and straight edges. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_bar_fill_shield",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single very slim straight horizontal strip of lapis-blue enamel, brighter angular icy blue highlight along its upper edge, flat ends, no border or container. Uniform thickness and straight edges. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_divider_gold",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single very slim straight horizontal strip of bronze enamel, brighter angular copper highlight along its upper edge, flat ends, no border or container. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_bar_endcap",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a single tiny ornate vertical gold lotus end cap for a thin resource bar, flat attachment at right, lotus fan opening left, lapis inset, center aligned. True transparent cutout, square canvas with ample empty padding, no lettering or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_bar_fill_armour",
+      "prompt": "Transparent background PNG. One straight thin horizontal strip of bronze metal for a videogame armour meter fill. ONLY warm copper-brown metal throughout. Angular painted copper highlights on its upper edge, dark bronze on lower edge. Flat straight ends. No gemstones, no blue, no frame, no gold ornament, no text. Hades-style inked facets. Centered isolated cutout on square canvas with large transparent margins.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_stamina_full",
+      "prompt": "Transparent background PNG. One small diamond-shaped polished jade stamina gem in a narrow antique-gold bezel, bright jade center, clear chunky silhouette. Egyptian Hades game art, black ink outline, angular painted facets. Centered single isolated icon, square canvas, no text, no extra ornament.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_stamina_empty",
+      "prompt": "Transparent background PNG. One small diamond-shaped empty stamina socket, narrow antique-gold bezel and dull very dark jade interior, clear chunky silhouette. Egyptian Hades game art, black ink outline, angular painted facets. Centered single isolated icon, square canvas, no text, no extra ornament.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_target_ring",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: a thin elliptical gold ground ring, viewed obliquely from above, with four small inward-pointing triangular markers and a clear open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_night_hour",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one small ivory-and-gold short radial tick with a dark lapis inset, simple narrow trapezoid shape. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_night_current",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one small bright gold triangular pointer with an amber jewel at its base, pointing down. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_night_cleared",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one tiny gold check mark, thick clear diagonal silhouette, simple angular facets. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_night_boundary",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one small pair of gold Egyptian pylons with a clear vertical gap between, compact symmetric silhouette. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_route_available",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one round antique-gold route-node ring with a very thin rim and four small lapis studs, entirely transparent open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_route_selected",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one round bright-gold route-node ring with four short outward solar rays and small jade studs, entirely transparent open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_route_cleared",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one round dark-bronze route-node ring with one gold check mark at bottom-right, entirely transparent open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_route_locked",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one round desaturated dark-bronze route-node ring with a small bronze padlock ornament at bottom-center, entirely transparent open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_route_boss",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one round gold route-node ring shaped from a thin coiled violet snake, small raised cobra head at top, two ruby eyes, entirely transparent open center. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_banner",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one wide horizontal ivory papyrus banner with clipped gold corners and small lapis wing terminals, blank ivory opaque center for live text, minimal border. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_corner_gold",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one right-angle top-left ornamental gold corner, lotus petals, narrow L shape, lapis detail, all remaining space transparent. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_stamina_reserve",
+      "prompt": "Transparent background PNG. One isolated Egyptian game UI sprite in Hades 1/2 style: bold black ink outlines, angular hand-painted antique gold, lapis and ivory highlights, clean readable silhouette. Subject: one jade diamond pip accompanied by a small curved clockwise gold arrow, compact readable silhouette. Centered single isolated sprite on square canvas, ample transparent padding. No text or numbers.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_ra",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one blazing Egyptian sun disc with a small uraeus cobra on its rim, luminous amber and antique gold, clear sun silhouette. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_sobek",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one stylized crocodile head in profile with powerful jaws, jade enamel, antique-gold teeth and contours, compact medallion silhouette. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_anubis",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one upright jackal head in profile with long pointed ears, bone-white and obsidian-black enamel, antique-gold Egyptian collar. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_bes",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one friendly fierce broad guardian-mask face with a leonine mane and short beard, ochre enamel and antique gold, broad sturdy compact silhouette. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_horus",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one proud falcon head in profile, sky-blue and ivory enamel, antique-gold beak and contours, strong hooked falcon silhouette. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_deity_bastet",
+      "prompt": "Transparent background PNG. One Egyptian deity sigil for a Hades 1/2 inspired game: one sleek upright cat head facing forward, tall ears, dusk-violet enamel and antique-gold contours, narrow almond eyes, simple crescent collar. Bold black ink outline, angular hand-painted facets, simple strong silhouette readable at 32px. Centered single isolated icon, ample empty padding on square canvas. No text, no lettering, no person, no scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_guardian",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: a crossed khopesh and round Egyptian shield in bronze and lapis, compact martial emblem. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_herald",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: a tall ivory-and-gold ceremonial herald standard with a small winged sun disc and two short red tassels. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_shrine",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: a tiny gold Egyptian altar between two compact pylons, central lapis ankh emblem, quiet jade accents. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_ferryman",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: a small curved Egyptian trading skiff hull crossed by an oar with one gold coin beside it, compact clear silhouette. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_mooring",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: a thick ivory mooring rope loop around a short dark wooden cleat, one small blue lotus flower beside it. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_omen",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: one mysterious violet eye set inside a gold diamond, three tiny gold star sparks, compact silhouette. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_route_serpentLord",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: one menacing coiled cobra rising in an S shape with gold fangs and violet scales, red eyes, compact emblem. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_gate_reeds",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: three jade papyrus reed stalks fanning from a gold wave curl, compact clear silhouette. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_gate_fire",
+      "prompt": "Transparent background PNG. One Egyptian underworld game navigation icon in Hades 1/2 style: one bright ember-orange flame between two small basalt-black and gold pylons, compact clear silhouette. Bold dark ink outlines and angular painted facets, antique gold highlights. Strong readable silhouette at 32px. Centered isolated cutout on a square canvas with ample transparent padding. No text, no lettering or numerals, no scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_gate_coils",
+      "prompt": "Transparent background PNG. One Egyptian underworld game icon in Hades 1/2 style: one purple serpent curled around a dark obsidian sun disc with a narrow gold rim. Bold dark ink outlines and angular painted facets. Centered isolated cutout on a square canvas with ample transparent padding, no text or scene background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_healingPotion",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one squat red-glass potion flask with an ivory linen neck wrap, gold stopper and small gold ankh medallion. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_smokeBomb",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one round matte charcoal ceramic smoke bomb with a short linen fuse and a single curling grey smoke wisp, simple bronze bands. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_poisonVial",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one slender green-glass venom vial with a small serpent-head gold stopper, two visible poison droplets and dark jade liquid. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_explosiveCharge",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one compact red-cloth-wrapped alchemical charge bound with bronze wire, a short burning fuse and two small amber sparks. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_alchemistsKit",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one compact open ivory-and-bronze alchemist satchel containing three small colorful reagent vials and a tiny mortar, grouped tightly as one inventory object. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_warlocksCharm",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one dark violet obsidian pendant in a narrow gold frame, a mysterious angular arcane eye carved in the stone, a short loop of red cord. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_item_phoenixFlask",
+      "prompt": "Transparent background PNG. One Egyptian underworld inventory sprite in Hades 1/2 style: one amber-glass flask in the shape of a rising phoenix with gold wing handles and a bright orange elixir, compact upright silhouette. Bold dark ink outlines, angular hand-painted light and shadow, antique gold accents, restrained texture. Clear single-object silhouette with ample padding, centered on square canvas. No lettering, numbers, UI card, background scene or watermark.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_brazierOfDawn",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: a small ornate gold-and-basalt brazier shaped like a rising sun, a single amber flame above its bowl. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_vialOfNile",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: a short broad translucent jade-green river-water vial with a gold lotus stopper and one engraved golden wave around its base. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_wardOfBes",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: a sturdy ochre-and-gold guardian-mask amulet with a broad fierce face, leonine mane and tiny protective shield below. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_eyeOfHorus",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: one lapis-and-gold Eye of Horus amulet, unmistakable long eyebrow, almond eye and hooked lower tear stroke, no face. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_ferrymansToll",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: a pair of ancient gold coins tied by a short dark linen cord to a small carved wooden oar pendant, compact arrangement. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_relic_canopicHeart",
+      "prompt": "Transparent background PNG. One precious Egyptian relic inventory sprite in Hades 1/2 style: a squat alabaster canopic jar with a jackal-head gold lid and a single ruby-red anatomical heart-shaped jewel on its front. Bold dark ink outlines, angular hand-painted light and shadow, ivory and antique gold highlights. Distinct strong silhouette, centered single object on square canvas with ample empty transparent padding. No text, labels, numbers, UI frame or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_twinBowstring",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: a small Egyptian recurved archery bow with exactly two taut parallel bowstrings, ember-orange wraps and antique-gold tips. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_siegeDraw",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: a heavy bronze arrowhead pulled against a taut thick archery bowstring, one bold orange tension arc behind it. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_adjustableNock",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: a close-up ivory-feathered arrow tail with an adjustable golden nock ring and two small bronze notch tabs, ember-orange accent. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_crescentEdge",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: one broad crescent-shaped khopesh blade fragment with a keen ivory metal edge, bronze body and steel-blue wrapping on its short grip. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_counterweight",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: one heavy faceted bronze counterweight hanging from a short steel-blue weapon grip, small gold balance loop. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_relentlessAdvance",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: a forward-tilted Egyptian round shield with three short gold motion chevrons behind it, steel-blue enamel and bronze rim. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_returningKnife",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: one curved jade-accented bronze throwing dagger surrounded by a single clear circular ivory return trail. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_concealedBlade",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: a short bronze dagger partly emerging from a folded dark hood-like cloth, small jade gem in its hilt. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_assassinsCommitment",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: two narrow gold-edged obsidian daggers crossing through a small jade target diamond, tight decisive compact silhouette. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_prismaticFocus",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: one violet crystal prism held in an antique-gold triangular holder, three narrow red blue and jade magical rays leaving it. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_echoingStaff",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: one short gold Egyptian staff topped with a violet orb, two offset thin violet echo arcs following its silhouette. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_chisel_alternatingCurrent",
+      "prompt": "Transparent background PNG. One symbolic Egyptian class-upgrade icon for a Hades 1/2 inspired game: two interlocked angular lightning bolts, one violet and one icy blue, contained by a broken thin gold ring. Bold dark ink outlines, angular hand-painted light, controlled antique-gold and class accents. Strong readable silhouette, single tightly grouped emblem centered on square canvas with ample transparent padding. No text, labels, numbers, card or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_bronzeArmour",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one compact bronze Egyptian breastplate with layered scale panels and a small blue enamel collar. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_bleed",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one crimson blood droplet split by a single sharp ivory diagonal cut, gold rim. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_judgement",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one gold balance scale weighing a pale feather against a dark-red heart, compact symmetrical silhouette. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_markedTarget",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one gold circular target with four bold inward ticks around a red central diamond. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_critical",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one explosive angular ivory starburst pierced by a red-and-gold pointed spearhead. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_piercing",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one ivory arrowhead visibly passing through a cracked small bronze shield. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_status_champion",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one regal gold Egyptian double-plume crown with a bright jade central jewel. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_back",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one thick left-pointing antique-gold chevron, one tiny lapis inset, exceptionally simple navigation symbol. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_forward",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one thick right-pointing antique-gold chevron, one tiny lapis inset, exceptionally simple navigation symbol. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_close",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one thick diagonal X built from two straight antique-gold bars with restrained lapis inlay, exceptionally simple close symbol. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_codex",
+      "prompt": "Transparent background PNG. A single small open papyrus book icon, ivory pages, gold corners and dark lapis cover, one simple blue Eye of Horus on the pages. Hades 1/2 inspired Egyptian game art, bold ink outlines, angular cel shading. Clean hard-edged cutout, compact square composition, plenty of empty transparent padding. No glow, aura, cast shadow, text or background.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_records",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one short gold-framed hourglass containing pale ivory sand, lapis base and top. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_utility_currency",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one thick antique-gold coin embossed with a bold Egyptian scarab silhouette. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_roll",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one ivory die tilted in motion with three distinct gold pips on its front, a single curved gold arrow around the die. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_held",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one compact lapis die gripped by a bold ivory-and-gold padlock, a restrained ice-blue edge accent. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_spent",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one weathered dark stone die with a large simple diagonal bronze slash marking it used. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_reforge",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one small Egyptian bronze hammer striking an ivory die on a dark gold-trimmed anvil, two compact sparks. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_imbue",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one ivory die with a large violet jewel-like glyph on its face, a compact purple magical flame rising above. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_interaction_swap",
+      "prompt": "Transparent background PNG. One clean game swap icon: two short thick arrows in opposite horizontal directions, upper arrow pointing left in antique gold, lower arrow pointing right in lapis blue with ivory edges. Egyptian Hades-inspired angular cel-shaded game art, bold ink outline, minimal detail. Compact square composition, empty transparent gaps, generous transparent padding. Hard-edged cutout. No glow, aura, cast shadow, backdrop, text or extra decoration.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_slot_weapon",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one short Egyptian khopesh and straight spear crossed as a compact gold-and-ivory weapon emblem. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_slot_armour",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one simplified Egyptian scale cuirass with a broad antique-gold collar and lapis chest inset. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_slot_item",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one compact ivory linen satchel gathered with a gold cord and jade bead, clearly a closed inventory pouch. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_upgrade_hammer",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one short bronze artisan hammer with a squared head and Egyptian gold-and-lapis handle, a compact diagonal silhouette. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_upgrade_whetstone",
+      "prompt": "Transparent background PNG. One small whetstone upgrade icon for an Egyptian Hades-inspired game: a short ivory khopesh blade resting diagonally across a simple dark slate sharpening stone with a thin bronze rim. Bold ink outlines, angular cel shading, limited ivory and antique-gold palette. Single compact emblem centered on a square canvas with generous transparent padding. Clean hard-edged cutout. No glow, aura, cast shadow, scenery, background, text or additional decoration.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_trial_halo",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one circular thin gold solar halo ornament, symmetrical short rays around its perimeter, small ivory feather at its top; the entire large circular center must be empty and fully transparent, no central symbol, designed to surround a separate deity sigil. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_banner_victory",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one horizontal Egyptian victory banner frame, pale ivory central blank papyrus strip with dark-jade folded ends, antique-gold edging and symmetrical small falcon-wing ornaments at both ends, width about three times height; large clean empty center for live game text. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects. Clean hard-edged cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_banner_defeat",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one horizontal Egyptian defeat banner frame, dark-charcoal central blank papyrus strip with deep-crimson folded ends, aged bronze edging and restrained chipped feather ornaments at both ends, width about three times height; large clean empty center for live game text. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects. Clean hard-edged cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_hieroglyph_strip",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one narrow horizontal decorative frieze of simplified Egyptian pictograms, alternate small gold feathers, reeds, suns and eyes in a clean evenly spaced single row, no backing surface; width about five times height; ornamental symbols only, no linguistic inscription. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects. Clean hard-edged cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_ui_divider_winged",
+      "prompt": "Transparent background PNG. One Egyptian fantasy game UI asset in the Hades 1/2 art direction: one slender horizontal divider with a small central lapis solar disk and two long symmetrical antique-gold falcon wings stretching left and right, ivory highlights; width about five times height; generous clear space above and below. Bold dark ink outlines, angular hand-painted light and restrained texture. Strong silhouette readable at small game UI size. Single isolated centered asset with ample transparent padding on every side. No letters, labels, numbers, scenery or background. No extra objects. Clean hard-edged cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_barque",
+      "prompt": "Transparent background PNG. A clean isolated Egyptian solar boat sprite for a Hades-inspired game. Broadside slightly elevated view, entire low wooden hull and empty ivory deck visible. Gold falcon prow pointing right, curled stern at left, dark timber and lapis trim. Bold black ink outlines, angular cel shading. No people or sail. Hard-edged cutout with large transparent margins. No glow, halo, aura, cast shadow, water, backdrop or scenery.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_sun_bright",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one solid perfectly circular sun disc, warm luminous ivory center and angular golden-orange shaded rim, sharply contained rays inside the disc; no external halo or rays. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_sun_weakened",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one solid perfectly circular sun disc, muted burnt-orange center with a few gold cracks and a dark bronze rim; dim but still visible, no external halo or rays. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_sun_extinguished",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one solid perfectly circular sun disc, near-black charcoal center with two tiny red-orange glowing fissures and a very thin ember rim; no external halo or rays. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_sun_halo",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one circular ring of short angular golden rays with soft warm translucent light at their edges, a large entirely empty transparent central circle to place a separate sun disc; no solid disc. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_ripple_jade",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one compact flat horizontal ellipse of broken jade and pale-turquoise river reflection strokes, stylized angular painterly water highlights only; transparent gaps between strokes, viewed from a shallow elevated angle; no solid water background. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_ripple_ember",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one compact flat horizontal ellipse of broken ember-orange and pale-gold river reflection strokes, stylized angular painterly water highlights only; transparent gaps between strokes, viewed from a shallow elevated angle; no solid water background. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_ripple_violet",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one compact flat horizontal ellipse of broken violet and pale-lilac river reflection strokes, stylized angular painterly water highlights only; transparent gaps between strokes, viewed from a shallow elevated angle; no solid water background. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_reeds_left",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one small isolated cluster of Nile papyrus reeds, dark-jade stems with pale sage edges and compact fan-shaped tops; grounded together at the lower-left of the asset, gracefully leaning right toward the screen center; no ground or river. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene. Clean cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_reeds_right",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one small isolated cluster of Nile papyrus reeds, dark-jade stems with pale sage edges and compact fan-shaped tops; grounded together at the lower-right of the asset, gracefully leaning left toward the screen center; no ground or river. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene. Clean cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_brazier",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one small isolated Egyptian bronze brazier with a shallow gold-rimmed bowl atop three short claw feet, dark coals in bowl; no flame, smoke or ground. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene. Clean cutout. No glow, aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_flame",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one isolated compact orange-and-ivory flame with three angular licking tongues and dark-red base, bright pale center; no brazier, smoke or background. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_ember",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one single tiny angular orange ember shard with pale-yellow core and a soft very short translucent red trail upward; designed to be repeated by a particle system. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_mist",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one wispy thin horizontal strip of translucent pale jade-gray river mist with tapered feathered ends, layered gentle painted curves, low-opacity edges, transparent gaps; no ground or river. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_star",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one small four-point ivory star glint with a restrained pale-gold edge, elongated vertical points, compact horizontal points; one star only, no surrounding field. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_coil",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one isolated low arched segment of a colossal serpent's back, black-violet scales with angular amethyst highlights and a few bronze scars, left and right ends curving down for submerging below water; no head, tail, water or ground. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene. Clean cutout, no aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_environment_ruins",
+      "prompt": "Transparent background PNG. One isolated scenery sprite for an Egyptian underworld game in the Hades 1/2 art direction: one low horizontal silhouette group of distant broken Egyptian pylons and a fractured lotus column, dark teal-black stone with restrained muted jade edges, simple atmospheric forms; no sky, water or ground rectangle. Bold angular silhouettes, painterly cel shading, restrained textured planes, consistent antique-gold/lapis/jade/ivory palette. Entire object visible with generous transparent padding. Static single sprite, no animation sheet, no text, labels or background scene. Clean cutout, no aura or cast shadow.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_enemy_strawEffigy",
+      "prompt": "Transparent background PNG. One full-body straw training effigy enemy for an Egyptian underworld game in the Hades 1/2 art direction. A human-sized bundle of pale ochre reeds tied with dark linen, a simple carved wooden head with glowing amber eye slits, battered bronze-and-lapis collar, ragged red sash. Angular stick arms posed in a mild combat-ready stance facing left, wooden stake-like legs, an old small reed shield and blunt practice staff. Bold black ink contours and angular painted lighting, antique-gold highlights, clear readable silhouette. Entire figure and equipment visible, feet on a consistent baseline, generous transparent padding. No floor, cast shadow, aura, background, text or other figures. Single static neutral enemy pose.",
+      "productionMethod": "image generation",
+      "referenceImage": null
+    },
+    {
+      "id": "duat_hero_rogue_defeat",
+      "prompt": "Use case: identity-preserve edit.\nInput image 1 is the ORIGINAL character design and the sole visual authority. Edit this image into a defeated pose. Change only body pose and remove the scenery to genuine transparent alpha.\nKeep precisely the same man's face, head size, jaw, eyes, short spiky hair and small gold hair beads, athletic proportions, skin tone, tattoos, rendering detail, angular painterly brushwork and cyan rim light. Preserve every costume design: the SMALL narrow black-and-gold jackal head on the shoulder at its original relative scale, low black cowl with turquoise lining, original turquoise-and-gold scarab clasp, crossed leather chest straps, ivory torn cloth strips, original belts, pouches, ankh pendant, decorated hanging black tabard, magenta cape ends, gold/black bracers and greaves, sandals, and exactly the original curved blades. Do not redesign or simplify anything.\nPose only: he has sunk onto one knee, tired head bowed, torso leaning forward, one palm braced beside his knee, other hand holding one original knife down; second original knife rests nearby. Full body oriented toward screen-right. All limbs and equipment visible. Keep face recognizable, no injuries. Preserve the original illustration finish exactly, not a flatter cartoon rendition. No new ornaments, no oversized shoulder mask, no changed clothing. Single figure, full body, generous margin. Transparent PNG cutout, no drawn transparency pattern, no floor or background.",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "rogue_reference.png"
+    },
+    {
+      "id": "duat_hero_magician_dodge",
+      "prompt": "Use case: identity-preserve edit. Input image 1 is the original magician and sole design authority. Change ONLY her pose to a low, graceful evasive sidestep toward screen-left while looking at an enemy on screen-right. Preserve her original face, proportions, dark-brown skin, hairstyle, thin gold-beaded braids, high bun, crescent/ibis crown, circular earrings, all original intricate lapis-and-ivory robe layers and their gold patternwork, the exact cyan silk strips, original waist ankh, three horizontal scrolls at her hip, heeled gold sandals, and exact original crescent/ibis staff with blue orb, dark twisted shaft, small tassels and dangling ribbons. Do not simplify the costume, change its shapes, invent ornaments, or reinterpret the rendering. Preserve the source's detailed angular painterly finish, fine black contours, blue reflected light and material textures. Staff held close at a diagonal, body leaning away from an incoming strike, robes trailing opposite her travel. Keep both hands natural and all limbs, staff, cloth and footwear visible with generous margins. Single figure only. Remove original scene and large water spell; use actual transparent alpha background, not a painted transparency grid. Full-body PNG.",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "magician_reference.png"
+    },
+    {
+      "id": "duat_hero_magician_defeat",
+      "prompt": "Use case: identity-preserve edit. Image 1 is the ORIGINAL magician; preserve her exact character design and painterly illustration finish. Change ONLY her pose to defeat: kneeling low, shoulders slumped, head bowed, one hand on her lap and the other leaning on her planted original staff. Dignified exhaustion, no wounds. Keep the same dark-brown woman, same face, high braided bun, gold-beaded braids, original crescent-and-ibis crown, round gold earrings, intricate ivory and royal-lapis robe panels with their exact gold patterns, cyan silk strips, original ankh belt, three horizontal scrolls, tassels, and original gold heeled sandals. Preserve the exact staff design: long dark twisted shaft with gold details, gold ibis and crescent encircling its blue orb, original tassels and ribbons; the orb is dimmer but unchanged in shape. Match the source's fine ink, angular painted highlights, fabric detail, skin rendering and blue reflected light precisely. Do not simplify into flat cartoon shading, change the costume or add ornaments. Three-quarter toward screen-right, whole body and staff visible, generous empty margin. Remove original scenery and casting water effect. Actual transparent alpha background, no drawn checkerboard, no floor. Single full-body PNG sprite.",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination",
+      "referenceImage": "magician_reference.png"
+    },
+    {
+      "id": "duat_hero_magician_victory",
+      "prompt": "Use case: identity-preserve edit. Image 1 is the ORIGINAL magician and sole design authority. Change ONLY her pose to victory: standing proudly in three-quarter view facing screen-right, chin slightly lifted, a restrained confident smile, original staff held upright and raised a little at her side, free hand open with a small blue water crescent. Preserve the exact original woman's face, dark-brown skin, body proportions, high braided bun, gold-beaded braids, crescent-and-ibis crown, round gold earrings, layered ivory and royal-lapis robes with identical intricate gold patterns, cyan silk strips, original large ankh belt, three horizontal scrolls, small tassels and gold heeled sandals. Preserve the staff's original gold ibis and crescent around the faceted blue orb, dark twisted shaft, tassels and ribbons. Keep the original detailed angular painted finish, delicate ink, rich material textures and blue reflected light. No costume redesign or simplification, no new jewels or changed facial features. Entire raised staff, full body, all cloth and footwear inside canvas with generous margins. Remove original temple backdrop, large spell and floor. Single figure on genuine transparent alpha, no painted checkerboard. Full-body PNG sprite.",
+      "productionMethod": "neutral checkerboard segmentation with visually classified enclosed gaps; pale fabric protected; narrow edge decontamination; checker-contaminated blue glow isolated with chroma-derived alpha while solid spell highlights were protected",
+      "referenceImage": "magician_reference.png"
+    },
+    {
+      "id": "duat_hero_archer_guardUp",
+      "prompt": "Original guard frame with teal colour-key mask and narrow edge decontamination; no redraw or resampling.",
+      "productionMethod": "Original guard frame with teal colour-key mask and narrow edge decontamination; no redraw or resampling.",
+      "referenceImage": "archer_block_sheet.png"
+    },
+    {
+      "id": "duat_hero_rogue_hurt",
+      "prompt": "Exact original RGBA hurt frame, cropped without resampling or repainting.",
+      "productionMethod": "Exact original RGBA hurt frame, cropped without resampling or repainting.",
+      "referenceImage": "rogue_take_damage_sheet.png"
+    },
+    {
+      "id": "duat_hero_magician_follow",
+      "prompt": "Original RGBA follow-through frame; alpha and RGB retained on figure; preceding frame beam and unrelated left droplets isolated out.",
+      "productionMethod": "Original RGBA follow-through frame; alpha and RGB retained on figure; preceding frame beam and unrelated left droplets isolated out.",
+      "referenceImage": "magician_attack_sheet.png"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+Asset name,Label,Group,FaceKind,Width,Height,PNG path
+duat_face_arrow1,Arrow I,faces,arrow1,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow1.imageset/duat_face_arrow1.png
+duat_face_arrow2,Arrow II,faces,arrow2,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow2.imageset/duat_face_arrow2.png
+duat_face_arrow3,Arrow III,faces,arrow3,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_arrow3.imageset/duat_face_arrow3.png
+duat_face_bowSmack,Bow Smack,faces,bowSmack,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_bowSmack.imageset/duat_face_bowSmack.png
+duat_face_overhead,Overhead,faces,overhead,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_overhead.imageset/duat_face_overhead.png
+duat_face_sideSwing,Side Swing,faces,sideSwing,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_sideSwing.imageset/duat_face_sideSwing.png
+duat_face_swiftSlash,Swift Slash,faces,swiftSlash,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_swiftSlash.imageset/duat_face_swiftSlash.png
+duat_face_daggerThrow,Dagger Throw,faces,daggerThrow,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_daggerThrow.imageset/duat_face_daggerThrow.png
+duat_face_runeFire,Fire Rune,faces,runeFire,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeFire.imageset/duat_face_runeFire.png
+duat_face_runeFrost,Frost Rune,faces,runeFrost,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeFrost.imageset/duat_face_runeFrost.png
+duat_face_runeLife,Life Rune,faces,runeLife,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeLife.imageset/duat_face_runeLife.png
+duat_face_runeArcane,Arcane Rune,faces,runeArcane,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_runeArcane.imageset/duat_face_runeArcane.png
+duat_face_wandZap,Wand Zap,faces,wandZap,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_wandZap.imageset/duat_face_wandZap.png
+duat_face_channel,Channel,faces,channel,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_channel.imageset/duat_face_channel.png
+duat_face_block,Block,faces,block,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_block.imageset/duat_face_block.png
+duat_face_evade,Evade,faces,evade,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_evade.imageset/duat_face_evade.png
+duat_face_heal,Heal,faces,heal,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_heal.imageset/duat_face_heal.png
+duat_face_focus,Focus,faces,focus,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_focus.imageset/duat_face_focus.png
+duat_face_energize,Energize,faces,energize,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_energize.imageset/duat_face_energize.png
+duat_face_bomb,Bomb,faces,bomb,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_bomb.imageset/duat_face_bomb.png
+duat_face_poison,Poison,faces,poison,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_face_poison.imageset/duat_face_poison.png
+duat_ui_panel_large,Large papyrus panel,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_panel_large.imageset/duat_ui_panel_large.png
+duat_ui_card_small,Small papyrus card,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_card_small.imageset/duat_ui_card_small.png
+duat_ui_button_primary_normal,Primary action button — normal,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_normal.imageset/duat_ui_button_primary_normal.png
+duat_ui_cartouche,Cartouche label,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_cartouche.imageset/duat_ui_cartouche.png
+duat_ui_button_primary_pressed,Primary action button — pressed,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_pressed.imageset/duat_ui_button_primary_pressed.png
+duat_ui_button_primary_disabled,Primary action button — disabled,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_disabled.imageset/duat_ui_button_primary_disabled.png
+duat_ui_button_primary_highlighted,Primary action button — highlighted,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_primary_highlighted.imageset/duat_ui_button_primary_highlighted.png
+duat_ui_die_empty,Dice frame — empty,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_empty.imageset/duat_ui_die_empty.png
+duat_ui_die_ready,Dice frame — ready,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_ready.imageset/duat_ui_die_ready.png
+duat_ui_die_rolling,Dice frame — rolling,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_rolling.imageset/duat_ui_die_rolling.png
+duat_ui_die_selected,Dice frame — selected,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_selected.imageset/duat_ui_die_selected.png
+duat_ui_die_held,Dice frame — held,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_held.imageset/duat_ui_die_held.png
+duat_ui_die_spent,Dice frame — spent,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_spent.imageset/duat_ui_die_spent.png
+duat_ui_die_critical,Dice frame — critical,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_die_critical.imageset/duat_ui_die_critical.png
+duat_ui_button_secondary_normal,Secondary button — normal,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_normal.imageset/duat_ui_button_secondary_normal.png
+duat_ui_button_secondary_pressed,Secondary button — pressed,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_pressed.imageset/duat_ui_button_secondary_pressed.png
+duat_ui_button_secondary_disabled,Secondary button — disabled,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_disabled.imageset/duat_ui_button_secondary_disabled.png
+duat_ui_button_secondary_selected,Secondary button — selected,ui,,2146,733,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_button_secondary_selected.imageset/duat_ui_button_secondary_selected.png
+duat_ui_rarity_clay,Rarity frame — clay,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_clay.imageset/duat_ui_rarity_clay.png
+duat_ui_rarity_copper,Rarity frame — copper,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_copper.imageset/duat_ui_rarity_copper.png
+duat_ui_rarity_lapis,Rarity frame — lapis,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_lapis.imageset/duat_ui_rarity_lapis.png
+duat_ui_rarity_goldLeaf,Rarity frame — goldLeaf,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_rarity_goldLeaf.imageset/duat_ui_rarity_goldLeaf.png
+duat_ui_class_archer,Class card frame — archer,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_archer.imageset/duat_ui_class_archer.png
+duat_ui_class_warrior,Class card frame — warrior,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_warrior.imageset/duat_ui_class_warrior.png
+duat_ui_class_rogue,Class card frame — rogue,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_rogue.imageset/duat_ui_class_rogue.png
+duat_ui_class_magician,Class card frame — magician,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_class_magician.imageset/duat_ui_class_magician.png
+duat_ui_chain_connector,Turn-plan chain connector,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_chain_connector.imageset/duat_ui_chain_connector.png
+duat_ui_tab_unselected,Tab selector — unselected,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_tab_unselected.imageset/duat_ui_tab_unselected.png
+duat_ui_tab_selected,Tab selector — selected,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_tab_selected.imageset/duat_ui_tab_selected.png
+duat_ui_turn_slot,Turn-plan face slot,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_turn_slot.imageset/duat_ui_turn_slot.png
+duat_ui_cost_badge,Stamina cost badge,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_cost_badge.imageset/duat_ui_cost_badge.png
+duat_ui_echo_marker,Next-turn / echo marker,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_echo_marker.imageset/duat_ui_echo_marker.png
+duat_ui_enemy_intent,Enemy intent plate,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_enemy_intent.imageset/duat_ui_enemy_intent.png
+duat_ui_bar_track,Resource bar track,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_track.imageset/duat_ui_bar_track.png
+duat_ui_bar_fill_health,Health bar fill,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_health.imageset/duat_ui_bar_fill_health.png
+duat_ui_bar_fill_shield,Shield bar fill,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_shield.imageset/duat_ui_bar_fill_shield.png
+duat_ui_divider_gold,Gold and lapis divider,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_divider_gold.imageset/duat_ui_divider_gold.png
+duat_ui_bar_endcap,Resource bar end cap,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_endcap.imageset/duat_ui_bar_endcap.png
+duat_ui_bar_fill_armour,Armour bar fill,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_bar_fill_armour.imageset/duat_ui_bar_fill_armour.png
+duat_ui_stamina_full,Stamina pip — full,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_full.imageset/duat_ui_stamina_full.png
+duat_ui_stamina_empty,Stamina pip — empty,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_empty.imageset/duat_ui_stamina_empty.png
+duat_ui_target_ring,Target selection ring,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_target_ring.imageset/duat_ui_target_ring.png
+duat_ui_night_hour,Night dial hour mark,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_hour.imageset/duat_ui_night_hour.png
+duat_ui_night_current,Night dial current-hour marker,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_current.imageset/duat_ui_night_current.png
+duat_ui_night_cleared,Night dial cleared mark,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_cleared.imageset/duat_ui_night_cleared.png
+duat_ui_night_boundary,Night dial gate boundary,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_night_boundary.imageset/duat_ui_night_boundary.png
+duat_ui_route_available,Route node — available,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_available.imageset/duat_ui_route_available.png
+duat_ui_route_selected,Route node — selected,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_selected.imageset/duat_ui_route_selected.png
+duat_ui_route_cleared,Route node — cleared,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_cleared.imageset/duat_ui_route_cleared.png
+duat_ui_route_locked,Route node — locked,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_locked.imageset/duat_ui_route_locked.png
+duat_ui_route_boss,Route node — boss,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_route_boss.imageset/duat_ui_route_boss.png
+duat_ui_banner,Shared arrival and reward banner,ui,,1983,793,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner.imageset/duat_ui_banner.png
+duat_ui_corner_gold,Gold corner ornament,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_corner_gold.imageset/duat_ui_corner_gold.png
+duat_ui_stamina_reserve,Stamina reserve indicator,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_stamina_reserve.imageset/duat_ui_stamina_reserve.png
+duat_deity_ra,Ra divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_ra.imageset/duat_deity_ra.png
+duat_deity_sobek,Sobek divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_sobek.imageset/duat_deity_sobek.png
+duat_deity_anubis,Anubis divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_anubis.imageset/duat_deity_anubis.png
+duat_deity_bes,Bes divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_bes.imageset/duat_deity_bes.png
+duat_deity_horus,Horus divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_horus.imageset/duat_deity_horus.png
+duat_deity_bastet,Bastet divine sigil,deities,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_deity_bastet.imageset/duat_deity_bastet.png
+duat_route_guardian,Guardian encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_guardian.imageset/duat_route_guardian.png
+duat_route_herald,Herald encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_herald.imageset/duat_route_herald.png
+duat_route_shrine,Shrine encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_shrine.imageset/duat_route_shrine.png
+duat_route_ferryman,Ferryman encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_ferryman.imageset/duat_route_ferryman.png
+duat_route_mooring,Mooring encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_mooring.imageset/duat_route_mooring.png
+duat_route_omen,Omen encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_omen.imageset/duat_route_omen.png
+duat_route_serpentLord,Serpent-Lord encounter,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_route_serpentLord.imageset/duat_route_serpentLord.png
+duat_gate_reeds,Gate of Reeds emblem,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_reeds.imageset/duat_gate_reeds.png
+duat_gate_fire,Gate of Fire emblem,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_fire.imageset/duat_gate_fire.png
+duat_gate_coils,Gate of Coils emblem,navigation,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_gate_coils.imageset/duat_gate_coils.png
+duat_item_healingPotion,Healing Potion,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_healingPotion.imageset/duat_item_healingPotion.png
+duat_item_smokeBomb,Smoke Bomb,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_smokeBomb.imageset/duat_item_smokeBomb.png
+duat_item_poisonVial,Poison Vial,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_poisonVial.imageset/duat_item_poisonVial.png
+duat_item_explosiveCharge,Explosive Charge,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_explosiveCharge.imageset/duat_item_explosiveCharge.png
+duat_item_alchemistsKit,Alchemist's Kit,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_alchemistsKit.imageset/duat_item_alchemistsKit.png
+duat_item_warlocksCharm,Warlock's Charm,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_warlocksCharm.imageset/duat_item_warlocksCharm.png
+duat_item_phoenixFlask,Phoenix Flask,items,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_item_phoenixFlask.imageset/duat_item_phoenixFlask.png
+duat_relic_brazierOfDawn,Brazier of the Dawn,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_brazierOfDawn.imageset/duat_relic_brazierOfDawn.png
+duat_relic_vialOfNile,Vial of the Nile,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_vialOfNile.imageset/duat_relic_vialOfNile.png
+duat_relic_wardOfBes,Ward of Bes,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_wardOfBes.imageset/duat_relic_wardOfBes.png
+duat_relic_eyeOfHorus,Eye of Horus,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_eyeOfHorus.imageset/duat_relic_eyeOfHorus.png
+duat_relic_ferrymansToll,The Ferryman's Toll,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_ferrymansToll.imageset/duat_relic_ferrymansToll.png
+duat_relic_canopicHeart,Canopic Heart,relics,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_relic_canopicHeart.imageset/duat_relic_canopicHeart.png
+duat_chisel_twinBowstring,Twin Bowstring,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_twinBowstring.imageset/duat_chisel_twinBowstring.png
+duat_chisel_siegeDraw,Siege Draw,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_siegeDraw.imageset/duat_chisel_siegeDraw.png
+duat_chisel_adjustableNock,Adjustable Nock,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_adjustableNock.imageset/duat_chisel_adjustableNock.png
+duat_chisel_crescentEdge,Crescent Edge,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_crescentEdge.imageset/duat_chisel_crescentEdge.png
+duat_chisel_counterweight,Counterweight,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_counterweight.imageset/duat_chisel_counterweight.png
+duat_chisel_relentlessAdvance,Relentless Advance,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_relentlessAdvance.imageset/duat_chisel_relentlessAdvance.png
+duat_chisel_returningKnife,Returning Knife,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_returningKnife.imageset/duat_chisel_returningKnife.png
+duat_chisel_concealedBlade,Concealed Blade,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_concealedBlade.imageset/duat_chisel_concealedBlade.png
+duat_chisel_assassinsCommitment,Assassin's Commitment,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_assassinsCommitment.imageset/duat_chisel_assassinsCommitment.png
+duat_chisel_prismaticFocus,Prismatic Focus,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_prismaticFocus.imageset/duat_chisel_prismaticFocus.png
+duat_chisel_echoingStaff,Echoing Staff,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_echoingStaff.imageset/duat_chisel_echoingStaff.png
+duat_chisel_alternatingCurrent,Alternating Current,chisels,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_chisel_alternatingCurrent.imageset/duat_chisel_alternatingCurrent.png
+duat_status_bronzeArmour,Bronze armour,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_bronzeArmour.imageset/duat_status_bronzeArmour.png
+duat_status_bleed,Bleed,status,,1268,1240,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_bleed.imageset/duat_status_bleed.png
+duat_status_judgement,Judgement,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_judgement.imageset/duat_status_judgement.png
+duat_status_markedTarget,Marked target,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_markedTarget.imageset/duat_status_markedTarget.png
+duat_status_critical,Critical hit,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_critical.imageset/duat_status_critical.png
+duat_status_piercing,Piercing damage,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_piercing.imageset/duat_status_piercing.png
+duat_status_champion,Champion,status,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_status_champion.imageset/duat_status_champion.png
+duat_utility_back,Back,utility,,1367,1150,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_back.imageset/duat_utility_back.png
+duat_utility_forward,Forward,utility,,1240,1269,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_forward.imageset/duat_utility_forward.png
+duat_utility_close,Close,utility,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_close.imageset/duat_utility_close.png
+duat_utility_codex,Codex,utility,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_codex.imageset/duat_utility_codex.png
+duat_utility_records,Records,utility,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_records.imageset/duat_utility_records.png
+duat_utility_currency,Gold currency,utility,,1275,1234,ios/DiceRoller/Assets.xcassets/DuatUI/duat_utility_currency.imageset/duat_utility_currency.png
+duat_interaction_roll,Roll dice,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_roll.imageset/duat_interaction_roll.png
+duat_interaction_held,Held or frozen die,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_held.imageset/duat_interaction_held.png
+duat_interaction_spent,Spent die,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_spent.imageset/duat_interaction_spent.png
+duat_interaction_reforge,Reforge,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_reforge.imageset/duat_interaction_reforge.png
+duat_interaction_imbue,Imbue,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_imbue.imageset/duat_interaction_imbue.png
+duat_interaction_swap,Swap,interactions,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_interaction_swap.imageset/duat_interaction_swap.png
+duat_slot_weapon,Weapon slot,slots,,1311,1200,ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_weapon.imageset/duat_slot_weapon.png
+duat_slot_armour,Armour slot,slots,,1222,1287,ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_armour.imageset/duat_slot_armour.png
+duat_slot_item,Item slot,slots,,1302,1208,ios/DiceRoller/Assets.xcassets/DuatUI/duat_slot_item.imageset/duat_slot_item.png
+duat_upgrade_hammer,Ptah workshop,upgrades,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_upgrade_hammer.imageset/duat_upgrade_hammer.png
+duat_upgrade_whetstone,Whetstone upgrade,upgrades,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_upgrade_whetstone.imageset/duat_upgrade_whetstone.png
+duat_trial_halo,Divine trial halo,ui,,1254,1254,ios/DiceRoller/Assets.xcassets/DuatUI/duat_trial_halo.imageset/duat_trial_halo.png
+duat_ui_banner_victory,Victory banner,ui,,2172,724,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner_victory.imageset/duat_ui_banner_victory.png
+duat_ui_banner_defeat,Defeat banner,ui,,2172,724,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_banner_defeat.imageset/duat_ui_banner_defeat.png
+duat_ui_hieroglyph_strip,Hieroglyph strip,ui,,2172,724,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_hieroglyph_strip.imageset/duat_ui_hieroglyph_strip.png
+duat_ui_divider_winged,Winged divider,ui,,2172,724,ios/DiceRoller/Assets.xcassets/DuatUI/duat_ui_divider_winged.imageset/duat_ui_divider_winged.png
+duat_environment_barque,Solar barque,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_barque.imageset/duat_environment_barque.png
+duat_environment_sun_bright,Bright sun disc,environment,,1278,1230,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_bright.imageset/duat_environment_sun_bright.png
+duat_environment_sun_weakened,Weakened sun disc,environment,,1226,1283,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_weakened.imageset/duat_environment_sun_weakened.png
+duat_environment_sun_extinguished,Nearly extinguished sun disc,environment,,1261,1247,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_extinguished.imageset/duat_environment_sun_extinguished.png
+duat_environment_sun_halo,Separate sun halo,environment,,1261,1247,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_sun_halo.imageset/duat_environment_sun_halo.png
+duat_environment_ripple_jade,Jade river reflection,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_jade.imageset/duat_environment_ripple_jade.png
+duat_environment_ripple_ember,Ember river reflection,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_ember.imageset/duat_environment_ripple_ember.png
+duat_environment_ripple_violet,Violet river reflection,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ripple_violet.imageset/duat_environment_ripple_violet.png
+duat_environment_reeds_left,Left papyrus reeds,environment,,1312,1199,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_reeds_left.imageset/duat_environment_reeds_left.png
+duat_environment_reeds_right,Right papyrus reeds,environment,,1312,1199,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_reeds_right.imageset/duat_environment_reeds_right.png
+duat_environment_brazier,Brazier prop,environment,,1337,1176,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_brazier.imageset/duat_environment_brazier.png
+duat_environment_flame,Brazier flame,environment,,1312,1199,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_flame.imageset/duat_environment_flame.png
+duat_environment_ember,Ember particle,environment,,1243,1265,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ember.imageset/duat_environment_ember.png
+duat_environment_mist,River mist strip,environment,,2172,724,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_mist.imageset/duat_environment_mist.png
+duat_environment_star,Star glint,environment,,1270,1239,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_star.imageset/duat_environment_star.png
+duat_environment_coil,Apep surface coil,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_coil.imageset/duat_environment_coil.png
+duat_environment_ruins,Distant ruins,environment,,1774,887,ios/DiceRoller/Assets.xcassets/DuatUI/duat_environment_ruins.imageset/duat_environment_ruins.png
+duat_enemy_strawEffigy,Straw Effigy,enemies,,1145,1374,ios/DiceRoller/Assets.xcassets/DuatUI/duat_enemy_strawEffigy.imageset/duat_enemy_strawEffigy.png
+duat_hero_rogue_defeat,Rogue · defeat,heroes,,1024,1536,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_rogue_defeat.imageset/duat_hero_rogue_defeat.png
+duat_hero_magician_dodge,Magician · dodge,heroes,,1024,1536,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_dodge.imageset/duat_hero_magician_dodge.png
+duat_hero_magician_defeat,Magician · defeat,heroes,,1024,1536,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_defeat.imageset/duat_hero_magician_defeat.png
+duat_hero_magician_victory,Magician · victory,heroes,,1024,1536,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_victory.imageset/duat_hero_magician_victory.png
+duat_hero_archer_guardUp,Archer · guard,heroes,,436,484,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_archer_guardUp.imageset/duat_hero_archer_guardUp.png
+duat_hero_rogue_hurt,Rogue · hurt,heroes,,448,576,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_rogue_hurt.imageset/duat_hero_rogue_hurt.png
+duat_hero_magician_follow,Magician · follow-through,heroes,,448,576,ios/DiceRoller/Assets.xcassets/DuatUI/duat_hero_magician_follow.imageset/duat_hero_magician_follow.png

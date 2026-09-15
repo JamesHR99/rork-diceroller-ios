@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/JamesHR99/rork-diceroller-ios",
+  "reviewedCommit": "b1f37f13a1e9548f0909ed2460309bb17ca7c776",
+  "visuallyInspectedExistingHeroes": [
+    "egyptian_archer_idle",
+    "egyptian_warrior_idle",
+    "egyptian_rogue_idle",
+    "egyptian_priest_magician"
+  ],
+  "repositoryWrites": 0
+}
