@@ -31,19 +31,23 @@ struct PapyrusSurface: View {
     var shade: Double = 0.34
 
     var body: some View {
-        ZStack {
-            tint
-
-            Image(ground.art)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .opacity(strength)
-                .allowsHitTesting(false)
-
-            Color.black.opacity(shade)
-        }
-        .compositingGroup()
-        .clipped()
+        // The tint is the size anchor: a `.fill` image reports a frame wider
+        // than the box it is handed, and a background draws at its own size
+        // without clipping, so putting the paper in a stack would spill a dark
+        // sheet out past the panel and over its neighbours. Anchoring to the
+        // flexible colour and laying the paper on top keeps the surface exactly
+        // the size it was asked for.
+        tint
+            .overlay {
+                Image(ground.art)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .opacity(strength)
+                    .allowsHitTesting(false)
+            }
+            .overlay { Color.black.opacity(shade) }
+            .compositingGroup()
+            .clipped()
     }
 }
 
@@ -53,9 +57,15 @@ struct PaperGrain: View {
     var opacity: Double = 0.05
 
     var body: some View {
-        Image(DuatArt.groundPanel)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
+        // Same anchoring rule as the surface above — the grain must never grow
+        // the layout it washes over.
+        Color.clear
+            .overlay {
+                Image(DuatArt.groundPanel)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            }
+            .clipped()
             .blendMode(.overlay)
             .opacity(opacity)
             .allowsHitTesting(false)
