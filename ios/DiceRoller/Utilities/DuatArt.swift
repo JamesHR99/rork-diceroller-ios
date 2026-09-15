@@ -133,13 +133,16 @@ enum DuatArt {
     /// drawn so the fill can be laid inside its channel and actually be seen.
     static let barFrame = "health_bar_frame_empty"
 
-    /// Where the trough sits inside `barFrame`, measured off the drawing.
+    /// Where the open channel sits inside `barFrame`, measured off the
+    /// drawing. The plate is opaque across its channel, so a fill laid behind
+    /// it is invisible — the fill has to be drawn over the frame and inset to
+    /// exactly this rectangle.
     enum BarFrame {
         static let aspect: CGFloat = 10.92
         static let troughX: CGFloat = 0.0882
-        static let troughWidth: CGFloat = 0.8229
+        static let troughWidth: CGFloat = 0.8235
         static let troughY: CGFloat = 0.2117
-        static let troughHeight: CGFloat = 0.5693
+        static let troughHeight: CGFloat = 0.5766
     }
 
     /// The two plain painted grounds every panel and card sits on. They carry

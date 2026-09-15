@@ -159,8 +159,13 @@ struct ComboDef: Identifiable, Hashable {
     /// Can this recipe be satisfied out of these faces, with quantities and
     /// wildcards but no order? Each face is used at most once. Returns the
     /// indices of the faces it would consume, or nil.
+    ///
+    /// The recipe only needs *enough* faces, not exactly its own length: any
+    /// face it does not consume is left for another recipe or to resolve on
+    /// its own. Demanding an exact count meant a spare die in the plan broke
+    /// the combo apart entirely.
     func match(from faces: [FaceKind]) -> [Int]? {
-        guard faces.count == faceCount else { return nil }
+        guard faces.count >= faceCount else { return nil }
         var used = Array(repeating: false, count: faces.count)
         var assignment: [Int] = []
 

@@ -324,9 +324,10 @@ enum DuatBarKind {
 /// A painted resource bar: the gilded trough with its lotus caps, and a solid
 /// fill laid inside the channel so the remaining health is unmistakable.
 ///
-/// The frame is drawn whole and the fill is inset to the exact trough
-/// measured off the artwork — that way the fill is never hidden under the
-/// bronze rim, which is what made an enemy's health impossible to read.
+/// The frame plate is opaque where its channel runs, so the fill is drawn
+/// *over* the frame and inset to the exact channel measured off the artwork.
+/// Laying the fill underneath hid it completely — which is what left every
+/// bar reading as empty.
 struct DuatBar: View {
     let kind: DuatBarKind
     /// 0 through 1.
@@ -346,49 +347,47 @@ struct DuatBar: View {
 
     private var troughWidth: CGFloat { width * DuatArt.BarFrame.troughWidth }
     private var troughHeight: CGFloat { frameHeight * DuatArt.BarFrame.troughHeight }
-    /// How far the channel's centre sits from the bar's centre.
-    private var troughOffset: CGFloat {
-        (DuatArt.BarFrame.troughX + DuatArt.BarFrame.troughWidth / 2 - 0.5) * width
-    }
 
     var body: some View {
-        ZStack {
-            Capsule()
-                .fill(Color.black.opacity(0.9))
-                .frame(width: troughWidth, height: troughHeight)
-                .offset(x: troughOffset)
-
-            fill
-
-            Image(DuatArt.barFrame)
-                .resizable()
-                .frame(width: width, height: frameHeight)
-                .allowsHitTesting(false)
-        }
-        .frame(width: width, height: frameHeight)
+        Image(DuatArt.barFrame)
+            .resizable()
+            .frame(width: width, height: frameHeight)
+            .overlay(alignment: .leading) {
+                // The channel is centred vertically on the plate, so leading
+                // alignment plus a leading inset lands the fill exactly in it.
+                fill.padding(.leading, DuatArt.BarFrame.troughX * width)
+            }
+            .frame(width: width, height: frameHeight)
+            .allowsHitTesting(false)
     }
 
     /// The colour that runs in the channel. A painted fill plate is washed
     /// over it where the pack has one, so the bar still reads as ink.
     private var fill: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: troughHeight / 2)
-                .fill(
-                    LinearGradient(colors: [kind.baseTint.opacity(0.95), kind.baseTint],
-                                   startPoint: .top, endPoint: .bottom)
-                )
-                .overlay {
-                    DuatImage(name: kind.fillArt, width: troughWidth, height: troughHeight, fit: .stretch)
-                        .opacity(0.55)
-                        .blendMode(.overlay)
-                }
-                .frame(width: max(troughWidth * clamped, clamped > 0 ? 3 : 0), height: troughHeight)
-                .shadow(color: kind.baseTint.opacity(0.7), radius: 4)
-        }
-        .frame(width: troughWidth, height: troughHeight, alignment: .leading)
-        .offset(x: troughOffset)
-        .modifier(TintWash(tint: tint))
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: clamped)
+        Capsule()
+            .fill(
+                LinearGradient(colors: [kind.baseTint.opacity(0.92), kind.baseTint],
+                               startPoint: .top, endPoint: .bottom)
+            )
+            .overlay {
+                DuatImage(name: kind.fillArt, width: troughWidth, height: troughHeight, fit: .stretch)
+                    .opacity(0.5)
+                    .blendMode(.overlay)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .top) {
+                // A bright lip along the top so the fill reads as liquid.
+                Capsule()
+                    .fill(Color.white.opacity(0.22))
+                    .frame(height: max(troughHeight * 0.26, 1))
+                    .padding(.horizontal, 1)
+            }
+            .clipShape(.capsule)
+            .frame(width: max(troughWidth * clamped, clamped > 0 ? 3 : 0),
+                   height: troughHeight,
+                   alignment: .leading)
+            .modifier(TintWash(tint: tint))
+            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: clamped)
     }
 }
 
