@@ -246,9 +246,10 @@ struct FighterView: View {
     /// so the figures are drawn much larger than they were when the tray sat
     /// on top of them. The arena measures the room it actually has and hands
     /// down `stageHeight`, so the fighters fill a tall screen without their
-    /// feet running off a short one.
+    /// feet running off a short one. A serpent-lord's extra height rides on
+    /// `sizeScale`, so it is only ever counted once.
     private var portraitHeight: CGFloat {
-        ((foe?.def.isBoss == true && side == .enemy) ? stageHeight * 1.11 : stageHeight) * sizeScale
+        stageHeight * sizeScale
     }
 
     /// Every drawing this fighter owns, resolved once from the catalogue.
