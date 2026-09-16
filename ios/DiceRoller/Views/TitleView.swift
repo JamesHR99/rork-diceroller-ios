@@ -112,12 +112,14 @@ struct TitleView: View {
                 .foregroundStyle(Theme.parchment)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
+                // The same carved slab the deck's FIGHT button is cut from, so
+                // the way into a run reads as a real pressable stone rather
+                // than two lines of text floating on the title screen.
                 .background {
-                    DuatImage(name: DuatArt.button(.primary, .highlighted), fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    DeckButtonSurface(tone: .primary, state: .highlighted,
+                                      rim: hero.accent, cornerRadius: 16, emphasis: 1)
                 }
-                .clipShape(.rect(cornerRadius: 16))
-                .shadow(color: hero.accent.opacity(0.55), radius: 16, y: 4)
+                .shadow(color: hero.accent.opacity(0.45), radius: 18, y: 6)
             }
             .buttonStyle(PressableButtonStyle())
 

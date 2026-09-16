@@ -400,6 +400,17 @@ private struct DiceTrayReelView: View {
     }
     private var tagSize: CGFloat { max(9.5, width * 0.135) }
 
+    /// The chain letters get a lane of their own along the foot of the die, so
+    /// they never sit on top of the damage number. They are deliberately small
+    /// — they are a tappable index of the chains in reach, not a headline.
+    private var letterDiameter: CGFloat { max(12, width * 0.15) }
+    private var letterLane: CGFloat { letterDiameter + 6 }
+
+    /// Whether this die is currently showing any chain letters at all.
+    private func hasChainLetters(_ face: RolledFace) -> Bool {
+        !freezeArmed && !(engine.comboMarkers[face.id] ?? []).isEmpty
+    }
+
     /// Smear on the drum, tied to how fast this particular reel is turning —
     /// the lazier late reels are read clearly rather than blurred away.
     private var spinBlur: CGFloat {
@@ -585,7 +596,11 @@ private struct DiceTrayReelView: View {
                     .minimumScaleFactor(0.6)
             }
             .padding(.horizontal, 4)
-            .padding(.vertical, 7)
+            .padding(.top, 6)
+            // The foot of the die is given over to the chain letters whenever
+            // it has any, so the face name and the damage number are laid out
+            // in the room above them instead of underneath them.
+            .padding(.bottom, hasChainLetters(face) ? letterLane : 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { reelGround(opacity: 1) }
             .overlay { frostLayer }
@@ -626,7 +641,7 @@ private struct DiceTrayReelView: View {
         .buttonStyle(PressableButtonStyle())
         // The chain letters ride outside the die's own button so their taps
         // land on them rather than on the die underneath.
-        .overlay(alignment: .bottomLeading) { chainCountBadge(face) }
+        .overlay(alignment: .bottom) { chainCountBadge(face) }
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
@@ -680,21 +695,21 @@ private struct DiceTrayReelView: View {
     private func chainCountBadge(_ face: RolledFace) -> some View {
         let markers = engine.comboMarkers[face.id] ?? []
         if !markers.isEmpty && !freezeArmed {
-            HStack(spacing: 2.5) {
-                ForEach(markers.prefix(4)) { marker in
+            HStack(spacing: 2) {
+                ForEach(markers.prefix(3)) { marker in
                     chainLetter(marker)
                 }
-                if markers.count > 4 {
-                    Text("+\(markers.count - 4)")
-                        .font(.system(size: max(8, width * 0.1), weight: .black))
+                if markers.count > 3 {
+                    Text("+\(markers.count - 3)")
+                        .font(.system(size: max(7.5, width * 0.092), weight: .black))
                         .foregroundStyle(Theme.parchmentDim)
                 }
             }
-            .padding(.horizontal, 3)
-            .padding(.vertical, 2)
+            .padding(.horizontal, 2.5)
+            .padding(.vertical, 1.5)
             .background(Theme.bg.opacity(0.85), in: .capsule)
-            .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.45), lineWidth: 1))
-            .padding(4)
+            .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.45), lineWidth: 0.8))
+            .padding(.bottom, 3)
             .transition(.scale(scale: 0.4).combined(with: .opacity))
         }
     }
@@ -702,12 +717,12 @@ private struct DiceTrayReelView: View {
     /// One tappable chain letter. A planned chain wears gold and a ring so a
     /// glance tells you which chains you have already committed to.
     private func chainLetter(_ marker: ComboMarker) -> some View {
-        let diameter = max(16, width * 0.215)
+        let diameter = letterDiameter
         return Button {
             engine.toggleCombo(marker.comboID)
         } label: {
             Text(marker.letter)
-                .font(.system(size: max(10, width * 0.135), weight: .black))
+                .font(.system(size: max(8, width * 0.098), weight: .black))
                 .foregroundStyle(Theme.bg)
                 .frame(width: diameter, height: diameter)
                 .background(marker.isPlanned ? Theme.gold : marker.color, in: .circle)

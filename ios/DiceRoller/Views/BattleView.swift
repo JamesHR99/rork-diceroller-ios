@@ -153,7 +153,6 @@ private struct BattleContentView: View {
     /// The deck is cut to the screen it has to fit on. `reel` is the tallest a
     /// die may run and `body` the height of the plan cards; both shrink
     /// together on a short landscape iPhone so the turn plan and the FIGHT slab
-    /// stay above the bottom edge instead of hanging off it.
     /// The room the deck actually has: everything under the run's heading and
     /// the health rail, less a margin so the FIGHT slab never rides the bottom
     /// edge. Measured off the heading itself, so the deck rises to meet the
@@ -171,9 +170,13 @@ private struct BattleContentView: View {
     private func deckSizing(_ box: CGFloat) -> (reel: CGFloat, body: CGFloat) {
         let chrome: CGFloat = 100
         let free = max(box - chrome, 130)
+        // The dice and the plan are grown until they very nearly fill the room
+        // under the health rail. Leaving them short is what opened the band of
+        // empty river between the rail and the deck — that space belongs to the
+        // dice, so it is spent on them instead of left blank.
         return (
-            reel: min(118, max(70, free * 0.52)),
-            body: min(100, max(60, free * 0.43))
+            reel: min(132, max(70, free * 0.54)),
+            body: min(110, max(60, free * 0.44))
         )
     }
 
