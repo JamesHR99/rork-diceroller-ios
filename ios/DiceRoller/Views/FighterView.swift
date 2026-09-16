@@ -65,7 +65,7 @@ struct FighterView: View {
     // MARK: - Stage
 
     private var stageBody: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             nameRow
             if side == .enemy, let foe, foe.armourMax > 0 {
                 armourBar(foe)
@@ -354,7 +354,7 @@ struct FighterView: View {
 
     private var nameRow: some View {
         Text(side == .player ? heroName : (foe?.displayName ?? ""))
-            .font(.fantasy(19, weight: .bold))
+            .font(.fantasy(17, weight: .bold))
             .kerning(0.6)
             .foregroundStyle(Theme.parchment)
             .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
@@ -372,7 +372,7 @@ struct FighterView: View {
     /// The numbers ride the bar itself so a foe's remaining health is legible
     /// at a glance even when the fill is nearly gone.
     private var healthBar: some View {
-        healthBar(width: 216, height: 21)
+        healthBar(width: 210, height: 19)
     }
 
     private func healthBar(width: CGFloat, height: CGFloat) -> some View {

@@ -10,26 +10,35 @@ struct DiceTrayView: View {
     /// into and hands this down, so a short landscape iPhone keeps the whole
     /// deck — dice and turn plan both — above the bottom edge.
     var maxReelHeight: CGFloat = 138
+    /// The widest the whole row may run, measured by the deck. The dice are cut
+    /// from this, so the row never pushes the lever or the last die off the
+    /// side of the screen.
+    var maxRowWidth: CGFloat = 690
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
 
     private var freezeArmed: Bool { engine.freezeArmed }
 
-    /// Dice grow to fill the deck, shrinking only once the row gets long. A
-    /// freeze adds a carried reel on top of the loadout, so the row can run
-    /// one wider than the dice cap. The deck owns the lower half of the screen
-    /// now, so every reel is drawn bigger than it was in the old tray.
+    /// Dice grow to fill the deck, shrinking only once the row gets long — and
+    /// never past the width the deck actually has. A freeze adds a carried reel
+    /// on top of the loadout, so the row can run one wider than the dice cap;
+    /// cutting the reels from the measured width is what keeps the outermost
+    /// die on screen when it does.
     private var reelWidth: CGFloat {
-        switch engine.slots.count {
-        case ...6: return 100
-        case 7: return 92
-        case 8: return 83
-        case 9: return 75
-        case 10: return 69
-        default: return 62
-        }
+        let count = max(engine.slots.count, 1)
+        let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
+        // The lever's lane is reserved whether or not ROLL is showing, so the
+        // dice keep one size for the whole turn instead of jumping wider the
+        // moment the lever is pulled.
+        let leverLane: CGFloat = 113
+        let bedPadding: CGFloat = 22
+        let gaps = reelGap * CGFloat(count - 1)
+        let free = maxRowWidth - leverLane - bedPadding - gaps
+        return max(46, min(ideal, free / CGFloat(count)))
     }
+
+    private var reelGap: CGFloat { engine.slots.count > 7 ? 6 : 8 }
 
     private var reelHeight: CGFloat { min(maxReelHeight, reelWidth * 1.3) }
 
@@ -47,7 +56,7 @@ struct DiceTrayView: View {
             HStack(spacing: 9) {
                 leadingControl
 
-                HStack(spacing: engine.slots.count > 7 ? 6 : 8) {
+                HStack(spacing: reelGap) {
                     let counts = Dictionary(uniqueKeysWithValues:
                         engine.comboMarkers.map { ($0.key, $0.value.count) })
                     ForEach(engine.slots) { slot in
@@ -68,9 +77,14 @@ struct DiceTrayView: View {
             comboPanel
         }
         .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 6)
-        .fixedSize(horizontal: true, vertical: true)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
+        // The tray takes its height from its content but never more width than
+        // the deck gives it — sizing itself horizontally is what used to drag
+        // the whole shelf wider than the screen and carry the stamina rail and
+        // the FIGHT slab off both edges.
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
         .scaleEffect(1 + slamKick)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
         .onChange(of: engine.slamPulse) { _, _ in
