@@ -372,7 +372,8 @@ enum DuatArt {
     private static let crops: [String: DuatCrop] = {
         var table: [String: DuatCrop] = [:]
         for group in [faceCrops, deityCrops, navigationCrops, treasureCrops,
-                      symbolCrops, chromeCrops, environmentCrops, figureCrops] {
+                      symbolCrops, chromeCrops, environmentCrops, figureCrops,
+                      spriteSheetCrops] {
             table.merge(group) { first, _ in first }
         }
         return table
@@ -571,6 +572,32 @@ enum DuatArt {
         "duat_hero_rogue_defeat": DuatCrop(0.0195, 0.1647, 0.9561, 0.7233, 0.6667),
         "duat_hero_rogue_hurt": DuatCrop(0.0826, 0.2049, 0.8237, 0.7465, 0.7778),
     ]
+
+    /// Frames sliced out of a hand-drawn sprite sheet. Every plate in a sheet
+    /// shares one canvas, one content box and one planted baseline, so they all
+    /// crop identically — crop each frame to its own ink and the figure would
+    /// jitter and change size from frame to frame. The box bottom sits just
+    /// under that shared baseline, so the figure stands on its own shadow
+    /// instead of floating above it.
+    private static let spriteSheetCrops: [String: DuatCrop] = {
+        let box = DuatCrop(0, 0.0821, 1, 0.8857, 0.6857)
+        var table: [String: DuatCrop] = [:]
+        for clip in SpriteSheet.archerClips {
+            for index in 0..<SpriteSheet.frameCount {
+                table["duat_hero_archer_\(clip)_f\(index)"] = box
+            }
+        }
+        return table
+    }()
+}
+
+/// Facts about the hand-drawn sheets that both the crop table and the clip
+/// library need to agree on.
+enum SpriteSheet {
+    /// Frames per sheet — every sheet was drawn as a 4×2 grid of eight poses.
+    static let frameCount = 8
+    /// The archer's drawn actions, one sheet each.
+    static let archerClips = ["idle", "attack", "block", "hurt"]
 }
 
 // MARK: - Model mappings
