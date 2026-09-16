@@ -6,6 +6,10 @@ import SwiftUI
 /// turn is committed so the fighters have the stage to themselves.
 struct DiceTrayView: View {
     let engine: BattleEngine
+    /// The tallest a reel may run. The deck measures the screen it has to fit
+    /// into and hands this down, so a short landscape iPhone keeps the whole
+    /// deck — dice and turn plan both — above the bottom edge.
+    var maxReelHeight: CGFloat = 138
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
@@ -27,7 +31,7 @@ struct DiceTrayView: View {
         }
     }
 
-    private var reelHeight: CGFloat { min(138, reelWidth * 1.3) }
+    private var reelHeight: CGFloat { min(maxReelHeight, reelWidth * 1.3) }
 
     /// The full combo rail under the tray: every chain spelled out with its
     /// name, effect, cost and Chisel badge. Off by default — the letters

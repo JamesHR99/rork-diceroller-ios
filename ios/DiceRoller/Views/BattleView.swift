@@ -50,7 +50,7 @@ private struct BattleContentView: View {
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
-                    battleStage
+                    battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .opacity(deckUp ? 0.22 : 1)
                         .blur(radius: deckUp ? 3 : 0)
@@ -59,6 +59,12 @@ private struct BattleContentView: View {
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
                 diceDeck(size: size)
+            }
+            // Arrows, thrown knives, cast runes and lobbed bombs cross the air
+            // above the deck, launched from the frames the fighters reported.
+            .overlayPreferenceValue(FighterAnchorKey.self) { anchors in
+                ProjectileLayerView(shots: engine.shots, anchors: anchors)
+                    .zIndex(3)
             }
             .animation(.spring(response: 0.52, dampingFraction: 0.86), value: deckUp)
         }
@@ -121,12 +127,27 @@ private struct BattleContentView: View {
     /// The roll tray and the turn plan, welded into one sheet that slides up
     /// from the bottom of the screen. Tapping FIGHT drops it out of frame and
     /// the fight plays out on the stage behind it.
+    /// The deck is cut to the screen it has to fit on. `reel` is the tallest a
+    /// die may run and `body` the height of the plan cards; both shrink
+    /// together on a short landscape iPhone so the turn plan and the FIGHT slab
+    /// stay above the bottom edge instead of hanging off it.
+    private func deckMetrics(_ size: CGSize) -> (reel: CGFloat, body: CGFloat) {
+        // Everything in the deck that is not a die or a plan card: the tray
+        // header, the reel bed's lip, the plan's own chrome and the gaps.
+        let budget = max(160, size.height - 132)
+        return (
+            reel: min(138, budget * 0.55),
+            body: min(116, max(82, budget * 0.45))
+        )
+    }
+
     private func diceDeck(size: CGSize) -> some View {
-        VStack(spacing: 6) {
-            DiceTrayView(engine: engine)
+        let metrics = deckMetrics(size)
+        return VStack(spacing: 6) {
+            DiceTrayView(engine: engine, maxReelHeight: metrics.reel)
                 .padding(.horizontal, 8)
 
-            PlayBarView(engine: engine)
+            PlayBarView(engine: engine, bodyHeight: metrics.body)
                 .padding(.horizontal, 10)
         }
         .padding(.bottom, 6)
@@ -184,9 +205,25 @@ private struct BattleContentView: View {
 
     // MARK: - Stage
 
+    /// How tall an ordinary fighter stands. The figures are drawn off the room
+    /// the arena actually has, so they fill a tall screen without their feet
+    /// running off a short one.
+    private func stageFighterHeight(_ size: CGSize) -> CGFloat {
+        // A serpent-lord is drawn taller again on top of this, and the name,
+        // bars and status row have to fit above it, so the figure takes a
+        // little under half the arena rather than all it can reach.
+        min(218, max(146, size.height * 0.46))
+    }
+
+    /// How far the fighters are lifted off the bottom edge, so they stand on
+    /// the hull rather than half-sunk through it.
+    private func stageLift(_ size: CGSize) -> CGFloat {
+        max(18, size.height * 0.075)
+    }
+
     /// The fight itself, uncovered once the deck goes down: full-size figures
     /// standing on the hull with the water behind them.
-    private var battleStage: some View {
+    private func battleStage(size: CGSize) -> some View {
         VStack(spacing: 0) {
             // Intent capsules ride over the foes once the deck is down, so a
             // blow is aimed with the whole board in view. While the deck is up
@@ -207,15 +244,16 @@ private struct BattleContentView: View {
                     heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
                     heroName: game.heroClass?.name ?? "Hero",
                     accent: game.heroClass?.accent ?? Theme.gold,
-                    heroClassID: game.classID
+                    heroClassID: game.classID,
+                    stageHeight: stageFighterHeight(size)
                 )
 
                 Spacer(minLength: 0)
 
-                enemyGroup
+                enemyGroup(size: size)
             }
             .padding(.horizontal, 10)
-            .padding(.bottom, 4)
+            .padding(.bottom, stageLift(size))
         }
     }
 
@@ -235,7 +273,7 @@ private struct BattleContentView: View {
                 Spacer()
                 BarqueView(gate: gate, width: size.width * 0.92, discGlow: game.discGlow)
                     .opacity(deckUp ? 0.3 : 0.72)
-                    .offset(y: deckUp ? 130 : 104)
+                    .offset(y: deckUp ? 130 : 116)
             }
 
             LinearGradient(
@@ -252,7 +290,7 @@ private struct BattleContentView: View {
     /// two or three wide when the river sends company. While attacks are being
     /// allocated they are tapped to receive the selected blow; otherwise they
     /// stand quiet — no aiming happens during planning.
-    private var enemyGroup: some View {
+    private func enemyGroup(size: CGSize) -> some View {
         let foes = engine.enemies
         let scale: CGFloat = foes.count >= 3 ? 0.66 : (foes.count == 2 ? 0.8 : 1)
         return HStack(alignment: .bottom, spacing: foes.count > 1 ? 0 : 0) {
@@ -266,7 +304,8 @@ private struct BattleContentView: View {
                     foe: foe,
                     packScale: scale,
                     isTargeted: engine.isTargeted(foeID: foe.id),
-                    onTap: engine.isAllocating ? { engine.assignSelected(to: foe.id) } : nil
+                    onTap: engine.isAllocating ? { engine.assignSelected(to: foe.id) } : nil,
+                    stageHeight: stageFighterHeight(size)
                 )
                 .overlay(alignment: .bottom) { allocationTotal(for: foe) }
             }

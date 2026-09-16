@@ -42,6 +42,9 @@ struct FighterView: View {
     var layout: Layout = .stage
     /// Tickers squeeze further still when a whole pack has to fit the rail.
     var tickerCompact: Bool = false
+    /// How tall an ordinary fighter stands on the stage, measured by the arena
+    /// from the room it actually has.
+    var stageHeight: CGFloat = 164
 
     @State private var aimPulse = false
 
@@ -241,9 +244,11 @@ struct FighterView: View {
 
     /// The fight owns the whole screen now that the dice have their own deck,
     /// so the figures are drawn much larger than they were when the tray sat
-    /// on top of them.
+    /// on top of them. The arena measures the room it actually has and hands
+    /// down `stageHeight`, so the fighters fill a tall screen without their
+    /// feet running off a short one.
     private var portraitHeight: CGFloat {
-        ((foe?.def.isBoss == true && side == .enemy) ? 182 : 164) * sizeScale
+        ((foe?.def.isBoss == true && side == .enemy) ? stageHeight * 1.11 : stageHeight) * sizeScale
     }
 
     /// Every drawing this fighter owns, resolved once from the catalogue.
@@ -292,6 +297,11 @@ struct FighterView: View {
 
     // MARK: - Pieces
 
+    /// Which fighter this panel is, for the projectile layer to aim at.
+    private var anchorID: FighterAnchorID {
+        side == .player ? .player : .foe(foe?.id ?? UUID())
+    }
+
     private var sprite: some View {
         ZStack {
             Ellipse()
@@ -317,6 +327,9 @@ struct FighterView: View {
             .opacity(pose == .defeat ? 0.42 : 1)
             .grayscale(pose == .defeat ? 0.85 : 0)
             .overlay { godSigil }
+            // The figure reports the frame it actually occupies so shots leave
+            // the thrower's hands and land on the body they were aimed at.
+            .anchorPreference(key: FighterAnchorKey.self, value: .bounds) { [anchorID: $0] }
         }
         .frame(height: portraitHeight * 1.06)
     }

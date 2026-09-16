@@ -6,10 +6,21 @@ import SwiftUI
 struct PlayBarView: View {
     let engine: BattleEngine
 
-    /// How tall the plan cards run. Everything in the bar is sized off this so
-    /// the row stays level. The deck owns the lower half of the screen now, so
-    /// the cards have room to be read rather than squinted at.
-    private let bodyHeight: CGFloat = 116
+    /// How tall the plan cards run. Everything in the bar is sized off this, and
+    /// the deck measures the screen it has to fit into before handing it down —
+    /// on a short landscape iPhone the whole plan stays on screen instead of
+    /// running off the bottom edge.
+    var bodyHeight: CGFloat = 116
+
+    /// A short screen tightens the type and the padding rather than dropping a
+    /// row out of the read.
+    private var compact: Bool { bodyHeight < 108 }
+
+    /// The plan panel's full height. The freeze and commit slabs beside it are
+    /// cut from the same measure so the row reads as one shelf.
+    private var columnHeight: CGFloat { bodyHeight + (compact ? 25 : 31) }
+    private var freezeHeight: CGFloat { min(46, columnHeight * 0.32) }
+    private var commitHeight: CGFloat { max(52, columnHeight - freezeHeight - 7) }
 
     var body: some View {
         HStack(spacing: 9) {
@@ -21,7 +32,7 @@ struct PlayBarView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, compact ? 4 : 7)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
     }
 
@@ -49,7 +60,7 @@ struct PlayBarView: View {
                                      ? Theme.sunGold : Theme.parchmentDim)
             }
         }
-        .frame(width: 48, height: bodyHeight + 15)
+        .frame(width: 48, height: columnHeight - 8)
         .padding(.vertical, 4)
         .background {
             PapyrusSurface(ground: .card, tint: Theme.bg, strength: 0.6, shade: 0.45)
@@ -91,12 +102,12 @@ struct PlayBarView: View {
     private var plan: [PlanStep] { engine.displayedPlan }
 
     private var planSection: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: compact ? 2 : 3) {
             planHeader
             planRow
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 6)
+        .padding(.vertical, compact ? 4 : 6)
         .frame(maxWidth: .infinity)
         .background {
             PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.55, shade: 0.5)
@@ -152,7 +163,7 @@ struct PlayBarView: View {
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
-        .frame(height: 16)
+        .frame(height: compact ? 14 : 16)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.projectedDamage)
     }
 
@@ -245,12 +256,12 @@ struct PlayBarView: View {
     /// A fused chain: name in full type, the chain badge, every contributing
     /// face welded in order, the whole effect line and the crit odds.
     private func comboCard(_ step: PlanStep, number: Int) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: compact ? 2 : 3) {
             HStack(spacing: 4) {
                 orderBadge(number, tint: step.tint)
 
                 Text(step.title.uppercased())
-                    .font(.fantasy(18, weight: .black))
+                    .font(.fantasy(compact ? 15.5 : 18, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(step.tint)
                     .lineLimit(1)
@@ -299,8 +310,8 @@ struct PlayBarView: View {
             critLine(step)
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 7)
-        .frame(minWidth: 190, maxWidth: 320, alignment: .leading)
+        .padding(.vertical, compact ? 5 : 7)
+        .frame(minWidth: compact ? 174 : 190, maxWidth: 320, alignment: .leading)
     }
 
     /// The chain's faces, welded together by the painted connector rather
@@ -310,10 +321,10 @@ struct PlayBarView: View {
             ForEach(Array(step.faces.enumerated()), id: \.element.id) { index, face in
                 DuatSymbol(art: face.face.artName,
                            fallback: face.face.symbol,
-                           size: 28,
+                           size: compact ? 23 : 28,
                            tint: face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint))
                     .modifier(FaceWash(tint: Theme.gold, active: face.isCrit))
-                    .frame(width: 34, height: 32)
+                    .frame(width: compact ? 28 : 34, height: compact ? 26 : 32)
                     .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
@@ -323,7 +334,7 @@ struct PlayBarView: View {
                     .shadow(color: face.isCrit ? Theme.gold.opacity(0.7) : .clear, radius: 4)
 
                 if index < step.faces.count - 1 {
-                    DuatImage(name: DuatArt.chainConnector, width: 14, fit: .fit)
+                    DuatImage(name: DuatArt.chainConnector, width: compact ? 11 : 14, fit: .fit)
                         .colorMultiply(step.tint)
                 }
             }
@@ -332,12 +343,12 @@ struct PlayBarView: View {
 
     /// A face played on its own — deliberately small next to a real chain.
     private func soloCard(_ step: PlanStep, number: Int) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: compact ? 2 : 3) {
             orderBadge(number, tint: step.tint)
 
             DuatSymbol(art: step.faces.first?.face.artName,
                        fallback: step.faces.first?.face.symbol ?? "questionmark",
-                       size: 34,
+                       size: compact ? 28 : 34,
                        tint: step.tint)
 
             Text(step.title.uppercased())
@@ -361,8 +372,8 @@ struct PlayBarView: View {
             }
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 7)
-        .frame(width: 82)
+        .padding(.vertical, compact ? 5 : 7)
+        .frame(width: compact ? 74 : 82)
     }
 
     private func orderBadge(_ number: Int, tint: Color) -> some View {
@@ -390,7 +401,7 @@ struct PlayBarView: View {
             }
             .foregroundStyle(Theme.gold)
         } else {
-            Color.clear.frame(height: 13)
+            Color.clear.frame(height: compact ? 10 : 13)
         }
     }
 
@@ -426,7 +437,7 @@ struct PlayBarView: View {
             }
             .foregroundStyle(engine.freezeArmed ? Theme.bg : Theme.frost)
             .shadow(color: engine.freezeArmed ? .clear : .black.opacity(0.7), radius: 2, y: 1)
-            .frame(width: 128, height: 46)
+            .frame(width: 128, height: freezeHeight)
             .background {
                 DeckButtonSurface(
                     tone: .secondary,
@@ -473,7 +484,7 @@ struct PlayBarView: View {
             Haptics.medium()
         } label: {
             VStack(spacing: 2) {
-                DuatIcon(name: DuatArt.Status.burn, size: 26)
+                DuatIcon(name: DuatArt.Status.burn, size: compact ? 21 : 26)
                     .shadow(color: Theme.ember.opacity(armed ? 0.8 : 0), radius: 8)
                 Text(engine.playedFaces.isEmpty ? "END TURN" : "FIGHT!")
                     .font(.fantasy(armed ? 20 : 15, weight: .black))
@@ -489,7 +500,7 @@ struct PlayBarView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .frame(width: 128, height: 76)
+            .frame(width: 128, height: commitHeight)
             .background {
                 DeckButtonSurface(
                     tone: .primary,

@@ -14,6 +14,10 @@ struct BarqueView: View {
     var discGlow: Double = 1
     /// Whether the hull rocks and the halo breathes.
     var animated: Bool = true
+    /// Whether this hull carries its own disc. Off by default: the river scene
+    /// behind every screen already hangs Ra's disc over the water, and two
+    /// discs on one screen read as a mistake.
+    var showsDisc: Bool = false
 
     private var height: CGFloat { width * 0.34 }
 
@@ -24,7 +28,7 @@ struct BarqueView: View {
             let breath = animated ? 0.5 + 0.5 * sin(time * 1.1) : 0.5
 
             ZStack {
-                disc(breath: breath)
+                if showsDisc { disc(breath: breath) }
 
                 DuatImage(name: "duat_environment_barque", width: width, fit: .fit)
                     .shadow(color: gate.discColor.opacity(0.32 * discGlow), radius: 22, y: 6)

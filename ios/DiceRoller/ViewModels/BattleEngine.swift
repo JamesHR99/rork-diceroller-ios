@@ -575,6 +575,10 @@ final class BattleEngine {
     private(set) var comboMarkers: [UUID: [ComboMarker]] = [:]
 
     // MARK: Effects & stats
+    /// Shots crossing the deck right now: arrows, thrown knives, cast runes and
+    /// lobbed bombs, each flying from the fighter who threw it to the one it
+    /// was aimed at.
+    private(set) var shots: [ProjectileShot] = []
     private(set) var comboFlash: ComboFlash?
     private(set) var floaters: [FloatText] = []
     private(set) var shakeTrigger: CGFloat = 0
@@ -1550,6 +1554,10 @@ final class BattleEngine {
                     let didCrit = Double.random(in: 0..<1) < step.comboCritChance
                     playerPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
                     noteStrikeGods(in: step.faces)
+                    if combo.damage > 0 {
+                        launchShots(faces: step.faces.map(\.matchFace),
+                                    fromPlayer: true, foeID: activeTargetID)
+                    }
                     applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
                     // Concealed Blade: the substituted Evade still grants its
                     // evasion, and its god still answered it as a defensive face.
@@ -1584,6 +1592,9 @@ final class BattleEngine {
                 } else if let face = step.faces.first {
                     playerPose = pose(for: face.face)
                     noteStrikeGods(in: [face])
+                    if face.matchFace.isAttack || face.matchFace == .poison {
+                        launchShots(faces: [face.matchFace], fromPlayer: true, foeID: activeTargetID)
+                    }
                     let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
                     resolveBlessings(in: step, targetIndex: target)
                     pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
@@ -2577,6 +2588,7 @@ final class BattleEngine {
                 foe.pose = .telegraph
                 try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
                 foe.pose = .attack
+                launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id)
                 var hit = perHit + remainder
                 remainder = 0
 
@@ -3010,6 +3022,30 @@ final class BattleEngine {
             try? await Task.sleep(for: .milliseconds(crit ? 1250 : 1000))
             guard comboFlash?.id == flash.id else { return }
             withAnimation(.easeOut(duration: 0.25)) { comboFlash = nil }
+        }
+    }
+
+    // MARK: - Projectiles
+
+    /// Sends whatever in this action actually leaves the fighter's hand across
+    /// the deck. Faces swung where the fighter stands — an axe, a guard, a
+    /// heal — have no flight and are simply skipped. Several shots in one
+    /// action stagger so a volley reads as a volley.
+    private func launchShots(faces: [FaceKind], fromPlayer: Bool, foeID: UUID?) {
+        guard let foeID else { return }
+        let flying = faces.compactMap { face -> ProjectileShot? in
+            guard let style = face.projectile else { return nil }
+            return ProjectileShot(face: face, style: style, tint: face.tint,
+                                  fromPlayer: fromPlayer, foeID: foeID)
+        }
+        guard !flying.isEmpty else { return }
+        for (index, shot) in flying.prefix(4).enumerated() {
+            Task {
+                try? await Task.sleep(for: .milliseconds(index * 120))
+                shots.append(shot)
+                try? await Task.sleep(for: .seconds(shot.style.flight + 0.2))
+                shots.removeAll { $0.id == shot.id }
+            }
         }
     }
 
