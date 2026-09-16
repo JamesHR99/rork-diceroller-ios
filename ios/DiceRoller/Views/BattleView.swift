@@ -24,6 +24,11 @@ private struct BattleContentView: View {
     /// Measured rather than guessed, so a screen it still cannot fit on takes
     /// the whole shelf down to size instead of letting FIGHT hang off the edge.
     @State private var deckNaturalHeight: CGFloat = 0
+    /// Where the run's heading and the health rail actually end. The deck is
+    /// hung off this rather than off the bottom of the screen, so it rises to
+    /// meet the health bars instead of leaving a band of empty river between
+    /// them and pushing its own last row off the bottom edge.
+    @State private var headerHeight: CGFloat = 0
 
     private var gate: Gate { game.gate }
 
@@ -39,19 +44,27 @@ private struct BattleContentView: View {
             let size = proxy.size
 
             ZStack(alignment: .bottom) {
-                arenaBackground(size: size)
-
                 VStack(spacing: 0) {
-                    topStrip
+                    VStack(spacing: 0) {
+                        topStrip
 
-                    // While the deck is up, the fighters are read off the slim
-                    // rail; once it drops, the stage below is uncovered and the
-                    // full-size figures are what you watch.
-                    if deckUp {
-                        tickerRail
-                            .padding(.horizontal, 12)
-                            .padding(.top, 2)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                        // While the deck is up, the fighters are read off the
+                        // slim rail; once it drops, the stage below is
+                        // uncovered and the full-size figures are what you
+                        // watch.
+                        if deckUp {
+                            tickerRail
+                                .padding(.horizontal, 12)
+                                .padding(.top, 2)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                    }
+                    // The deck is measured against what this strip leaves
+                    // behind, so it can sit directly under the health bars.
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { height in
+                        headerHeight = height
                     }
 
                     battleStage(size: size)
@@ -64,6 +77,12 @@ private struct BattleContentView: View {
 
                 diceDeck(size: size)
             }
+            // The river is painted behind the arena rather than stacked inside
+            // it. As a background it cannot drive the layout — held as a child
+            // it ignored the safe area and dragged the whole stack down past
+            // the bottom of the screen, taking the stamina rail and the FIGHT
+            // slab with it.
+            .background { arenaBackground(size: size) }
             // Arrows, thrown knives, cast runes and lobbed bombs cross the air
             // above the deck, launched from the frames the fighters reported.
             .overlayPreferenceValue(FighterAnchorKey.self) { anchors in
@@ -135,11 +154,13 @@ private struct BattleContentView: View {
     /// die may run and `body` the height of the plan cards; both shrink
     /// together on a short landscape iPhone so the turn plan and the FIGHT slab
     /// stay above the bottom edge instead of hanging off it.
-    /// The box the deck is allowed to fill. A strip is always left at the top
-    /// for the run's heading, and a margin at the bottom so the FIGHT slab
-    /// never rides the edge of the screen.
+    /// The room the deck actually has: everything under the run's heading and
+    /// the health rail, less a margin so the FIGHT slab never rides the bottom
+    /// edge. Measured off the heading itself, so the deck rises to meet the
+    /// health bars instead of leaving a band of open river between them.
     private func deckBox(_ size: CGSize) -> CGFloat {
-        max(size.height - 30, 180)
+        let header = headerHeight > 0 ? headerHeight : 108
+        return max(size.height - header - 8, 170)
     }
 
     /// How tall a die and a plan card may run on this screen. Both are cut
@@ -148,11 +169,11 @@ private struct BattleContentView: View {
     /// dice and the turn plan give up height together and the stamina rail and
     /// the FIGHT slab are never the parts that fall off the bottom.
     private func deckSizing(_ box: CGFloat) -> (reel: CGFloat, body: CGFloat) {
-        let chrome: CGFloat = 104
-        let free = max(box - chrome, 132)
+        let chrome: CGFloat = 100
+        let free = max(box - chrome, 130)
         return (
-            reel: min(112, max(70, free * 0.5)),
-            body: min(96, max(60, free * 0.42))
+            reel: min(118, max(70, free * 0.52)),
+            body: min(100, max(60, free * 0.43))
         )
     }
 
