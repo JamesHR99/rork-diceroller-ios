@@ -582,9 +582,11 @@ enum DuatArt {
     private static let spriteSheetCrops: [String: DuatCrop] = {
         let box = DuatCrop(0, 0.0821, 1, 0.8857, 0.6857)
         var table: [String: DuatCrop] = [:]
-        for clip in SpriteSheet.archerClips {
-            for index in 0..<SpriteSheet.frameCount {
-                table["duat_hero_archer_\(clip)_f\(index)"] = box
+        for hero in SpriteSheet.animatedHeroes {
+            for clip in SpriteSheet.clips {
+                for index in 0..<SpriteSheet.frameCount {
+                    table["duat_hero_\(hero)_\(clip)_f\(index)"] = box
+                }
             }
         }
         return table
@@ -596,8 +598,10 @@ enum DuatArt {
 enum SpriteSheet {
     /// Frames per sheet — every sheet was drawn as a 4×2 grid of eight poses.
     static let frameCount = 8
-    /// The archer's drawn actions, one sheet each.
-    static let archerClips = ["idle", "attack", "block", "hurt"]
+    /// The drawn actions, one sheet each, that every hero owns.
+    static let clips = ["idle", "attack", "block", "hurt"]
+    /// Heroes whose sheets have been keyed, baselined and bundled.
+    static let animatedHeroes = ["archer", "warrior", "rogue", "magician"]
 }
 
 // MARK: - Model mappings
