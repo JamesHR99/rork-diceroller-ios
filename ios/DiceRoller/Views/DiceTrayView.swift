@@ -31,8 +31,8 @@ struct DiceTrayView: View {
         // The lever's lane is reserved whether or not ROLL is showing, so the
         // dice keep one size for the whole turn instead of jumping wider the
         // moment the lever is pulled.
-        let leverLane: CGFloat = 113
-        let bedPadding: CGFloat = 22
+        let leverLane: CGFloat = 112
+        let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
         return max(46, min(ideal, free / CGFloat(count)))
@@ -50,10 +50,10 @@ struct DiceTrayView: View {
     static let showsComboRail = false
 
     var body: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: 5) {
             header
 
-            HStack(spacing: 9) {
+            HStack(spacing: 8) {
                 leadingControl
 
                 HStack(spacing: reelGap) {
@@ -69,16 +69,16 @@ struct DiceTrayView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 11)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background { reelBed }
             }
 
             comboPanel
         }
         .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 4)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
         // The tray takes its height from its content but never more width than
         // the deck gives it — sizing itself horizontally is what used to drag
         // the whole shelf wider than the screen and carry the stamina rail and

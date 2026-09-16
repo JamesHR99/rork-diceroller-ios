@@ -14,25 +14,25 @@ struct PlayBarView: View {
 
     /// A short screen tightens the type and the padding rather than dropping a
     /// row out of the read.
-    private var compact: Bool { bodyHeight < 108 }
+    private var compact: Bool { bodyHeight < 104 }
 
     /// The plan panel's full height. The freeze and commit slabs beside it are
     /// cut from the same measure so the row reads as one shelf.
-    private var columnHeight: CGFloat { bodyHeight + (compact ? 25 : 31) }
-    private var freezeHeight: CGFloat { min(46, columnHeight * 0.32) }
-    private var commitHeight: CGFloat { max(52, columnHeight - freezeHeight - 7) }
+    private var columnHeight: CGFloat { bodyHeight + (compact ? 22 : 28) }
+    private var freezeHeight: CGFloat { min(42, columnHeight * 0.3) }
+    private var commitHeight: CGFloat { max(46, columnHeight - freezeHeight - 6) }
 
     var body: some View {
         HStack(spacing: 9) {
             staminaRail
             planSection
-            VStack(spacing: 7) {
+            VStack(spacing: 6) {
                 freezeButton
                 commitButton
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, compact ? 4 : 7)
+        .padding(.vertical, compact ? 2 : 4)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
     }
 

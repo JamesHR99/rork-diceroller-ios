@@ -121,7 +121,7 @@ struct FighterView: View {
             if side == .enemy { tickerPortrait }
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .frame(width: tickerWidth)
         .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 13, strength: 0.5, shade: 0.46)
         .overlay(

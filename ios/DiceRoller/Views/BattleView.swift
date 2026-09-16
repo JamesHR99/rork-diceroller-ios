@@ -50,7 +50,7 @@ private struct BattleContentView: View {
                     if deckUp {
                         tickerRail
                             .padding(.horizontal, 12)
-                            .padding(.top, 4)
+                            .padding(.top, 2)
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
@@ -139,11 +139,26 @@ private struct BattleContentView: View {
     /// for the run's heading, and a margin at the bottom so the FIGHT slab
     /// never rides the edge of the screen.
     private func deckBox(_ size: CGSize) -> CGFloat {
-        max(size.height - 46, 180)
+        max(size.height - 30, 180)
+    }
+
+    /// How tall a die and a plan card may run on this screen. Both are cut
+    /// from the room left after the deck's own chrome — the tray heading, the
+    /// channel lips, the plan header and every padding in between — so the
+    /// dice and the turn plan give up height together and the stamina rail and
+    /// the FIGHT slab are never the parts that fall off the bottom.
+    private func deckSizing(_ box: CGFloat) -> (reel: CGFloat, body: CGFloat) {
+        let chrome: CGFloat = 104
+        let free = max(box - chrome, 132)
+        return (
+            reel: min(112, max(70, free * 0.5)),
+            body: min(96, max(60, free * 0.42))
+        )
     }
 
     private func diceDeck(size: CGSize) -> some View {
         let box = deckBox(size)
+        let sizing = deckSizing(box)
         // The deck is drawn at full size, measured, and then taken down as one
         // piece if it does not fit the screen it landed on. Nothing is guessed:
         // whatever the dice, the turn plan, the stamina rail and the FIGHT slab
@@ -153,15 +168,15 @@ private struct BattleContentView: View {
         return VStack(spacing: 6) {
             DiceTrayView(
                 engine: engine,
-                maxReelHeight: 126,
+                maxReelHeight: sizing.reel,
                 maxRowWidth: size.width - 44
             )
             .padding(.horizontal, 8)
 
-            PlayBarView(engine: engine, bodyHeight: 108)
+            PlayBarView(engine: engine, bodyHeight: sizing.body)
                 .padding(.horizontal, 10)
         }
-        .padding(.bottom, 12)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
         // Held at its ideal height while it is measured, so the reading cannot
         // chase the constraint it is used to set.
