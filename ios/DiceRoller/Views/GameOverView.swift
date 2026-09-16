@@ -214,14 +214,14 @@ struct GameOverView: View {
             Haptics.light()
         } label: {
             HStack(spacing: 5) {
-                DuatIcon(name: art, size: 13)
+                DuatIcon(name: art, size: 17)
                 Text(title)
-                    .font(.system(size: 10, weight: .black))
+                    .font(.system(size: 12, weight: .black))
                     .kerning(1)
                     .foregroundStyle(active ? Theme.parchment : Theme.parchmentDim)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 30)
+            .frame(height: 36)
             .background {
                 DuatImage(name: active ? DuatArt.tabSelected : DuatArt.tabUnselected, fit: .stretch)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -373,7 +373,7 @@ enum DuatArt {
         var table: [String: DuatCrop] = [:]
         for group in [faceCrops, deityCrops, navigationCrops, treasureCrops,
                       symbolCrops, chromeCrops, environmentCrops, figureCrops,
-                      spriteSheetCrops] {
+                      spriteSheetCrops, enemySheetCrops] {
             table.merge(group) { first, _ in first }
         }
         return table
@@ -591,6 +591,21 @@ enum DuatArt {
         }
         return table
     }()
+
+    /// The enemy sheets, sliced the same way: every frame of one creature
+    /// shares a single content box, measured across all sixteen plates so the
+    /// figure never resizes or jumps between frames of an action.
+    private static let enemySheetCrops: [String: DuatCrop] = {
+        var table: [String: DuatCrop] = [:]
+        for (id, box) in EnemySheet.contentBoxes {
+            for clip in EnemySheet.clips {
+                for index in 0..<EnemySheet.frameCount {
+                    table["duat_enemy_\(id)_\(clip)_f\(index)"] = box
+                }
+            }
+        }
+        return table
+    }()
 }
 
 /// Facts about the hand-drawn sheets that both the crop table and the clip
@@ -602,6 +617,57 @@ enum SpriteSheet {
     static let clips = ["idle", "attack", "block", "hurt"]
     /// Heroes whose sheets have been keyed, baselined and bundled.
     static let animatedHeroes = ["archer", "warrior", "rogue", "magician"]
+}
+
+/// The enemy sprite sheets: four four-frame rows per creature.
+///
+/// The rows are named for what they *do*, not for the game's pose names:
+/// `block` is the flinch a creature makes when a blow lands on it, and
+/// `defend` is the guard it raises and holds. The clip library maps them onto
+/// the game's poses accordingly.
+enum EnemySheet {
+    static let frameCount = 4
+    static let clips = ["idle", "attack", "block", "defend"]
+
+    /// Where the ink sits inside each creature's 314×314 frames, measured
+    /// across all sixteen plates of that creature so the figure never resizes
+    /// or hops between frames. Membership of this table is also what marks a
+    /// creature as animated — anything absent falls back to a still.
+    static let contentBoxes: [String: DuatCrop] = [
+        "reedLurker": DuatCrop(0.0000, 0.1242, 1.0000, 0.7866, 1),
+        "marshShade": DuatCrop(0.0000, 0.0191, 1.0000, 0.9809, 1),
+        "sandCrawler": DuatCrop(0.0000, 0.0382, 1.0000, 0.8535, 1),
+        "sekhen": DuatCrop(0.0000, 0.0159, 1.0000, 0.9586, 1),
+        "emberWraith": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "flamekeeper": DuatCrop(0.0064, 0.0191, 0.9650, 0.9618, 1),
+        "ashJackal": DuatCrop(0.0000, 0.0605, 1.0000, 0.9045, 1),
+        "nehebkau": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "devourerSpawn": DuatCrop(0.0000, 0.1019, 1.0000, 0.8694, 1),
+        "uncreatedShadow": DuatCrop(0.0000, 0.0159, 1.0000, 0.9650, 1),
+        "hourEater": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "apep": DuatCrop(0.0000, 0.0000, 1.0000, 0.9777, 1),
+        "siltColossus": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "bronzeEffigy": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "boneplateDevourer": DuatCrop(0.0000, 0.0860, 1.0000, 0.8981, 1),
+        "apep_coils": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+        "apep_maw": DuatCrop(0.0000, 0.0000, 1.0000, 1.0000, 1),
+    ]
+
+    /// A serpent-lord re-coils into a new body partway through its fight, and
+    /// each stage was drawn its own sheet.
+    static let stageSheets: [String: String] = [
+        "apep_head": "apep",
+        "apep_coils": "apep_coils",
+        "apep_maw": "apep_maw",
+    ]
+
+    /// The plate name for one frame of one creature's action.
+    static func plate(_ id: String, _ clip: String, _ index: Int) -> String {
+        "duat_enemy_\(id)_\(clip)_f\(index)"
+    }
+
+    /// The resting drawing used for portraits and arrival cards.
+    static func portrait(_ id: String) -> String { plate(id, "idle", 0) }
 }
 
 // MARK: - Model mappings

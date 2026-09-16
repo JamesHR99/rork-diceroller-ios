@@ -69,7 +69,7 @@ struct FaceTileView: View {
 
             if showCrit {
                 Text("\(Int(chance * 100))%")
-                    .font(.system(size: max(7, size * 0.28), weight: .bold).monospacedDigit())
+                    .font(.system(size: max(9, size * 0.3), weight: .bold).monospacedDigit())
                     .foregroundStyle(face.isImbued ? Theme.gold : Theme.parchmentDim.opacity(0.8))
             }
         }
@@ -144,14 +144,14 @@ struct RunStatusBar: View {
     }
 
     private func pill(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {
-        HStack(spacing: 4) {
-            DuatSymbol(art: art, fallback: fallback, size: 13, tint: tint)
+        HStack(spacing: 5) {
+            DuatSymbol(art: art, fallback: fallback, size: 18, tint: tint)
             Text(text)
-                .font(.system(size: 11, weight: .black).monospacedDigit())
+                .font(.system(size: 13, weight: .black).monospacedDigit())
                 .foregroundStyle(tint)
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
         .background(Theme.bgElevated, in: .capsule)
         .overlay(Capsule().strokeBorder(tint.opacity(0.25), lineWidth: 1))
     }

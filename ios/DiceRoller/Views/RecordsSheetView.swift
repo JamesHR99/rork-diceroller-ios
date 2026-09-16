@@ -20,9 +20,10 @@ struct RecordsSheetView: View {
                 Button {
                     dismiss()
                 } label: {
-                    DuatIcon(name: DuatArt.utilityClose, size: 17)
-                        .frame(width: 34, height: 34)
+                    DuatIcon(name: DuatArt.utilityClose, size: 22)
+                        .frame(width: 42, height: 42)
                         .background(Theme.bgCard, in: .circle)
+                        .overlay(Circle().strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1))
                 }
                 .buttonStyle(PressableButtonStyle())
             }
@@ -44,10 +45,18 @@ struct RecordsSheetView: View {
                     }
                 } label: {
                     Text(confirmClear ? "Tap again to burn the book" : "Clear records")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(confirmClear ? Theme.blood : Theme.parchmentDim)
+                        .font(.fantasy(14, weight: .bold))
+                        .foregroundStyle(confirmClear ? Theme.blood : Theme.parchment.opacity(0.75))
+                        .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                        .frame(width: 250, height: 42)
+                        .background {
+                            DeckButtonSurface(tone: .secondary, state: .normal,
+                                              rim: confirmClear ? Theme.blood : Theme.parchmentDim,
+                                              cornerRadius: 11)
+                        }
                 }
                 .buttonStyle(PressableButtonStyle())
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: confirmClear)
             }
         }
         .padding(18)

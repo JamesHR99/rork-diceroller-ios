@@ -130,42 +130,51 @@ struct RewardView: View {
                 Text(selectedID == nil
                      ? "Choose a Favour"
                      : (deity == nil ? "Claim the Spoils" : "Accept the Blessing"))
-                    .font(.fantasy(15, weight: .bold))
-                    .foregroundStyle(selectedID == nil ? Theme.parchmentDim : Theme.parchment)
+                    .font(.fantasy(17, weight: .bold))
+                    .kerning(0.8)
+                    .foregroundStyle(
+                        selectedID == nil
+                            ? LinearGradient(colors: [Theme.parchmentDim, Theme.parchmentDim],
+                                             startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                             startPoint: .top, endPoint: .bottom)
+                    )
+                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 46)
+                    .frame(height: 52)
                     .background {
-                        DuatImage(name: DuatArt.button(.primary, selectedID == nil ? .disabled : .highlighted),
-                                  fit: .stretch)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .modifier(TintWash(tint: selectedID == nil ? nil : accent))
+                        DeckButtonSurface(tone: .primary,
+                                          state: selectedID == nil ? .disabled : .highlighted,
+                                          rim: selectedID == nil ? Theme.parchmentDim : accent,
+                                          cornerRadius: 14,
+                                          emphasis: selectedID == nil ? 0 : 1)
                     }
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: selectedID == nil ? .clear : accent.opacity(0.4), radius: 12, y: 3)
+                    .goldCorners(size: 14, inset: 3, opacity: selectedID == nil ? 0.25 : 0.8)
             }
             .buttonStyle(PressableButtonStyle())
             .disabled(selectedID == nil)
 
             Button {
                 game.skipReward()
+                Haptics.light()
             } label: {
                 HStack(spacing: 5) {
-                    DuatIcon(name: DuatArt.currency, size: 14)
+                    DuatIcon(name: DuatArt.currency, size: 19)
                     Text(game.isShrine ? "Offer 15 gold" : "Take 15 gold")
-                        .font(.fantasy(12.5, weight: .bold))
-                        .foregroundStyle(Theme.parchmentDim)
+                        .font(.fantasy(14, weight: .bold))
+                        .foregroundStyle(Theme.parchment.opacity(0.8))
+                        .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 36)
+                .frame(height: 42)
                 .background {
-                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold,
+                                      cornerRadius: 11)
                 }
-                .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
         }

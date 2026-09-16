@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "duat_enemy_emberWraith_idle_f0.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "template-rendering-intent": "original"
+  }
+}

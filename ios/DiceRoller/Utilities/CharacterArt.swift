@@ -155,10 +155,26 @@ enum CharacterArt {
     }
 
     /// A herald wears the face of the guardian it was promoted from; pack and
-    /// elite variants wear theirs too. Nothing out of the river is drawn yet,
-    /// so they all stand in the Straw Effigy's pose for now.
-    static func foe(_ enemyID: String) -> String? {
-        DuatArt.resolve(foes[baseID(enemyID)]) ?? DuatArt.resolve(DuatArt.strawEffigy)
+    /// elite variants wear theirs too. A creature with its own painted sheet
+    /// shows its resting drawing; anything still undrawn stands in the Straw
+    /// Effigy's pose.
+    static func foe(_ enemyID: String, stageID: String? = nil) -> String? {
+        if let sheet = foeSheetID(enemyID, stageID: stageID) {
+            return DuatArt.resolve(EnemySheet.portrait(sheet))
+        }
+        return DuatArt.resolve(foes[baseID(enemyID)]) ?? DuatArt.resolve(DuatArt.strawEffigy)
+    }
+
+    /// Which painted sheet this creature animates from, or `nil` when it was
+    /// never drawn. A serpent-lord re-coils into a new body partway through
+    /// its fight, and each stage owns its own sheet.
+    static func foeSheetID(_ enemyID: String, stageID: String? = nil) -> String? {
+        if let stageID, let staged = EnemySheet.stageSheets[stageID],
+           EnemySheet.contentBoxes[staged] != nil {
+            return staged
+        }
+        let id = baseID(enemyID)
+        return EnemySheet.contentBoxes[id] != nil ? id : nil
     }
 
     /// Strips the promotion suffixes a foe may carry so variants share art.
@@ -181,11 +197,14 @@ enum CharacterArt {
     /// Nothing out of the river has been redrawn yet except the Straw Effigy,
     /// so every foe stands in its pose until their own plates land — a painted
     /// figure beats a glyph, and the code-driven motion does the acting.
-    static func foeFrames(_ enemyID: String) -> FrameSet {
+    static func foeFrames(_ enemyID: String, stageID: String? = nil) -> FrameSet {
         let id = baseID(enemyID)
-        return resolve(cacheKey: "foe.\(id)",
+        // A creature with its own sheet never needs the single-drawing set,
+        // but it still resolves one so the glyph fallback chain stays whole.
+        let resting = foeSheetID(enemyID, stageID: stageID).map(EnemySheet.portrait)
+        return resolve(cacheKey: "foe.\(resting ?? id)",
                        plates: foePlates(for: id),
-                       base: foes[id],
+                       base: resting ?? foes[id],
                        painted: DuatArt.strawEffigy)
     }
 

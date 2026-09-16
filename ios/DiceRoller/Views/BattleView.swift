@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The deck of the barque and the water around it: you on the left, the thing
-/// that came out of the river on the right, the dice tray centre stage while
-/// you plan, and the ordered turn plan below.
+/// that came out of the river on the right, and the dice deck sliding up over
+/// the whole lower half while you plan the turn.
 struct BattleView: View {
     @Environment(GameManager.self) private var game
 
@@ -23,81 +23,46 @@ private struct BattleContentView: View {
 
     private var gate: Gate { game.gate }
 
+    /// The dice deck rides up over the arena while you are planning, and slides
+    /// away the moment you commit — that is what hands the whole screen back to
+    /// the fighters and the hull they are standing on.
+    private var deckUp: Bool {
+        engine.phase == .player && !engine.isAllocating
+    }
+
     var body: some View {
-        ZStack {
-            arenaBackground
+        GeometryReader { proxy in
+            let size = proxy.size
 
-            VStack(spacing: 5) {
-                topStrip
+            ZStack(alignment: .bottom) {
+                arenaBackground(size: size)
 
-                ZStack {
-                    VStack(spacing: 0) {
-                        // A hidden copy holds the row's height so the fighters
-                        // never shift — the readable one is drawn over the tray.
-                        HStack {
-                            Spacer(minLength: 0)
-                            intentRow
-                            Spacer(minLength: 0)
-                        }
-                        .hidden()
+                VStack(spacing: 0) {
+                    topStrip
 
-                        Spacer(minLength: 0)
-
-                        // The fighters stand low on the deck so the water and
-                        // the hull read behind them. Packs fill the right side.
-                        HStack(alignment: .bottom, spacing: 8) {
-                            FighterView(
-                                engine: engine,
-                                side: .player,
-                                heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
-                                heroName: game.heroClass?.name ?? "Hero",
-                                accent: game.heroClass?.accent ?? Theme.gold,
-                                heroClassID: game.classID
-                            )
-
-                            Spacer(minLength: 0)
-
-                            enemyGroup
-                        }
-                        .padding(.horizontal, 6)
+                    // While the deck is up, the fighters are read off the slim
+                    // rail; once it drops, the stage below is uncovered and the
+                    // full-size figures are what you watch.
+                    if deckUp {
+                        tickerRail
+                            .padding(.horizontal, 12)
+                            .padding(.top, 4)
+                            .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
-                    // The tray owns the middle of the arena while you plan —
-                    // the fight dims behind it — then clears away entirely so
-                    // the blows have the whole deck. It also steps aside while
-                    // attacks are being allocated, leaving the foes tappable.
-                    if engine.phase == .player, !engine.isAllocating {
-                        Theme.bg.opacity(0.45)
-                            .allowsHitTesting(false)
-                            .transition(.opacity)
-
-                        DiceTrayView(engine: engine)
-                            .padding(.horizontal, 8)
-                            .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    }
-
-                    // What is about to hit you stays readable while you roll
-                    // and plan — it sits over the tray, never behind it.
-                    VStack(spacing: 0) {
-                        HStack {
-                            Spacer(minLength: 0)
-                            intentRow
-                            Spacer(minLength: 0)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .allowsHitTesting(false)
-                    .zIndex(3)
+                    battleStage
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .opacity(deckUp ? 0.22 : 1)
+                        .blur(radius: deckUp ? 3 : 0)
+                        .scaleEffect(deckUp ? 0.94 : 1, anchor: .top)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(.spring(response: 0.42, dampingFraction: 0.85), value: engine.phase)
+                .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
-                PlayBarView(engine: engine)
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 4)
+                diceDeck(size: size)
             }
-            .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
-
+            .animation(.spring(response: 0.52, dampingFraction: 0.86), value: deckUp)
+        }
+        .overlay {
             // A landing chain takes the whole deck: shockwave, embers, wash
             // and a banner naming what just happened.
             if let flash = engine.comboFlash {
@@ -106,20 +71,23 @@ private struct BattleContentView: View {
                     .zIndex(4)
                     .transition(.opacity)
             }
-
+        }
+        .overlay {
             if let announcement = engine.stageAnnouncement {
                 stageBanner(announcement)
             }
-
+        }
+        .overlay {
             if arrivalShown {
-                arrivalCard
-                    .zIndex(5)
+                arrivalCard.zIndex(5)
             }
-
+        }
+        .overlay {
             if engine.phase == .won || engine.phase == .lost {
                 battleEndOverlay
             }
-
+        }
+        .overlay {
             // The targeting step: with several foes standing, committing lists
             // every attack so each can be sent at a chosen foe.
             if engine.isAllocating {
@@ -127,7 +95,8 @@ private struct BattleContentView: View {
                     .zIndex(6)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-
+        }
+        .overlay {
             // A god's Trial: the sigil rises before the fight truly opens.
             if engine.trialPromptVisible {
                 TrialPromptView(engine: engine)
@@ -147,11 +116,116 @@ private struct BattleContentView: View {
         }
     }
 
+    // MARK: - Dice deck
+
+    /// The roll tray and the turn plan, welded into one sheet that slides up
+    /// from the bottom of the screen. Tapping FIGHT drops it out of frame and
+    /// the fight plays out on the stage behind it.
+    private func diceDeck(size: CGSize) -> some View {
+        VStack(spacing: 6) {
+            DiceTrayView(engine: engine)
+                .padding(.horizontal, 8)
+
+            PlayBarView(engine: engine)
+                .padding(.horizontal, 10)
+        }
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity)
+        .background {
+            // The deck's own ground: a lip of carved stone that reads as a
+            // shelf sliding over the deck boards rather than a floating card.
+            DeckShelfBackground(armed: engine.freezeArmed)
+                .ignoresSafeArea(edges: .bottom)
+        }
+        .offset(y: deckUp ? 0 : size.height)
+        .allowsHitTesting(deckUp)
+    }
+
+    // MARK: - Ticker rail
+
+    /// The slim read carried while the deck is up: you on the left, everything
+    /// that rose out of the river on the right, each with its health and the
+    /// blow it is winding up.
+    private var tickerRail: some View {
+        let foes = engine.enemies
+        let compact = foes.count > 1
+        return HStack(alignment: .top, spacing: 8) {
+            FighterView(
+                engine: engine,
+                side: .player,
+                heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
+                heroName: game.heroClass?.name ?? "Hero",
+                accent: game.heroClass?.accent ?? Theme.gold,
+                heroClassID: game.classID,
+                layout: .ticker,
+                tickerCompact: compact
+            )
+
+            Spacer(minLength: 0)
+
+            HStack(alignment: .top, spacing: 6) {
+                ForEach(foes) { foe in
+                    FighterView(
+                        engine: engine,
+                        side: .enemy,
+                        heroSymbol: "",
+                        heroName: "",
+                        accent: Theme.blood,
+                        foe: foe,
+                        isTargeted: engine.isTargeted(foeID: foe.id),
+                        layout: .ticker,
+                        tickerCompact: compact
+                    )
+                    .opacity(foe.isAlive ? 1 : 0.4)
+                }
+            }
+        }
+    }
+
+    // MARK: - Stage
+
+    /// The fight itself, uncovered once the deck goes down: full-size figures
+    /// standing on the hull with the water behind them.
+    private var battleStage: some View {
+        VStack(spacing: 0) {
+            // Intent capsules ride over the foes once the deck is down, so a
+            // blow is aimed with the whole board in view. While the deck is up
+            // the ticker rail already carries the same read, so it is not drawn
+            // twice.
+            if engine.phase == .player, !deckUp {
+                intentRow
+                    .padding(.top, 2)
+                    .transition(.opacity)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(alignment: .bottom, spacing: 8) {
+                FighterView(
+                    engine: engine,
+                    side: .player,
+                    heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
+                    heroName: game.heroClass?.name ?? "Hero",
+                    accent: game.heroClass?.accent ?? Theme.gold,
+                    heroClassID: game.classID
+                )
+
+                Spacer(minLength: 0)
+
+                enemyGroup
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 4)
+        }
+    }
+
     /// The barque hull sits under the fighters — you are fighting on the deck.
-    private var arenaBackground: some View {
+    /// The river draws no hull of its own while the arena is up, so there is
+    /// only ever one boat on screen.
+    private func arenaBackground(size: CGSize) -> some View {
         ZStack {
             RadialGradient(
-                colors: [gate.discColor.opacity(0.14 * game.discGlow), .clear],
+                colors: [gate.discColor.opacity(0.16 * game.discGlow), .clear],
                 center: .center,
                 startRadius: 60,
                 endRadius: 480
@@ -159,13 +233,13 @@ private struct BattleContentView: View {
 
             VStack {
                 Spacer()
-                BarqueView(gate: gate, width: 620, discGlow: game.discGlow)
-                    .opacity(0.55)
-                    .offset(y: 96)
+                BarqueView(gate: gate, width: size.width * 0.92, discGlow: game.discGlow)
+                    .opacity(deckUp ? 0.3 : 0.72)
+                    .offset(y: deckUp ? 130 : 104)
             }
 
             LinearGradient(
-                colors: [.clear, Theme.bg.opacity(0.85)],
+                colors: [.clear, Theme.bg.opacity(0.8)],
                 startPoint: .center,
                 endPoint: .bottom
             )
@@ -180,8 +254,8 @@ private struct BattleContentView: View {
     /// stand quiet — no aiming happens during planning.
     private var enemyGroup: some View {
         let foes = engine.enemies
-        let scale: CGFloat = foes.count >= 3 ? 0.72 : (foes.count == 2 ? 0.84 : 1)
-        return HStack(alignment: .bottom, spacing: foes.count > 1 ? 2 : 0) {
+        let scale: CGFloat = foes.count >= 3 ? 0.66 : (foes.count == 2 ? 0.8 : 1)
+        return HStack(alignment: .bottom, spacing: foes.count > 1 ? 0 : 0) {
             ForEach(foes) { foe in
                 FighterView(
                     engine: engine,
@@ -206,80 +280,95 @@ private struct BattleContentView: View {
         if engine.isAllocating {
             let total = engine.allocatedDamage(for: foe.id)
             if total > 0 {
-                HStack(spacing: 3) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 8, weight: .bold))
+                HStack(spacing: 4) {
+                    DuatSymbol(art: DuatArt.Status.piercing, fallback: "bolt.fill",
+                               size: 13, tint: Theme.bg)
                     Text("\(total)")
-                        .font(.system(size: 11, weight: .black).monospacedDigit())
+                        .font(.system(size: 13, weight: .black).monospacedDigit())
                 }
                 .foregroundStyle(Theme.bg)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
                 .background(Theme.ember, in: .capsule)
                 .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
-                .offset(y: 44)
+                .offset(y: 48)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
     }
 
+    // MARK: - Top strip
+
+    /// The run's heading: the turn count, the chisels riding this run, the
+    /// night dial and the codex. Everything here got a size up now that the
+    /// dice have their own deck and the top of the screen is free.
     private var topStrip: some View {
         HStack(spacing: 10) {
-            Text("TURN \(engine.turnNumber)")
-                .font(.system(size: 10, weight: .black).monospacedDigit())
-                .foregroundStyle(Theme.gold)
-                .kerning(1)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Theme.bgElevated, in: .capsule)
+            HStack(spacing: 4) {
+                Text("TURN")
+                    .font(.system(size: 9, weight: .black))
+                    .kerning(1.2)
+                    .foregroundStyle(Theme.parchmentDim)
+                Text("\(engine.turnNumber)")
+                    .font(.system(size: 15, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.gold)
+                    .contentTransition(.numericText())
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 5)
+            .background(Theme.bgElevated, in: .capsule)
+            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1))
 
             // Chisels of Ptah: small copper marks beside the turn.
             if !engine.chisels.isEmpty {
-                HStack(spacing: 2) {
+                HStack(spacing: 3) {
                     ForEach(engine.chisels.sorted(), id: \.self) { id in
                         DuatSymbol(art: DuatArt.chisel(id),
                                    fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
-                                   size: 13,
+                                   size: 18,
                                    tint: Theme.ptahCopper)
                     }
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(Theme.bgElevated, in: .capsule)
                 .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
             }
 
             Text(engine.lastAction)
-                .font(.paper(12.5))
+                .font(.paper(14))
                 .italic()
                 .foregroundStyle(Theme.parchmentDim)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.75)
                 .animation(.easeInOut(duration: 0.2), value: engine.lastAction)
 
-            Spacer()
+            Spacer(minLength: 4)
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared)
 
             Button {
                 showInfo = true
+                Haptics.light()
             } label: {
-                HStack(spacing: 4) {
-                    DuatIcon(name: DuatArt.utilityCodex, size: 14)
+                HStack(spacing: 5) {
+                    DuatIcon(name: DuatArt.utilityCodex, size: 19)
                     Text("CODEX")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.fantasy(13, weight: .black))
                         .kerning(1)
-                        .foregroundStyle(Theme.gold)
+                        .foregroundStyle(Theme.parchment)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(Theme.bgElevated, in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
+                .frame(width: 106, height: 38)
+                .background {
+                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
         }
         .padding(.horizontal, 14)
-        .padding(.top, 2)
+        .padding(.top, 3)
     }
 
     /// One intent capsule per living foe — in packs you read the whole ambush
@@ -299,29 +388,29 @@ private struct BattleContentView: View {
         let strike = engine.projectedStrike(for: foe)
         let move = foe.intent
         return HStack(spacing: 6) {
-            DuatIcon(name: DuatArt.Status.marked, size: 13)
+            DuatIcon(name: DuatArt.Status.marked, size: 15)
                 .opacity(0.8)
 
             if !compact {
                 Text("Intent:")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.parchmentDim)
             } else {
                 Text(foe.displayName.uppercased())
-                    .font(.system(size: 8, weight: .black))
+                    .font(.system(size: 9, weight: .black))
                     .kerning(0.8)
                     .foregroundStyle(Theme.parchmentDim)
                     .lineLimit(1)
             }
 
             ForEach(Array(move.faces.enumerated()), id: \.offset) { _, face in
-                DuatSymbol(art: face.artName, fallback: face.symbol, size: 17, tint: face.tint)
-                    .frame(width: 21, height: 21)
+                DuatSymbol(art: face.artName, fallback: face.symbol, size: 19, tint: face.tint)
+                    .frame(width: 23, height: 23)
                     .background(Theme.bg.opacity(0.7), in: .rect(cornerRadius: 5))
             }
 
             Text(move.comboName ?? move.name)
-                .font(.fantasy(11, weight: .bold))
+                .font(.fantasy(12.5, weight: .bold))
                 .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -346,8 +435,8 @@ private struct BattleContentView: View {
                 outcomeBadge(DuatArt.Status.burn, "thermometer.high", "+\(heat)", Theme.ember)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 6)
         .background {
             // The painted intent plate: what is about to hit you, on a slab.
             DuatImage(name: DuatArt.enemyIntent, fit: .stretch)
@@ -359,9 +448,9 @@ private struct BattleContentView: View {
     /// One icon-and-number pair reading what the telegraphed move will do.
     private func outcomeBadge(_ art: String, _ fallback: String, _ value: String, _ tint: Color) -> some View {
         HStack(spacing: 2) {
-            DuatSymbol(art: art, fallback: fallback, size: 12, tint: tint)
+            DuatSymbol(art: art, fallback: fallback, size: 14, tint: tint)
             Text(value)
-                .font(.system(size: 10, weight: .black).monospacedDigit())
+                .font(.system(size: 11.5, weight: .black).monospacedDigit())
                 .foregroundStyle(tint)
         }
     }
@@ -396,7 +485,7 @@ private struct BattleContentView: View {
         let foes = engine.enemies
         let count = foes.count
         let solo = count == 1
-        let portraitHeight: CGFloat = solo ? 168 : (count == 2 ? 132 : 106)
+        let portraitHeight: CGFloat = solo ? 178 : (count == 2 ? 140 : 112)
         let headline = foes.first?.def.isBoss == true
             ? "THE GATE IS BARRED"
             : count == 2 ? "TWO RISE"
@@ -415,7 +504,7 @@ private struct BattleContentView: View {
                         .frame(width: 150, height: 150)
                     HStack(spacing: solo ? 0 : -20) {
                         ForEach(foes) { foe in
-                            PortraitView(art: CharacterArt.foe(foe.def.id),
+                            PortraitView(art: CharacterArt.foe(foe.def.id, stageID: foe.stageID),
                                          fallbackSymbol: foe.def.symbol,
                                          tint: Theme.blood,
                                          height: portraitHeight,
@@ -424,7 +513,7 @@ private struct BattleContentView: View {
                         }
                     }
                 }
-                .frame(width: 176)
+                .frame(width: 186)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(headline)
@@ -542,5 +631,41 @@ private struct BattleContentView: View {
         .background(Theme.bg.opacity(0.88).ignoresSafeArea())
         .transition(.opacity)
         .animation(.easeInOut(duration: 0.4), value: engine.phase)
+    }
+}
+
+/// The ground the dice deck rides on: a slab of dark papyrus with a carved
+/// gold lip along its top edge, so the deck reads as a shelf being pushed up
+/// over the boards rather than a card floating in the air.
+private struct DeckShelfBackground: View {
+    let armed: Bool
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            PapyrusSurface(ground: .panel, tint: Theme.bgElevated, strength: 0.5, shade: 0.5)
+                .clipShape(.rect(topLeadingRadius: 26, topTrailingRadius: 26))
+
+            LinearGradient(
+                colors: [Theme.bg.opacity(0.0), Theme.bg.opacity(0.55)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(.rect(topLeadingRadius: 26, topTrailingRadius: 26))
+
+            VStack(spacing: 0) {
+                GoldRule(height: 7, opacity: armed ? 0.5 : 0.9)
+                    .modifier(TintWash(tint: armed ? Theme.frost : nil))
+                HieroglyphBand(tint: armed ? Theme.frost : Theme.gold, height: 9, opacity: 0.24)
+                    .padding(.horizontal, 26)
+            }
+            .padding(.top, 2)
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill((armed ? Theme.frost : Theme.gold).opacity(0.5))
+                .frame(height: 1.2)
+        }
+        .shadow(color: .black.opacity(0.7), radius: 24, y: -8)
+        .allowsHitTesting(false)
     }
 }

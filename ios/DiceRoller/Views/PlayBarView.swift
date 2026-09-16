@@ -7,27 +7,21 @@ struct PlayBarView: View {
     let engine: BattleEngine
 
     /// How tall the plan cards run. Everything in the bar is sized off this so
-    /// the row stays level.
-    private let bodyHeight: CGFloat = 104
+    /// the row stays level. The deck owns the lower half of the screen now, so
+    /// the cards have room to be read rather than squinted at.
+    private let bodyHeight: CGFloat = 116
 
     var body: some View {
         HStack(spacing: 9) {
             staminaRail
             planSection
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 freezeButton
                 commitButton
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 18, strength: 0.5, shade: 0.42)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(engine.hasCombo ? Theme.ember.opacity(0.55) : Theme.gold.opacity(0.18),
-                              lineWidth: engine.hasCombo ? 1.8 : 1)
-        )
-        .shadow(color: Theme.ember.opacity(engine.hasCombo ? 0.28 : 0), radius: 16)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
     }
 
@@ -37,9 +31,9 @@ struct PlayBarView: View {
     private var staminaRail: some View {
         VStack(spacing: 4) {
             Text("STM")
-                .font(.system(size: 8, weight: .black))
+                .font(.system(size: 9.5, weight: .black))
                 .kerning(1)
-                .foregroundStyle(Theme.parchmentDim)
+                .foregroundStyle(Theme.gold.opacity(0.8))
 
             staminaPips
 
@@ -47,20 +41,23 @@ struct PlayBarView: View {
 
             VStack(spacing: 0) {
                 Text("NEXT")
-                    .font(.system(size: 7, weight: .black))
+                    .font(.system(size: 8, weight: .black))
                     .foregroundStyle(Theme.parchmentDim.opacity(0.7))
                 Text("\(engine.projectedNextTurnStamina)")
-                    .font(.system(size: 13, weight: .black).monospacedDigit())
+                    .font(.system(size: 15, weight: .black).monospacedDigit())
                     .foregroundStyle(engine.projectedNextTurnStamina > engine.maxStamina
                                      ? Theme.sunGold : Theme.parchmentDim)
             }
         }
-        .frame(width: 42, height: bodyHeight + 13)
+        .frame(width: 48, height: bodyHeight + 15)
         .padding(.vertical, 4)
-        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 12))
+        .background {
+            PapyrusSurface(ground: .card, tint: Theme.bg, strength: 0.6, shade: 0.45)
+                .clipShape(.rect(cornerRadius: 13))
+        }
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Theme.gold.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1)
         )
     }
 
@@ -79,7 +76,7 @@ struct PlayBarView: View {
                             DuatStaminaPip(
                                 isFilled: index < engine.stamina,
                                 isReserve: index >= engine.maxStamina,
-                                size: 15
+                                size: 17
                             )
                         }
                     }
@@ -98,17 +95,21 @@ struct PlayBarView: View {
             planHeader
             planRow
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
-        .background(Theme.bg.opacity(0.8), in: .rect(cornerRadius: 14))
+        .background {
+            PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.55, shade: 0.5)
+                .clipShape(.rect(cornerRadius: 15))
+        }
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 15)
                 .strokeBorder(
-                    engine.hasCombo ? Theme.ember.opacity(0.65) : Theme.parchmentDim.opacity(0.15),
+                    engine.hasCombo ? Theme.ember.opacity(0.7) : Theme.gold.opacity(0.28),
                     lineWidth: engine.hasCombo ? 2 : 1
                 )
         )
+        .shadow(color: Theme.ember.opacity(engine.hasCombo ? 0.3 : 0), radius: 14)
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first, let faceID = UUID(uuidString: idString) else { return false }
             engine.placeInPlayBar(faceID: faceID)
@@ -119,13 +120,13 @@ struct PlayBarView: View {
     private var planHeader: some View {
         HStack(spacing: 8) {
             Text("TURN PLAN")
-                .font(.system(size: 9, weight: .black))
-                .kerning(1)
-                .foregroundStyle(Theme.parchmentDim)
+                .font(.fantasy(12, weight: .black))
+                .kerning(1.4)
+                .foregroundStyle(Theme.gold.opacity(0.85))
 
             Text(hintText)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(Theme.parchmentDim.opacity(0.75))
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(Theme.parchmentDim.opacity(0.8))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
@@ -133,25 +134,25 @@ struct PlayBarView: View {
 
             if engine.hasEchoPending {
                 HStack(spacing: 3) {
-                    DuatIcon(name: DuatArt.echoMarker, size: 13)
+                    DuatIcon(name: DuatArt.echoMarker, size: 16)
                     Text("ECHO WAITS")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.system(size: 10.5, weight: .black))
                         .kerning(0.8)
                 }
                 .foregroundStyle(Theme.ptahCopper)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             } else if engine.projectedDamage > 0 {
                 HStack(spacing: 3) {
-                    DuatIcon(name: DuatArt.Status.critical, size: 12)
+                    DuatIcon(name: DuatArt.Status.critical, size: 15)
                     Text("\(engine.projectedDamage) TOTAL DMG")
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                        .font(.system(size: 12, weight: .black).monospacedDigit())
                 }
                 .foregroundStyle(Theme.ember)
                 .shadow(color: Theme.ember.opacity(0.6), radius: 5)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
-        .frame(height: 13)
+        .frame(height: 16)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.projectedDamage)
     }
 
@@ -193,23 +194,28 @@ struct PlayBarView: View {
                 }
             }
             .frame(height: bodyHeight)
-            .background(Theme.bgCard, in: .rect(cornerRadius: 11))
+            .background {
+                // Every step is a slab of painted paper, so a plan reads as a
+                // row of carved tablets rather than flat chips.
+                PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.7, shade: 0.34)
+                    .clipShape(.rect(cornerRadius: 12))
+            }
             .overlay {
                 // A fused chain wears its own colour as an inner wash so it
                 // reads as one welded object, not a run of loose chips.
                 if step.isCombo {
-                    RoundedRectangle(cornerRadius: 11)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(
-                            LinearGradient(colors: [step.tint.opacity(0.22), .clear],
+                            LinearGradient(colors: [step.tint.opacity(0.26), .clear],
                                            startPoint: .bottom, endPoint: .top)
                         )
                         .allowsHitTesting(false)
                 }
             }
             .overlay(
-                RoundedRectangle(cornerRadius: 11)
-                    .strokeBorder(step.tint.opacity(isActive ? 1 : (step.isCombo ? 0.75 : 0.4)),
-                                  lineWidth: isActive ? 2.6 : (step.isCombo ? 2 : 1))
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(step.tint.opacity(isActive ? 1 : (step.isCombo ? 0.75 : 0.45)),
+                                  lineWidth: isActive ? 2.6 : (step.isCombo ? 2 : 1.2))
             )
             .shadow(color: step.tint.opacity(isActive ? 0.85 : (step.isCombo ? 0.45 : 0)),
                     radius: isActive ? 12 : 6)
@@ -217,7 +223,7 @@ struct PlayBarView: View {
             .overlay(alignment: .topTrailing) {
                 // A copper hammer when an optional Chisel rides this recipe.
                 if engine.isComboArmed(step) {
-                    DuatIcon(name: DuatArt.upgradeHammer, size: 14)
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 18)
                         .padding(5)
                         .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 5)
                 }
@@ -244,7 +250,7 @@ struct PlayBarView: View {
                 orderBadge(number, tint: step.tint)
 
                 Text(step.title.uppercased())
-                    .font(.fantasy(16, weight: .black))
+                    .font(.fantasy(18, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(step.tint)
                     .lineLimit(1)
@@ -253,20 +259,20 @@ struct PlayBarView: View {
                 Spacer(minLength: 2)
 
                 Text("\(step.faces.count)-CHAIN")
-                    .font(.system(size: 8.5, weight: .black))
+                    .font(.system(size: 10, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(Theme.bg)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1.5)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
                     .background(step.tint, in: .capsule)
 
                 // The painted cost badge carries the stamina this step spends.
                 Text("\(step.staminaCost)")
-                    .font(.system(size: 10, weight: .black).monospacedDigit())
+                    .font(.system(size: 12, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.parchment)
-                    .frame(width: 22, height: 22)
+                    .frame(width: 26, height: 26)
                     .background {
-                        DuatImage(name: DuatArt.costBadge, width: 24, height: 24, fit: .fit)
+                        DuatImage(name: DuatArt.costBadge, width: 28, height: 28, fit: .fit)
                             .modifier(TintWash(
                                 tint: step.staminaCost < step.faces.count ? Theme.sunGold : nil
                             ))
@@ -276,14 +282,14 @@ struct PlayBarView: View {
             weldedFaces(step)
 
             Text(step.valueLine)
-                .font(.system(size: 10, weight: .bold).monospacedDigit())
-                .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchment.opacity(0.85))
+                .font(.system(size: 11.5, weight: .bold).monospacedDigit())
+                .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchment.opacity(0.9))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
 
             if let chiselLine = engine.chiselLine(for: step) {
                 Text(chiselLine)
-                    .font(.system(size: 8, weight: .black))
+                    .font(.system(size: 9.5, weight: .black))
                     .kerning(0.4)
                     .foregroundStyle(Theme.ptahCopper)
                     .lineLimit(1)
@@ -292,9 +298,9 @@ struct PlayBarView: View {
 
             critLine(step)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(minWidth: 176, maxWidth: 300, alignment: .leading)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .frame(minWidth: 190, maxWidth: 320, alignment: .leading)
     }
 
     /// The chain's faces, welded together by the painted connector rather
@@ -304,20 +310,20 @@ struct PlayBarView: View {
             ForEach(Array(step.faces.enumerated()), id: \.element.id) { index, face in
                 DuatSymbol(art: face.face.artName,
                            fallback: face.face.symbol,
-                           size: 23,
+                           size: 28,
                            tint: face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint))
                     .modifier(FaceWash(tint: Theme.gold, active: face.isCrit))
-                    .frame(width: 29, height: 27)
-                    .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
+                    .frame(width: 34, height: 32)
+                    .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 8))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .strokeBorder(face.isCrit ? Theme.gold.opacity(0.9) : step.tint.opacity(0.45),
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(face.isCrit ? Theme.gold.opacity(0.9) : step.tint.opacity(0.5),
                                           lineWidth: 1)
                     )
                     .shadow(color: face.isCrit ? Theme.gold.opacity(0.7) : .clear, radius: 4)
 
                 if index < step.faces.count - 1 {
-                    DuatImage(name: DuatArt.chainConnector, width: 12, fit: .fit)
+                    DuatImage(name: DuatArt.chainConnector, width: 14, fit: .fit)
                         .colorMultiply(step.tint)
                 }
             }
@@ -331,17 +337,17 @@ struct PlayBarView: View {
 
             DuatSymbol(art: step.faces.first?.face.artName,
                        fallback: step.faces.first?.face.symbol ?? "questionmark",
-                       size: 26,
+                       size: 34,
                        tint: step.tint)
 
             Text(step.title.uppercased())
-                .font(.system(size: 8.5, weight: .black))
-                .foregroundStyle(Theme.parchment.opacity(0.8))
+                .font(.system(size: 10, weight: .black))
+                .foregroundStyle(Theme.parchment.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
 
             Text(step.valueLine)
-                .font(.system(size: 8.5, weight: .bold).monospacedDigit())
+                .font(.system(size: 10, weight: .bold).monospacedDigit())
                 .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchmentDim)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -349,22 +355,23 @@ struct PlayBarView: View {
 
             if step.hasCritFace {
                 Text("CRIT")
-                    .font(.system(size: 7.5, weight: .black))
+                    .font(.system(size: 9, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(Theme.gold)
             }
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 6)
-        .frame(width: 70)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .frame(width: 82)
     }
 
     private func orderBadge(_ number: Int, tint: Color) -> some View {
         Text("\(number)")
-            .font(.system(size: 9, weight: .black).monospacedDigit())
+            .font(.system(size: 11, weight: .black).monospacedDigit())
             .foregroundStyle(Theme.bg)
-            .frame(width: 15, height: 15)
+            .frame(width: 18, height: 18)
             .background(tint, in: .circle)
+            .overlay(Circle().strokeBorder(Theme.bg.opacity(0.5), lineWidth: 0.8))
     }
 
     /// The crit read-out under a chain: how many crit dice fed it and what the
@@ -373,17 +380,17 @@ struct PlayBarView: View {
     private func critLine(_ step: PlanStep) -> some View {
         if step.comboCritChance > 0 {
             HStack(spacing: 3) {
-                DuatIcon(name: DuatArt.Status.critical, size: 12)
+                DuatIcon(name: DuatArt.Status.critical, size: 15)
                 Text(step.isGuaranteedCrit
                      ? "CRIT GUARANTEED"
                      : "\(step.critDice)◆ · \(Int(step.comboCritChance * 100))% → \(step.critDamage)")
-                    .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                    .font(.system(size: 11, weight: .black).monospacedDigit())
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
             .foregroundStyle(Theme.gold)
         } else {
-            Color.clear.frame(height: 11)
+            Color.clear.frame(height: 13)
         }
     }
 
@@ -407,30 +414,32 @@ struct PlayBarView: View {
             }
             Haptics.light()
         } label: {
-            HStack(spacing: 5) {
-                DuatIcon(name: DuatArt.interactionHeld, size: 15)
+            VStack(spacing: 1) {
+                HStack(spacing: 5) {
+                    DuatIcon(name: DuatArt.interactionHeld, size: 20)
 
-                Text("FREEZE")
-                    .font(.fantasy(11, weight: .black))
-                    .kerning(0.8)
-
+                    Text("FREEZE")
+                        .font(.fantasy(15, weight: .black))
+                        .kerning(1.2)
+                }
                 freezePips
             }
             .foregroundStyle(engine.freezeArmed ? Theme.bg : Theme.frost)
-            .frame(width: 112, height: 32)
+            .shadow(color: engine.freezeArmed ? .clear : .black.opacity(0.7), radius: 2, y: 1)
+            .frame(width: 128, height: 46)
             .background {
-                DuatImage(name: DuatArt.button(.secondary, engine.freezeArmed ? .selected : .normal),
-                          fit: .stretch)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .modifier(TintWash(tint: engine.freezeArmed ? Theme.frost : nil))
+                DeckButtonSurface(
+                    tone: .secondary,
+                    state: engine.freezeArmed ? .selected : (canFreeze ? .normal : .disabled),
+                    rim: Theme.frost,
+                    emphasis: engine.freezeArmed ? 1 : 0
+                )
+                .modifier(TintWash(tint: engine.freezeArmed ? Theme.frost : nil))
             }
-            .clipShape(.rect(cornerRadius: 11))
-            .shadow(color: Theme.frost.opacity(engine.freezeArmed ? 0.7 : 0.15),
-                    radius: engine.freezeArmed ? 12 : 4)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!canFreeze)
-        .opacity(canFreeze ? 1 : 0.4)
+        .opacity(canFreeze ? 1 : 0.45)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.freezeArmed)
     }
 
@@ -441,11 +450,11 @@ struct PlayBarView: View {
 
     /// One painted pip per freeze; filled pips are still in hand.
     private var freezePips: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 2.5) {
             ForEach(0..<engine.freezesPerTurn, id: \.self) { index in
                 DuatImage(
                     name: index < engine.freezesRemaining ? DuatArt.staminaFull : DuatArt.staminaEmpty,
-                    height: 9,
+                    height: 11,
                     fit: .fit
                 )
                 .colorMultiply(engine.freezeArmed ? Theme.bg : Theme.frost)
@@ -458,25 +467,42 @@ struct PlayBarView: View {
     // MARK: - Commit
 
     private var commitButton: some View {
-        Button {
+        let armed = engine.canCommit && !engine.playedFaces.isEmpty
+        return Button {
             engine.beginCommit()
+            Haptics.medium()
         } label: {
-            VStack(spacing: 1) {
-                DuatIcon(name: DuatArt.Status.burn, size: 20)
+            VStack(spacing: 2) {
+                DuatIcon(name: DuatArt.Status.burn, size: 26)
+                    .shadow(color: Theme.ember.opacity(armed ? 0.8 : 0), radius: 8)
                 Text(engine.playedFaces.isEmpty ? "END TURN" : "FIGHT!")
-                    .font(.fantasy(12, weight: .black))
-                    .foregroundStyle(engine.canCommit ? Theme.parchment : Theme.parchmentDim)
+                    .font(.fantasy(armed ? 20 : 15, weight: .black))
+                    .kerning(1.4)
+                    .foregroundStyle(
+                        engine.canCommit
+                            ? LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                             startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Theme.parchmentDim, Theme.parchmentDim],
+                                             startPoint: .top, endPoint: .bottom)
+                    )
+                    .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .frame(width: 112, height: 61)
+            .frame(width: 128, height: 76)
             .background {
-                DuatImage(name: DuatArt.button(.primary, engine.canCommit ? .highlighted : .disabled),
-                          fit: .stretch)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DeckButtonSurface(
+                    tone: .primary,
+                    state: engine.canCommit ? .highlighted : .disabled,
+                    rim: armed ? Theme.ember : Theme.gold,
+                    cornerRadius: 15,
+                    emphasis: armed ? 1 : 0
+                )
             }
-            .clipShape(.rect(cornerRadius: 16))
-            .shadow(color: engine.canCommit ? Theme.ember.opacity(0.4) : .clear, radius: 8, y: 2)
+            .goldCorners(size: 15, inset: 3, opacity: engine.canCommit ? 0.8 : 0.3)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!engine.canCommit)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }

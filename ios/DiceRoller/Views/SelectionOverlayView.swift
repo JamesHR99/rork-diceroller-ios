@@ -216,11 +216,13 @@ struct SelectionOverlayView: View {
                 game.cancelSelection()
             } label: {
                 Text(cancelLabel)
-                    .font(.fantasy(16, weight: .bold))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .frame(width: 200, height: 50)
-                    .background(Theme.bgCard, in: .capsule)
-                    .overlay(Capsule().strokeBorder(Theme.parchmentDim.opacity(0.25), lineWidth: 1))
+                    .font(.fantasy(17, weight: .bold))
+                    .foregroundStyle(Theme.parchment.opacity(0.75))
+                    .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                    .frame(width: 200, height: 52)
+                    .background {
+                        DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.parchmentDim)
+                    }
             }
             .buttonStyle(PressableButtonStyle())
 
@@ -228,16 +230,24 @@ struct SelectionOverlayView: View {
                 confirm()
             } label: {
                 Text(confirmLabel)
-                    .font(.fantasy(19, weight: .bold))
-                    .foregroundStyle(canConfirm ? Theme.bg : Theme.parchmentDim)
-                    .frame(width: 300, height: 50)
-                    .background(
+                    .font(.fantasy(21, weight: .bold))
+                    .kerning(1)
+                    .foregroundStyle(
                         canConfirm
-                            ? AnyShapeStyle(LinearGradient(colors: [Theme.gold, Theme.ember],
-                                                           startPoint: .top, endPoint: .bottom))
-                            : AnyShapeStyle(Theme.bgCard),
-                        in: .capsule
+                            ? LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                             startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Theme.parchmentDim, Theme.parchmentDim],
+                                             startPoint: .top, endPoint: .bottom)
                     )
+                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                    .frame(width: 300, height: 52)
+                    .background {
+                        DeckButtonSurface(tone: .primary,
+                                          state: canConfirm ? .highlighted : .disabled,
+                                          rim: canConfirm ? Theme.gold : Theme.parchmentDim,
+                                          emphasis: canConfirm ? 1 : 0)
+                    }
+                    .goldCorners(size: 14, inset: 3, opacity: canConfirm ? 0.8 : 0.25)
             }
             .buttonStyle(PressableButtonStyle())
             .disabled(!canConfirm)

@@ -406,6 +406,11 @@ struct EnemyState: Identifiable {
         def.isBoss ? min(1, hpFraction + GameData.bossStageShift) : hpFraction
     }
     var displayName: String { def.displayName(hpFraction: stagedHPFraction) }
+    /// Which stage a serpent-lord is wearing right now — each one was drawn
+    /// its own sheet, so the art follows the body it has re-coiled into.
+    var stageID: String? { def.stage(hpFraction: stagedHPFraction)?.id }
+    /// The painted sheet this foe animates from, or nil when it was never drawn.
+    var sheetID: String? { CharacterArt.foeSheetID(def.id, stageID: stageID) }
 }
 
 /// Turn-based combat: one all-dice roll per turn, a stamina budget for placing

@@ -188,6 +188,9 @@ struct AnimatedFighterSprite: View {
     /// A character with a sheet for this action plays real frame-by-frame
     /// animation; everyone else falls back to the single-drawing pose set.
     var characterID: String? = nil
+    /// Which painted enemy sheet this creature animates from, when it owns
+    /// one. Set on the foe side only.
+    var foeSheetID: String? = nil
 
     @State private var beat = FrameBeat(key: .idle)
     @State private var breathing = false
@@ -196,7 +199,10 @@ struct AnimatedFighterSprite: View {
 
     /// The hand-drawn clip for this action, if the character owns one.
     private var clip: SpriteClip? {
-        SpriteClipLibrary.clip(for: characterID, pose: pose)
+        if let foeSheetID {
+            return SpriteClipLibrary.foeClip(sheetID: foeSheetID, pose: pose)
+        }
+        return SpriteClipLibrary.clip(for: characterID, pose: pose)
     }
 
     var body: some View {

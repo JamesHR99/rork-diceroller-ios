@@ -12,21 +12,22 @@ struct DiceTrayView: View {
 
     private var freezeArmed: Bool { engine.freezeArmed }
 
-    /// Dice grow to fill the arena, shrinking only once the row gets long. A
+    /// Dice grow to fill the deck, shrinking only once the row gets long. A
     /// freeze adds a carried reel on top of the loadout, so the row can run
-    /// one wider than the dice cap.
+    /// one wider than the dice cap. The deck owns the lower half of the screen
+    /// now, so every reel is drawn bigger than it was in the old tray.
     private var reelWidth: CGFloat {
         switch engine.slots.count {
-        case ...6: return 92
-        case 7: return 84
-        case 8: return 76
-        case 9: return 69
-        case 10: return 63
-        default: return 57
+        case ...6: return 100
+        case 7: return 92
+        case 8: return 83
+        case 9: return 75
+        case 10: return 69
+        default: return 62
         }
     }
 
-    private var reelHeight: CGFloat { min(126, reelWidth * 1.28) }
+    private var reelHeight: CGFloat { min(138, reelWidth * 1.3) }
 
     /// The full combo rail under the tray: every chain spelled out with its
     /// name, effect, cost and Chisel badge. Off by default — the letters
@@ -36,13 +37,13 @@ struct DiceTrayView: View {
     static let showsComboRail = false
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 9) {
             header
 
-            HStack(spacing: 8) {
+            HStack(spacing: 9) {
                 leadingControl
 
-                HStack(spacing: engine.slots.count > 7 ? 5 : 7) {
+                HStack(spacing: engine.slots.count > 7 ? 6 : 8) {
                     let counts = Dictionary(uniqueKeysWithValues:
                         engine.comboMarkers.map { ($0.key, $0.value.count) })
                     ForEach(engine.slots) { slot in
@@ -55,47 +56,16 @@ struct DiceTrayView: View {
                         )
                     }
                 }
+                .padding(.horizontal, 11)
+                .padding(.vertical, 9)
+                .background { reelBed }
             }
 
             comboPanel
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 24, strength: 0.55, shade: 0.45)
-        .overlay(alignment: .bottom) {
-            HieroglyphBand(tint: freezeArmed ? Theme.frost : Theme.gold, height: 9, opacity: 0.32)
-                .padding(.horizontal, 22)
-                .padding(.bottom, 4)
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: freezeArmed
-                            ? [Theme.frost.opacity(0.8), Theme.frost.opacity(0.2)]
-                            : [Theme.gold.opacity(0.55), Theme.lapis.opacity(0.35)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: freezeArmed ? 2 : 1.4
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .inset(by: 4)
-                .strokeBorder(Theme.rule.opacity(0.18), lineWidth: 0.75)
-        )
-        .overlay {
-            // Gold bloom washing out of the frame each time a reel lands.
-            RoundedRectangle(cornerRadius: 24)
-                .strokeBorder(Theme.gold, lineWidth: 3)
-                .blur(radius: 6)
-                .opacity(slamFlare * 0.9)
-                .allowsHitTesting(false)
-        }
-        .shadow(color: (freezeArmed ? Theme.frost : Color.black).opacity(freezeArmed ? 0.4 : 0.6),
-                radius: 26, y: 10)
-        .shadow(color: Theme.gold.opacity(slamFlare * 0.55), radius: 30)
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
         .fixedSize(horizontal: true, vertical: true)
         .scaleEffect(1 + slamKick)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
@@ -113,13 +83,66 @@ struct DiceTrayView: View {
         }
     }
 
+    /// The stone bed the reels are set into: a sunken channel of dark papyrus
+    /// with a gilded rim, so the row of dice reads as carved into the deck
+    /// rather than a run of floating chips. It flares gold each time a reel
+    /// slams into its detent.
+    private var reelBed: some View {
+        ZStack {
+            PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.65, shade: 0.5)
+                .clipShape(.rect(cornerRadius: 20))
+
+            // The channel's own shading: dark at the lip, open in the middle.
+            LinearGradient(
+                colors: [Color.black.opacity(0.55), .clear, .clear, Color.black.opacity(0.45)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(.rect(cornerRadius: 20))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: freezeArmed
+                            ? [Theme.frost.opacity(0.85), Theme.frost.opacity(0.25)]
+                            : [Theme.gold.opacity(0.6), Theme.goldDeep.opacity(0.35)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: freezeArmed ? 2 : 1.5
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .inset(by: 3.5)
+                .strokeBorder(Theme.rule.opacity(0.2), lineWidth: 0.75)
+        )
+        .overlay {
+            // Gold bloom washing out of the channel each time a reel lands.
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(Theme.gold, lineWidth: 3)
+                .blur(radius: 6)
+                .opacity(slamFlare * 0.9)
+        }
+        .overlay(alignment: .top) {
+            HieroglyphBand(tint: freezeArmed ? Theme.frost : Theme.gold, height: 8, opacity: 0.22)
+                .padding(.horizontal, 20)
+                .padding(.top, 2)
+        }
+        .shadow(color: Theme.gold.opacity(slamFlare * 0.5), radius: 26)
+        .shadow(color: .black.opacity(0.55), radius: 14, y: 5)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+        .allowsHitTesting(false)
+    }
+
     // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 8) {
             Text(headerTitle)
-                .font(.system(size: 10, weight: .black))
-                .kerning(1.2)
+                .font(.fantasy(13, weight: .black))
+                .kerning(1.6)
                 .foregroundStyle(freezeArmed ? Theme.frost : Theme.gold)
 
             // Chisels of Ptah, struck in his copper beside the title.
@@ -309,26 +332,8 @@ struct DiceTrayView: View {
     @ViewBuilder
     private var leadingControl: some View {
         if engine.canRoll {
-            Button {
-                engine.rollAll()
-            } label: {
-                VStack(spacing: 4) {
-                    DuatIcon(name: DuatArt.interactionRoll, size: 40)
-                    Text("ROLL")
-                        .font(.fantasy(16, weight: .black))
-                        .kerning(1.4)
-                        .foregroundStyle(Theme.parchment)
-                }
-                .frame(width: 96, height: reelHeight)
-                .background {
-                    DuatImage(name: DuatArt.button(.primary, .highlighted), fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .clipShape(.rect(cornerRadius: 16))
-                .shadow(color: Theme.ember.opacity(0.55), radius: 12, y: 2)
-            }
-            .buttonStyle(PressableButtonStyle())
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
+            RollLeverButton(height: reelHeight + 18) { engine.rollAll() }
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
     }
 }
@@ -365,14 +370,17 @@ private struct DiceTrayReelView: View {
     private var isHeld: Bool { slot.isCarried }
 
     private var corner: CGFloat { 15 }
-    private var iconSize: CGFloat { width * 0.34 }
-    private var labelSize: CGFloat { max(8, width * 0.115) }
+    /// The face drawing is the whole point of a die, so it is drawn as large
+    /// as the window allows — a small plate scaled up reads grainy, a large
+    /// one reads painted.
+    private var iconSize: CGFloat { width * 0.40 }
+    private var labelSize: CGFloat { max(10, width * 0.135) }
     /// A claimed die's face carries its name in bigger type — the god's
     /// blessing is part of the read that decides a turn.
     private func labelSize(for face: RolledFace) -> CGFloat {
-        face.patron == nil ? labelSize : max(11, width * 0.16)
+        face.patron == nil ? labelSize : max(12.5, width * 0.175)
     }
-    private var tagSize: CGFloat { max(8.5, width * 0.125) }
+    private var tagSize: CGFloat { max(9.5, width * 0.135) }
 
     /// Smear on the drum, tied to how fast this particular reel is turning —
     /// the lazier late reels are read clearly rather than blurred away.
@@ -413,7 +421,27 @@ private struct DiceTrayReelView: View {
         }
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { reelGround(opacity: 0.35) }
+        .clipShape(.rect(cornerRadius: corner))
         .dieFrame(.empty, opacity: 0.75)
+    }
+
+    /// The papyrus face of a die: the same paper the rest of the game is
+    /// painted on, sunk behind the open window of the painted frame so a reel
+    /// reads as carved bone rather than a flat dark rectangle.
+    private func reelGround(opacity: Double) -> some View {
+        PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.7, shade: 0.52)
+            .opacity(opacity)
+            .overlay {
+                // A lit top and a shadowed foot so the face has a little relief.
+                LinearGradient(
+                    colors: [Theme.parchment.opacity(0.09), .clear, Color.black.opacity(0.35)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .clipShape(.rect(cornerRadius: corner))
+            .allowsHitTesting(false)
     }
 
     private var spinningReel: some View {
@@ -451,7 +479,7 @@ private struct DiceTrayReelView: View {
             reelName
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: corner))
+        .background { reelGround(opacity: 0.75) }
         .overlay {
             // Curved-glass shading so the reel reads as a spinning drum.
             LinearGradient(
@@ -541,22 +569,22 @@ private struct DiceTrayReelView: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.bg.opacity(0.45), in: .rect(cornerRadius: corner))
+            .background { reelGround(opacity: 1) }
             .overlay { frostLayer }
             .clipShape(.rect(cornerRadius: corner))
             .dieFrame(settledFrame(face), tint: frameTint(face))
             .overlay { armedHalo }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
-                    DuatIcon(name: DuatArt.interactionImbue, size: 11).padding(3)
+                    DuatIcon(name: DuatArt.interactionImbue, size: 15).padding(3)
                 }
             }
             .overlay(alignment: .topLeading) {
                 // A patron god's sigil rides the die whose faces they answer.
                 if let patron = face.patron {
                     DuatSymbol(art: patron.artName, fallback: patron.symbol,
-                               size: 13, tint: patron.tint)
-                        .frame(width: 18, height: 18)
+                               size: 17, tint: patron.tint)
+                        .frame(width: 23, height: 23)
                         .background(Theme.bg.opacity(0.85), in: .circle)
                         .overlay(Circle().strokeBorder(patron.tint.opacity(0.8), lineWidth: 1))
                         .padding(3)
@@ -634,13 +662,13 @@ private struct DiceTrayReelView: View {
     private func chainCountBadge(_ face: RolledFace) -> some View {
         let markers = engine.comboMarkers[face.id] ?? []
         if !markers.isEmpty && !freezeArmed {
-            HStack(spacing: 2) {
+            HStack(spacing: 2.5) {
                 ForEach(markers.prefix(4)) { marker in
                     chainLetter(marker)
                 }
                 if markers.count > 4 {
                     Text("+\(markers.count - 4)")
-                        .font(.system(size: max(6.5, width * 0.085), weight: .black))
+                        .font(.system(size: max(8, width * 0.1), weight: .black))
                         .foregroundStyle(Theme.parchmentDim)
                 }
             }
@@ -656,12 +684,12 @@ private struct DiceTrayReelView: View {
     /// One tappable chain letter. A planned chain wears gold and a ring so a
     /// glance tells you which chains you have already committed to.
     private func chainLetter(_ marker: ComboMarker) -> some View {
-        let diameter = max(13, width * 0.185)
+        let diameter = max(16, width * 0.215)
         return Button {
             engine.toggleCombo(marker.comboID)
         } label: {
             Text(marker.letter)
-                .font(.system(size: max(8.5, width * 0.115), weight: .black))
+                .font(.system(size: max(10, width * 0.135), weight: .black))
                 .foregroundStyle(Theme.bg)
                 .frame(width: diameter, height: diameter)
                 .background(marker.isPlanned ? Theme.gold : marker.color, in: .circle)
@@ -694,10 +722,10 @@ private struct DiceTrayReelView: View {
         Button {
             engine.nockShift(faceID: faceID, up: up)
         } label: {
-            DuatImage(name: DuatArt.utilityForward, width: 9, fit: .fit)
+            DuatImage(name: DuatArt.utilityForward, width: 12, fit: .fit)
                 .colorMultiply(Theme.ptahCopper)
                 .rotationEffect(.degrees(up ? -90 : 90))
-                .frame(width: 15, height: 15)
+                .frame(width: 19, height: 19)
                 .background(Theme.bg.opacity(0.88), in: .circle)
                 .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(0.7), lineWidth: 0.8))
         }
@@ -717,10 +745,10 @@ private struct DiceTrayReelView: View {
     @ViewBuilder
     private func critBadge(_ face: RolledFace) -> some View {
         if face.isCrit && !isFrozen {
-            HStack(spacing: 2) {
-                DuatIcon(name: DuatArt.Status.critical, size: max(9, width * 0.11))
+            HStack(spacing: 2.5) {
+                DuatIcon(name: DuatArt.Status.critical, size: max(11, width * 0.13))
                 Text("CRIT")
-                    .font(.system(size: max(7, width * 0.085), weight: .black))
+                    .font(.system(size: max(8.5, width * 0.1), weight: .black))
                     .kerning(0.6)
             }
             .foregroundStyle(Theme.bg)
@@ -794,7 +822,7 @@ private struct DiceTrayReelView: View {
                     )
                 )
                 .overlay(alignment: .bottomTrailing) {
-                    DuatIcon(name: DuatArt.interactionHeld, size: 14)
+                    DuatIcon(name: DuatArt.interactionHeld, size: 18)
                         .opacity(isFrozen ? 0.95 : 0.55)
                         .padding(4)
                 }
@@ -870,10 +898,11 @@ private struct DiceTrayReelView: View {
     /// A reel whose face has gone down to the plan, or been spent outright.
     private func emptyReel(spent: Bool) -> some View {
         Color.clear
+            .background { reelGround(opacity: spent ? 0.5 : 0.3) }
             .dieFrame(spent ? .spent : .empty, opacity: spent ? 0.8 : 0.6)
             .overlay {
                 if spent {
-                    DuatIcon(name: DuatArt.interactionSpent, size: 20)
+                    DuatIcon(name: DuatArt.interactionSpent, size: 26)
                         .opacity(0.65)
                 }
             }
@@ -881,7 +910,7 @@ private struct DiceTrayReelView: View {
 
     private var reelName: some View {
         Text(slot.isCarried ? "Held · \(slot.die.name)" : slot.die.name)
-            .font(.system(size: max(7.5, width * 0.095), weight: .semibold))
+            .font(.system(size: max(8.5, width * 0.105), weight: .semibold))
             .foregroundStyle(Theme.parchmentDim)
             .lineLimit(1)
             .minimumScaleFactor(0.7)

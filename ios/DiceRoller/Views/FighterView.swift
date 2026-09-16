@@ -1,13 +1,26 @@
 import SwiftUI
 
-/// An animated fighter in the arena: sprite, name, health bar, status badges,
-/// and pose-driven attack/hurt/block/dodge motion. The player stands on the
-/// left; every foe on the right owns one of these, tapped during attack
-/// allocation to receive the selected blow.
+/// An animated fighter, in one of two layouts.
+///
+/// `.stage` is the full figure standing on the deck of the barque: sprite,
+/// name, health, statuses and pose-driven motion. It is what you watch once
+/// the dice deck has slid away and the fight has the whole screen.
+///
+/// `.ticker` is the slim read used while you are still planning the turn and
+/// the deck is up: a portrait, a name, the health channel, and — for a foe —
+/// the blow it is winding up. No animation, no floaters: the fight is paused
+/// on the other side of the deck, so it only has to be legible.
 struct FighterView: View {
     enum Side {
         case player
         case enemy
+    }
+
+    enum Layout {
+        /// The fighter standing on the deck, full height.
+        case stage
+        /// The slim HUD read carried over the dice deck.
+        case ticker
     }
 
     let engine: BattleEngine
@@ -26,11 +39,30 @@ struct FighterView: View {
     /// points here, or the blow in flight was sent here.
     var isTargeted: Bool = false
     var onTap: (() -> Void)? = nil
+    var layout: Layout = .stage
+    /// Tickers squeeze further still when a whole pack has to fit the rail.
+    var tickerCompact: Bool = false
 
     @State private var aimPulse = false
 
     var body: some View {
-        VStack(spacing: 5) {
+        Group {
+            switch layout {
+            case .stage: stageBody
+            case .ticker: tickerBody
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                aimPulse = true
+            }
+        }
+    }
+
+    // MARK: - Stage
+
+    private var stageBody: some View {
+        VStack(spacing: 6) {
             nameRow
             if side == .enemy, let foe, foe.armourMax > 0 {
                 armourBar(foe)
@@ -39,18 +71,112 @@ struct FighterView: View {
             sprite
             badgeRow
         }
-        .frame(width: 190)
+        .frame(width: stageWidth)
         .overlay(alignment: .top) { floaters }
         .overlay { aimRing }
         .overlay { championRing }
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                aimPulse = true
+    }
+
+    /// Stage cards keep their width in step with the pack, so three foes still
+    /// fit the deck without overlapping the demigod.
+    private var stageWidth: CGFloat {
+        side == .enemy ? 248 * max(packScale, 0.7) : 248
+    }
+
+    // MARK: - Ticker
+
+    /// The compact read: the fighter's face, name, health, and — for a foe —
+    /// the blow they are winding up, all on one painted slab.
+    private var tickerBody: some View {
+        HStack(spacing: 9) {
+            if side == .player { tickerPortrait }
+
+            VStack(alignment: side == .player ? .leading : .trailing, spacing: 3) {
+                HStack(spacing: 5) {
+                    Text(side == .player ? heroName : (foe?.displayName ?? ""))
+                        .font(.fantasy(tickerCompact ? 13 : 15, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    badgeRow
+                }
+
+                if side == .enemy, let foe, foe.armourMax > 0 {
+                    armourBar(foe, width: tickerWidth - 62)
+                }
+
+                healthBar(width: tickerWidth - 62, height: 15)
+
+                if side == .enemy, let foe {
+                    intentLine(foe)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: side == .player ? .leading : .trailing)
+
+            if side == .enemy { tickerPortrait }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .frame(width: tickerWidth)
+        .papyrusPanel(tint: Theme.bgElevated, cornerRadius: 13, strength: 0.5, shade: 0.46)
+        .overlay(
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder((side == .player ? accent : Theme.blood).opacity(0.35), lineWidth: 1)
+        )
+    }
+
+    private var tickerWidth: CGFloat { tickerCompact ? 212 : 268 }
+
+    private var tickerPortrait: some View {
+        PortraitMedallionView(
+            art: frames.art(.idle),
+            fallbackSymbol: side == .player ? heroSymbol : (foe?.def.symbol ?? "questionmark"),
+            tint: side == .player ? accent : Theme.blood,
+            diameter: tickerCompact ? 44 : 52,
+            glow: false
+        )
+    }
+
+    /// What this foe will throw when the deck goes down, under its health.
+    private func intentLine(_ foe: EnemyState) -> some View {
+        let strike = engine.projectedStrike(for: foe)
+        let move = foe.intent
+        return HStack(spacing: 4) {
+            ForEach(Array(move.faces.prefix(3).enumerated()), id: \.offset) { _, face in
+                DuatSymbol(art: face.artName, fallback: face.symbol, size: 15, tint: face.tint)
+                    .frame(width: 18, height: 18)
+            }
+
+            Text(move.comboName ?? move.name)
+                .font(.fantasy(11, weight: .bold))
+                .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            if strike.damage > 0 {
+                HStack(spacing: 2) {
+                    DuatSymbol(art: DuatArt.Status.piercing, fallback: "burst.fill",
+                               size: 12, tint: Theme.blood)
+                    Text("\(strike.damage)")
+                        .font(.system(size: 11, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.blood)
+                }
+            }
+            if strike.block > 0 {
+                HStack(spacing: 2) {
+                    DuatSymbol(art: DuatArt.Status.shield, fallback: "shield.fill",
+                               size: 11, tint: Theme.steel)
+                    Text("\(strike.block)")
+                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.steel)
+                }
             }
         }
     }
+
+    // MARK: - Overlays
 
     private var floaters: some View {
         Group {
@@ -72,18 +198,18 @@ struct FighterView: View {
         if side == .enemy, isTargeted, let foe, foe.isAlive {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                DuatImage(name: DuatArt.targetRing, width: 150, fit: .fit)
+                DuatImage(name: DuatArt.targetRing, width: 186, fit: .fit)
                     .colorMultiply(Theme.gold)
                     .opacity(aimPulse ? 0.65 : 1)
                     .shadow(color: Theme.gold.opacity(0.8), radius: 12)
-                    .offset(y: 18)
+                    .offset(y: 20)
             }
             .overlay(alignment: .top) {
                 Text("TARGET")
-                    .font(.system(size: 8, weight: .black))
+                    .font(.system(size: 9, weight: .black))
                     .kerning(2)
                     .foregroundStyle(Theme.bg)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 9)
                     .padding(.vertical, 3)
                     .background(Theme.gold, in: .capsule)
                     .offset(y: 2)
@@ -98,7 +224,7 @@ struct FighterView: View {
     private var championRing: some View {
         if side == .enemy, let foe, foe.isTrialChampion, engine.trialAccepted,
            let trial = engine.trial, foe.isAlive {
-            HaloedSigilView(deity: trial.deity, diameter: 86, breathes: true)
+            HaloedSigilView(deity: trial.deity, diameter: 110, breathes: true)
                 .opacity(0.5)
                 .offset(y: -18)
                 .allowsHitTesting(false)
@@ -113,16 +239,23 @@ struct FighterView: View {
         return bossScale * packScale
     }
 
-    /// Paintings read far better than glyphs, so they are drawn larger.
+    /// The fight owns the whole screen now that the dice have their own deck,
+    /// so the figures are drawn much larger than they were when the tray sat
+    /// on top of them.
     private var portraitHeight: CGFloat {
-        ((foe?.def.isBoss == true && side == .enemy) ? 132 : 118) * sizeScale
+        ((foe?.def.isBoss == true && side == .enemy) ? 182 : 164) * sizeScale
     }
 
     /// Every drawing this fighter owns, resolved once from the catalogue.
     private var frames: FrameSet {
         side == .player
             ? CharacterArt.heroFrames(heroClassID)
-            : CharacterArt.foeFrames(foe?.def.id ?? engine.enemy.id)
+            : CharacterArt.foeFrames(foe?.def.id ?? engine.enemy.id, stageID: foe?.stageID)
+    }
+
+    /// The painted sheet a creature animates from, when it owns one.
+    private var foeSheetID: String? {
+        side == .enemy ? foe?.sheetID : nil
     }
 
     /// Heroes swing their own weapon; everything out of the river fights with
@@ -163,9 +296,10 @@ struct FighterView: View {
         ZStack {
             Ellipse()
                 .fill(Color.black.opacity(0.55))
-                .frame(width: 124 * sizeScale, height: 21)
-                .offset(y: 64)
+                .frame(width: portraitHeight * 0.82, height: 24)
+                .offset(y: portraitHeight * 0.47)
                 .scaleEffect(x: pose == .dodge ? 0.7 : 1)
+                .blur(radius: 3)
 
             AnimatedFighterSprite(
                 frames: frames,
@@ -176,14 +310,15 @@ struct FighterView: View {
                 accent: accent,
                 fallbackSymbol: side == .player ? heroSymbol : (foe?.def.symbol ?? "questionmark"),
                 mirrorFallback: side == .enemy,
-                characterID: side == .player ? heroClassID : nil
+                characterID: side == .player ? heroClassID : nil,
+                foeSheetID: foeSheetID
             )
-            .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 12 : 26)
+            .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 14 : 30)
             .opacity(pose == .defeat ? 0.42 : 1)
             .grayscale(pose == .defeat ? 0.85 : 0)
             .overlay { godSigil }
         }
-        .frame(height: 138)
+        .frame(height: portraitHeight * 1.06)
     }
 
     /// The sigil of whichever god blessed the blow, stamping over the strike
@@ -193,11 +328,11 @@ struct FighterView: View {
         if pose == .attack, !strikeGods.isEmpty {
             HStack(spacing: 6) {
                 ForEach(strikeGods.prefix(2), id: \.self) { god in
-                    DuatSymbol(art: god.artName, fallback: god.symbol, size: 34, tint: god.tint)
-                        .shadow(color: god.tint.opacity(0.9), radius: 14)
+                    DuatSymbol(art: god.artName, fallback: god.symbol, size: 42, tint: god.tint)
+                        .shadow(color: god.tint.opacity(0.9), radius: 16)
                 }
             }
-            .offset(x: 38 * facing, y: -14)
+            .offset(x: 48 * facing, y: -18)
             .transition(.scale(scale: 2.3).combined(with: .opacity))
             .allowsHitTesting(false)
         }
@@ -205,10 +340,12 @@ struct FighterView: View {
 
     private var nameRow: some View {
         Text(side == .player ? heroName : (foe?.displayName ?? ""))
-            .font(.fantasy(15, weight: .bold))
+            .font(.fantasy(19, weight: .bold))
+            .kerning(0.6)
             .foregroundStyle(Theme.parchment)
+            .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
             .lineLimit(1)
-            .minimumScaleFactor(0.65)
+            .minimumScaleFactor(0.55)
     }
 
     private var currentHP: Int { side == .player ? engine.playerHP : (foe?.hp ?? 0) }
@@ -221,16 +358,20 @@ struct FighterView: View {
     /// The numbers ride the bar itself so a foe's remaining health is legible
     /// at a glance even when the fill is nearly gone.
     private var healthBar: some View {
+        healthBar(width: 216, height: 21)
+    }
+
+    private func healthBar(width: CGFloat, height: CGFloat) -> some View {
         DuatBar(
             kind: .health,
             fraction: Double(currentHP) / Double(max(maxHP, 1)),
-            width: 160,
-            height: 15,
+            width: width,
+            height: height,
             tint: side == .player ? accent : nil
         )
         .overlay {
             Text("\(currentHP)/\(maxHP)")
-                .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                .font(.system(size: height * 0.62, weight: .black).monospacedDigit())
                 .foregroundStyle(Theme.parchment)
                 .shadow(color: .black, radius: 2.5)
                 .shadow(color: .black.opacity(0.9), radius: 1)
@@ -241,30 +382,30 @@ struct FighterView: View {
 
     /// The bronze plate worn over health. Direct hits chip it away first;
     /// cracks open as it thins, and once it is gone the health is bare.
-    private func armourBar(_ foe: EnemyState) -> some View {
+    private func armourBar(_ foe: EnemyState, width: CGFloat = 176) -> some View {
         let fraction = foe.armourMax > 0
             ? CGFloat(foe.armour) / CGFloat(foe.armourMax)
             : 0
         return DuatBar(
             kind: .armour,
             fraction: Double(fraction),
-            width: 132,
-            height: 11
+            width: width,
+            height: 13
         )
         .overlay(alignment: .trailing) {
             HStack(spacing: 2) {
-                DuatIcon(name: DuatArt.Status.armour, size: 10)
+                DuatIcon(name: DuatArt.Status.armour, size: 12)
                 Text("\(foe.armour)")
-                    .font(.system(size: 9, weight: .black).monospacedDigit())
+                    .font(.system(size: 10, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.bronze)
             }
-            .offset(x: 26)
+            .offset(x: 28)
         }
     }
 
     /// Everything riding this fighter right now, each on its painted mark.
     private var badgeRow: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             if side == .player {
                 if engine.playerShield > 0 {
                     badge(DuatArt.Status.shield, "shield.fill", "\(engine.playerShield)", Theme.steel)
@@ -326,20 +467,22 @@ struct FighterView: View {
                 }
             }
         }
-        .frame(height: 18)
+        .frame(height: layout == .ticker ? 16 : 21)
         .animation(.spring(response: 0.3, dampingFraction: 0.7),
                    value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.block ?? 0) + (foe?.armour ?? 0))
     }
 
     private func badge(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {
-        HStack(spacing: 2) {
-            DuatSymbol(art: art, fallback: fallback, size: 11, tint: tint)
+        let scale: CGFloat = layout == .ticker ? 0.85 : 1
+        return HStack(spacing: 2.5) {
+            DuatSymbol(art: art, fallback: fallback, size: 14 * scale, tint: tint)
             Text(text)
-                .font(.system(size: 9, weight: .bold).monospacedDigit())
+                .font(.system(size: 11 * scale, weight: .bold).monospacedDigit())
                 .foregroundStyle(tint)
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2.5)
-        .background(tint.opacity(0.15), in: .capsule)
+        .padding(.horizontal, 6 * scale)
+        .padding(.vertical, 3 * scale)
+        .background(tint.opacity(0.16), in: .capsule)
+        .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 0.8))
     }
 }

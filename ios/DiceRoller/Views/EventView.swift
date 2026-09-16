@@ -78,16 +78,22 @@ struct EventView: View {
 
                     Button {
                         game.leaveEncounter()
+                        Haptics.medium()
                     } label: {
                         Text("Row On")
-                            .font(.fantasy(16, weight: .bold))
-                            .foregroundStyle(Theme.parchment)
-                            .frame(width: 240, height: 48)
+                            .font(.fantasy(18, weight: .bold))
+                            .kerning(1)
+                            .foregroundStyle(
+                                LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                               startPoint: .top, endPoint: .bottom)
+                            )
+                            .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                            .frame(width: 240, height: 52)
                             .background {
-                                DuatImage(name: DuatArt.button(.primary, .normal), fit: .stretch)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                DeckButtonSurface(tone: .primary, state: .normal, rim: Theme.gold,
+                                                  cornerRadius: 14, emphasis: 0.6)
                             }
-                            .clipShape(.rect(cornerRadius: 14))
+                            .goldCorners(size: 14, inset: 3, opacity: 0.75)
                     }
                     .buttonStyle(PressableButtonStyle())
                 }
@@ -116,13 +122,13 @@ struct EventView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     Text(choice.detail)
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(Theme.parchmentDim)
-                        .lineLimit(2)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Theme.parchment.opacity(0.8))
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
-                DuatImage(name: DuatArt.utilityForward, width: 14, fit: .fit)
+                DuatImage(name: DuatArt.utilityForward, width: 19, fit: .fit)
                     .colorMultiply(Theme.duskViolet)
             }
             .padding(.horizontal, 14)

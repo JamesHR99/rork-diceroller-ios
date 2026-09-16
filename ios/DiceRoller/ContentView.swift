@@ -14,7 +14,8 @@ struct ContentView: View {
                 waterline: 0.56,
                 speed: game.screen == .battle ? 0.45 : 1,
                 dim: sceneDim,
-                discGlow: game.discGlow
+                discGlow: game.discGlow,
+                showsBarque: !stagesOwnBarque
             )
             .animation(.easeInOut(duration: 1.2), value: game.gate)
 
@@ -72,6 +73,16 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.25), value: game.pendingSelection)
         .preferredColorScheme(.dark)
         .statusBarHidden()
+    }
+
+    /// Screens that stage their own hull, close up and lit for the moment.
+    /// The river stops drawing its own the whole time one of these is up, so
+    /// there is never a second barque drifting behind the one you are on.
+    private var stagesOwnBarque: Bool {
+        switch game.screen {
+        case .title, .battle, .rest, .gameOver: true
+        default: false
+        }
     }
 
     /// How much the river is pushed back behind whatever screen is up.

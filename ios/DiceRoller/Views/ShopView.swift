@@ -43,14 +43,14 @@ struct ShopView: View {
             }
 
             Text(game.statusMessage ?? "\"Name yourself, and the price is fair.\"")
-                .font(.paper(11))
+                .font(.paper(13))
                 .italic()
                 .foregroundStyle(game.statusMessage == nil ? Theme.parchmentDim : Theme.gold)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Stock rolled for a \(game.heroClass?.name ?? "demigod").")
-                .font(.system(size: 9.5, weight: .semibold))
+                .font(.system(size: 11.5, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -64,38 +64,46 @@ struct ShopView: View {
 
             Spacer(minLength: 6)
 
-            Button { showInfo = true } label: {
+            Button {
+                showInfo = true
+                Haptics.light()
+            } label: {
                 HStack(spacing: 6) {
-                    DuatIcon(name: DuatArt.utilityCodex, size: 15)
+                    DuatIcon(name: DuatArt.utilityCodex, size: 20)
                     Text("CODEX")
-                        .font(.system(size: 9.5, weight: .black))
+                        .font(.fantasy(13, weight: .black))
                         .kerning(1.2)
-                        .foregroundStyle(Theme.gold)
+                        .foregroundStyle(Theme.parchment)
+                        .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 36)
+                .frame(height: 42)
                 .background {
-                    DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold,
+                                      cornerRadius: 11)
                 }
-                .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
 
             Button {
                 game.leaveEncounter()
+                Haptics.medium()
             } label: {
                 Text("Push Off")
-                    .font(.fantasy(16, weight: .bold))
-                    .foregroundStyle(Theme.parchment)
+                    .font(.fantasy(18, weight: .bold))
+                    .kerning(1)
+                    .foregroundStyle(
+                        LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                       startPoint: .top, endPoint: .bottom)
+                    )
+                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 46)
+                    .frame(height: 52)
                     .background {
-                        DuatImage(name: DuatArt.button(.primary, .normal), fit: .stretch)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        DeckButtonSurface(tone: .primary, state: .normal, rim: Theme.gold,
+                                          cornerRadius: 14, emphasis: 0.6)
                     }
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: Theme.ember.opacity(0.4), radius: 12, y: 3)
+                    .goldCorners(size: 14, inset: 3, opacity: 0.75)
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -126,7 +134,7 @@ struct ShopView: View {
                             offer: offer,
                             isSelected: false,
                             affordable: game.gold >= offer.price,
-                            width: 158
+                            width: 190
                         ) {
                             game.purchase(offer)
                         }

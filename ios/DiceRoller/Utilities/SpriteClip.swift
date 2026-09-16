@@ -51,6 +51,18 @@ enum SpriteClipLibrary {
         return built
     }
 
+    /// The clip for a creature out of the river, keyed by the sheet its
+    /// current stage uses. Returns `nil` for anything with no sheet, so the
+    /// fighter falls back to its single-drawing pose set.
+    static func foeClip(sheetID: String?, pose: FighterPose) -> SpriteClip? {
+        guard let sheetID, !sheetID.isEmpty else { return nil }
+        let key = "foe.\(sheetID).\(poseKey(pose))"
+        if let cached = cache[key] { return cached }
+        let built = buildFoe(sheetID, pose: pose)
+        cache[key] = built
+        return built
+    }
+
     private static var cache: [String: SpriteClip?] = [:]
 
     private static func poseKey(_ pose: FighterPose) -> String {
@@ -130,6 +142,66 @@ enum SpriteClipLibrary {
         case .defeat:
             return clip(hero, "hurt", [1, 2, 3], hold: tempo.hurt * 2.2)
         }
+    }
+
+    // MARK: - Creatures
+
+    /// How long a creature holds one plate, per row. The sheets were drawn as
+    /// four keyframes rather than eight, so every plate carries more of the
+    /// action and is held roughly twice as long as a hero's.
+    private struct FoeTempo {
+        static let idle = 0.40
+        static let attack = 0.17
+        static let flinch = 0.14
+        static let guardUp = 0.20
+    }
+
+    /// Four plates played out and back, so a creature's standing loop never
+    /// snaps between its last drawing and its first.
+    private static let foeBreath = [0, 1, 2, 3, 2, 1]
+
+    /// Rows top to bottom: standing, striking, flinching from a hit, and a
+    /// guard raised and held. The game's `block` pose is the guard, and its
+    /// `hurt` pose is the flinch — the sheets name them the other way round.
+    private static func buildFoe(_ id: String, pose: FighterPose) -> SpriteClip? {
+        switch pose {
+        case .idle:
+            return foe(id, "idle", foeBreath, hold: FoeTempo.idle, loops: true)
+        case .attack:
+            return foe(id, "attack", [0, 1, 2, 3], hold: FoeTempo.attack)
+        case .hurt:
+            return foe(id, "block", [0, 1, 2, 3], hold: FoeTempo.flinch)
+        case .block:
+            // The guard enters and then holds, rather than relaxing straight
+            // back out of it — the sheet's last drawing drifts toward idle.
+            return foe(id, "defend", [0, 1, 2, 2], hold: FoeTempo.guardUp, restIndex: 2)
+        case .telegraph:
+            // The wind-up alone, stretched into a readable tell.
+            return foe(id, "attack", [0, 0, 1], hold: FoeTempo.attack * 1.5)
+        case .dodge:
+            // The guard's first slip, taken quickly and held low.
+            return foe(id, "defend", [0, 1, 1], hold: FoeTempo.guardUp * 0.8)
+        case .heal:
+            return foe(id, "idle", [0, 1, 2, 3, 2, 1], hold: FoeTempo.idle * 0.9, loops: true)
+        case .victory:
+            return foe(id, "attack", [2, 3], hold: FoeTempo.attack * 2.2)
+        case .defeat:
+            // Doubled over on the flinch, held as the collapse.
+            return foe(id, "block", [1, 2, 3], hold: FoeTempo.flinch * 2.6)
+        }
+    }
+
+    private static func foe(_ id: String,
+                            _ row: String,
+                            _ order: [Int],
+                            hold: Double,
+                            loops: Bool = false,
+                            restIndex: Int? = nil) -> SpriteClip? {
+        let names: [String] = order
+            .map { EnemySheet.plate(id, row, $0) }
+            .filter { DuatArt.exists($0) }
+        guard names.count > 1 else { return nil }
+        return SpriteClip(frames: names, frameDuration: hold, loops: loops, restIndex: restIndex)
     }
 
     /// Builds a clip from a sheet's frame indices, dropping any plate that did

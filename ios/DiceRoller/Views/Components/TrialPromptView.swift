@@ -69,16 +69,19 @@ struct TrialPromptView: View {
                                 }
                             } label: {
                                 Text("Take the Trial")
-                                    .font(.fantasy(15, weight: .bold))
-                                    .foregroundStyle(Theme.parchment)
-                                    .frame(width: 210, height: 46)
+                                    .font(.fantasy(17, weight: .bold))
+                                    .kerning(0.8)
+                                    .foregroundStyle(
+                                        LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                                       startPoint: .top, endPoint: .bottom)
+                                    )
+                                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                                    .frame(width: 210, height: 52)
                                     .background {
-                                        DuatImage(name: DuatArt.button(.primary, .highlighted),
-                                                  fit: .stretch)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .colorMultiply(tint)
+                                        DeckButtonSurface(tone: .primary, state: .highlighted,
+                                                          rim: tint, cornerRadius: 14, emphasis: 1)
                                     }
-                                    .clipShape(.rect(cornerRadius: 14))
+                                    .goldCorners(size: 14, inset: 3, opacity: 0.8)
                             }
                             .buttonStyle(PressableButtonStyle())
 
@@ -91,14 +94,14 @@ struct TrialPromptView: View {
                                 }
                             } label: {
                                 Text("Fight On — no penalty")
-                                    .font(.fantasy(13, weight: .bold))
-                                    .foregroundStyle(Theme.parchmentDim)
-                                    .frame(width: 220, height: 46)
+                                    .font(.fantasy(15, weight: .bold))
+                                    .foregroundStyle(Theme.parchment.opacity(0.78))
+                                    .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                                    .frame(width: 220, height: 52)
                                     .background {
-                                        DuatImage(name: DuatArt.button(.secondary, .normal), fit: .stretch)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        DeckButtonSurface(tone: .secondary, state: .normal,
+                                                          rim: Theme.parchmentDim, cornerRadius: 14)
                                     }
-                                    .clipShape(.rect(cornerRadius: 14))
                             }
                             .buttonStyle(PressableButtonStyle())
                         }

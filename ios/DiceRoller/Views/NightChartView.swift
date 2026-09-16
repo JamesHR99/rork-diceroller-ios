@@ -83,17 +83,21 @@ struct NightChartView: View {
 
             Button {
                 showInfo = true
+                Haptics.light()
             } label: {
                 VStack(spacing: 2) {
-                    DuatIcon(name: DuatArt.utilityCodex, size: 17)
+                    DuatIcon(name: DuatArt.utilityCodex, size: 22)
                     Text("CODEX")
-                        .font(.system(size: 7.5, weight: .black))
+                        .font(.fantasy(11, weight: .black))
                         .kerning(0.8)
-                        .foregroundStyle(Theme.gold)
+                        .foregroundStyle(Theme.parchment)
+                        .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                 }
-                .frame(width: 46, height: 42)
-                .background(Theme.bgElevated.opacity(0.9), in: .rect(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
+                .frame(width: 58, height: 52)
+                .background {
+                    DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold,
+                                      cornerRadius: 11)
+                }
             }
             .buttonStyle(PressableButtonStyle())
         }

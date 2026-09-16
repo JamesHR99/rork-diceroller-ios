@@ -19,6 +19,10 @@ struct DuatSceneView: View {
     var dim: Double = 0
     /// 0 through 1 — how brightly Ra's disc is burning right now.
     var discGlow: Double = 1
+    /// Whether the scene draws the barque itself. Screens that stage their own
+    /// hull — the arena, the title, the mooring — switch it off, so there is
+    /// never a second boat drifting behind the one you are standing on.
+    var showsBarque: Bool = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -34,7 +38,7 @@ struct DuatSceneView: View {
                 reflection(size: size, horizon: horizon)
                 if gate.hasSerpent { coil(size: size, horizon: horizon) }
                 mist(size: size, horizon: horizon)
-                barque(size: size, horizon: horizon)
+                if showsBarque { barque(size: size, horizon: horizon) }
                 if gate.hasEmbers { brazier(size: size, horizon: horizon) }
                 reeds(size: size, horizon: horizon)
                 if gate.hasEmbers { embers(size: size) }

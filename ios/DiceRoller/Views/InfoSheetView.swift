@@ -74,14 +74,14 @@ struct InfoSheetView: View {
         HStack {
             HStack(spacing: 8) {
                 DuatSymbol(art: DuatArt.classSigil(classID), fallback: hero.symbol,
-                           size: 22, tint: hero.accent)
+                           size: 30, tint: hero.accent)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("CODEX OF THE NIGHT")
                         .font(.fantasy(17, weight: .black))
                         .foregroundStyle(Theme.parchment)
                         .kerning(2)
                     Text("\(hero.name) · \(loadout.diceCount)/\(Loadout.maxDice) dice")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.parchmentDim)
                 }
             }
@@ -106,8 +106,8 @@ struct InfoSheetView: View {
                     Haptics.light()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: entry.symbol).font(.system(size: 10.5, weight: .bold))
-                        Text(entry.label).font(.system(size: 11.5, weight: .black))
+                        Image(systemName: entry.symbol).font(.system(size: 12.5, weight: .bold))
+                        Text(entry.label).font(.system(size: 13.5, weight: .black))
                     }
                     .foregroundStyle(tab == entry ? Theme.parchment : Theme.parchmentDim)
                     .frame(maxWidth: .infinity)
@@ -130,7 +130,7 @@ struct InfoSheetView: View {
 
     private func sectionTitle(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .black))
+            .font(.system(size: 13, weight: .black))
             .foregroundStyle(Theme.gold)
             .kerning(1.5)
     }
@@ -142,7 +142,7 @@ struct InfoSheetView: View {
             sectionTitle("YOUR GEAR — WEAPON AND ARMOUR ARE PERMANENT")
 
             Text("Only \(GameData.diceDrawCount) of these dice come out each turn — drawn fresh at random from everything you carry. The rest wait in the bag; a face you hold with a freeze is the only one guaranteed to return.")
-                .font(.system(size: 10.5))
+                .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -150,14 +150,14 @@ struct InfoSheetView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         DuatSymbol(art: piece.slot.artName, fallback: piece.symbol,
-                                   size: 20, tint: hero.accent)
-                            .frame(width: 28, height: 28)
-                            .background(Theme.bg, in: .rect(cornerRadius: 7))
+                                   size: 26, tint: hero.accent)
+                            .frame(width: 36, height: 36)
+                            .background(Theme.bg, in: .rect(cornerRadius: 8))
                         Text(piece.name)
                             .font(.fantasy(16, weight: .bold))
                             .foregroundStyle(Theme.parchment)
                         Text("\(piece.slot.label) · \(piece.dice.count) \(piece.dice.count == 1 ? "die" : "dice")")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.parchmentDim)
                         Spacer()
                     }
@@ -166,22 +166,22 @@ struct InfoSheetView: View {
                         HStack(alignment: .top, spacing: 8) {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(die.name)
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                     .foregroundStyle(Theme.parchment)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
                                 Text(die.rarity.label.uppercased())
-                                    .font(.system(size: 7.5, weight: .black))
+                                    .font(.system(size: 9.5, weight: .black))
                                     .kerning(0.6)
                                     .foregroundStyle(die.rarity.tint)
                             }
-                            .frame(width: 112, alignment: .leading)
+                            .frame(width: 132, alignment: .leading)
 
-                            DieStripView(die: die, tileSize: 26, showCrit: true, critBonus: critBonus)
+                            DieStripView(die: die, tileSize: 30, showCrit: true, critBonus: critBonus)
 
                             if drawnDieIDs.contains(die.id) {
                                 Text("DRAWN")
-                                    .font(.system(size: 7.5, weight: .black))
+                                    .font(.system(size: 9.5, weight: .black))
                                     .kerning(0.8)
                                     .foregroundStyle(Theme.gold)
                                     .padding(.horizontal, 6)
@@ -201,9 +201,9 @@ struct InfoSheetView: View {
 
             if loadout.item == nil {
                 HStack(spacing: 8) {
-                    DuatIcon(name: DuatArt.slotItem, size: 20).opacity(0.5)
+                    DuatIcon(name: DuatArt.slotItem, size: 26).opacity(0.5)
                     Text("Item slot empty — the river gives up a relic after the practice bout. Relics bring three dice, items two.")
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                         .foregroundStyle(Theme.parchmentDim)
                 }
                 .padding(12)
@@ -218,10 +218,10 @@ struct InfoSheetView: View {
         return VStack(alignment: .leading, spacing: 3) {
             ForEach(faces, id: \.self) { face in
                 HStack(spacing: 5) {
-                    DuatSymbol(art: face.artName, fallback: face.symbol, size: 13, tint: face.tint)
-                        .frame(width: 14)
+                    DuatSymbol(art: face.artName, fallback: face.symbol, size: 18, tint: face.tint)
+                        .frame(width: 19)
                     Text("\(face.label) — \(face.soloEffect)")
-                        .font(.system(size: 9.5))
+                        .font(.system(size: 11.5))
                         .foregroundStyle(Theme.parchmentDim)
                 }
             }
@@ -260,7 +260,7 @@ struct InfoSheetView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     sectionTitle("MOMENTUM — WARRIOR PASSIVE")
                     Text("Every attack you have already thrown this turn adds +5 damage to the next one. Long swing chains snowball.")
-                        .font(.system(size: 10.5))
+                        .font(.system(size: 12.5))
                         .foregroundStyle(Theme.parchmentDim)
                 }
                 .padding(12)
@@ -277,8 +277,8 @@ struct InfoSheetView: View {
             VStack(spacing: 5) {
                 ForEach(combos) { combo in
                     HStack(alignment: .top, spacing: 10) {
-                        ComboRecipeView(combo: combo, tileSize: 21)
-                            .frame(width: 108, alignment: .leading)
+                        ComboRecipeView(combo: combo, tileSize: 26)
+                            .frame(width: 128, alignment: .leading)
 
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
@@ -286,19 +286,19 @@ struct InfoSheetView: View {
                                     .font(.fantasy(13, weight: .bold))
                                     .foregroundStyle(combo.tint)
                                 Text("\(combo.staminaCost) stam")
-                                    .font(.system(size: 8.5, weight: .black))
+                                    .font(.system(size: 10.5, weight: .black))
                                     .foregroundStyle(Theme.parchmentDim)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1.5)
                                     .background(Theme.bg, in: .capsule)
                                 if combo.damage > 0 {
                                     Text("crit → \(GameData.scaleUp(combo.damage, by: GameData.comboCritMultiplier)) dmg")
-                                        .font(.system(size: 8.5, weight: .black).monospacedDigit())
+                                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
                                         .foregroundStyle(Theme.gold)
                                 }
                             }
                             Text(combo.effectSummary.prefix(1).uppercased() + combo.effectSummary.dropFirst())
-                                .font(.system(size: 10))
+                                .font(.system(size: 12))
                                 .foregroundStyle(Theme.parchmentDim)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(combo.flavor)
@@ -325,7 +325,7 @@ struct InfoSheetView: View {
             sectionTitle("THE PANTHEON — ONE GOD PER DIE, ANSWERING WHAT YOU PLAY")
 
             Text("A god claims a whole die and never touches its faces — the claim simply means their blessing answers every face that die plays, read by what the face is. Attacks get the attack answer, Block faces the block answer, Evade faces the evade answer, everything else the support answer — once each per action, chains included. A blessed die is the entry ticket to that god's four upgrades; two upgrades unlock their capstone. One capstone and one pairing per run.")
-                .font(.system(size: 10.5))
+                .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -335,7 +335,7 @@ struct InfoSheetView: View {
 
             sectionTitle("FIFTEEN PAIRINGS — TWO GODS STANDING TOGETHER")
             Text("Once you carry one upgrade from each of two gods, their pairing opens: a named effect that fires at most once per turn while both gods stay equipped. One pairing per run.")
-                .font(.system(size: 10.5))
+                .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -349,21 +349,21 @@ struct InfoSheetView: View {
         HStack(alignment: .top, spacing: 9) {
             HStack(spacing: 4) {
                 DuatSymbol(art: pairing.first.artName, fallback: pairing.first.symbol,
-                           size: 18, tint: pairing.first.tint)
+                           size: 24, tint: pairing.first.tint)
                 Text("&")
-                    .font(.system(size: 9, weight: .black))
+                    .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.parchmentDim)
                 DuatSymbol(art: pairing.second.artName, fallback: pairing.second.symbol,
-                           size: 18, tint: pairing.second.tint)
+                           size: 24, tint: pairing.second.tint)
             }
-            .frame(width: 66, alignment: .leading)
+            .frame(width: 82, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(pairing.name)
                     .font(.fantasy(12.5, weight: .bold))
                     .foregroundStyle(Theme.parchment)
                 Text(pairing.detail)
-                    .font(.system(size: 9))
+                    .font(.system(size: 11))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -384,7 +384,7 @@ struct InfoSheetView: View {
                 PortraitMedallionView(art: CharacterArt.god(deity),
                                       fallbackSymbol: deity.symbol,
                                       tint: deity.tint,
-                                      diameter: 40,
+                                      diameter: 52,
                                       glow: false)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -392,7 +392,7 @@ struct InfoSheetView: View {
                         .font(.fantasy(17, weight: .black))
                         .foregroundStyle(Theme.parchment)
                     Text(deity.domain.uppercased())
-                        .font(.system(size: 8.5, weight: .black))
+                        .font(.system(size: 10.5, weight: .black))
                         .kerning(1.4)
                         .foregroundStyle(deity.tint)
                 }
@@ -400,7 +400,7 @@ struct InfoSheetView: View {
                 Spacer()
 
                 Text(claimedDice == 0 ? "NO CLAIM" : "\(claimedDice) DICE")
-                    .font(.system(size: 8.5, weight: .black))
+                    .font(.system(size: 10.5, weight: .black))
                     .kerning(0.8)
                     .foregroundStyle(claimedDice > 0 ? deity.tint : Theme.parchmentDim)
                     .padding(.horizontal, 7)
@@ -409,24 +409,24 @@ struct InfoSheetView: View {
             }
 
             Text(deity.pitch)
-                .font(.system(size: 9.5))
+                .font(.system(size: 11.5))
                 .italic()
                 .foregroundStyle(Theme.parchmentDim)
 
             // The blessing — what their answer does to each kind of face.
             VStack(alignment: .leading, spacing: 3) {
                 Text("BLESSING — ONCE PER ROLE PER ACTION")
-                    .font(.system(size: 7, weight: .black))
+                    .font(.system(size: 9, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(deity.tint)
                 ForEach(BlessingRole.allCases, id: \.self) { role in
                     HStack(alignment: .top, spacing: 5) {
                         Text(GodKit.blessingLabel(for: role))
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(Theme.parchmentDim)
-                            .frame(width: 92, alignment: .leading)
+                            .frame(width: 108, alignment: .leading)
                         Text(GodKit.blessing(for: deity, role: role).summary)
-                            .font(.system(size: 9))
+                            .font(.system(size: 11))
                             .foregroundStyle(Theme.parchment)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -441,14 +441,14 @@ struct InfoSheetView: View {
                 ForEach(GodKit.upgrades(for: deity)) { upgrade in
                     HStack(alignment: .top, spacing: 5) {
                         DuatSymbol(art: deity.artName, fallback: upgrade.symbol,
-                                   size: 13, tint: deity.tint)
-                            .frame(width: 13)
+                                   size: 18, tint: deity.tint)
+                            .frame(width: 19)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(upgrade.name)
-                                .font(.system(size: 9.5, weight: .bold))
+                                .font(.system(size: 11.5, weight: .bold))
                                 .foregroundStyle(Theme.parchment)
                             Text(upgrade.detail)
-                                .font(.system(size: 8.5))
+                                .font(.system(size: 10.5))
                                 .foregroundStyle(Theme.parchmentDim)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -457,14 +457,14 @@ struct InfoSheetView: View {
                 if let capstone {
                     HStack(alignment: .top, spacing: 5) {
                         DuatSymbol(art: DuatArt.Status.champion, fallback: capstone.symbol,
-                                   size: 13, tint: Theme.gold)
-                            .frame(width: 13)
+                                   size: 18, tint: Theme.gold)
+                            .frame(width: 19)
                         VStack(alignment: .leading, spacing: 0) {
                             Text("\(capstone.name) — CAPSTONE")
-                                .font(.system(size: 9.5, weight: .black))
+                                .font(.system(size: 11.5, weight: .black))
                                 .foregroundStyle(Theme.gold)
                             Text(capstone.detail)
-                                .font(.system(size: 8.5))
+                                .font(.system(size: 10.5))
                                 .foregroundStyle(Theme.parchmentDim)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -554,12 +554,12 @@ struct InfoSheetView: View {
                     DuatImage(name: DuatArt.chainConnector, width: 16, fit: .fit)
                         .colorMultiply(Theme.gold)
                     Text("COMBO CRITS")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Theme.gold)
                         .kerning(1.5)
                 }
                 Text("Every critical face fed into a chain adds +\(Int(GameData.critComboWeight * 100))% to that chain's whole output — no crit is ever wasted in a combo. On top of that it buys a chance the chain itself crits, which multiplies everything by ×\(String(format: "%.1f", GameData.comboCritMultiplier)).")
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -572,7 +572,7 @@ struct InfoSheetView: View {
                 .padding(.top, 2)
 
                 Text("Perfect Shot and Vanishing Strike always crit, whatever fed them. The play bar shows each step's crit odds and its critical damage before you commit.")
-                    .font(.system(size: 10))
+                    .font(.system(size: 12))
                     .foregroundStyle(Theme.parchmentDim.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -608,14 +608,14 @@ struct InfoSheetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    DuatIcon(name: DuatArt.upgradeHammer, size: 16)
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 22)
                     Text("CHISELS OF PTAH")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Theme.ptahCopper)
                         .kerning(1.5)
                 }
                 Text("Ptah the craftsman rarely turns up in the spoils. His Chisel reshapes your whole weapon — never a single die — and your gods and their blessings are untouched. Two different Chisels a run, both active together. The optional ones arm per action from a small copper badge on the recipe's own chip; tapping it folds their cost and outcome into the forecast before you commit.")
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -628,7 +628,7 @@ struct InfoSheetView: View {
                                 .font(.fantasy(12, weight: .bold))
                                 .foregroundStyle(Theme.parchment)
                             Text(chisel.isOptional ? "OPTIONAL" : "PASSIVE")
-                                .font(.system(size: 7, weight: .black))
+                                .font(.system(size: 9, weight: .black))
                                 .kerning(0.8)
                                 .foregroundStyle(Theme.ptahCopper)
                                 .padding(.horizontal, 5)
@@ -636,7 +636,7 @@ struct InfoSheetView: View {
                                 .background(Theme.ptahCopper.opacity(0.14), in: .capsule)
                         }
                         Text(chisel.detail)
-                            .font(.system(size: 9.5))
+                            .font(.system(size: 11.5))
                             .foregroundStyle(Theme.parchmentDim)
                             .fixedSize(horizontal: false, vertical: true)
                         Text("e.g. \(chisel.example)")
@@ -658,14 +658,14 @@ struct InfoSheetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    DuatIcon(name: DuatArt.Status.champion, size: 16)
+                    DuatIcon(name: DuatArt.Status.champion, size: 22)
                     Text("DIVINE TRIALS")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundStyle(Theme.gold)
                         .kerning(1.5)
                 }
                 Text("Any ordinary fight can quietly be a god's Trial: a champion carrying that god's power, ringed in its colour for the whole fight. The encounter itself is ordinary — the god lends a mechanic, never health or damage. Declining costs nothing; at most one Trial per run, never before your relic is armed and a blessing carried, and never on a herald, a serpent-lord or the water before one. Win, and the god offers a choice of three of its own boons.")
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -680,7 +680,7 @@ struct InfoSheetView: View {
                                     .foregroundStyle(Theme.parchment)
                             }
                             Text(trial.power)
-                                .font(.system(size: 9.5))
+                                .font(.system(size: 11.5))
                                 .foregroundStyle(Theme.parchmentDim)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -691,7 +691,7 @@ struct InfoSheetView: View {
                     }
                 } else {
                     Text("You have not yet met a Trial. When one rises, its god names the exact terms before the first blow — and all six possibilities are written here.")
-                        .font(.system(size: 9.5))
+                        .font(.system(size: 11.5))
                         .italic()
                         .foregroundStyle(Theme.parchmentDim.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
@@ -739,11 +739,11 @@ struct InfoSheetView: View {
     private func critRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim)
             Spacer()
             Text(value)
-                .font(.system(size: 10, weight: .black).monospacedDigit())
+                .font(.system(size: 12, weight: .black).monospacedDigit())
                 .foregroundStyle(Theme.gold)
         }
         .padding(.horizontal, 9)
@@ -755,16 +755,16 @@ struct InfoSheetView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(tint)
                 Text(title)
-                    .font(.system(size: 11, weight: .black))
+                    .font(.system(size: 13, weight: .black))
                     .foregroundStyle(tint)
                     .kerning(1.5)
             }
             ForEach(lines, id: \.self) { line in
                 Text("• \(line)")
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
             }
