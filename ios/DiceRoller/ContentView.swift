@@ -80,7 +80,7 @@ struct ContentView: View {
     /// there is never a second barque drifting behind the one you are on.
     private var stagesOwnBarque: Bool {
         switch game.screen {
-        case .title, .battle, .rest, .gameOver: true
+        case .title, .battle, .rest, .shop, .gameOver: true
         default: false
         }
     }
