@@ -1,0 +1,3528 @@
+{
+  "version": 2,
+  "status": "transparent_backgrounds_complete_animation_review_draft",
+  "repository": "JamesHR99/rork-diceroller-ios",
+  "sourceCommit": "4b919f20f52fdaeb2ecc2cb42fafcc61d9118154",
+  "uniqueEnemies": 15,
+  "extraApepVariants": 2,
+  "actualAlphaTransparency": true,
+  "generationMethod": "built-in image generation",
+  "notes": [
+    "Baked checkerboards removed; all delivered PNGs and WebP animation frames carry real alpha transparency.",
+    "Character details are retained; edges and previously flattened smoky effects have reconstructed alpha.",
+    "Original four-keyframe sequences, timing, image dimensions and crop coordinates are retained.",
+    "Original pose alignment and effect spill at cell boundaries still warrant production review.",
+    "No game source code was modified."
+  ],
+  "characters": [
+    {
+      "id": "reedLurker",
+      "name": "Reed Lurker",
+      "sheet": "reedLurker/reedLurker_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A long, low QUADRUPED crocodile, dark jade armored scales, sand-colored belly, papyrus reeds tangled along its spine, narrow golden eyes, teeth, four short clawed legs and long thick tail. A dangerous river animal, not a humanoid and not a snake.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "reedLurker/duat_enemy_reedLurker_idle_f0.png",
+            "reedLurker/duat_enemy_reedLurker_idle_f1.png",
+            "reedLurker/duat_enemy_reedLurker_idle_f2.png",
+            "reedLurker/duat_enemy_reedLurker_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "reedLurker/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "reedLurker/duat_enemy_reedLurker_attack_f0.png",
+            "reedLurker/duat_enemy_reedLurker_attack_f1.png",
+            "reedLurker/duat_enemy_reedLurker_attack_f2.png",
+            "reedLurker/duat_enemy_reedLurker_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "reedLurker/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "reedLurker/duat_enemy_reedLurker_block_f0.png",
+            "reedLurker/duat_enemy_reedLurker_block_f1.png",
+            "reedLurker/duat_enemy_reedLurker_block_f2.png",
+            "reedLurker/duat_enemy_reedLurker_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "reedLurker/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "reedLurker/duat_enemy_reedLurker_defend_f0.png",
+            "reedLurker/duat_enemy_reedLurker_defend_f1.png",
+            "reedLurker/duat_enemy_reedLurker_defend_f2.png",
+            "reedLurker/duat_enemy_reedLurker_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "reedLurker/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "reedLurker/reedLurker_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "marshShade",
+      "name": "Marsh Shade",
+      "sheet": "marshShade/marshShade_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A drowned Egyptian male boatman's ghost: gaunt turquoise spectral face, hollow pale eyes, tattered off-white linen shroud, rope belt, elongated cold hands, ragged vaporous lower legs. Human ghost silhouette with readable cloth, not a black void entity.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "marshShade/duat_enemy_marshShade_idle_f0.png",
+            "marshShade/duat_enemy_marshShade_idle_f1.png",
+            "marshShade/duat_enemy_marshShade_idle_f2.png",
+            "marshShade/duat_enemy_marshShade_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "marshShade/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "marshShade/duat_enemy_marshShade_attack_f0.png",
+            "marshShade/duat_enemy_marshShade_attack_f1.png",
+            "marshShade/duat_enemy_marshShade_attack_f2.png",
+            "marshShade/duat_enemy_marshShade_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "marshShade/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "marshShade/duat_enemy_marshShade_block_f0.png",
+            "marshShade/duat_enemy_marshShade_block_f1.png",
+            "marshShade/duat_enemy_marshShade_block_f2.png",
+            "marshShade/duat_enemy_marshShade_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "marshShade/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "marshShade/duat_enemy_marshShade_defend_f0.png",
+            "marshShade/duat_enemy_marshShade_defend_f1.png",
+            "marshShade/duat_enemy_marshShade_defend_f2.png",
+            "marshShade/duat_enemy_marshShade_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "marshShade/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "marshShade/marshShade_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "sandCrawler",
+      "name": "Sand Crawler",
+      "sheet": "sandCrawler/sandCrawler_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A low six-legged Egyptian scarab beetle with ochre sandstone carapace scratched with old turquoise spells, black jointed legs, large paired forward pincers and tiny amber eyes. Distinct beetle anatomy, no human limbs. Agile medium insect.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "sandCrawler/duat_enemy_sandCrawler_idle_f0.png",
+            "sandCrawler/duat_enemy_sandCrawler_idle_f1.png",
+            "sandCrawler/duat_enemy_sandCrawler_idle_f2.png",
+            "sandCrawler/duat_enemy_sandCrawler_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "sandCrawler/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "sandCrawler/duat_enemy_sandCrawler_attack_f0.png",
+            "sandCrawler/duat_enemy_sandCrawler_attack_f1.png",
+            "sandCrawler/duat_enemy_sandCrawler_attack_f2.png",
+            "sandCrawler/duat_enemy_sandCrawler_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "sandCrawler/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "sandCrawler/duat_enemy_sandCrawler_block_f0.png",
+            "sandCrawler/duat_enemy_sandCrawler_block_f1.png",
+            "sandCrawler/duat_enemy_sandCrawler_block_f2.png",
+            "sandCrawler/duat_enemy_sandCrawler_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "sandCrawler/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "sandCrawler/duat_enemy_sandCrawler_defend_f0.png",
+            "sandCrawler/duat_enemy_sandCrawler_defend_f1.png",
+            "sandCrawler/duat_enemy_sandCrawler_defend_f2.png",
+            "sandCrawler/duat_enemy_sandCrawler_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "sandCrawler/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "sandCrawler/sandCrawler_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "sekhen",
+      "name": "Sekhen the Reed Serpent",
+      "sheet": "sekhen/sekhen_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A massive legless reed-green serpent lord, layered jade scales crusted with silt, golden pale ventral plates, long papyrus fronds forming a crest behind the snake head, small antique-gold Egyptian brow ornament, amber predatory eyes. Thick coils at base; clearly a snake with no arms or legs. Reed-region boss.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "sekhen/duat_enemy_sekhen_idle_f0.png",
+            "sekhen/duat_enemy_sekhen_idle_f1.png",
+            "sekhen/duat_enemy_sekhen_idle_f2.png",
+            "sekhen/duat_enemy_sekhen_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "sekhen/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "sekhen/duat_enemy_sekhen_attack_f0.png",
+            "sekhen/duat_enemy_sekhen_attack_f1.png",
+            "sekhen/duat_enemy_sekhen_attack_f2.png",
+            "sekhen/duat_enemy_sekhen_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "sekhen/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "sekhen/duat_enemy_sekhen_block_f0.png",
+            "sekhen/duat_enemy_sekhen_block_f1.png",
+            "sekhen/duat_enemy_sekhen_block_f2.png",
+            "sekhen/duat_enemy_sekhen_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "sekhen/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "sekhen/duat_enemy_sekhen_defend_f0.png",
+            "sekhen/duat_enemy_sekhen_defend_f1.png",
+            "sekhen/duat_enemy_sekhen_defend_f2.png",
+            "sekhen/duat_enemy_sekhen_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "sekhen/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "sekhen/sekhen_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "emberWraith",
+      "name": "Ember Wraith",
+      "sheet": "emberWraith/emberWraith_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A tall lean human-shaped Egyptian fire revenant, charcoal body with angular orange cracks, burning head and crown of flame, strips of scorched linen and small gold funerary collar. Silhouette made from solid readable charcoal torso and flame-edged limbs; non-graphic, no exposed organs.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "emberWraith/duat_enemy_emberWraith_idle_f0.png",
+            "emberWraith/duat_enemy_emberWraith_idle_f1.png",
+            "emberWraith/duat_enemy_emberWraith_idle_f2.png",
+            "emberWraith/duat_enemy_emberWraith_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "emberWraith/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "emberWraith/duat_enemy_emberWraith_attack_f0.png",
+            "emberWraith/duat_enemy_emberWraith_attack_f1.png",
+            "emberWraith/duat_enemy_emberWraith_attack_f2.png",
+            "emberWraith/duat_enemy_emberWraith_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "emberWraith/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "emberWraith/duat_enemy_emberWraith_block_f0.png",
+            "emberWraith/duat_enemy_emberWraith_block_f1.png",
+            "emberWraith/duat_enemy_emberWraith_block_f2.png",
+            "emberWraith/duat_enemy_emberWraith_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "emberWraith/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "emberWraith/duat_enemy_emberWraith_defend_f0.png",
+            "emberWraith/duat_enemy_emberWraith_defend_f1.png",
+            "emberWraith/duat_enemy_emberWraith_defend_f2.png",
+            "emberWraith/duat_enemy_emberWraith_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "emberWraith/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "emberWraith/emberWraith_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "flamekeeper",
+      "name": "Flamekeeper of the Fourth Hour",
+      "sheet": "flamekeeper/flamekeeper_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A broad-shouldered Egyptian gatekeeper in dark iron and gold lamellar armor, ivory linen kilt, an open bronze BRAZIER FOR A HEAD filled with orange flame, no human face, heavy branding staff in right hand and rectangular coal-dark shield on left arm. Normal tall guardian proportions, distinct from a squat bronze statue.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "flamekeeper/duat_enemy_flamekeeper_idle_f0.png",
+            "flamekeeper/duat_enemy_flamekeeper_idle_f1.png",
+            "flamekeeper/duat_enemy_flamekeeper_idle_f2.png",
+            "flamekeeper/duat_enemy_flamekeeper_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "flamekeeper/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "flamekeeper/duat_enemy_flamekeeper_attack_f0.png",
+            "flamekeeper/duat_enemy_flamekeeper_attack_f1.png",
+            "flamekeeper/duat_enemy_flamekeeper_attack_f2.png",
+            "flamekeeper/duat_enemy_flamekeeper_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "flamekeeper/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "flamekeeper/duat_enemy_flamekeeper_block_f0.png",
+            "flamekeeper/duat_enemy_flamekeeper_block_f1.png",
+            "flamekeeper/duat_enemy_flamekeeper_block_f2.png",
+            "flamekeeper/duat_enemy_flamekeeper_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "flamekeeper/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "flamekeeper/duat_enemy_flamekeeper_defend_f0.png",
+            "flamekeeper/duat_enemy_flamekeeper_defend_f1.png",
+            "flamekeeper/duat_enemy_flamekeeper_defend_f2.png",
+            "flamekeeper/duat_enemy_flamekeeper_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "flamekeeper/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "flamekeeper/flamekeeper_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "ashJackal",
+      "name": "Ash Jackal",
+      "sheet": "ashJackal/ashJackal_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A lean QUADRUPED jackal with tall pointed ears, charcoal-black fur, glowing cinder-orange fissures, ember paws, long bushy smoke-tipped tail, small tarnished bronze Egyptian collar. Four canine legs and canine head; not Anubis or a humanoid. Red-orange eyes.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "ashJackal/duat_enemy_ashJackal_idle_f0.png",
+            "ashJackal/duat_enemy_ashJackal_idle_f1.png",
+            "ashJackal/duat_enemy_ashJackal_idle_f2.png",
+            "ashJackal/duat_enemy_ashJackal_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "ashJackal/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "ashJackal/duat_enemy_ashJackal_attack_f0.png",
+            "ashJackal/duat_enemy_ashJackal_attack_f1.png",
+            "ashJackal/duat_enemy_ashJackal_attack_f2.png",
+            "ashJackal/duat_enemy_ashJackal_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "ashJackal/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "ashJackal/duat_enemy_ashJackal_block_f0.png",
+            "ashJackal/duat_enemy_ashJackal_block_f1.png",
+            "ashJackal/duat_enemy_ashJackal_block_f2.png",
+            "ashJackal/duat_enemy_ashJackal_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "ashJackal/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "ashJackal/duat_enemy_ashJackal_defend_f0.png",
+            "ashJackal/duat_enemy_ashJackal_defend_f1.png",
+            "ashJackal/duat_enemy_ashJackal_defend_f2.png",
+            "ashJackal/duat_enemy_ashJackal_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "ashJackal/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "ashJackal/ashJackal_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "nehebkau",
+      "name": "Nehebkau, the Furnace Coil",
+      "sheet": "nehebkau/nehebkau_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A gigantic legless Egyptian furnace serpent with obsidian plated scales split by molten orange seams, cream-gold underside, heavy dark basalt brow crest and tarnished gold neck rings; white-hot eyes and contained flames between coils. Large thick coiled body, powerful snake head, NO arms legs or wings. Fire-region boss.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "nehebkau/duat_enemy_nehebkau_idle_f0.png",
+            "nehebkau/duat_enemy_nehebkau_idle_f1.png",
+            "nehebkau/duat_enemy_nehebkau_idle_f2.png",
+            "nehebkau/duat_enemy_nehebkau_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "nehebkau/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "nehebkau/duat_enemy_nehebkau_attack_f0.png",
+            "nehebkau/duat_enemy_nehebkau_attack_f1.png",
+            "nehebkau/duat_enemy_nehebkau_attack_f2.png",
+            "nehebkau/duat_enemy_nehebkau_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "nehebkau/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "nehebkau/duat_enemy_nehebkau_block_f0.png",
+            "nehebkau/duat_enemy_nehebkau_block_f1.png",
+            "nehebkau/duat_enemy_nehebkau_block_f2.png",
+            "nehebkau/duat_enemy_nehebkau_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "nehebkau/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "nehebkau/duat_enemy_nehebkau_defend_f0.png",
+            "nehebkau/duat_enemy_nehebkau_defend_f1.png",
+            "nehebkau/duat_enemy_nehebkau_defend_f2.png",
+            "nehebkau/duat_enemy_nehebkau_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "nehebkau/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "nehebkau/nehebkau_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "devourerSpawn",
+      "name": "Devourer Spawn",
+      "sheet": "devourerSpawn/devourerSpawn_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A low heavy QUADRUPED Ammit-inspired Egyptian monster: crocodile jaws, tawny lion forequarters with dark mane, slate hippopotamus hindquarters, four strong clawed legs and reptilian tail. Small gold funerary collar, violet eyes, a touch of black-violet bile at jaws. Organic hide, NO external bone armor. Chunky predatory silhouette.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "devourerSpawn/duat_enemy_devourerSpawn_idle_f0.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_idle_f1.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_idle_f2.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "devourerSpawn/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "devourerSpawn/duat_enemy_devourerSpawn_attack_f0.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_attack_f1.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_attack_f2.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "devourerSpawn/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "devourerSpawn/duat_enemy_devourerSpawn_block_f0.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_block_f1.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_block_f2.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "devourerSpawn/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "devourerSpawn/duat_enemy_devourerSpawn_defend_f0.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_defend_f1.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_defend_f2.png",
+            "devourerSpawn/duat_enemy_devourerSpawn_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "devourerSpawn/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "devourerSpawn/devourerSpawn_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "uncreatedShadow",
+      "name": "Shadow of the Uncreated",
+      "sheet": "uncreatedShadow/uncreatedShadow_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "An unnaturally tall featureless humanoid void silhouette, matte midnight-violet body, jagged smoky edges, long tapered hands and feet, a thin pale-violet eye slit and a broken antique-gold Egyptian collar floating at neck. No linen shroud, no skull, no conventional face; primordial absence with restrained violet rim light.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "uncreatedShadow/duat_enemy_uncreatedShadow_idle_f0.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_idle_f1.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_idle_f2.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "uncreatedShadow/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "uncreatedShadow/duat_enemy_uncreatedShadow_attack_f0.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_attack_f1.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_attack_f2.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "uncreatedShadow/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "uncreatedShadow/duat_enemy_uncreatedShadow_block_f0.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_block_f1.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_block_f2.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "uncreatedShadow/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "uncreatedShadow/duat_enemy_uncreatedShadow_defend_f0.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_defend_f1.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_defend_f2.png",
+            "uncreatedShadow/duat_enemy_uncreatedShadow_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "uncreatedShadow/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "uncreatedShadow/uncreatedShadow_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "hourEater",
+      "name": "Hour-Eater",
+      "sheet": "hourEater/hourEater_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "An original Egyptian time-devouring demon, gaunt jackal-skull ceremonial mask with ivory elongated snout, dark indigo mummified humanoid body, antique gold hourglass embedded in ribcage containing glowing sand, gold-and-lapis striped nemes, long clawed hands, ragged deep violet kilt. One coherent hourglass chest, no text or clock numbers.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "hourEater/duat_enemy_hourEater_idle_f0.png",
+            "hourEater/duat_enemy_hourEater_idle_f1.png",
+            "hourEater/duat_enemy_hourEater_idle_f2.png",
+            "hourEater/duat_enemy_hourEater_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "hourEater/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "hourEater/duat_enemy_hourEater_attack_f0.png",
+            "hourEater/duat_enemy_hourEater_attack_f1.png",
+            "hourEater/duat_enemy_hourEater_attack_f2.png",
+            "hourEater/duat_enemy_hourEater_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "hourEater/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "hourEater/duat_enemy_hourEater_block_f0.png",
+            "hourEater/duat_enemy_hourEater_block_f1.png",
+            "hourEater/duat_enemy_hourEater_block_f2.png",
+            "hourEater/duat_enemy_hourEater_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "hourEater/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "hourEater/duat_enemy_hourEater_defend_f0.png",
+            "hourEater/duat_enemy_hourEater_defend_f1.png",
+            "hourEater/duat_enemy_hourEater_defend_f2.png",
+            "hourEater/duat_enemy_hourEater_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "hourEater/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "hourEater/hourEater_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "apep",
+      "name": "Apep \u2014 The Head That Bites",
+      "sheet": "apep/apep_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A colossal legless black Egyptian chaos serpent, extremely thick obsidian scales with deep-violet edges, blood-red eyes, ivory recurved fangs, broad angular snake skull, torn antique-gold brow band. Heavy river-filling coils condensed into complete readable silhouette. One head, no limbs wings or dragon horns. Final boss HEAD phase: head raised prominently above compact coils, black venom glints at jaws.",
+      "phaseID": "apep_head",
+      "actions": {
+        "idle": {
+          "frames": [
+            "apep/duat_enemy_apep_idle_f0.png",
+            "apep/duat_enemy_apep_idle_f1.png",
+            "apep/duat_enemy_apep_idle_f2.png",
+            "apep/duat_enemy_apep_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "apep/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "apep/duat_enemy_apep_attack_f0.png",
+            "apep/duat_enemy_apep_attack_f1.png",
+            "apep/duat_enemy_apep_attack_f2.png",
+            "apep/duat_enemy_apep_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "apep/duat_enemy_apep_block_f0.png",
+            "apep/duat_enemy_apep_block_f1.png",
+            "apep/duat_enemy_apep_block_f2.png",
+            "apep/duat_enemy_apep_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "apep/duat_enemy_apep_defend_f0.png",
+            "apep/duat_enemy_apep_defend_f1.png",
+            "apep/duat_enemy_apep_defend_f2.png",
+            "apep/duat_enemy_apep_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "apep/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "apep/apep_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "siltColossus",
+      "name": "Silt Colossus",
+      "sheet": "siltColossus/siltColossus_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A gigantic squat six-legged scarab colossus, much heavier than the Sand Crawler, broad boulder-like shell clad in thick cracked riverbed silt slabs and old submerged temple stones, moss, jade seams and small golden ancient markings, huge blunt pincers, six stout rock-armored insect legs. A scarab, not a biped stone golem.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "siltColossus/duat_enemy_siltColossus_idle_f0.png",
+            "siltColossus/duat_enemy_siltColossus_idle_f1.png",
+            "siltColossus/duat_enemy_siltColossus_idle_f2.png",
+            "siltColossus/duat_enemy_siltColossus_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "siltColossus/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "siltColossus/duat_enemy_siltColossus_attack_f0.png",
+            "siltColossus/duat_enemy_siltColossus_attack_f1.png",
+            "siltColossus/duat_enemy_siltColossus_attack_f2.png",
+            "siltColossus/duat_enemy_siltColossus_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "siltColossus/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "siltColossus/duat_enemy_siltColossus_block_f0.png",
+            "siltColossus/duat_enemy_siltColossus_block_f1.png",
+            "siltColossus/duat_enemy_siltColossus_block_f2.png",
+            "siltColossus/duat_enemy_siltColossus_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "siltColossus/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "siltColossus/duat_enemy_siltColossus_defend_f0.png",
+            "siltColossus/duat_enemy_siltColossus_defend_f1.png",
+            "siltColossus/duat_enemy_siltColossus_defend_f2.png",
+            "siltColossus/duat_enemy_siltColossus_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "siltColossus/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "siltColossus/siltColossus_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "bronzeEffigy",
+      "name": "Bronze Effigy",
+      "sheet": "bronzeEffigy/bronzeEffigy_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A hulking squat Egyptian furnace idol cast entirely in burnished bronze, massive rounded layered chest and shoulders, stocky bronze legs, fixed ceremonial expressionless mask with narrow glowing orange eye slits, small crown brazier atop head, molten seams. Oversized built-in slab forearms used as shields and bludgeons, no separate staff. Clearly an armored living statue, distinct from tall Flamekeeper.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "bronzeEffigy/duat_enemy_bronzeEffigy_idle_f0.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_idle_f1.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_idle_f2.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "bronzeEffigy/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "bronzeEffigy/duat_enemy_bronzeEffigy_attack_f0.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_attack_f1.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_attack_f2.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "bronzeEffigy/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "bronzeEffigy/duat_enemy_bronzeEffigy_block_f0.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_block_f1.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_block_f2.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "bronzeEffigy/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "bronzeEffigy/duat_enemy_bronzeEffigy_defend_f0.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_defend_f1.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_defend_f2.png",
+            "bronzeEffigy/duat_enemy_bronzeEffigy_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "bronzeEffigy/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "bronzeEffigy/bronzeEffigy_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "boneplateDevourer",
+      "name": "Boneplate Devourer",
+      "sheet": "boneplateDevourer/boneplateDevourer_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "A heavy QUADRUPED Ammit creature with crocodile head, lion forequarters, hippopotamus rear, four muscular legs, covered in large overlapping pale ivory bone plates and heart-shaped funerary shield scales. Violet seams between bone, dark hide, gold collar. Distinct armored evolution of Devourer Spawn; no gore, no exposed flesh. Broad plated head and bone ridges.",
+      "phaseID": null,
+      "actions": {
+        "idle": {
+          "frames": [
+            "boneplateDevourer/duat_enemy_boneplateDevourer_idle_f0.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_idle_f1.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_idle_f2.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "boneplateDevourer/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "boneplateDevourer/duat_enemy_boneplateDevourer_attack_f0.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_attack_f1.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_attack_f2.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "boneplateDevourer/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "boneplateDevourer/duat_enemy_boneplateDevourer_block_f0.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_block_f1.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_block_f2.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "boneplateDevourer/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "boneplateDevourer/duat_enemy_boneplateDevourer_defend_f0.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_defend_f1.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_defend_f2.png",
+            "boneplateDevourer/duat_enemy_boneplateDevourer_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "boneplateDevourer/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "boneplateDevourer/boneplateDevourer_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "apep_coils",
+      "name": "Apep \u2014 The Coils That Crush",
+      "sheet": "apep_coils/apep_coils_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "SAME Apep character: colossal legless black chaos serpent, obsidian scales edged violet, red eyes, ivory fangs, antique-gold brow band, one head no limbs wings or horns. COILS phase: the small lowered head stays behind three enormous raised looping coils; coils dominate the silhouette and crush invisible space at the center. Do not add barque or scenery.",
+      "phaseID": "apep_coils",
+      "actions": {
+        "idle": {
+          "frames": [
+            "apep_coils/duat_enemy_apep_coils_idle_f0.png",
+            "apep_coils/duat_enemy_apep_coils_idle_f1.png",
+            "apep_coils/duat_enemy_apep_coils_idle_f2.png",
+            "apep_coils/duat_enemy_apep_coils_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "apep_coils/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "apep_coils/duat_enemy_apep_coils_attack_f0.png",
+            "apep_coils/duat_enemy_apep_coils_attack_f1.png",
+            "apep_coils/duat_enemy_apep_coils_attack_f2.png",
+            "apep_coils/duat_enemy_apep_coils_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep_coils/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "apep_coils/duat_enemy_apep_coils_block_f0.png",
+            "apep_coils/duat_enemy_apep_coils_block_f1.png",
+            "apep_coils/duat_enemy_apep_coils_block_f2.png",
+            "apep_coils/duat_enemy_apep_coils_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep_coils/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "apep_coils/duat_enemy_apep_coils_defend_f0.png",
+            "apep_coils/duat_enemy_apep_coils_defend_f1.png",
+            "apep_coils/duat_enemy_apep_coils_defend_f2.png",
+            "apep_coils/duat_enemy_apep_coils_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "apep_coils/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "apep_coils/apep_coils_character.png",
+      "originalSourceMode": "RGB"
+    },
+    {
+      "id": "apep_maw",
+      "name": "Apep \u2014 The Maw",
+      "sheet": "apep_maw/apep_maw_sheet.png",
+      "sheetSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "frameSize": [
+        314,
+        314
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "facing": "left",
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "hasAlpha": true,
+      "designBrief": "SAME Apep character: colossal black legless chaos serpent, obsidian scales edged violet, red eyes, ivory fangs, torn antique-gold brow band, one head no limbs wings or horns. MAW phase: reared head with enormous opened jaws, small eclipsed golden sun orb contained inside mouth, violet-gold energy outlining throat, coiled base remains fully visible. Boss turned toward swallowing dawn; no scenery.",
+      "phaseID": "apep_maw",
+      "actions": {
+        "idle": {
+          "frames": [
+            "apep_maw/duat_enemy_apep_maw_idle_f0.png",
+            "apep_maw/duat_enemy_apep_maw_idle_f1.png",
+            "apep_maw/duat_enemy_apep_maw_idle_f2.png",
+            "apep_maw/duat_enemy_apep_maw_idle_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              0,
+              314,
+              314
+            ],
+            [
+              313,
+              0,
+              627,
+              314
+            ],
+            [
+              627,
+              0,
+              941,
+              314
+            ],
+            [
+              940,
+              0,
+              1254,
+              314
+            ]
+          ],
+          "durationsMs": [
+            280,
+            280,
+            280,
+            280
+          ],
+          "runtimeLoops": true,
+          "restFrame": 3,
+          "preview": "apep_maw/idle.webp",
+          "hasAlpha": true
+        },
+        "attack": {
+          "frames": [
+            "apep_maw/duat_enemy_apep_maw_attack_f0.png",
+            "apep_maw/duat_enemy_apep_maw_attack_f1.png",
+            "apep_maw/duat_enemy_apep_maw_attack_f2.png",
+            "apep_maw/duat_enemy_apep_maw_attack_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              313,
+              314,
+              627
+            ],
+            [
+              313,
+              313,
+              627,
+              627
+            ],
+            [
+              627,
+              313,
+              941,
+              627
+            ],
+            [
+              940,
+              313,
+              1254,
+              627
+            ]
+          ],
+          "durationsMs": [
+            180,
+            90,
+            120,
+            210
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep_maw/attack.webp",
+          "hasAlpha": true
+        },
+        "block": {
+          "frames": [
+            "apep_maw/duat_enemy_apep_maw_block_f0.png",
+            "apep_maw/duat_enemy_apep_maw_block_f1.png",
+            "apep_maw/duat_enemy_apep_maw_block_f2.png",
+            "apep_maw/duat_enemy_apep_maw_block_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              627,
+              314,
+              941
+            ],
+            [
+              313,
+              627,
+              627,
+              941
+            ],
+            [
+              627,
+              627,
+              941,
+              941
+            ],
+            [
+              940,
+              627,
+              1254,
+              941
+            ]
+          ],
+          "durationsMs": [
+            100,
+            110,
+            140,
+            250
+          ],
+          "runtimeLoops": false,
+          "restFrame": 3,
+          "preview": "apep_maw/block.webp",
+          "hasAlpha": true
+        },
+        "defend": {
+          "frames": [
+            "apep_maw/duat_enemy_apep_maw_defend_f0.png",
+            "apep_maw/duat_enemy_apep_maw_defend_f1.png",
+            "apep_maw/duat_enemy_apep_maw_defend_f2.png",
+            "apep_maw/duat_enemy_apep_maw_defend_f3.png"
+          ],
+          "sourceBoxes": [
+            [
+              0,
+              940,
+              314,
+              1254
+            ],
+            [
+              313,
+              940,
+              627,
+              1254
+            ],
+            [
+              627,
+              940,
+              941,
+              1254
+            ],
+            [
+              940,
+              940,
+              1254,
+              1254
+            ]
+          ],
+          "durationsMs": [
+            180,
+            180,
+            240,
+            600
+          ],
+          "runtimeLoops": false,
+          "restFrame": 2,
+          "preview": "apep_maw/defend.webp",
+          "hasAlpha": true
+        }
+      },
+      "characterArt": "apep_maw/apep_maw_character.png",
+      "originalSourceMode": "RGB"
+    }
+  ],
+  "backgroundCleanup": {
+    "method": "Python colour and spatial segmentation; edge decontamination; selective smoke matting",
+    "source": "User-attached DiceRoller-Enemy-Art-Review(1).zip",
+    "drawingsRedrawn": false,
+    "sheetsProcessed": 17,
+    "framePositionsChanged": false
+  }
+}
