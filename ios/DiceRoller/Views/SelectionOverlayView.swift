@@ -11,6 +11,8 @@ struct SelectionOverlayView: View {
 
     @State private var chosenDieID: UUID?
     @State private var chosenFaceID: UUID?
+    /// The equipped power a new one will take the place of.
+    @State private var chosenBoonID: String?
 
     /// Can this face receive the offered work? Reforges and imbues land on
     /// any face; nothing is off limits any more.
@@ -30,6 +32,8 @@ struct SelectionOverlayView: View {
                     facePicker
                 case .patron:
                     patronPicker
+                case .replaceBoon(let def, let rarity):
+                    boonReplacePicker(incoming: def, rarity: rarity)
                 case .swapDie(let die):
                     dieSwapPicker(incoming: die)
                 case .swapItem(let item):
@@ -105,6 +109,7 @@ struct SelectionOverlayView: View {
         case .imbue(_, let title): title
         case .swapDie: "Your dice are full"
         case .swapItem: "Swap your item?"
+        case .replaceBoon(let def, _): "Your \(def.slot.label.lowercased()) slots are full"
         default: ""
         }
     }
@@ -125,6 +130,8 @@ struct SelectionOverlayView: View {
             "You carry \(Loadout.maxDice) dice. Pick one to replace with \(die.name)."
         case .swapItem(let item):
             "You already carry an item. Taking \(item.name) discards it."
+        case .replaceBoon(let def, _):
+            "You carry \(def.slot.capacity) \(def.slot.label.lowercased()) powers. Choose which one \(def.name) takes the place of — its level and rarity are lost."
         default:
             ""
         }
@@ -172,6 +179,7 @@ struct SelectionOverlayView: View {
         case .imbue: GameData.imbueSymbol(game.classID)
         case .swapDie: "arrow.triangle.2.circlepath"
         case .swapItem: "bag.fill"
+        case .replaceBoon(let def, _): def.god.symbol
         default: "sparkles"
         }
     }
@@ -185,6 +193,7 @@ struct SelectionOverlayView: View {
         case .imbue: DuatArt.resolve(DuatArt.interactionImbue)
         case .swapDie: DuatArt.resolve(DuatArt.interactionSwap)
         case .swapItem: DuatArt.resolve(DuatArt.slotItem)
+        case .replaceBoon(let def, _): def.god.artName
         default: DuatArt.resolve(DuatArt.interactionReforge)
         }
     }
@@ -269,6 +278,7 @@ struct SelectionOverlayView: View {
         case .imbue: "Etch It"
         case .swapDie: "Swap It In"
         case .swapItem: "Take the New Item"
+        case .replaceBoon: "Take Its Place"
         default: "Confirm"
         }
     }
@@ -278,6 +288,7 @@ struct SelectionOverlayView: View {
         case .reforge, .imbue: chosenFaceID != nil
         case .reforgeDie, .patron, .swapDie: chosenDieID != nil
         case .swapItem: true
+        case .replaceBoon: chosenBoonID != nil
         default: false
         }
     }
@@ -301,9 +312,102 @@ struct SelectionOverlayView: View {
             game.applySwap(replacing: dieID, with: die.instantiated())
         case .swapItem(let item):
             game.applyItemSwap(to: item)
+        case .replaceBoon(let def, let rarity):
+            guard let chosenBoonID else { return }
+            game.replaceBoon(chosenBoonID, with: def, rarity: rarity)
         default:
             break
         }
+    }
+
+    // MARK: - Replacing a god power
+
+    /// The incoming power beside the ones already in that slot, so the trade
+    /// is read in full before it is made — including the investment lost.
+    private func boonReplacePicker(incoming: GodBoonDef, rarity: BoonRarity) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 8) {
+                Text("OFFERED")
+                    .font(.system(size: 9, weight: .black))
+                    .kerning(1.2)
+                    .foregroundStyle(rarity.tint)
+                boonCard(
+                    name: incoming.name,
+                    god: incoming.god,
+                    text: incoming.text(rarity: rarity, level: 1),
+                    footnote: "\(rarity.label) · level 1",
+                    tint: rarity.tint,
+                    highlighted: true
+                )
+            }
+            .frame(width: 240)
+
+            Divider().overlay(Theme.parchmentDim.opacity(0.2))
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
+                    ForEach(game.boons(in: incoming.slot)) { owned in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                chosenBoonID = owned.defID
+                            }
+                            Haptics.light()
+                        } label: {
+                            boonCard(
+                                name: owned.def?.name ?? "Power",
+                                god: owned.def?.god ?? incoming.god,
+                                text: owned.text,
+                                footnote: "\(owned.rarity.label) · level \(owned.level) — lost if replaced",
+                                tint: owned.rarity.tint,
+                                highlighted: chosenBoonID == owned.defID
+                            )
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    private func boonCard(
+        name: String,
+        god: Deity,
+        text: String,
+        footnote: String,
+        tint: Color,
+        highlighted: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                DuatSymbol(art: god.artName, fallback: god.symbol, size: 17, tint: god.tint)
+                Text(name)
+                    .font(.fantasy(15, weight: .bold))
+                    .foregroundStyle(Theme.parchment)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 0)
+            }
+
+            Text(text)
+                .font(.paper(11.5))
+                .foregroundStyle(Theme.parchmentDim)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(footnote.uppercased())
+                .font(.system(size: 8.5, weight: .black))
+                .kerning(0.8)
+                .foregroundStyle(tint)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .papyrusPanel(tint: Theme.bgCard, cornerRadius: 14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(highlighted ? tint : Theme.parchmentDim.opacity(0.2),
+                              lineWidth: highlighted ? 2 : 1)
+        )
     }
 
     // MARK: - Face picker

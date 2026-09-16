@@ -35,14 +35,28 @@ enum RogueContent {
             faces: [.evade, .evade, .evade, .evade, .heal, .focus])
     }
 
+    /// Opening blade five: the back-up knife. Slashes and throws with a block,
+    /// so an all-weapon draw still has Shadowstep and a guard in reach.
+    static func backupKnife(rarity: Rarity = .common) -> Die {
+        Die(name: "Silent Partner", slot: .weapon, rarity: rarity,
+            faces: [.swiftSlash, .swiftSlash, .swiftSlash, .daggerThrow, .evade, .block])
+    }
+
+    /// Opening armour three: wrapped leathers — blocks beside the evades so
+    /// the Rogue can actually stand still for a round.
+    static func wrappedLeathers(rarity: Rarity = .common) -> Die {
+        Die(name: "Wrapped Leathers", slot: .armor, rarity: rarity,
+            faces: [.evade, .evade, .block, .block, .heal, .focus])
+    }
+
     static func weapon() -> GearPiece {
         GearPiece(name: "Twin Daggers", symbol: "bolt.circle.fill", slot: .weapon,
-                  dice: [daggerDie(), daggerDie(), hookedKris(), shadowShiv()])
+                  dice: [daggerDie(), daggerDie(), hookedKris(), shadowShiv(), backupKnife()])
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Leather Armour", symbol: "shield.lefthalf.filled", slot: .armor,
-                  dice: [armorDie(), shadowcloak()])
+                  dice: [armorDie(), shadowcloak(), wrappedLeathers()])
     }
 
     // MARK: - Combos

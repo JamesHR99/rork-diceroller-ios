@@ -766,6 +766,12 @@ extension Offer {
             return DuatArt.resolve(DuatArt.interactionReforge)
         case .patron(let god, _):
             return god.artName
+        case .boon(let def, _):
+            return def.god.artName
+        case .boonLevel(let owned):
+            return owned.def?.god.artName ?? deity?.artName
+        case .legendary(let def):
+            return def.god.artName
         case .upgrade, .capstone:
             return deity?.artName ?? DuatArt.resolve(DuatArt.Status.judgement)
         case .pairing(let pairing):
@@ -780,8 +786,6 @@ extension Offer {
             return DuatArt.resolve("duat_relic_canopicHeart")
         case .gold:
             return DuatArt.resolve(DuatArt.currency)
-        case .relic(let relic):
-            return relic.artName
         case .breath:
             return DuatArt.resolve(DuatArt.Status.stamina)
         case .chisel:

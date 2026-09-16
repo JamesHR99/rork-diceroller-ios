@@ -35,14 +35,27 @@ enum WarriorContent {
             faces: [.block, .block, .block, .heal, .heal, .focus])
     }
 
+    /// Opening blade five: the reserve blade. Swings with a block, so an
+    /// all-weapon draw can still answer with Riposte or Warlord's Answer.
+    static func reserveBlade(rarity: Rarity = .common) -> Die {
+        Die(name: "Oathkeeper", slot: .weapon, rarity: rarity,
+            faces: [.overhead, .overhead, .sideSwing, .sideSwing, .block, .focus])
+    }
+
+    /// Opening armour three: the wall's second course — blocks and a mend.
+    static func rampartPlate(rarity: Rarity = .common) -> Die {
+        Die(name: "Rampart Plate", slot: .armor, rarity: rarity,
+            faces: [.block, .block, .block, .evade, .heal, .focus])
+    }
+
     static func weapon() -> GearPiece {
         GearPiece(name: "Longsword", symbol: "arrow.down.circle.fill", slot: .weapon,
-                  dice: [swordDie(), swordDie(), siegeAxe(), boardingMaul()])
+                  dice: [swordDie(), swordDie(), siegeAxe(), boardingMaul(), reserveBlade()])
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Plate Armour", symbol: "shield.fill", slot: .armor,
-                  dice: [armorDie(), bronzeAegis()])
+                  dice: [armorDie(), bronzeAegis(), rampartPlate()])
     }
 
     // MARK: - Combos

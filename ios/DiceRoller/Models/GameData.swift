@@ -11,7 +11,9 @@ enum GameData {
             maxHP: 100, maxStamina: 4,
             weaponName: "Longbow", armorName: "Light Armour",
             blurb: "Arrow tiers stack into heavy volleys. Line up Arrow I, II and III for the legendary Perfect Shot.",
-            playstyle: "Balanced · ranged · precision"
+            playstyle: "Balanced · ranged · precision",
+            agility: 2,
+            timingIdentity: "Flexible pairs and deliberate precision shots"
         ),
         HeroClass(
             id: "warrior", name: "Warrior", title: "The Standing Wall",
@@ -19,7 +21,9 @@ enum GameData {
             maxHP: 130, maxStamina: 4,
             weaponName: "Longsword", armorName: "Plate Armour",
             blurb: "Heavy swings behind a shield that stays until it breaks. Stack Block faces and become the wall.",
-            playstyle: "Tanky · heavy hits · momentum"
+            playstyle: "Tanky · heavy hits · momentum",
+            agility: 1,
+            timingIdentity: "Early simple protection, slower heavy attacks and retaliation"
         ),
         HeroClass(
             id: "rogue", name: "Rogue", title: "Blade in the Smoke",
@@ -27,7 +31,9 @@ enum GameData {
             maxHP: 82, maxStamina: 5,
             weaponName: "Twin Daggers", armorName: "Leather Armour",
             blurb: "Fast, bleeding cuts. Stack Evade faces to slip blows outright, then answer from the dark.",
-            playstyle: "Fragile · fastest · bleed"
+            playstyle: "Fragile · fastest · bleed",
+            agility: 3,
+            timingIdentity: "Fast defence, quick attacks and sequential opportunities"
         ),
         HeroClass(
             id: "magician", name: "Magician", title: "Keeper of Runes",
@@ -35,17 +41,25 @@ enum GameData {
             maxHP: 88, maxStamina: 4,
             weaponName: "Magic Wand", armorName: "Robes",
             blurb: "Runes are nothing alone. Fold them into Fireball, Ice Blast, Meteor and the Arcane Storm.",
-            playstyle: "Fragile · spell recipes · utility"
+            playstyle: "Fragile · spell recipes · utility",
+            agility: 1,
+            timingIdentity: "Quick emergency wards and slower powerful spells"
         ),
     ]
 
-    /// Dice you may freeze in a single turn. Freezing is free — the hold is
-    /// the commitment. Two holds from the very first turn, so shaping a hand is
-    /// on the table immediately; from the Fire Gate onward (hour five) the night
-    /// is hot enough that a third face survives it.
-    static func freezesPerTurn(hour: Int) -> Int {
-        hour >= Gate.fire.firstHour ? 3 : 2
-    }
+    /// Dice you may hold when committing. Freezing is free — the hold is the
+    /// commitment, and it costs you one of next round's six slots. Two every
+    /// round, at every gate; Anubis's Preserved Moment is the only thing that
+    /// lifts it, and only once per encounter.
+    static let freezesPerTurn = 2
+
+    /// What Preserved Moment raises the hold allowance to for one commitment.
+    static let preservedMomentFreezes = 3
+
+    /// How many dice the collection holds: five weapon, three armour.
+    static let ownedWeaponDice = 5
+    static let ownedArmourDice = 3
+    static let ownedDiceTotal = ownedWeaponDice + ownedArmourDice
 
     /// How many dice hit the table each turn, drawn at random from the whole
     /// loadout. You carry more than you draw, so the same collection produces
@@ -56,24 +70,28 @@ enum GameData {
     /// starts at the class maximum and can reach two points above it.
     static let maxStaminaGrants = 2
 
-    // MARK: - Turn economy
+    // MARK: - Round economy
 
-    /// Stamina the bar recovers at the start of each turn. The bar never
-    /// refills outright — unspent points carry over and this tops them back up,
-    /// never past the class maximum on its own.
-    static let staminaRecoveryPerTurn = 2
-
-    /// Stamina a landed chain hands you for the next turn — and the only
-    /// refund a combo pays. A pair gives nothing; three faces or more bank a
-    /// single point. Recipes no longer pay their own printed refunds.
-    static func comboStaminaBank(faces: Int) -> Int {
-        faces >= 3 ? 1 : 0
+    /// The round's stamina allowance: 3 on the first round, 4 on the second, 5
+    /// from the third onward. The curve resets at every encounter, so a long
+    /// fight is not a reason to open the next one rich.
+    static func staminaAllowance(round: Int) -> Int {
+        switch round {
+        case ...1: return 3
+        case 2: return 4
+        default: return 5
+        }
     }
 
-    /// What a fused combo step costs: three faces cost 2, four cost 3, five
-    /// cost 4. Solo faces and two-face pairs stay full price.
+    /// The most stamina a round may hold once bonuses land on top of the
+    /// allowance. Anything above this is lost rather than banked.
+    static let staminaBudgetCap = 6
+
+    /// What a step costs: one stamina per face it consumes. The old
+    /// large-combo discounts are gone — a big recipe pays for every ingredient
+    /// and buys its power with preparation time instead.
     static func comboStaminaCost(faces: Int) -> Int {
-        faces >= 3 ? faces - 1 : faces
+        max(1, faces)
     }
 
     // MARK: - Chain power

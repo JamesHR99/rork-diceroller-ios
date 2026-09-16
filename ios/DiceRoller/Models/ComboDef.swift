@@ -148,9 +148,24 @@ struct ComboDef: Identifiable, Hashable {
     /// Total faces the recipe consumes.
     var faceCount: Int { required.reduce(0) { $0 + $1.count } }
 
-    /// Fused combos cost less than their faces played apart: 3 faces cost 2,
-    /// 4 cost 3, 5 cost 4.
+    /// A step costs one stamina per face it consumes. Large recipes no longer
+    /// come at a discount — they buy their power with preparation time.
     var staminaCost: Int { GameData.comboStaminaCost(faces: faceCount) }
+
+    /// Beats of wind-up before this recipe lands, before agility and Haste.
+    var preparation: Int { Timing.preparation(recipe: id, faces: faceCount) }
+
+    /// What this action *is*, which decides which god powers answer it.
+    var roles: ActionRole {
+        var roles: ActionRole = .none
+        if damage > 0 || scalesWithBleed || scalesWithWounds || scalesWithBurn {
+            roles.insert(.attack)
+        }
+        if shield > 0 { roles.insert(.guardian) }
+        if evadePercent > 0 { roles.insert(.evade) }
+        if heal > 0 || regenAmount > 0 || lifesteal { roles.insert(.support) }
+        return roles
+    }
 
     /// How specific this recipe is — exact slots beat wildcards when two
     /// recipes of the same shape could both match.
@@ -230,8 +245,6 @@ struct ComboDef: Identifiable, Hashable {
         if evadePercent > 0 { parts.append("+\(evadePercent)% evade") }
         if momentumNext > 0 { parts.append("+\(momentumNext) next swing") }
         if guaranteedCrit { parts.append("always crits") }
-        let bank = GameData.comboStaminaBank(faces: faceCount)
-        if bank > 0 { parts.append("+\(bank) stamina next turn") }
         return parts.joined(separator: ", ")
     }
 

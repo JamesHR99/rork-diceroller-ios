@@ -58,6 +58,20 @@ private struct BattleContentView: View {
                                 .padding(.top, 2)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
+
+                        // The hour strip sits between the health bars and the
+                        // dice: your plan and every foe's blow on one line, in
+                        // the order they resolve. This is where intent is read
+                        // now — a blow you cannot place in time is not
+                        // information you can use. It stays up through
+                        // resolution so the round plays out along the same
+                        // line you planned it on.
+                        if engine.isFightLive {
+                            TimelineStripView(engine: engine, height: 58)
+                                .padding(.horizontal, 12)
+                                .padding(.top, 3)
+                                .transition(.opacity)
+                        }
                     }
                     // The deck is measured against what this strip leaves
                     // behind, so it can sit directly under the health bars.
@@ -140,7 +154,8 @@ private struct BattleContentView: View {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
                               maxStamina: game.effectiveMaxStamina,
                               drawnDieIDs: game.battle?.drawnDieIDs ?? [],
-                              hasMetTrial: game.trialUsed)
+                              hasMetTrial: game.trialUsed,
+                              boons: game.equippedBoons)
             }
         }
     }
@@ -282,15 +297,6 @@ private struct BattleContentView: View {
     /// standing on the hull with the water behind them.
     private func battleStage(size: CGSize) -> some View {
         VStack(spacing: 0) {
-            // Intent capsules ride over the foes once the deck is down, so a
-            // blow is aimed with the whole board in view. While the deck is up
-            // the ticker rail already carries the same read, so it is not drawn
-            // twice.
-            if engine.phase == .player, !deckUp {
-                intentRow
-                    .padding(.top, 2)
-                    .transition(.opacity)
-            }
 
             // The figures are cut to the room actually left under the heading
             // and stood in the middle of it, so they hold the centre of the

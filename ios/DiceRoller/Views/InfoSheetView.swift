@@ -12,6 +12,8 @@ struct InfoSheetView: View {
     let drawnDieIDs: Set<UUID>
     /// True once this run has met a god's Trial — the codex then names all six.
     let hasMetTrial: Bool
+    /// The god powers equipped right now, so the catalogue can mark them.
+    var boons: [EquippedBoon] = []
 
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .loadout
@@ -141,7 +143,7 @@ struct InfoSheetView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("YOUR GEAR — WEAPON AND ARMOUR ARE PERMANENT")
 
-            Text("Only \(GameData.diceDrawCount) of these dice come out each turn — drawn fresh at random from everything you carry. The rest wait in the bag; a face you hold with a freeze is the only one guaranteed to return.")
+            Text("You own \(GameData.ownedDiceTotal) dice and \(GameData.diceDrawCount) of them fill your slots each round, drawn without replacement. The dice left in the bag are marked below, so the randomness is always readable; a face you hold is the only one guaranteed to come back.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -179,6 +181,8 @@ struct InfoSheetView: View {
 
                             DieStripView(die: die, tileSize: 30, showCrit: true, critBonus: critBonus)
 
+                            // Which dice this round put on the table, and
+                            // which two are still waiting in the bag.
                             if drawnDieIDs.contains(die.id) {
                                 Text("DRAWN")
                                     .font(.system(size: 9.5, weight: .black))
@@ -187,6 +191,14 @@ struct InfoSheetView: View {
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2.5)
                                     .background(Theme.gold.opacity(0.14), in: .capsule)
+                            } else if !drawnDieIDs.isEmpty {
+                                Text("IN THE BAG")
+                                    .font(.system(size: 9.5, weight: .black))
+                                    .kerning(0.8)
+                                    .foregroundStyle(Theme.parchmentDim)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2.5)
+                                    .background(Theme.bg.opacity(0.6), in: .capsule)
                             }
 
                             Spacer(minLength: 0)
@@ -322,27 +334,177 @@ struct InfoSheetView: View {
 
     private var pantheonTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("THE PANTHEON — ONE GOD PER DIE, ANSWERING WHAT YOU PLAY")
+            sectionTitle("YOUR POWERS — THREE ATTACK, TWO DEFENCE, TWO UTILITY")
 
-            Text("A god claims a whole die and never touches its faces — the claim simply means their blessing answers every face that die plays, read by what the face is. Attacks get the attack answer, Block faces the block answer, Evade faces the evade answer, everything else the support answer — once each per action, chains included. A blessed die is the entry ticket to that god's four upgrades; two upgrades unlock their capstone. One capstone and one pairing per run.")
+            Text("A power belongs to you, not to a die. Several gods can answer the same action, and nothing needs an entry purchase. Rarity is rolled and shown before you choose it; level climbs inside that rarity, to \(boonMaxLevel). Being offered a power you already carry is a level, never a second copy.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(Deity.allCases) { deity in
-                deityCard(deity)
+            ForEach(BoonSlot.allCases) { slot in
+                slotRow(slot)
             }
 
-            sectionTitle("FIFTEEN PAIRINGS — TWO GODS STANDING TOGETHER")
-            Text("Once you carry one upgrade from each of two gods, their pairing opens: a named effect that fires at most once per turn while both gods stay equipped. One pairing per run.")
+            sectionTitle("THE CATALOGUE — TEN POWERS PER GOD")
+            ForEach(Deity.allCases) { deity in
+                catalogueCard(deity)
+            }
+
+            sectionTitle("FIFTEEN DUOS — TWO GODS ANSWERING TOGETHER")
+            Text("A duo needs its two source powers equipped and keeps needing them. It never satisfies its own prerequisite, and its values are fixed — duos do not level. Two duos at most, inside the ordinary slots.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(PairingContent.pairings) { pairing in
-                pairingRow(pairing)
+            ForEach(GodCatalog.duos) { duo in
+                boonRow(duo, showSources: true)
+            }
+
+            sectionTitle("SIX LEGENDARY EVOLUTIONS — ONE PER RUN")
+            Text("A legendary replaces its source power in the same slot and carries that power's rarity and level across. It is unlocked by equipping the source plus one other power of the same god.")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.parchmentDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(GodCatalog.legendaries) { legendary in
+                boonRow(legendary, showSources: false)
             }
         }
+    }
+
+    /// What is sitting in one of the seven slots right now.
+    private func slotRow(_ slot: BoonSlot) -> some View {
+        let held = boons.filter { $0.def?.slot == slot }
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: slot.symbol)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(slot.tint)
+                Text(slot.label.uppercased())
+                    .font(.system(size: 11, weight: .black))
+                    .kerning(1.2)
+                    .foregroundStyle(slot.tint)
+                Spacer()
+                Text("\(held.count)/\(slot.capacity)")
+                    .font(.system(size: 11, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.parchmentDim)
+            }
+
+            if held.isEmpty {
+                Text("Empty — the gods fill these as the night goes on.")
+                    .font(.paper(11.5))
+                    .italic()
+                    .foregroundStyle(Theme.parchmentDim)
+            } else {
+                ForEach(held) { owned in
+                    HStack(alignment: .top, spacing: 5) {
+                        DuatSymbol(art: owned.def?.god.artName,
+                                   fallback: owned.def?.god.symbol ?? "sparkles",
+                                   size: 17, tint: owned.def?.god.tint ?? Theme.gold)
+                            .frame(width: 19)
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack(spacing: 5) {
+                                Text(owned.def?.name ?? "Power")
+                                    .font(.system(size: 11.5, weight: .bold))
+                                    .foregroundStyle(Theme.parchment)
+                                Text("\(owned.rarity.label.uppercased()) · LV \(owned.level)")
+                                    .font(.system(size: 8.5, weight: .black))
+                                    .foregroundStyle(owned.rarity.tint)
+                            }
+                            Text(owned.text)
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(Theme.parchmentDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 10))
+    }
+
+    /// One god's ten regular powers, marked where you already carry them.
+    private func catalogueCard(_ deity: Deity) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 9) {
+                PortraitMedallionView(art: CharacterArt.god(deity),
+                                      fallbackSymbol: deity.symbol,
+                                      tint: deity.tint,
+                                      diameter: 44,
+                                      glow: false)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(deity.name)
+                        .font(.fantasy(17, weight: .black))
+                        .foregroundStyle(Theme.parchment)
+                    Text(deity.domain.uppercased())
+                        .font(.system(size: 10, weight: .black))
+                        .kerning(1.3)
+                        .foregroundStyle(deity.tint)
+                }
+                Spacer()
+            }
+
+            Text(deity.pitch)
+                .font(.system(size: 11.5))
+                .italic()
+                .foregroundStyle(Theme.parchmentDim)
+
+            ForEach(GodCatalog.regulars(of: deity)) { def in
+                boonRow(def, showSources: false)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+    }
+
+    /// One catalogue entry: its slot, its complete text at Common level 1, and
+    /// a mark when it is the copy you actually carry.
+    private func boonRow(_ def: GodBoonDef, showSources: Bool) -> some View {
+        let owned = boons.first { $0.defID == def.id }
+        return HStack(alignment: .top, spacing: 7) {
+            Text(def.slot.label.prefix(3).uppercased())
+                .font(.system(size: 8.5, weight: .black))
+                .kerning(0.6)
+                .foregroundStyle(def.slot.tint)
+                .frame(width: 30, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 5) {
+                    Text(def.name)
+                        .font(.system(size: 11.5, weight: .bold))
+                        .foregroundStyle(owned != nil ? Theme.gold : Theme.parchment)
+                    if let owned {
+                        Text("CARRIED · \(owned.rarity.label.uppercased()) LV \(owned.level)")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(Theme.gold)
+                    } else if def.isFixed {
+                        Text("FIXED")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(Theme.parchmentDim)
+                    }
+                }
+
+                Text(owned?.text ?? def.text(rarity: .common, level: 1))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if showSources, !def.sources.isEmpty {
+                    Text("Needs " + def.sources.map(\.label).joined(separator: " + "))
+                        .font(.system(size: 9.5, weight: .black))
+                        .foregroundStyle(def.god.tint)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(owned != nil ? Theme.gold.opacity(0.08) : Theme.bg.opacity(0.45),
+                    in: .rect(cornerRadius: 8))
     }
 
     private func pairingRow(_ pairing: PairingDef) -> some View {
@@ -495,7 +657,7 @@ struct InfoSheetView: View {
                     "A face played on its own is worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
                     "A recipe asks for ingredients and quantities, never a tap order — any arrangement of the faces fuses into one step. Three Swift Slashes make the same chain whichever tap they arrived from.",
                     "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
-                    "Fused combos cost less than their faces played apart: 3 faces cost 2, 4 cost 3, 5 cost 4. A chain of three or more banks a single stamina point for next turn.",
+                    "A step costs one stamina per face it uses — there is no bulk discount. A big recipe buys its power with preparation time instead: it lands later on the hour strip.",
                     "Each die wears a coloured letter for every chain it could feed. Tap a letter to fuse that chain; tap it again once it turns gold to break it apart.",
                     "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
                 ]
@@ -504,10 +666,10 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "dice.fill", tint: Theme.steelBlue, title: "THE DRAW",
                 lines: [
-                    "You carry up to ten dice — three in the weapon, two in the armour, and the rest won from relics — but only \(GameData.diceDrawCount) hit the table each turn.",
-                    "The six are drawn fresh at random every turn, so the same collection produces a different hand each time.",
-                    "No mix is guaranteed: a draw can come up all weapon and leave you nothing defensive. That is what freezes are for.",
-                    "Dice whose faces you hold are left in the bag — the held face rides along as its own reel instead.",
+                    "You own \(GameData.ownedDiceTotal) dice — \(GameData.ownedWeaponDice) weapon and \(GameData.ownedArmourDice) armour — and \(GameData.diceDrawCount) of them fill your slots each round.",
+                    "The draw is fresh every round, without replacement, so the same collection produces a different hand each time. Hold one die and you draw five from the remaining seven; hold two and you draw four from six.",
+                    "No mix is guaranteed: a draw can come up all weapon and leave you nothing defensive. That is what holds are for.",
+                    "A held die keeps its face and takes one of next round's six slots — it cannot also be drawn again.",
                     "The loadout tab marks which dice this turn's draw put on the table.",
                     "A weak die dilutes every draw — the Ferryman's Whetstone Ritual rolls a die's faces anew instead of throwing it away.",
                 ]
@@ -516,19 +678,18 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "bolt.fill", tint: Theme.gold, title: "STAMINA",
                 lines: [
-                    "\(hero.name) starts each battle with \(maxStamina) stamina. Rolling is free — placing a die in the plan costs 1.",
-                    "The bar never refills: whatever you don't spend carries over, and each new turn recovers just +\(GameData.staminaRecoveryPerTurn), never past \(maxStamina).",
-                    "Chains pay almost nothing back: a pair banks nothing at all, and a chain of three faces or more hands you a single point for the next turn only.",
-                    "To go above \(maxStamina) you have to earn it — Focus and Energize faces, and the gods' blessings. That overcharge lasts one turn, then expires if left unspent.",
-                    "Rarely the river offers the Breath of Ra: a card that permanently raises the ceiling by one, up to two points above your class maximum. At four you can run two three-face chains in a turn.",
-                    "Fused combos cost less than their faces played apart: 3 faces cost 2, 4 cost 3, 5 cost 4. The savings land the moment the fusion forms.",
+                    "Every round hands you a fresh allowance: \(GameData.staminaAllowance(round: 1)) on the first round, \(GameData.staminaAllowance(round: 2)) on the second, \(GameData.staminaAllowance(round: 3)) from the third on. The curve resets at every fight.",
+                    "Nothing carries over. Whatever you do not spend is gone at the end of the round — hoarding buys you nothing.",
+                    "Each face costs 1: a solo face 1, a pair 2, a triple 3, a four-face combo 4. There are no bulk discounts.",
+                    "Only named powers bank stamina for the next round, and the whole budget is capped at \(GameData.staminaBudgetCap) however much lands on it.",
+                    "Focus costs 1, primes +8 damage on your next attack and banks +1 for next round. Place it before the attack it should strengthen.",
                 ]
             )
 
             ruleCard(
                 icon: "snowflake", tint: Theme.frost, title: "FREEZING DICE",
                 lines: [
-                    "Freezing is free: two holds a turn from the very first fight, three from the Fire Gate onward.",
+                    "Holding is free: \(GameData.freezesPerTurn) dice every round, at every gate. Anubis's Preserved Moment is the only thing that lifts it, once per fight.",
                     "Hit the FREEZE button on the right of the tray, then tap a die to hold its face.",
                     "A held face keeps exactly as it landed, crit and all — and the die it came from still rolls again next turn. A freeze hands you an extra face, it never benches a die.",
                     "The die behind a held face sits out the next draw, so the held face never arrives beside a fresh roll of its own die — the hold is the only way to guarantee a face comes back.",

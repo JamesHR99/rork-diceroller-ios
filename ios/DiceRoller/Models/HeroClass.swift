@@ -13,6 +13,12 @@ struct HeroClass: Identifiable, Hashable {
     let armorName: String
     let blurb: String
     let playstyle: String
+    /// Beats this class shaves off every action's preparation. Agility decides
+    /// *when* an action lands; stamina decides how much you can do. A Rogue
+    /// guards almost immediately, a Warrior's heavy swings arrive late.
+    let agility: Int
+    /// The one-line read of this class's place on the clock.
+    let timingIdentity: String
 
     var accent: Color {
         switch id {

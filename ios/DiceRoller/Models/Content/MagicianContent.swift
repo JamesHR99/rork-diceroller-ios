@@ -35,14 +35,27 @@ enum MagicianContent {
             faces: [.block, .block, .block, .evade, .heal, .channel])
     }
 
+    /// Opening staff five: the varied focus — one of every rune, so Arcane
+    /// Storm and Kindle stay reachable from a single die.
+    static func runeFocus(rarity: Rarity = .common) -> Die {
+        Die(name: "Scribe's Focus", slot: .weapon, rarity: rarity,
+            faces: [.runeFire, .runeFrost, .runeLife, .runeArcane, .wandZap, .channel])
+    }
+
+    /// Opening armour three: hexed linen — wards and a mend behind the runes.
+    static func hexedLinen(rarity: Rarity = .common) -> Die {
+        Die(name: "Hexed Linen", slot: .armor, rarity: rarity,
+            faces: [.block, .block, .evade, .evade, .heal, .channel])
+    }
+
     static func weapon() -> GearPiece {
         GearPiece(name: "Magic Wand", symbol: "wand.and.stars", slot: .weapon,
-                  dice: [wandDie(), wandDie(), emberStaff(), frostScepter()])
+                  dice: [wandDie(), wandDie(), emberStaff(), frostScepter(), runeFocus()])
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Robes", symbol: "circle.hexagongrid.fill", slot: .armor,
-                  dice: [armorDie(), wardedKilt()])
+                  dice: [armorDie(), wardedKilt(), hexedLinen()])
     }
 
     // MARK: - Combos

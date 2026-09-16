@@ -35,14 +35,28 @@ enum ArcherContent {
             faces: [.block, .block, .heal, .heal, .evade, .focus])
     }
 
+    /// Opening bow five: the spare quiver. Mid arrows and a focus face, so a
+    /// draw that comes up all-weapon still has Steady Aim in reach.
+    static func quiverDie(rarity: Rarity = .common) -> Die {
+        Die(name: "Fletcher's Quiver", slot: .weapon, rarity: rarity,
+            faces: [.arrow1, .arrow1, .arrow2, .arrow3, .bowSmack, .focus])
+    }
+
+    /// Opening armour three: the ranger's wrap — block, evade and a mend, so
+    /// Quick Guard is reachable from any armour die in the collection.
+    static func rangerWrap(rarity: Rarity = .common) -> Die {
+        Die(name: "Ranger's Wrap", slot: .armor, rarity: rarity,
+            faces: [.block, .block, .evade, .evade, .heal, .focus])
+    }
+
     static func weapon() -> GearPiece {
         GearPiece(name: "Longbow", symbol: "arrowshape.up.circle.fill", slot: .weapon,
-                  dice: [bowDie(), bowDie(), cadenceBow(), heronBow()])
+                  dice: [bowDie(), bowDie(), cadenceBow(), heronBow(), quiverDie()])
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Light Armour", symbol: "shield.lefthalf.filled", slot: .armor,
-                  dice: [armorDie(), paddedCuirass()])
+                  dice: [armorDie(), paddedCuirass(), rangerWrap()])
     }
 
     // MARK: - Combos

@@ -56,7 +56,7 @@ struct PlayBarView: View {
                     .foregroundStyle(Theme.parchmentDim.opacity(0.7))
                 Text("\(engine.projectedNextTurnStamina)")
                     .font(.system(size: 15, weight: .black).monospacedDigit())
-                    .foregroundStyle(engine.projectedNextTurnStamina > engine.maxStamina
+                    .foregroundStyle(engine.projectedNextTurnStamina > engine.roundAllowance
                                      ? Theme.sunGold : Theme.parchmentDim)
             }
         }
@@ -75,7 +75,9 @@ struct PlayBarView: View {
     /// Painted pips stack down the rail, wrapping into a second column once
     /// the turn's budget runs long. Pips above the cap wear the reserve mark.
     private var staminaPips: some View {
-        let total = max(engine.maxStamina, engine.stamina)
+        // The round's own allowance sets the rail; anything above it is
+        // overcharge a named power earned, and wears the reserve mark.
+        let total = max(engine.roundAllowance, engine.stamina)
         let columns = total > 5 ? 2 : 1
         let perColumn = Int(ceil(Double(total) / Double(columns)))
         return HStack(alignment: .top, spacing: 4) {
@@ -86,7 +88,7 @@ struct PlayBarView: View {
                         if index < total {
                             DuatStaminaPip(
                                 isFilled: index < engine.stamina,
-                                isReserve: index >= engine.maxStamina,
+                                isReserve: index >= engine.roundAllowance,
                                 size: 17
                             )
                         }
@@ -269,6 +271,8 @@ struct PlayBarView: View {
 
                 Spacer(minLength: 2)
 
+                beatChip(step)
+
                 Text("\(step.faces.count)-CHAIN")
                     .font(.system(size: 10, weight: .black))
                     .kerning(0.5)
@@ -344,7 +348,10 @@ struct PlayBarView: View {
     /// A face played on its own — deliberately small next to a real chain.
     private func soloCard(_ step: PlanStep, number: Int) -> some View {
         VStack(spacing: compact ? 2 : 3) {
-            orderBadge(number, tint: step.tint)
+            HStack(spacing: 3) {
+                orderBadge(number, tint: step.tint)
+                beatChip(step)
+            }
 
             DuatSymbol(art: step.faces.first?.face.artName,
                        fallback: step.faces.first?.face.symbol ?? "questionmark",
@@ -383,6 +390,24 @@ struct PlayBarView: View {
             .frame(width: 18, height: 18)
             .background(tint, in: .circle)
             .overlay(Circle().strokeBorder(Theme.bg.opacity(0.5), lineWidth: 0.8))
+    }
+
+    /// The beat this step lands on, in the same numerals the hour strip uses.
+    /// Reordering the plan moves it, so a card always says when it will fire.
+    @ViewBuilder
+    private func beatChip(_ step: PlanStep) -> some View {
+        if let beat = engine.beat(for: step) {
+            HStack(spacing: 1.5) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 7, weight: .black))
+                Text("\(beat)")
+                    .font(.system(size: 9, weight: .black).monospacedDigit())
+            }
+            .foregroundStyle(Theme.bg)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(Theme.frost, in: .capsule)
+        }
     }
 
     /// The crit read-out under a chain: how many crit dice fed it and what the

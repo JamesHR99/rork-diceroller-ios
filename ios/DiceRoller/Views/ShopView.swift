@@ -25,7 +25,8 @@ struct ShopView: View {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
                               maxStamina: game.effectiveMaxStamina, drawnDieIDs: [],
-                              hasMetTrial: game.trialUsed)
+                              hasMetTrial: game.trialUsed,
+                              boons: game.equippedBoons)
             }
         }
     }

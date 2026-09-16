@@ -10,6 +10,100 @@ struct OfferCardView: View {
     var width: CGFloat? = 196
     let action: () -> Void
 
+    /// The card's own read-out, chosen by what is on offer. Split out of the
+    /// body so each branch type-checks on its own — as one long chain inside
+    /// the VStack the compiler could not solve it in reasonable time.
+    @ViewBuilder
+    private var kindDigest: some View {
+        switch offer.kind {
+        case .die(let die):
+            DieStripView(die: die, tileSize: 15, showCrit: false)
+        case .patron:
+            HStack(spacing: 5) {
+                sealBadge(offer.deity?.artName, offer.deity?.symbol ?? "sparkles",
+                          tint: offer.deity?.tint ?? Theme.gold)
+                footnote(offer.isReplacingPatron ? "takes a claimed die" : "claims one die")
+            }
+        case .boon(let def, let rarity):
+            boonDigest(slot: def.slot, god: def.god, rarity: rarity, level: 1, isUpgrade: false)
+        case .boonLevel(let owned):
+            boonDigest(slot: owned.def?.slot ?? .attack,
+                       god: owned.def?.god ?? .ra,
+                       rarity: owned.rarity,
+                       level: min(owned.level + 1, boonMaxLevel),
+                       isUpgrade: true)
+        case .legendary(let def):
+            HStack(spacing: 5) {
+                sealBadge(def.god.artName, def.god.symbol, tint: Theme.goldLeaf)
+                footnote("legendary · one per run")
+            }
+        case .upgrade(let upgrade):
+            HStack(spacing: 5) {
+                sealBadge(offer.deity?.artName, upgrade.symbol, tint: offer.tint)
+                footnote("one upgrade · needs a blessed die")
+            }
+        case .capstone:
+            HStack(spacing: 5) {
+                sealBadge(DuatArt.Status.champion, "crown.fill", tint: offer.tint)
+                footnote("capstone · one per run")
+            }
+        case .pairing(let pairing):
+            HStack(spacing: 5) {
+                sealBadge(pairing.first.artName, pairing.first.symbol, tint: pairing.first.tint)
+                sealBadge(pairing.second.artName, pairing.second.symbol, tint: pairing.second.tint)
+                footnote("2 gods · once per turn")
+            }
+        case .item(let item):
+            faceDigest(FaceProfile(item.faces), diceCount: 2)
+        case .breath:
+            HStack(spacing: 5) {
+                sealBadge(DuatArt.Status.stamina, "wind.circle.fill", tint: Theme.gold)
+                footnote("permanent · once per offer")
+            }
+        case .chisel:
+            HStack(spacing: 5) {
+                sealBadge(DuatArt.upgradeHammer, "hammer.fill", tint: Theme.ptahCopper)
+                footnote("opens Ptah's workshop")
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    /// A god power's read: which slot it fills, its rarity, and its level as
+    /// filled cartouche pips — so rarity and level are read apart.
+    private func boonDigest(
+        slot: BoonSlot,
+        god: Deity,
+        rarity: BoonRarity,
+        level: Int,
+        isUpgrade: Bool
+    ) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 5) {
+                sealBadge(god.artName, god.symbol, tint: rarity.tint)
+                Text(rarity.label.uppercased())
+                    .font(.system(size: 9, weight: .black))
+                    .kerning(0.8)
+                    .foregroundStyle(rarity.tint)
+                levelPips(level)
+            }
+            footnote(isUpgrade ? "level up · same slot" : "\(slot.label.lowercased()) slot")
+        }
+    }
+
+    /// Level as pips: filled for the levels held, hollow for the room left.
+    private func levelPips(_ level: Int) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0..<boonMaxLevel, id: \.self) { index in
+                Circle()
+                    .fill(index < level ? Theme.gold : Color.clear)
+                    .frame(width: 5, height: 5)
+                    .overlay(Circle().strokeBorder(Theme.gold.opacity(0.7), lineWidth: 0.8))
+            }
+        }
+    }
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 7) {
@@ -67,45 +161,7 @@ struct OfferCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxHeight: .infinity, alignment: .top)
 
-                if case .die(let die) = offer.kind {
-                    DieStripView(die: die, tileSize: 15, showCrit: false)
-                } else if case .patron = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(offer.deity?.artName, offer.deity?.symbol ?? "sparkles",
-                                  tint: offer.deity?.tint ?? Theme.gold)
-                        footnote(offer.isReplacingPatron ? "takes a claimed die" : "claims one die")
-                    }
-                } else if case .upgrade(let upgrade) = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(offer.deity?.artName, upgrade.symbol, tint: offer.tint)
-                        footnote("one upgrade · needs a blessed die")
-                    }
-                } else if case .capstone = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(DuatArt.Status.champion, "crown.fill", tint: offer.tint)
-                        footnote("capstone · one per run")
-                    }
-                } else if case .pairing(let pairing) = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(pairing.first.artName, pairing.first.symbol, tint: pairing.first.tint)
-                        sealBadge(pairing.second.artName, pairing.second.symbol, tint: pairing.second.tint)
-                        footnote("2 gods · once per turn")
-                    }
-                } else if case .item(let item) = offer.kind {
-                    faceDigest(FaceProfile(item.faces), diceCount: 2)
-                } else if case .relic(let relic) = offer.kind {
-                    faceDigest(FaceProfile(relic.dice.flatMap { $0 }), diceCount: relic.dice.count)
-                } else if case .breath = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(DuatArt.Status.stamina, "wind.circle.fill", tint: Theme.gold)
-                        footnote("permanent · once per offer")
-                    }
-                } else if case .chisel = offer.kind {
-                    HStack(spacing: 5) {
-                        sealBadge(DuatArt.upgradeHammer, "hammer.fill", tint: Theme.ptahCopper)
-                        footnote("opens Ptah's workshop")
-                    }
-                }
+                kindDigest
 
                 HStack(spacing: 4) {
                     DuatImage(name: DuatArt.chainConnector, width: 15, fit: .fit)

@@ -24,8 +24,10 @@ struct Loadout: Hashable {
     var armor: GearPiece
     var item: GearPiece?
 
-    /// Hard ceiling on dice carried at once.
-    static let maxDice = 10
+    /// The collection never grows: five weapon dice and three armour dice.
+    /// Equipment improvements replace or modify a die rather than quietly
+    /// adding a ninth, so the draw stays understandable.
+    static let maxDice = GameData.ownedDiceTotal
 
     var allDice: [Die] {
         weapon.dice + armor.dice + (item?.dice ?? [])

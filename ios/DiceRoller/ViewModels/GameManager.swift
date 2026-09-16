@@ -19,6 +19,8 @@ enum PendingSelection: Equatable {
     case pairing(PairingDef, title: String)
     /// Raise one chosen face's crit chance by this much.
     case imbue(Double, title: String)
+    /// This power's slot is full — pick which equipped power it replaces.
+    case replaceBoon(GodBoonDef, rarity: BoonRarity)
     /// You are at the dice cap — pick which die this one replaces.
     case swapDie(Die)
     /// You already carry an item — confirm the swap.
@@ -51,6 +53,12 @@ final class GameManager {
     private(set) var critBonus = 0.0
     /// Permanent turn-capacity gains taken this run, from Breath of Ra cards.
     private(set) var staminaBonus = 0
+    /// The god powers equipped this run, in their slots. This replaces patron
+    /// dice, upgrades, capstones and pairings: a power belongs to the
+    /// character, not to a die, and several gods may answer one action.
+    private(set) var equippedBoons: [EquippedBoon] = []
+    /// Legendary evolutions taken this run — the run allows one.
+    private(set) var legendariesTaken = 0
     /// Upgrades earned this run, by id. Quiet for gods you no longer carry.
     private(set) var acquiredUpgrades: Set<String> = []
     /// The capstone this run committed to, if any — one per run.
@@ -249,6 +257,8 @@ final class GameManager {
         gold = 40
         critBonus = 0
         staminaBonus = 0
+        equippedBoons = []
+        legendariesTaken = 0
         acquiredUpgrades = []
         capstoneID = nil
         pairingID = nil
@@ -364,8 +374,10 @@ final class GameManager {
             maxHP: maxHP,
             startHP: currentHP,
             maxStamina: effectiveMaxStamina,
+            agility: hero.agility,
             hour: node.hour,
             critBonus: critBonus,
+            boons: equippedBoons,
             patrons: patrons,
             upgrades: activeUpgrades,
             capstoneID: activeCapstone?.id,
@@ -443,48 +455,41 @@ final class GameManager {
         if wonTrial { trialUsed = true }
         self.battle = nil
 
-        // The practice bout is not a god's audience: its spoils are a choice
-        // of relics to arm the empty item slot. The gods start meeting you
-        // from the second fight onward.
+        // The practice bout ends at your first god's audience: one god, chosen
+        // at random, offering three of their powers. Relics are gone — the
+        // collection stays at eight dice and the gods speak through powers now.
         if isOpeningEncounter {
-            rewardOffers = RelicContent.relics.shuffled().prefix(3).map(makeRelicOffer)
-            statusMessage = "+\(earned) gold · \(currentHP)/\(maxHP) health"
+            let deity = Deity.allCases.randomElement() ?? .ra
+            visitingDeity = deity
+            isShrine = false
+            rewardOffers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
+            statusMessage = deity.greeting
             withAnimation { screen = .reward }
             return
         }
 
         let kind = activeNode?.kind
-        // Serpent-lords always give up a relic die; the hour's herald sometimes
-        // does. Packs of the river teach you its name a little more often. It
-        // takes one of the three slots rather than adding a fourth.
-        let packRelicOdds = battle.enemies.count >= 3 ? 16 : (battle.enemies.count == 2 ? 10 : 0)
-        let dropsRelic = kind == .boss
-            || (kind == .herald && Int.random(in: 0..<100) < 38)
-            || (kind == .battle && Int.random(in: 0..<100) < packRelicOdds)
-        let relic = dropsRelic ? makeRelicOffer(progress: progress, priced: false) : nil
+        // Relics are gone: the collection stays at eight dice, so a serpent-lord
+        // pays out in a god's audience rather than a fourth gear slot. Bosses
+        // and heralds are where a god reliably comes to the water's edge.
+        let godAttends = kind == .boss
+            || (kind == .herald && Int.random(in: 0..<100) < 62)
+            || Int.random(in: 0..<100) < 42
 
-        // A god comes to the water's edge only sometimes now — shrines are
-        // where they reliably hold court. Most spoils are the river's own:
-        // gold, a little health, rarely a face change.
         var spoils: [Offer]
         if let trialGod {
             visitingDeity = trialGod
             isShrine = false
             spoils = makeGodFavourOffers(deity: trialGod, count: 3, progress: progress)
-        } else if Int.random(in: 0..<100) < 28 {
+        } else if godAttends {
             let deity = Deity.allCases.randomElement() ?? .ra
             visitingDeity = deity
             isShrine = false
-            spoils = makeGodFavourOffers(deity: deity, count: relic == nil ? 3 : 2, progress: progress)
+            spoils = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
         } else {
             visitingDeity = nil
             isShrine = false
-            spoils = makeMundaneSpoils(count: relic == nil ? 3 : 2)
-        }
-        if let relic { spoils.append(relic) }
-        // Rarely the river breathes: a card that permanently widens the bar.
-        if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 14 {
-            spoils.append(makeBreathOffer(priced: false))
+            spoils = makeMundaneSpoils(count: 3)
         }
         // The craftsman's own card, rare among the spoils: claiming it opens
         // Ptah's workshop.
@@ -682,6 +687,12 @@ final class GameManager {
             grant(die: die.instantiated())
         case .reforge(let face):
             pendingSelection = .reforge(face, title: offer.name)
+        case .boon(let def, let rarity):
+            equip(boon: def, rarity: rarity)
+        case .boonLevel(let owned):
+            levelUp(owned)
+        case .legendary(let def):
+            evolve(into: def)
         case .patron(let deity, let replace):
             pendingSelection = .patron(deity, replace: replace, title: offer.name)
         case .upgrade(let upgrade):
@@ -704,8 +715,6 @@ final class GameManager {
         case .gold(let amount):
             gold += amount
             statusMessage = "+\(amount) gold"
-        case .relic(let relic):
-            grantRelic(relic)
         case .breath(let amount):
             staminaBonus = min(GameData.maxStaminaGrants, staminaBonus + amount)
             statusMessage = "+\(amount) max stamina — the bar grows."
@@ -739,15 +748,6 @@ final class GameManager {
         } else {
             pendingSelection = .swapItem(item)
         }
-    }
-
-    /// A relic fills the item slot with its three dice, replacing whatever is
-    /// carried there. The first relic of a run always finds an empty slot.
-    private func grantRelic(_ relic: RelicDef) {
-        guard var loadout else { return }
-        loadout.item = relic.makePiece()
-        self.loadout = loadout
-        statusMessage = "\(relic.name) equipped — its three relic dice join the pool."
     }
 
     // MARK: - Resolving pending selections
@@ -842,6 +842,86 @@ final class GameManager {
             }
         }
         finishSelection(line)
+    }
+
+    // MARK: - God powers
+
+    /// Powers equipped in one slot right now.
+    func boons(in slot: BoonSlot) -> [EquippedBoon] {
+        equippedBoons.filter { $0.def?.slot == slot }
+    }
+
+    /// Is there room for another power of this slot?
+    func hasRoom(for slot: BoonSlot) -> Bool {
+        boons(in: slot).count < slot.capacity
+    }
+
+    func owns(boon id: String) -> Bool {
+        equippedBoons.contains { $0.defID == id }
+    }
+
+    /// Equip a new power. A card arrives at the rarity it was offered at and
+    /// always starts on level 1 — rarity sets the ceiling, level climbs inside
+    /// it. When its slot is full the player chooses what it replaces.
+    func equip(boon def: GodBoonDef, rarity: BoonRarity) {
+        guard !owns(boon: def.id) else {
+            finishSelection("\(def.name) is already equipped.")
+            return
+        }
+        guard hasRoom(for: def.slot) else {
+            pendingSelection = .replaceBoon(def, rarity: rarity)
+            return
+        }
+        equippedBoons.append(EquippedBoon(defID: def.id, rarity: rarity, level: 1))
+        finishSelection("\(def.name) equipped — \(rarity.label) · \(def.slot.label).")
+    }
+
+    /// A repeat offer is explicitly a level, never a second copy: same slot,
+    /// same rarity, one step stronger.
+    func levelUp(_ owned: EquippedBoon) {
+        guard let index = equippedBoons.firstIndex(where: { $0.defID == owned.defID }) else { return }
+        guard equippedBoons[index].canLevel else {
+            finishSelection("\(owned.def?.name ?? "That power") is already at its highest level.")
+            return
+        }
+        equippedBoons[index].level += 1
+        let now = equippedBoons[index]
+        finishSelection("\(now.def?.name ?? "Power") → level \(now.level) (\(now.rarity.label)).")
+    }
+
+    /// A legendary replaces its source power in the same slot, keeping that
+    /// power's rarity and level. One legendary per run.
+    func evolve(into legendary: GodBoonDef) {
+        guard let sourceID = legendary.evolves,
+              let index = equippedBoons.firstIndex(where: { $0.defID == sourceID }) else {
+            finishSelection("\(legendary.name) needs its source power equipped.")
+            return
+        }
+        let source = equippedBoons[index]
+        equippedBoons[index] = EquippedBoon(defID: legendary.id,
+                                            rarity: source.rarity,
+                                            level: source.level)
+        legendariesTaken += 1
+        finishSelection("\(legendary.name) — \(source.rarity.label) level \(source.level) carried over.")
+    }
+
+    /// Swap a new power in for one already equipped in that slot.
+    func replaceBoon(_ oldID: String, with def: GodBoonDef, rarity: BoonRarity) {
+        guard let index = equippedBoons.firstIndex(where: { $0.defID == oldID }) else { return }
+        let replaced = equippedBoons[index].def?.name ?? "a power"
+        equippedBoons[index] = EquippedBoon(defID: def.id, rarity: rarity, level: 1)
+        finishSelection("\(def.name) takes the place of \(replaced).")
+    }
+
+    /// Is this legendary's offer unlocked? Its source must be equipped along
+    /// with one other regular power of the same god, and the run allows one.
+    func legendaryUnlocked(_ legendary: GodBoonDef) -> Bool {
+        guard legendariesTaken == 0, let sourceID = legendary.evolves,
+              owns(boon: sourceID) else { return false }
+        return equippedBoons.contains { owned in
+            guard let def = owned.def else { return false }
+            return def.god == legendary.god && def.id != sourceID && def.kind == .regular
+        }
     }
 
     /// Commit to a capstone — one per run.
@@ -987,11 +1067,19 @@ final class GameManager {
                 lines.append("Found \(pick.name)")
             }
         case .patronOffer:
-            // The old relic overwrites are gone; omens now hand out a god's
-            // claim on a die for free.
+            // Gods no longer claim dice — an omen hands over one of their
+            // powers instead, at a rarity rolled for this point in the night.
             let deity = Deity.allCases.randomElement() ?? .ra
-            pendingSelection = .patron(deity, replace: false, title: event.title)
-            lines.append("\(deity.name) listens")
+            let pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) }
+            if let def = pool.randomElement() {
+                let rarity = BoonRarity.roll(progress: progress)
+                equip(boon: def, rarity: rarity)
+                lines.append("\(deity.name) grants \(def.name) (\(rarity.label))")
+            } else {
+                let gift = 30 + Int(progress * 30)
+                gold += gift
+                lines.append("\(deity.name) has nothing left to teach you: +\(gift) gold")
+            }
         case .gamble(let chance, let damage):
             if Double.random(in: 0..<1) < chance {
                 let winnings = 40 + Int(progress * 50)
@@ -1108,32 +1196,137 @@ final class GameManager {
     /// own to make. Mundane offers fill any shortfall, so the screen always
     /// presents choices you can actually take.
     func makeGodFavourOffers(deity: Deity, count: Int, progress: Double) -> [Offer] {
-        let rarity = Rarity.roll(progress: progress)
-        var godCards: [Offer] = []
-        if !unblessedDice.isEmpty {
-            godCards.append(makePatronOffer(deity: deity, priced: false))
+        var cards: [Offer] = []
+        let pool = GodCatalog.regulars(of: deity)
+
+        // A legendary evolution when its source and a second power of the same
+        // god are both carried — one per run.
+        let legendaries = GodCatalog.legendaries
+            .filter { $0.god == deity && legendaryUnlocked($0) }
+        if let legendary = legendaries.first {
+            cards.append(makeLegendaryOffer(legendary))
         }
-        var extras: [Offer] = GodKit.upgrades(for: deity)
-            .filter { !acquiredUpgrades.contains($0.id) }
-            .shuffled()
-            .map { makeUpgradeOffer($0) }
-        if let capstone = GodKit.capstone(for: deity),
-           capstoneID == nil, capstoneUnlocked(capstone) {
-            extras.append(makeCapstoneOffer(capstone))
+
+        // A duo, once both its source groups are equipped and it is legal.
+        let duos = GodCatalog.duos.filter { duo in
+            duo.god == deity && !owns(boon: duo.id) && duoOfferable(duo)
+        }.shuffled()
+        if let duo = duos.first, cards.count < count {
+            cards.append(makeBoonOffer(duo, rarity: .common))
         }
-        if pairingID == nil {
-            let pairings = PairingContent.pairings.filter { pairing in
-                (pairing.first == deity || pairing.second == deity) && pairingReady(pairing)
-            }.shuffled()
-            extras.append(contentsOf: pairings.map { makePairingOffer($0) })
+
+        // A level on a power of this god you already carry. A repeat is
+        // explicitly an upgrade: same slot, same rarity, one step stronger.
+        let levelable = equippedBoons.filter { owned in
+            owned.def?.god == deity && owned.canLevel
+        }.shuffled()
+        if let owned = levelable.first, cards.count < count {
+            cards.append(makeLevelOffer(owned))
         }
-        extras.shuffle()
-        godCards.append(contentsOf: extras.prefix(max(0, count - godCards.count)))
-        while godCards.count < count,
-              let fill = makeOffer(rarity: rarity, priced: false, index: godCards.count) {
-            godCards.append(fill)
+
+        // New powers, each rolling and showing its own rarity before the
+        // choice. An immediately useful Attack is guaranteed where one fits,
+        // then a Defence and a Utility where they are legal.
+        var fresh = pool.filter { !owns(boon: $0.id) }
+        var wanted: [BoonSlot] = [.attack, .defence, .utility]
+        while cards.count < count, !fresh.isEmpty {
+            let slot = wanted.first { slot in
+                fresh.contains { $0.slot == slot }
+            } ?? fresh[0].slot
+            wanted.removeAll { $0 == slot }
+            guard let index = fresh.firstIndex(where: { $0.slot == slot }) else { break }
+            let def = fresh.remove(at: index)
+            cards.append(makeBoonOffer(def, rarity: BoonRarity.roll(progress: progress)))
+            if wanted.isEmpty { wanted = [.attack, .defence, .utility] }
         }
-        return Array(godCards.prefix(max(count, 3)))
+
+        // Never force a no-op duplicate to fill the template — the river's own
+        // spoils top up any shortfall instead.
+        while cards.count < count,
+              let fill = makeOffer(rarity: Rarity.roll(progress: progress),
+                                   priced: false, index: cards.count) {
+            cards.append(fill)
+        }
+        return Array(cards.prefix(max(count, 3)))
+    }
+
+    /// Could this duo be equipped right now while keeping its prerequisites?
+    /// Never offered when there is no legal way to hold it and its sources.
+    private func duoOfferable(_ duo: GodBoonDef) -> Bool {
+        let owned = Set(equippedBoons.compactMap { boon -> String? in
+            guard let def = boon.def else { return nil }
+            return def.kind == .legendary ? def.evolves : def.id
+        })
+        guard duo.sources.allSatisfy({ !$0.members.isDisjoint(with: owned) }) else { return false }
+        // Two equipped duos at most, and it still needs a legal slot.
+        let duoCount = equippedBoons.filter { $0.def?.kind == .duo }.count
+        guard duoCount < 2 else { return false }
+        return hasRoom(for: duo.slot) || sourcesSurviveReplacement(duo)
+    }
+
+    /// When a duo's slot is full, at least one power in it must be safe to
+    /// replace without breaking that duo's own prerequisites.
+    private func sourcesSurviveReplacement(_ duo: GodBoonDef) -> Bool {
+        let inSlot = boons(in: duo.slot)
+        return inSlot.contains { candidate in
+            let remaining = Set(equippedBoons.compactMap { boon -> String? in
+                guard boon.defID != candidate.defID, let def = boon.def else { return nil }
+                return def.kind == .legendary ? def.evolves : def.id
+            })
+            return duo.sources.allSatisfy { !$0.members.isDisjoint(with: remaining) }
+        }
+    }
+
+    /// A new power, with its rarity rolled and printed before the choice.
+    private func makeBoonOffer(_ def: GodBoonDef, rarity: BoonRarity) -> Offer {
+        let slotNote = hasRoom(for: def.slot)
+            ? "\(def.slot.label) slot"
+            : "\(def.slot.label) slot is full — you choose what it replaces"
+        return Offer(
+            name: def.name,
+            detail: def.text(rarity: rarity, level: 1),
+            symbol: def.god.symbol,
+            rarity: .rare,
+            comboHint: "\(rarity.label) · level 1 · \(slotNote)",
+            price: 0,
+            kind: .boon(def, rarity),
+            deity: def.god
+        )
+    }
+
+    /// A level on a power already carried: before and after, plainly stated.
+    private func makeLevelOffer(_ owned: EquippedBoon) -> Offer {
+        let next = min(owned.level + 1, boonMaxLevel)
+        let def = owned.def
+        let after = def?.text(rarity: owned.rarity, level: next) ?? ""
+        return Offer(
+            name: "\(def?.name ?? "Power") → \(next)",
+            detail: after,
+            symbol: def?.god.symbol ?? "sparkles",
+            rarity: .uncommon,
+            comboHint: "Level \(owned.level) → \(next) · keeps \(owned.rarity.label) · same slot",
+            price: 0,
+            kind: .boonLevel(owned),
+            deity: def?.god
+        )
+    }
+
+    /// A legendary evolution: it replaces its source in that slot and carries
+    /// the source's rarity and level across.
+    private func makeLegendaryOffer(_ def: GodBoonDef) -> Offer {
+        let source = equippedBoons.first { $0.defID == def.evolves }
+        let rarity = source?.rarity ?? .common
+        let level = source?.level ?? 1
+        return Offer(
+            name: def.name,
+            detail: def.text(rarity: rarity, level: level),
+            symbol: def.god.symbol,
+            rarity: .signature,
+            comboHint: "Legendary · replaces \(GodCatalog.boon(def.evolves ?? "")?.name ?? "its source") · one per run",
+            price: 0,
+            kind: .legendary(def),
+            deity: def.god
+        )
     }
 
     /// A patron claim: the god takes an unblessed die of your choosing. Their
@@ -1190,19 +1383,6 @@ final class GameManager {
             price: 0,
             kind: .pairing(pairing),
             deity: pairing.first
-        )
-    }
-
-    /// One relic card for the opening spoils: three dice for the item slot.
-    private func makeRelicOffer(_ relic: RelicDef) -> Offer {
-        Offer(
-            name: relic.name,
-            detail: "\(relic.blurb) Equips three relic dice into your item slot — the pool grows from seven to ten.",
-            symbol: relic.symbol,
-            rarity: relic.rarity,
-            comboHint: "Item combos — shared by every class",
-            price: 0,
-            kind: .relic(relic)
         )
     }
 

@@ -8,6 +8,14 @@ enum OfferKind: Hashable {
     case reforge(FaceKind)
     /// Reroll every face on one die of your choice.
     case reforgeDie
+    /// A god's power, offered at a rolled rarity and shown before you pick it.
+    /// Taking it equips the card into its own slot.
+    case boon(GodBoonDef, BoonRarity)
+    /// A level on a power you already carry: same slot, same rarity, one step
+    /// stronger. Never a second copy.
+    case boonLevel(EquippedBoon)
+    /// A legendary evolution replacing the named regular boon in its slot.
+    case legendary(GodBoonDef)
     /// A god claims one of your dice as its patron — an unblessed die, or
     /// (rarely, `replace: true`) explicitly taking a die from another god.
     case patron(Deity, replace: Bool)
@@ -27,8 +35,6 @@ enum OfferKind: Hashable {
     case maxHP(Int)
     /// Pure gold, from events.
     case gold(Int)
-    /// A named relic: fills the item slot with its three dice.
-    case relic(RelicDef)
     /// A Breath of Ra: permanently raise the turn capacity by this much.
     case breath(Int)
     /// A Chisel of Ptah: claiming it opens his workshop to choose one.
@@ -72,6 +78,22 @@ struct Offer: Identifiable, Hashable {
     }
 
     var isFree: Bool { price <= 0 }
+
+    /// The boon rarity this card carries, shown on the card before choosing.
+    var boonRarity: BoonRarity? {
+        switch kind {
+        case .boon(_, let rarity): rarity
+        case .boonLevel(let owned): owned.rarity
+        case .legendary: BoonRarity.epic
+        default: nil
+        }
+    }
+
+    /// Level before and after, for a card that is explicitly an upgrade.
+    var levelStep: (from: Int, to: Int)? {
+        guard case .boonLevel(let owned) = kind else { return nil }
+        return (owned.level, min(owned.level + 1, boonMaxLevel))
+    }
 
     /// Blessings glow in their god's colour, Ptah's Chisel in his hammered
     /// copper; everything else uses its rarity.
