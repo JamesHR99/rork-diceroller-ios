@@ -286,6 +286,45 @@ struct ComboFlash: Identifiable, Equatable {
     let crit: Bool
 }
 
+/// How long the arena holds each beat of a fight, in milliseconds.
+///
+/// Every one of these used to be a magic number tuned against single drawings
+/// that only had to register for an instant. The heroes are now animated
+/// frame by frame — a swing is eight plates and the better part of a second —
+/// so the beats are stretched to let a drawn action finish before the board
+/// moves on. Change the pace of the whole fight here rather than in fifteen
+/// scattered sleeps.
+enum BattleBeat {
+    /// Pause before a planned step steps into the light.
+    static let stepLeadIn = 340
+    /// A single face resolving on its own: long enough to play its clip out.
+    static let soloStep = 920
+    /// A chain landing — the floor, before its length and crit bonus.
+    static let comboBase = 880
+    /// Added per face welded into the chain.
+    static let comboPerFace = 90
+    /// Added when the chain crits, so the flash has room.
+    static let comboCrit = 420
+    /// After the last step, before statuses tick.
+    static let turnSettle = 520
+    /// Either side of a poison, burn or bleed tick.
+    static let statusTick = 400
+    /// Pause before a foe takes its turn.
+    static let foeLeadIn = 340
+    /// A foe raising its guard or licking its wounds.
+    static let foeSupport = 620
+    /// The tell before a blow — matches the drawn wind-up.
+    static let telegraph = 660
+    /// A blow landing, long enough for the recoil animation to play.
+    static let strike = 860
+    /// A blow slipped or swallowed whole by the shield.
+    static let deflect = 780
+    /// Either side of the champion's Sentence.
+    static let sentence = 560
+    /// The breath between the last foe acting and the drums spinning again.
+    static let handover = 760
+}
+
 /// Animation pose for a fighter sprite in the arena.
 enum FighterPose: Equatable {
     case idle
@@ -1478,7 +1517,7 @@ final class BattleEngine {
 
         for (index, step) in steps.enumerated() {
             activeStepIndex = index
-            try? await Task.sleep(for: .milliseconds(260))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.stepLeadIn))
             let target = targetIndex(for: step)
             activeTargetID = target.map { enemies[$0].id }
 
@@ -1533,7 +1572,9 @@ final class BattleEngine {
                     }
                     resolveBlessings(in: step, targetIndex: target)
                     pairingAfterAction(step: step, dealtDamage: combo.damage > 0, targetIndex: target)
-                    let hang = 480 + min(step.faces.count, 5) * 90 + (didCrit ? 420 : 0)
+                    let hang = BattleBeat.comboBase
+                        + min(step.faces.count, 5) * BattleBeat.comboPerFace
+                        + (didCrit ? BattleBeat.comboCrit : 0)
                     try? await Task.sleep(for: .milliseconds(hang))
                 } else if let face = step.faces.first {
                     playerPose = pose(for: face.face)
@@ -1541,7 +1582,7 @@ final class BattleEngine {
                     let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
                     resolveBlessings(in: step, targetIndex: target)
                     pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
-                    try? await Task.sleep(for: .milliseconds(380))
+                    try? await Task.sleep(for: .milliseconds(BattleBeat.soloStep))
                 }
             }
             resetPoses()
@@ -1562,7 +1603,7 @@ final class BattleEngine {
         returningKnifeUsedThisTurn = false
 
         activeStepIndex = nil
-        try? await Task.sleep(for: .milliseconds(380))
+        try? await Task.sleep(for: .milliseconds(BattleBeat.turnSettle))
         detonateJudgements()
         boilingNileTick()
         // Anubis's Sentence: stored by a trial champion, it falls against
@@ -2337,14 +2378,14 @@ final class BattleEngine {
         // Statuses seep under armour: every living foe takes its ticks up front.
         for index in enemies.indices where enemies[index].isAlive {
             for tick in statusTicks(index: index) {
-                try? await Task.sleep(for: .milliseconds(360))
+                try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
                 enemies[index].pose = .hurt
                 enemies[index].hp = max(0, enemies[index].hp - tick.amount)
                 damageDealt += tick.amount
                 addFloat("-\(tick.amount) \(tick.label)", color: tick.color, onEnemy: true,
                          foe: enemies[index].id)
                 lastAction = "\(enemies[index].displayName) takes \(tick.amount) \(tick.label.lowercased()) damage."
-                try? await Task.sleep(for: .milliseconds(300))
+                try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
                 resetPoses()
                 if !hasLivingFoes { finishVictory(); return }
             }
@@ -2352,13 +2393,13 @@ final class BattleEngine {
 
         // Then each living foe acts, one after another.
         for index in enemies.indices where enemies[index].isAlive {
-            try? await Task.sleep(for: .milliseconds(260))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.foeLeadIn))
             if await foeActs(index: index) { return }
             if !hasLivingFoes { finishVictory(); return }
         }
 
         endOfEnemyTurn()
-        try? await Task.sleep(for: .milliseconds(380))
+        try? await Task.sleep(for: .milliseconds(BattleBeat.handover))
         startPlayerTurn()
     }
 
@@ -2486,13 +2527,13 @@ final class BattleEngine {
         // attack and weighs your heart instead.
         if isChampion(foe), trial?.deity == .anubis, enemyTurnCount % 2 == 0 {
             foe.pose = .telegraph
-            try? await Task.sleep(for: .milliseconds(420))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
             foe.pose = .attack
             addFloat("SENTENCE \(GameData.trialSentence)", color: Deity.anubis.tint, onEnemy: true, big: true, foe: foe.id)
             playerJudgementAmount = GameData.trialSentence
             playerJudgementPending = true
             lastAction = "\(foe.displayName) passes Sentence — it falls at the end of your next turn."
-            try? await Task.sleep(for: .milliseconds(420))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
             resetPoses()
             return false
         }
@@ -2501,14 +2542,14 @@ final class BattleEngine {
             foe.pose = .block
             foe.block += move.block
             addFloat("+\(move.block) Block", color: Theme.steel, onEnemy: true, foe: foe.id)
-            try? await Task.sleep(for: .milliseconds(360))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
             resetPoses()
         }
         if move.heal > 0 {
             foe.pose = .heal
             foe.hp = min(foe.def.maxHP, foe.hp + move.heal)
             addFloat("+\(move.heal)", color: Theme.forest, onEnemy: true, foe: foe.id)
-            try? await Task.sleep(for: .milliseconds(360))
+            try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
             resetPoses()
         }
 
@@ -2529,7 +2570,7 @@ final class BattleEngine {
             var remainder = total - perHit * attackFaces
             for _ in 0..<attackFaces {
                 foe.pose = .telegraph
-                try? await Task.sleep(for: .milliseconds(300))
+                try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
                 foe.pose = .attack
                 var hit = perHit + remainder
                 remainder = 0
@@ -2540,7 +2581,7 @@ final class BattleEngine {
                     addFloat("Evaded!", color: Theme.steel, onEnemy: false)
                     Haptics.light()
                     firstEvadeRewards(attacker: foe)
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: .milliseconds(BattleBeat.deflect))
                     resetPoses()
                     continue
                 }
@@ -2576,7 +2617,7 @@ final class BattleEngine {
                     }
                 }
                 guard hit > 0 else {
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: .milliseconds(BattleBeat.deflect))
                     resetPoses()
                     continue
                 }
@@ -2620,7 +2661,7 @@ final class BattleEngine {
                         return true
                     }
                 }
-                try? await Task.sleep(for: .milliseconds(300))
+                try? await Task.sleep(for: .milliseconds(BattleBeat.strike))
                 resetPoses()
             }
         }

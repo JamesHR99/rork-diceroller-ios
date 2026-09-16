@@ -67,40 +67,68 @@ enum SpriteClipLibrary {
         }
     }
 
-    /// The archer's four sheets — idle, attack, block and take-damage — sliced
-    /// into eight plates each. Actions without their own sheet borrow the
-    /// closest drawn one: the aim frames stand in for a telegraph, the guard's
-    /// slip becomes the dodge, and the recoil's doubled-over frame holds as the
-    /// collapse.
-    private static func build(_ characterID: String, pose: FighterPose) -> SpriteClip? {
-        guard characterID == "archer" else { return nil }
+    // MARK: - Timing
+
+    /// How long each hero holds a plate, by action. Every hero was drawn as
+    /// four eight-frame sheets, but they do not move alike: an axe hangs at the
+    /// top of its arc, twin blades flurry, a staff builds and detonates.
+    /// Idles are deliberately slow — a standing fighter should read as
+    /// breathing, not fidgeting.
+    private struct Tempo {
+        var idle: Double
+        var attack: Double
+        var block: Double
+        var hurt: Double
+    }
+
+    private static let tempos: [String: Tempo] = [
+        // The draw is long and the loose is the only quick thing he does.
+        "archer": Tempo(idle: 0.34, attack: 0.105, block: 0.10, hurt: 0.095),
+        // The heaviest fighter on the deck: slowest breath, slowest swing.
+        "warrior": Tempo(idle: 0.38, attack: 0.115, block: 0.11, hurt: 0.10),
+        // Light on his feet — a shallower breath and the fastest blades.
+        "rogue": Tempo(idle: 0.30, attack: 0.09, block: 0.09, hurt: 0.085),
+        // The robes carry their own drift, so she breathes slowest of all.
+        "magician": Tempo(idle: 0.40, attack: 0.11, block: 0.105, hurt: 0.095),
+    ]
+
+    /// The eight plates played out and back, so a loop never snaps between the
+    /// last drawing and the first — the shift of weight simply reverses.
+    private static let breath = [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1]
+
+    // MARK: - Building
+
+    /// Four sheets per hero — idle, attack, block and take-damage — sliced into
+    /// eight plates each. Actions without their own sheet borrow the closest
+    /// drawn one: the wind-up frames stand in for a telegraph, the guard's slip
+    /// becomes the dodge, the guard's flourish becomes a victory, and the
+    /// recoil's doubled-over frames hold as the collapse.
+    private static func build(_ hero: String, pose: FighterPose) -> SpriteClip? {
+        guard let tempo = tempos[hero] else { return nil }
         switch pose {
         case .idle:
-            // Played out and back so the loop never snaps between the last
-            // drawing and the first: a slow shift of weight on the deck.
-            return clip("archer", "idle", [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
-                        hold: 0.15, loops: true)
+            return clip(hero, "idle", breath, hold: tempo.idle, loops: true)
         case .attack:
-            // Draw, aim, loose, recover — the whole sheet, timed to land its
-            // release on the beat the arrow leaves the bow.
-            return clip("archer", "attack", Array(0...7), hold: 0.055)
+            return clip(hero, "attack", Array(0...7), hold: tempo.attack)
         case .block:
-            return clip("archer", "block", Array(0...7), hold: 0.055)
+            return clip(hero, "block", Array(0...7), hold: tempo.block)
         case .hurt:
-            return clip("archer", "hurt", Array(0...7), hold: 0.05)
+            return clip(hero, "hurt", Array(0...7), hold: tempo.hurt)
         case .dodge:
-            // The guard's low slip, without the shield flaring.
-            return clip("archer", "block", [1, 2, 2, 1], hold: 0.08)
+            // The guard's low slip, held rather than flaring into the block.
+            return clip(hero, "block", [1, 2, 2, 1], hold: tempo.block * 1.6)
         case .telegraph:
-            return clip("archer", "attack", [1, 2, 3], hold: 0.1)
+            // The first beats of the swing, slowed to a tell.
+            return clip(hero, "attack", [1, 2, 3], hold: tempo.attack * 1.9)
         case .heal:
-            return clip("archer", "idle", [0, 1, 2, 3], hold: 0.16)
+            // A breath drawn in and let out over the mending.
+            return clip(hero, "idle", [0, 1, 2, 3, 2, 1], hold: tempo.idle * 0.9)
         case .victory:
-            // The falcon shield burning: the closest thing to a flourish the
-            // sheets drew.
-            return clip("archer", "block", [3, 4, 5, 6, 7], hold: 0.09)
+            // The back half of the guard sheet: the closest thing to a flourish
+            // the sheets drew.
+            return clip(hero, "block", [3, 4, 5, 6, 7], hold: tempo.block * 1.7)
         case .defeat:
-            return clip("archer", "hurt", [1, 2, 3], hold: 0.1)
+            return clip(hero, "hurt", [1, 2, 3], hold: tempo.hurt * 2.2)
         }
     }
 

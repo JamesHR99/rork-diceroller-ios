@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "duat_hero_magician_hurt_f6.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "template-rendering-intent": "original"
+  }
+}
