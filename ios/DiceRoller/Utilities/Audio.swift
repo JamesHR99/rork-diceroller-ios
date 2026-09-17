@@ -136,8 +136,9 @@ enum MusicTrack: String {
 /// and a small pool of players for the sound effects.
 ///
 /// Everything routes through the two volumes the pause menu owns, and the
-/// session is configured `.ambient` so the phone's silent switch is obeyed and
-/// the player's own music is never interrupted.
+/// session is configured `.playback` with `.mixWithOthers` so the game is
+/// audible regardless of the hardware silent switch while whatever the player
+/// already had playing keeps going underneath.
 @Observable
 @MainActor
 final class Audio {
@@ -181,19 +182,24 @@ final class Audio {
 
     private init() {
         let defaults = UserDefaults.standard
-        musicVolume = defaults.object(forKey: Self.musicKey) as? Float ?? 0.55
-        effectsVolume = defaults.object(forKey: Self.effectsKey) as? Float ?? 0.8
+        musicVolume = defaults.object(forKey: Self.musicKey) as? Float ?? 0.7
+        effectsVolume = defaults.object(forKey: Self.effectsKey) as? Float ?? 1.0
     }
 
     // MARK: - Session
 
-    /// Ambient category: the silent switch silences the game, and whatever the
-    /// player already had playing keeps going underneath.
+    /// Playback category: a game is not ambient decoration, so the hardware
+    /// silent switch must not mute it. `.mixWithOthers` keeps the player's own
+    /// music alive underneath, which is the one thing `.ambient` was buying us.
     private func prepareSession() {
         guard !sessionReady else { return }
         sessionReady = true
         do {
-            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .default,
+                options: [.mixWithOthers]
+            )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             // Audio is a courtesy, never a requirement — a failed session just

@@ -17,8 +17,6 @@ struct DiceTrayView: View {
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
-    /// Which Chisel mark has its explanation open, if any.
-    @State private var openChiselID: String?
 
     private var freezeArmed: Bool { engine.freezeArmed }
 
@@ -168,11 +166,15 @@ struct DiceTrayView: View {
                 .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
             }
 
-            Text(hint)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Theme.parchmentDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            // Freeze mode is a live instruction, not narration, so it is the
+            // one line that stays beside the title.
+            if freezeArmed {
+                Text(freezeHint)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.frost)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
 
             Spacer(minLength: 6)
 
@@ -210,13 +212,12 @@ struct DiceTrayView: View {
     /// applying to your whole weapon, which is otherwise only written on the
     /// card you first took it from.
     private func chiselMark(_ id: String) -> some View {
-        let isOpen = openChiselID == id
+        let tooltipID = "tray.chisel.\(id)"
+        let isOpen = TooltipCenter.shared.isOpen(tooltipID)
         return Button {
             Haptics.light()
             Audio.shared.play(.uiTap)
-            withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) {
-                openChiselID = isOpen ? nil : id
-            }
+            TooltipCenter.shared.toggle(tooltipID)
         } label: {
             DuatSymbol(art: DuatArt.chisel(id),
                        fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
@@ -226,15 +227,11 @@ struct DiceTrayView: View {
                 .background(Theme.ptahCopper.opacity(isOpen ? 0.28 : 0), in: .circle)
         }
         .buttonStyle(PressableButtonStyle())
-        .overlay(alignment: .topLeading) {
-            if isOpen, let def = ChiselCatalog.def(id) {
-                ChiselBubbleView(def: def, isArmed: engine.isChiselArmed(id))
-                    .offset(y: 26)
-                    .transition(.scale(scale: 0.9, anchor: .top).combined(with: .opacity))
-                    .zIndex(60)
-            }
-        }
-        .zIndex(isOpen ? 60 : 0)
+        // The bubble is drawn by the root tooltip layer, so it floats above the
+        // deck and the dice instead of being clipped by this capsule.
+        .tooltipAnchor(id: tooltipID, payload: isOpen
+            ? ChiselCatalog.def(id).map { .chisel($0, isArmed: engine.isChiselArmed(id)) }
+            : nil)
     }
 
     private var headerTitle: String {
@@ -244,15 +241,9 @@ struct DiceTrayView: View {
         return "YOUR ROLL"
     }
 
-    private var hint: String {
-        if freezeArmed {
-            let left = engine.freezesRemaining
-            return "Hold a face · \(left) freeze\(left == 1 ? "" : "s") left · the die still rolls next turn"
-        }
-
-        if engine.canRoll { return "Roll to begin the turn · the order changes every roll" }
-        if engine.isRolling { return "The drums wind down, one by one..." }
-        return "Dice side by side chain together · the order is yours to find"
+    private var freezeHint: String {
+        let left = engine.freezesRemaining
+        return "Hold a face · \(left) freeze\(left == 1 ? "" : "s") left · the die still rolls next turn"
     }
 
     // MARK: - Combo panel

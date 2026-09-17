@@ -54,8 +54,6 @@ struct FighterView: View {
     var cardWidth: CGFloat? = nil
 
     @State private var aimPulse = false
-    /// Which status badge has its explanation bubble open, if any.
-    @State private var openStatusID: String?
 
     var body: some View {
         Group {
@@ -150,6 +148,7 @@ struct FighterView: View {
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
+                    agilityChip(scale: 0.9)
                     badgeRow
                 }
 
@@ -196,7 +195,7 @@ struct FighterView: View {
     private var tickerBarWidth: CGFloat { max(72, tickerWidth - 62) }
 
     /// Everything this foe is going to do when the deck goes down, in order,
-    /// each with the beat it lands on. A creature spends a stamina allowance
+    /// each carrying its own agility. A creature spends a stamina allowance
     /// like you do, so a round can be a guard and two quick cuts rather than
     /// one blow — and all of it is on the board before you commit, which is
     /// what makes blocking, striking and blocking again worth planning.
@@ -206,27 +205,31 @@ struct FighterView: View {
         if round.count > 1 {
             VStack(alignment: .trailing, spacing: 2) {
                 ForEach(Array(round.enumerated()), id: \.offset) { index, entry in
-                    intentStep(entry.move, beat: entry.beat, strike: entry.strike,
+                    intentStep(entry.move,
+                               cost: engine.duration(for: foe, moveIndex: index),
+                               strike: entry.strike,
                                step: index + 1, of: round.count)
                 }
             }
         } else if let entry = round.first {
-            intentStep(entry.move, beat: entry.beat, strike: entry.strike, step: 1, of: 1)
+            intentStep(entry.move,
+                       cost: engine.duration(for: foe, moveIndex: 0),
+                       strike: entry.strike, step: 1, of: 1)
         }
     }
 
-    /// One of the foe's telegraphed actions: when it lands, what it is, and
-    /// what it will cost you.
+    /// One of the foe's telegraphed actions: its agility, what it is, and what
+    /// it will cost you.
     private func intentStep(
         _ move: EnemyMove,
-        beat: Int,
+        cost: Int,
         strike: (damage: Int, heal: Int, block: Int),
         step: Int,
         of total: Int
     ) -> some View {
         let tight = tickerWidth < 200
         return HStack(spacing: 3) {
-            beatCartouche(beat)
+            agilityCartouche(cost)
 
             if total > 1 {
                 Text("\(step)")
@@ -290,14 +293,14 @@ struct FighterView: View {
         }
     }
 
-    /// The beat this blow lands on, inked in a cartouche tick in the same
-    /// numerals the turn plan's own chips use, so the two read against each
-    /// other at a glance.
-    private func beatCartouche(_ beat: Int) -> some View {
+    /// This blow's own agility: the creature's base plus the size of the move.
+    /// The same number your own actions carry, so the two sides can be read
+    /// against each other and the order of the round worked out by hand.
+    private func agilityCartouche(_ cost: Int) -> some View {
         HStack(spacing: 1.5) {
-            Image(systemName: "hourglass")
+            Image(systemName: "hare.fill")
                 .font(.system(size: 7, weight: .black))
-            Text("\(beat)")
+            Text("\(cost)")
                 .font(.system(size: 9.5, weight: .black).monospacedDigit())
                 .contentTransition(.numericText())
         }
@@ -305,7 +308,7 @@ struct FighterView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 1)
         .background(Theme.blood, in: .capsule)
-        .accessibilityLabel("Lands on beat \(beat)")
+        .accessibilityLabel("Agility \(cost)")
     }
 
     // MARK: - Overlays
@@ -482,13 +485,38 @@ struct FighterView: View {
     }
 
     private var nameRow: some View {
-        Text(side == .player ? heroName : (foe?.displayName ?? ""))
-            .font(.fantasy(17, weight: .bold))
-            .kerning(0.6)
-            .foregroundStyle(Theme.parchment)
-            .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
-            .lineLimit(1)
-            .minimumScaleFactor(0.55)
+        HStack(spacing: 6) {
+            Text(side == .player ? heroName : (foe?.displayName ?? ""))
+                .font(.fantasy(17, weight: .bold))
+                .kerning(0.6)
+                .foregroundStyle(Theme.parchment)
+                .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+
+            agilityChip()
+        }
+    }
+
+    /// This fighter's base agility, beside the name and over the health bar.
+    /// Every action adds its size in dice to this number, and the lower total
+    /// acts first — so with both sides printed, the order of the round can be
+    /// worked out by hand before you commit to anything.
+    private func agilityChip(scale: CGFloat = 1) -> some View {
+        let value = side == .player ? engine.agility : (foe.map { engine.agility(for: $0) } ?? 0)
+        return HStack(spacing: 1.5) {
+            Image(systemName: "hare.fill")
+                .font(.system(size: 8 * scale, weight: .black))
+            Text("\(value)")
+                .font(.system(size: 10 * scale, weight: .black).monospacedDigit())
+                .contentTransition(.numericText())
+        }
+        .foregroundStyle(Theme.frost)
+        .padding(.horizontal, 4.5 * scale)
+        .padding(.vertical, 1.5 * scale)
+        .background(Theme.frost.opacity(0.16), in: .capsule)
+        .overlay(Capsule().strokeBorder(Theme.frost.opacity(0.45), lineWidth: 0.8))
+        .accessibilityLabel("Base agility \(value). Each action adds its size in dice; lower acts first.")
     }
 
     private var currentHP: Int { side == .player ? engine.playerHP : (foe?.hp ?? 0) }
@@ -674,13 +702,12 @@ struct FighterView: View {
         let tint = status.kind == .champion
             ? (engine.trial?.deity.tint ?? Theme.gold)
             : status.kind.tint
-        let isOpen = openStatusID == status.id
+        let tooltipID = "fighter.\(side == .player ? "player" : "foe").\(status.id)"
+        let isOpen = TooltipCenter.shared.isOpen(tooltipID)
         return Button {
             Haptics.light()
             Audio.shared.play(.uiTap)
-            withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) {
-                openStatusID = isOpen ? nil : status.id
-            }
+            TooltipCenter.shared.toggle(tooltipID)
         } label: {
             HStack(spacing: 2.5) {
                 DuatSymbol(art: status.kind.art, fallback: status.kind.fallbackSymbol,
@@ -696,16 +723,8 @@ struct FighterView: View {
                                             lineWidth: isOpen ? 1.4 : 0.8))
         }
         .buttonStyle(PressableButtonStyle())
-        // The bubble hangs off the badge itself, so it always points at the
-        // thing it is explaining.
-        .overlay(alignment: side == .player ? .bottomLeading : .bottomTrailing) {
-            if isOpen {
-                StatusBubbleView(status: status, pointsUp: true)
-                    .offset(y: 30 * scale)
-                    .transition(.scale(scale: 0.9, anchor: .top).combined(with: .opacity))
-                    .zIndex(50)
-            }
-        }
-        .zIndex(isOpen ? 50 : 0)
+        // The bubble is drawn by the root tooltip layer so it can never be
+        // clipped by the fighter's panel, and it clamps itself on screen.
+        .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }

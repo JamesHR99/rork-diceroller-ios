@@ -711,7 +711,7 @@ struct InfoSheetView: View {
                     "A face played on its own is worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
                     "A chain forms out of dice standing next to each other, read left to right in the order you laid them down. Two Fire runes at either end of the plan are two lone runes; put them side by side and they are something else entirely.",
                     "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
-                    "A step costs one stamina per face it uses — there is no bulk discount. A big recipe buys its power with preparation time instead: it lands later on the hour strip.",
+                    "A step costs one stamina per face it uses — there is no bulk discount. A big recipe buys its power with time instead: the more dice it spends, the later it lands.",
                     "Nothing tells you what to build. No letters, no suggestions, no list of what is in reach — you arrange the dice, commit, and each chain names itself as it lands. Every one you land is written into the codex for good.",
                     "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
                 ]
@@ -928,6 +928,8 @@ struct InfoSheetView: View {
                 ]
             )
 
+            agilityCard
+
             statusGlossary
 
             ruleCard(
@@ -942,6 +944,73 @@ struct InfoSheetView: View {
                 ]
             )
         }
+    }
+
+    // MARK: - Agility
+
+    /// Turn order, defined once and arithmetically. Everything in the fight —
+    /// your plan, every creature's telegraphed blow — carries a number built
+    /// the same way, so the order of a round is something you can work out
+    /// rather than something you discover after committing.
+    private var agilityCard: some View {
+        let hero = GameData.heroClass(id: classID)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "hare.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.frost)
+                Text("AGILITY AND TURN ORDER")
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(Theme.frost)
+                    .kerning(1.5)
+            }
+
+            Text("One rule decides everything about when an action lands: its agility is its size in dice, added to your base agility. The lower total goes first. On a tie, you go before the creature.")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.parchment.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("A big chain is a slow chain. One die counts 1, a two-die chain 2, a three-die chain 3 — power is paid for in time, every single time.")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.parchmentDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 3) {
+                ForEach(GameData.classes) { entry in
+                    critRow(entry.id == hero.id ? "\(entry.name) — yours" : entry.name,
+                            "\(entry.agility)")
+                }
+            }
+            .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("WORKED TWICE")
+                    .font(.system(size: 9.5, weight: .black))
+                    .kerning(1)
+                    .foregroundStyle(Theme.frost)
+                Text("You play one die. \(hero.agility) + 1 = \(hero.agility + 1). A creature of base 2 swinging a single blow is 2 + 1 = 3 — so your die lands first.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("You build a three-die chain instead. \(hero.agility) + 3 = \(hero.agility + 3). That same blow at 3 now lands before you do — the chain hits harder and arrives late, and you chose that.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
+
+            Text("Every number is on the deck before you commit: your base beside your health bar, each creature's beside its own, and the agility of every blow it has telegraphed. Haste pulls one of your actions earlier; Ice Blast, Glacier and Earthshaker shove a creature's later.")
+                .font(.system(size: 11.5))
+                .italic()
+                .foregroundStyle(Theme.parchmentDim.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 
     // MARK: - Status glossary

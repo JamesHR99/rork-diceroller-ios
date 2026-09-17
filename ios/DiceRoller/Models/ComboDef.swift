@@ -150,11 +150,12 @@ struct ComboDef: Identifiable, Hashable {
     var faceCount: Int { required.reduce(0) { $0 + $1.count } }
 
     /// A step costs one stamina per face it consumes. Large recipes no longer
-    /// come at a discount — they buy their power with preparation time.
+    /// come at a discount — they buy their power with time on the clock.
     var staminaCost: Int { GameData.comboStaminaCost(faces: faceCount) }
 
-    /// Beats of wind-up before this recipe lands, before agility and Haste.
-    var preparation: Int { Timing.preparation(recipe: id, faces: faceCount) }
+    /// This recipe's own agility: its size in dice, before the actor's base
+    /// agility and any Haste are counted.
+    var agilitySize: Int { faceCount }
 
     /// What this action *is*, which decides which god powers answer it.
     var roles: ActionRole {

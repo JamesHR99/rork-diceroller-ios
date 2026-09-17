@@ -58,8 +58,11 @@ struct ClassCardView: View {
                          value: "\(hero.maxHP)", label: "HP", tint: Theme.blood)
                 statPill(art: DuatArt.staminaFull, icon: "bolt.fill",
                          value: "\(hero.maxStamina)", label: "STAM", tint: Theme.gold)
-                statPill(art: DuatArt.interactionRoll, icon: "arrow.clockwise",
-                         value: "FULL", label: "REFILL", tint: Theme.forest)
+                // Base agility sits with health and stamina because it decides
+                // the shape of every turn: lower acts first, and each action
+                // adds its own size in dice on top of this.
+                statPill(art: nil, icon: "hare.fill",
+                         value: "\(hero.agility)", label: "AGIL", tint: Theme.frost)
             }
 
             Text(hero.playstyle.uppercased())
@@ -140,7 +143,7 @@ struct ClassCardView: View {
         }
     }
 
-    private func statPill(art: String, icon: String, value: String, label: String, tint: Color) -> some View {
+    private func statPill(art: String?, icon: String, value: String, label: String, tint: Color) -> some View {
         VStack(spacing: 1) {
             DuatSymbol(art: art, fallback: icon, size: 15, tint: tint)
             Text(value)

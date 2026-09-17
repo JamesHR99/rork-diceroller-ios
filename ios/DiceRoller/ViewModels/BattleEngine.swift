@@ -505,7 +505,8 @@ final class BattleEngine {
     var heroName: String { GameData.heroClass(id: classID).name }
     let critBonus: Double
     let maxStamina: Int
-    /// Beats this hero shaves off every action's preparation.
+    /// This hero's base agility. Every action adds its size in dice to this,
+    /// and the lower total acts first.
     let agility: Int
     /// The god powers carried into this fight, in their slots.
     let boons: [EquippedBoon]
@@ -894,15 +895,18 @@ final class BattleEngine {
 
     // MARK: - The shared clock
 
-    /// How long one named move of this foe's takes to wind up, after its own
-    /// agility.
-    func duration(for foe: EnemyState, moveIndex: Int) -> Int {
+    /// This foe's base agility, before any action's size is added.
+    func agility(for foe: EnemyState) -> Int {
         let surprise = surprisedBy.contains(foe.id) ? Timing.surpriseAgilityBonus : 0
+        return max(0, Timing.agility(enemy: foe.def.id) - surprise)
+    }
+
+    /// One named move's agility: this foe's base plus the size of the move.
+    /// The same arithmetic your own plan uses, so the two read against each
+    /// other and the order of the round can be worked out by hand.
+    func duration(for foe: EnemyState, moveIndex: Int) -> Int {
         let move = foe.intents.indices.contains(moveIndex) ? foe.intents[moveIndex] : foe.intent
-        return Timing.duration(
-            preparation: Timing.preparation(move: move),
-            agility: Timing.agility(enemy: foe.def.id) + surprise
-        )
+        return Timing.cost(size: Timing.size(move: move), agility: agility(for: foe))
     }
 
     /// The beat one of this foe's moves lands on. A creature's actions run in
@@ -923,16 +927,14 @@ final class BattleEngine {
         beat(for: foe, moveIndex: 0)
     }
 
-    /// How long a planned step takes, after class agility and earned Haste.
+    /// A planned step's agility: your base plus its size in dice, less Haste.
     func duration(for step: PlanStep) -> Int {
-        Timing.duration(preparation: preparation(for: step), agility: agility, haste: haste(for: step))
+        Timing.cost(size: size(of: step), agility: agility, haste: haste(for: step))
     }
 
-    /// The printed wind-up of a step before agility touches it.
-    private func preparation(for step: PlanStep) -> Int {
-        if let combo = step.combo { return combo.preparation }
-        guard let face = step.faces.first else { return Timing.ordinaryPrep }
-        return Timing.soloPreparation(for: face.matchFace)
+    /// How big a step is on the clock — simply how many dice it spends.
+    private func size(of step: PlanStep) -> Int {
+        max(1, step.faces.count)
     }
 
     /// Beats of Haste this step may claim. Boons that print Haste hand it to
@@ -2339,6 +2341,13 @@ final class BattleEngine {
             enemies[target].stagger = max(enemies[target].stagger, min(0.85, combo.stagger * (crit ? 1.3 : 1.0)))
             addFloat("Staggered", color: Theme.frost, onEnemy: true, foe: foeID)
         }
+
+        // Ice Blast, Glacier and Earthshaker shove a creature's pending action
+        // later on the clock — the one thing in the game that buys you a beat
+        // back after the round has already been telegraphed.
+        if Timing.delayGranting.contains(combo.id) {
+            delayFoe(targetIndex: target)
+        }
         if combo.reflect > 0 {
             reflectFraction = max(reflectFraction, combo.reflect)
             addFloat("Reflecting", color: Theme.gold, onEnemy: false)
@@ -3129,6 +3138,17 @@ final class BattleEngine {
         enemies[target].burnAmount = min(GameData.burnTickCap, max(enemies[target].burnAmount, amount))
         enemies[target].burnTurns = max(enemies[target].burnTurns, turns)
         addFloat("Burning!", color: Theme.ember, onEnemy: true, foe: enemies[target].id)
+    }
+
+    /// Pushes one foe's telegraphed action a beat later, capped per round so a
+    /// creature can never be frozen out of the fight entirely.
+    private func delayFoe(targetIndex target: Int?) {
+        guard let index = resolveTarget(target), enemies[index].isAlive else { return }
+        let foeID = enemies[index].id
+        let already = foeDelays[foeID] ?? 0
+        guard already < Timing.maxDelayPerEnemy else { return }
+        foeDelays[foeID] = already + 1
+        addFloat("Delayed", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
     private func applyPoison(_ amount: Int, turns: Int, targetIndex target: Int?) {

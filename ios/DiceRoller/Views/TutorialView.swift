@@ -91,37 +91,43 @@ struct TutorialView: View {
     }
 
     private func pageBody(_ entry: BriefingPage) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 8) {
-                DuatSymbol(art: entry.art, fallback: entry.fallbackSymbol,
-                           size: 22, tint: entry.tint)
-                Text(entry.title.uppercased())
-                    .font(.fantasy(19, weight: .black))
-                    .kerning(1.6)
-                    .foregroundStyle(entry.tint)
+        // Scrolling rather than squeezing: a long page on a short screen keeps
+        // every word reachable instead of clipping the last paragraph.
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 8) {
+                    DuatSymbol(art: entry.art, fallback: entry.fallbackSymbol,
+                               size: 22, tint: entry.tint)
+                    Text(entry.title.uppercased())
+                        .font(.fantasy(19, weight: .black))
+                        .kerning(1.6)
+                        .foregroundStyle(entry.tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(entry.body)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.parchment.opacity(0.92))
+                    .lineSpacing(2.5)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // The live pieces: the pokable demo, and the found-count.
+                switch entry.kind {
+                case .plain:
+                    EmptyView()
+                case .orderDemo:
+                    OrderDemoView(hero: hero)
+                case .loreCount:
+                    loreCount
+                case .classDice:
+                    classDice
+                case .agility:
+                    agilityBlock
+                }
             }
-
-            Text(entry.body)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.parchment.opacity(0.92))
-                .lineSpacing(2.5)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // The live pieces: the pokable demo, and the found-count.
-            switch entry.kind {
-            case .plain:
-                EmptyView()
-            case .orderDemo:
-                OrderDemoView(hero: hero)
-            case .loreCount:
-                loreCount
-            case .classDice:
-                classDice
-            }
-
-            Spacer(minLength: 0)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background {
             PapyrusSurface(ground: .panel, tint: Theme.bgCard, strength: 0.65, shade: 0.42)
@@ -133,6 +139,60 @@ struct TutorialView: View {
         )
         .padding(.horizontal, 2)
         .padding(.bottom, 4)
+    }
+
+    /// Agility, worked in this demigod's own numbers. Two lines of arithmetic
+    /// beat any amount of explanation: the same die, the same chain, and the
+    /// plain fact that the bigger one arrives later.
+    private var agilityBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                VStack(spacing: 0) {
+                    Text("\(hero.agility)")
+                        .font(.fantasy(30, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.frost)
+                    Text("YOUR BASE")
+                        .font(.system(size: 8.5, weight: .black))
+                        .kerning(1)
+                        .foregroundStyle(Theme.parchmentDim)
+                }
+                .frame(width: 84)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    agilitySum(dice: 1)
+                    agilitySum(dice: 3)
+                }
+            }
+
+            Text("Lower goes first. Everything a creature is about to do carries the same kind of number, printed on the deck before you commit — so you can always count who swings first.")
+                .font(.system(size: 12, weight: .semibold))
+                .italic()
+                .foregroundStyle(Theme.frost.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 12))
+    }
+
+    private func agilitySum(dice: Int) -> some View {
+        HStack(spacing: 6) {
+            Text(dice == 1 ? "One die" : "\(dice)-die chain")
+                .font(.system(size: 11.5, weight: .black))
+                .foregroundStyle(Theme.parchment)
+                .frame(width: 92, alignment: .leading)
+            Text("\(hero.agility) + \(dice)")
+                .font(.system(size: 11.5, weight: .bold).monospacedDigit())
+                .foregroundStyle(Theme.parchmentDim)
+            Text("= \(hero.agility + dice)")
+                .font(.system(size: 13, weight: .black).monospacedDigit())
+                .foregroundStyle(dice == 1 ? Theme.forest : Theme.ember)
+            Text(dice == 1 ? "sooner" : "later, but far heavier")
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(Theme.parchmentDim)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
     }
 
     /// How many chains this player has ever found, so the hunt is framed as
@@ -311,6 +371,8 @@ struct BriefingPage: Identifiable {
         case loreCount
         /// The demigod's own dice, face by face.
         case classDice
+        /// Agility worked out in this demigod's own numbers.
+        case agility
     }
 
     let id: String
@@ -359,6 +421,15 @@ struct BriefingPage: Identifiable {
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
                 kind: .plain
+            ),
+            BriefingPage(
+                id: "agility",
+                title: "Who moves first",
+                body: "Every action carries an agility number, and the lower number goes first. It is your base agility plus the number of dice the action spends — one die counts 1, a three-die chain counts 3.\n\nSo a big chain is a slow chain. That is the trade you are making every single turn: hit harder, or hit sooner.",
+                art: DuatArt.Status.stamina,
+                fallbackSymbol: "hare.fill",
+                tint: Theme.frost,
+                kind: .agility
             ),
             BriefingPage(
                 id: "chains",
@@ -451,8 +522,24 @@ private struct OrderDemoView: View {
 
                 Spacer(minLength: 0)
 
-                // What the plan is worth. In the real fight this is hidden —
-                // here it is the needle that shows adjacency doing its work.
+                // The two numbers that are always in tension: what the plan is
+                // worth, and how late it lands. In the real fight the worth is
+                // hidden — here it is the needle that shows adjacency working,
+                // and the agility beside it is the price being paid for it.
+                if !plan.isEmpty {
+                    HStack(spacing: 2) {
+                        Image(systemName: "hare.fill")
+                            .font(.system(size: 8, weight: .black))
+                        Text("\(planAgility)")
+                            .font(.system(size: 11, weight: .black).monospacedDigit())
+                            .contentTransition(.numericText())
+                    }
+                    .foregroundStyle(Theme.frost)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Theme.frost.opacity(0.16), in: .capsule)
+                }
+
                 Text("WORTH \(planWorth)")
                     .font(.system(size: 11, weight: .black).monospacedDigit())
                     .foregroundStyle(hasFoundChain ? Theme.ember : Theme.parchmentDim)
@@ -604,6 +691,19 @@ private struct OrderDemoView: View {
         return total
     }
 
+    /// The agility of the slowest thing in this arrangement: the demigod's
+    /// base plus the size of the biggest step. Welding two dice together makes
+    /// the plan worth more *and* makes it land later — both numbers move at
+    /// once, which is the trade the page is trying to put in the player's hands.
+    private var planAgility: Int {
+        let groups = chainGroups
+        let grouped = Set(groups.flatMap { $0 })
+        let biggestChain = groups.map(\.count).max() ?? 0
+        let hasLoneDie = plan.indices.contains { !grouped.contains($0) }
+        let biggestStep = max(biggestChain, hasLoneDie ? 1 : 0)
+        return Timing.cost(size: biggestStep, agility: hero.agility)
+    }
+
     private func checkForChain() {
         guard !chainGroups.isEmpty, !hasFoundChain else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
@@ -619,10 +719,10 @@ private struct OrderDemoView: View {
         }
         if chainGroups.isEmpty {
             return plan.count == 1
-                ? "One die on its own barely scratches. Try another beside it."
+                ? "One die on its own barely scratches — but look how early it lands."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "There. Those two locked together and the plan is worth far more than the two of them apart. What you just made has a name — it will tell you itself when it lands."
+        return "There. Those two locked together and the plan is worth far more than the two of them apart — and watch the agility number: it went up too. Bigger always means later. What you just made has a name; it will tell you itself when it lands."
     }
 
     // MARK: Hand

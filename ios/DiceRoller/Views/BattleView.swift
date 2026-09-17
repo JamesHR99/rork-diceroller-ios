@@ -576,14 +576,8 @@ private struct BattleContentView: View {
                 ))
             }
 
-            Text(engine.lastAction)
-                .font(.paper(14))
-                .italic()
-                .foregroundStyle(Theme.parchmentDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .animation(.easeInOut(duration: 0.2), value: engine.lastAction)
-
+            // No running narration here: the damage numbers, the action
+            // spotlight and the floating text already say what just happened.
             Spacer(minLength: 4)
 
             NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared)

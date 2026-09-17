@@ -100,6 +100,8 @@ struct StatusBubbleView: View {
 struct ChiselBubbleView: View {
     let def: ChiselDef
     var isArmed: Bool = false
+    /// Which way the tail points — up when the bubble hangs below the mark.
+    var pointsUp: Bool = true
 
     private var chisel: ChiselDef { def }
 
@@ -153,7 +155,14 @@ struct ChiselBubbleView: View {
             RoundedRectangle(cornerRadius: 13)
                 .strokeBorder(Theme.ptahCopper.opacity(0.6), lineWidth: 1.4)
         )
-        .shadow(color: .black.opacity(0.7), radius: 16, y: 6)
+        .overlay(alignment: pointsUp ? .top : .bottom) {
+            Triangle()
+                .fill(Theme.bgCard)
+                .frame(width: 13, height: 8)
+                .rotationEffect(.degrees(pointsUp ? -90 : 90))
+                .offset(y: pointsUp ? -6 : 6)
+        }
+        .shadow(color: .black.opacity(0.7), radius: 16, y: pointsUp ? 6 : -6)
         .shadow(color: Theme.ptahCopper.opacity(0.3), radius: 10)
     }
 }

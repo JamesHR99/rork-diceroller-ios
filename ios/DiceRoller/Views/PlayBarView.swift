@@ -162,13 +162,15 @@ struct PlayBarView: View {
                 .kerning(1.4)
                 .foregroundStyle(Theme.gold.opacity(0.85))
 
-            Text(engine.armingChisel.map { "\($0.name.uppercased()) — tap a die to spend it" } ?? hintText)
-                .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(engine.armingChisel != nil
-                                 ? Theme.ptahCopper
-                                 : Theme.parchmentDim.opacity(0.8))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            // The header is a title, not a narrator. The only line that earns
+            // its place is the held Chisel prompt, which is an instruction.
+            if let chisel = engine.armingChisel {
+                Text("\(chisel.name.uppercased()) — tap a die to spend it")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Theme.ptahCopper)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
 
             Spacer(minLength: 4)
 
@@ -195,14 +197,14 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: planFaces.count)
     }
 
-    /// The plan: one numbered tile per die, in the order they will resolve.
-    /// No connectors, no grouping — the row says what you will play and when,
-    /// and nothing about what it will add up to.
+    /// The plan: one tile per die, in the order they will resolve. No numbers,
+    /// no connectors, no grouping — the row says what you will play and in what
+    /// order, and nothing about what it will add up to.
     private var planRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
-                ForEach(Array(planFaces.enumerated()), id: \.element.id) { index, face in
-                    planDieCard(face, number: index + 1)
+                ForEach(planFaces) { face in
+                    planDieCard(face)
                 }
 
                 // Nothing stands in for stamina you have not spent — an empty
@@ -215,9 +217,9 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
     }
 
-    /// One die in the plan: its place in the order, its face, and what that
-    /// face does on its own. Tapping takes it back; dragging reorders it.
-    private func planDieCard(_ face: RolledFace, number: Int) -> some View {
+    /// One die in the plan: its face and what that face does on its own. Its
+    /// place in the row is its order. Tapping takes it back; dragging reorders.
+    private func planDieCard(_ face: RolledFace) -> some View {
         let tint = face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint)
         // A held copper mark lights the dice whose hidden chain could carry it.
         // The plan never names that chain — the die simply glows and takes the
@@ -236,8 +238,6 @@ struct PlayBarView: View {
             engine.returnToTray(faceID: face.id)
         } label: {
             VStack(spacing: compact ? 3 : 5) {
-                orderBadge(number, tint: tint)
-
                 DuatSymbol(art: face.face.artName,
                            fallback: face.face.symbol,
                            size: compact ? 30 : 36,
@@ -308,27 +308,6 @@ struct PlayBarView: View {
             return true
         }
         .transition(.scale(scale: 0.6).combined(with: .opacity))
-    }
-
-    private func orderBadge(_ number: Int, tint: Color) -> some View {
-        Text("\(number)")
-            .font(.system(size: 11, weight: .black).monospacedDigit())
-            .foregroundStyle(Theme.bg)
-            .frame(width: 18, height: 18)
-            .background(tint, in: .circle)
-            .overlay(Circle().strokeBorder(Theme.bg.opacity(0.5), lineWidth: 0.8))
-    }
-
-    private var hintText: String {
-        guard engine.phase == .player else { return "Resolving in order..." }
-        if engine.playedFaces.isEmpty {
-            if !engine.hasRolled { return "Roll your dice first" }
-            return engine.stamina == 0 ? "No stamina left" : "Tap dice in — neighbours chain together"
-        }
-        if engine.canTarget {
-            return "Commit, then tap each foe to aim · order matters"
-        }
-        return "Tap a step to take it back · where a die sits decides its chain"
     }
 
     // MARK: - Freeze

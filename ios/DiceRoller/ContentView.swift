@@ -74,6 +74,9 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 .zIndex(30)
         }
+        // Status and Chisel bubbles are hosted here, above every screen and the
+        // grain both, so one can never be clipped by the panel that opened it.
+        .tooltipLayer()
         .environment(game)
         .animation(.easeInOut(duration: 0.35), value: game.screen)
         .animation(.easeInOut(duration: 0.25), value: game.pendingSelection)

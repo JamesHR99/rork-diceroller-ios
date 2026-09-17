@@ -13,7 +13,7 @@ enum GameData {
             blurb: "Arrow tiers stack into heavy volleys. Line up Arrow I, II and III for the legendary Perfect Shot.",
             playstyle: "Balanced · ranged · precision",
             agility: 2,
-            timingIdentity: "Flexible pairs and deliberate precision shots"
+            timingIdentity: "Quick enough to answer, patient enough to line up the volley"
         ),
         HeroClass(
             id: "warrior", name: "Warrior", title: "The Standing Wall",
@@ -22,8 +22,8 @@ enum GameData {
             weaponName: "Longsword", armorName: "Plate Armour",
             blurb: "Heavy swings behind a shield that stays until it breaks. Stack Block faces and become the wall.",
             playstyle: "Tanky · heavy hits · momentum",
-            agility: 1,
-            timingIdentity: "Early simple protection, slower heavy attacks and retaliation"
+            agility: 4,
+            timingIdentity: "Slowest on the clock — armour and weight instead of speed"
         ),
         HeroClass(
             id: "rogue", name: "Rogue", title: "Blade in the Smoke",
@@ -32,8 +32,8 @@ enum GameData {
             weaponName: "Twin Daggers", armorName: "Leather Armour",
             blurb: "Fast, bleeding cuts with venom on the blades. Stack Evade faces to slip blows outright, then answer from the dark.",
             playstyle: "Fragile · fastest · bleed and venom",
-            agility: 3,
-            timingIdentity: "Fast defence, quick attacks and sequential opportunities"
+            agility: 1,
+            timingIdentity: "First to move almost always — small cuts land before anything answers"
         ),
         HeroClass(
             id: "magician", name: "Magician", title: "Keeper of Runes",
@@ -42,8 +42,8 @@ enum GameData {
             weaponName: "Magic Wand", armorName: "Robes",
             blurb: "No shield face, no evade, no bandage — every guard, escape and mend has to be spelled out of runes. Thirty spells live in six syllables.",
             playstyle: "Fragile · pure spellcraft · everything is a recipe",
-            agility: 1,
-            timingIdentity: "Quick emergency wards and slower powerful spells"
+            agility: 3,
+            timingIdentity: "Slow to speak — a single rune answers quickly, a great spell does not"
         ),
     ]
 
@@ -89,8 +89,8 @@ enum GameData {
     static let staminaBudgetCap = 6
 
     /// What a step costs: one stamina per face it consumes. The old
-    /// large-combo discounts are gone — a big recipe pays for every ingredient
-    /// and buys its power with preparation time instead.
+    /// large-combo discounts are gone — a big recipe pays for every ingredient,
+    /// and pays again in agility: the more dice it spends, the later it lands.
     static func comboStaminaCost(faces: Int) -> Int {
         max(1, faces)
     }

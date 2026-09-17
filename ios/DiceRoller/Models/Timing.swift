@@ -14,96 +14,27 @@ struct ActionRole: OptionSet, Hashable {
     nonisolated static let none: ActionRole = []
 }
 
-/// The preparation clock. Stamina says how much you can do in a round; agility
-/// and preparation say *when* each action lands. They are deliberately separate
-/// systems — a cheap action can be slow and an expensive one can be quick.
+/// The agility clock. Stamina says how much you can do in a round; agility says
+/// *when* each action lands.
+///
+/// One rule, everywhere: an action's agility is its size in dice — one die
+/// counts 1, a two-die chain 2, a three-die chain 3 — added to the actor's base
+/// agility. Lower totals act first, and on a tie the player goes before any
+/// creature. Nothing else is tuned per recipe: a bigger action is a slower one,
+/// and that is the whole of it.
 enum Timing {
-    /// Preparation before agility, for actions with no authored override.
-    /// Read from the rework guide's default table.
-    static let soloGuardPrep = 3
-    static let quickAttackPrep = 4
-    static let ordinaryPrep = 5
-    static let pairPrep = 6
-    static let triplePrep = 9
-    static let quadPrep = 12
-
-    /// The most Haste a single action may claim beyond its class agility.
+    /// The most Haste a single action may claim.
     static let maxHastePerAction = 2
 
     /// The most a player may push one enemy's pending action back, per round.
     static let maxDelayPerEnemy = 2
 
-    /// How long an action takes once the actor's agility and any earned Haste
-    /// are taken off. Never faster than a single beat — agility shortens the
-    /// wind-up, it never removes it.
-    static func duration(preparation: Int, agility: Int, haste: Int = 0) -> Int {
+    /// What an action of this many dice costs the actor on the clock. Never
+    /// less than one beat — Haste pulls an action earlier, it never makes an
+    /// action free.
+    static func cost(size: Int, agility: Int, haste: Int = 0) -> Int {
         let hasted = min(max(haste, 0), maxHastePerAction)
-        return max(1, preparation - max(agility, 0) - hasted)
-    }
-
-    /// Default preparation for a single face played alone, by what it does.
-    static func soloPreparation(for kind: FaceKind) -> Int {
-        switch kind {
-        case .block, .evade:
-            return soloGuardPrep
-        case .swiftSlash, .bowSmack, .arrow1, .sideSwing:
-            return quickAttackPrep
-        default:
-            return ordinaryPrep
-        }
-    }
-
-    /// Default preparation for a fused combo of this many faces.
-    static func comboPreparation(faces: Int) -> Int {
-        switch faces {
-        case ...2: return pairPrep
-        case 3: return triplePrep
-        default: return quadPrep
-        }
-    }
-
-    /// Authored preparation per recipe, from the guide's timing table. This is
-    /// the one place recipe timing is tuned — a stronger attack is not fast
-    /// merely because it uses fewer ingredients.
-    private static let recipePrep: [String: Int] = [
-        // Archer
-        "arc_twinShot": 6, "arc_piercingBolt": 6, "arc_pointBlank": 5,
-        "arc_quickGuard": 4, "arc_fieldDressing": 6, "arc_steadyAim": 6,
-        "arc_perfectShot": 9, "arc_stormOfShafts": 12,
-        // Warrior
-        "war_crushingBlow": 6, "war_wideSweep": 6, "war_earthshaker": 9,
-        "war_riposte": 4, "war_secondWind": 5, "war_executioner": 9,
-        "war_shieldBash": 5, "war_fieldSurgery": 6, "war_setTheLine": 4,
-        "war_gatherWeight": 5,
-        "war_warlordsAnswer": 12, "war_bloodTide": 12,
-        // Rogue
-        "rog_flurry": 6, "rog_openingCut": 6, "rog_twinFang": 6,
-        "rog_shadowstep": 5, "rog_patchUp": 6, "rog_hemorrhage": 9,
-        "rog_coatedEdge": 6, "rog_creepingDeath": 6, "rog_witheringTouch": 6,
-        "rog_smokeAndSteel": 4, "rog_readTheRoom": 4,
-        "rog_vanishing": 9, "rog_thousandCuts": 9, "rog_deathByInches": 9,
-        // Magician — wards are quick, artillery is slow. A caster with no
-        // shield face needs its emergency spells to actually arrive in time.
-        "mag_fireball": 6, "mag_iceBlast": 6, "mag_arcaneBarrage": 6,
-        "mag_chainSpark": 5, "mag_mendingBloom": 5, "mag_deepChannel": 4,
-        "mag_scaldingMist": 5, "mag_emberPoultice": 5, "mag_cinderWard": 4,
-        "mag_ignition": 5, "mag_stokeTheFlame": 5,
-        "mag_rimePlate": 4, "mag_chillWard": 4, "mag_staticChill": 5,
-        "mag_frostgather": 4,
-        "mag_lifeSiphon": 6, "mag_quickening": 5, "mag_wellspring": 5,
-        "mag_arcLash": 6, "mag_blink": 3, "mag_capacitor": 5,
-        "mag_meteor": 9, "mag_glacier": 9, "mag_phoenixRite": 9,
-        "mag_stormcall": 9, "mag_sanctuary": 6, "mag_prismWard": 6,
-        "mag_runicBulwark": 6, "mag_arcaneStorm": 9,
-        "mag_fourfoldWord": 12,
-        // Shared
-        "shr_detonate": 6, "shr_venomCoat": 6, "shr_steadiedStrike": 6,
-        "shr_breachStrike": 6, "shr_envenomedEdge": 6, "shr_blindingBlast": 5,
-    ]
-
-    /// Preparation for a named recipe, falling back to the face-count default.
-    static func preparation(recipe id: String, faces: Int) -> Int {
-        recipePrep[id] ?? comboPreparation(faces: faces)
+        return max(1, max(agility, 0) + max(size, 1) - hasted)
     }
 
     /// Recipes that hand the next action a beat of Haste when they resolve.
@@ -114,34 +45,31 @@ enum Timing {
 
     // MARK: - Enemy timing
 
-    /// Base agility per creature, from the guide's table. High agility never
-    /// grants extra actions — it only shortens the wind-up.
+    /// Base agility per creature, read the same way as the player's: lower is
+    /// quicker. A jackal is off the mark before anything else in the river; a
+    /// colossus takes its time whatever it is doing.
     private static let enemyAgility: [String: Int] = [
-        "trainingDummy": 0,
-        "reedLurker": 2, "marshShade": 2, "sandCrawler": 2, "siltColossus": 0,
-        "emberWraith": 2, "flamekeeper": 1, "ashJackal": 3, "bronzeEffigy": 0,
-        "devourerSpawn": 1, "uncreatedShadow": 3, "hourEater": 1, "boneplateDevourer": 0,
-        "sekhen": 1, "nehebkau": 1, "apep": 2,
+        "trainingDummy": 5,
+        "reedLurker": 2, "marshShade": 2, "sandCrawler": 2, "siltColossus": 4,
+        "emberWraith": 2, "flamekeeper": 3, "ashJackal": 1, "bronzeEffigy": 4,
+        "devourerSpawn": 3, "uncreatedShadow": 1, "hourEater": 3, "boneplateDevourer": 4,
+        "sekhen": 3, "nehebkau": 3, "apep": 2,
     ]
 
     static func agility(enemy id: String) -> Int {
-        enemyAgility[id] ?? 1
+        enemyAgility[id] ?? 3
     }
 
-    /// How long an enemy move takes to come round. Pure defence and recovery
-    /// land quickly; damaging moves take their weight in preparation, so a
-    /// heavy hit is visible on the strip well before it arrives. A wind-up is
-    /// slow on purpose — the whole point of it is the window it leaves you.
-    static func preparation(move: EnemyMove) -> Int {
-        if move.charge > 0 { return pairPrep }
-        if move.damage <= 0 { return soloGuardPrep }
-        if move.faces.count >= 3 { return triplePrep }
-        if move.faces.count == 2 { return pairPrep }
-        return move.damage >= 14 ? ordinaryPrep : quickAttackPrep
+    /// A creature's move counts its faces the same way your chains do, and a
+    /// wind-up counts as the heavy thing it is — so a charged blow is visible
+    /// on the strip well before it arrives.
+    static func size(move: EnemyMove) -> Int {
+        max(move.charge > 0 ? 2 : 1, move.faces.count)
     }
 
     /// Agility a creature borrows for the first round when it catches you
-    /// stepping off the barque — the guide's opening surprise.
+    /// stepping off the barque — the guide's opening surprise. Taken *off* its
+    /// total, because lower acts first.
     static let surpriseAgilityBonus = 2
     static let surpriseChance = 0.18
 }
@@ -162,7 +90,8 @@ struct TimelineEntry: Identifiable, Hashable {
     let side: TimelineSide
     /// The beat this action lands on, counting from the start of the round.
     let beat: Int
-    /// How long its wind-up ran, after agility and Haste.
+    /// This action's own agility — its size in dice plus the actor's base,
+    /// after any Haste.
     let duration: Int
     let title: String
     /// What it will do, in the same words the plan card uses.
@@ -172,7 +101,7 @@ struct TimelineEntry: Identifiable, Hashable {
     let roles: ActionRole
     /// The plan step or enemy this entry was built from.
     let sourceID: UUID
-    /// Set when Haste pulled this action earlier than its printed preparation.
+    /// Set when Haste pulled this action earlier than its printed agility.
     let hastened: Int
     /// Which of the creature's telegraphed moves this entry is — a foe that
     /// spends its round on three actions puts three entries on the clock.
