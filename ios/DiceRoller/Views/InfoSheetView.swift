@@ -757,9 +757,10 @@ struct InfoSheetView: View {
                 icon: "person.2.fill", tint: Theme.blood, title: "ENEMY PACKS",
                 lines: [
                     "Some fights put more than one foe on the deck — mostly pairs, occasionally three, all from the same stretch of the river.",
-                    "Committing against a pack opens the targeting step: every attack in your plan is listed, and you send each one at a foe with a tap — or let them all land on the first living foe.",
+                    "Committing against a pack hands the screen to the fight and asks you to aim: each attack in turn is named at the foot of the stage, and you send it by tapping the creature it should strike. One tap per blow, on the thing you want it to hit.",
+                    "Every creature you may send it at breathes under a copper ring, and the damage already pointed at each one builds up beside it. Nothing has resolved yet — you can go back to the plan until the last blow is aimed.",
                     "Each blow carries its own god triggers and statuses to wherever you send it, and a fallen target's attack slides to the nearest living foe.",
-                    "Every living foe shows its own intent, health and statuses — and on their turn they act one after another.",
+                    "Every living foe shows its whole round before you commit — health, guard, statuses and each action in order. A creature that goes under leaves the deck, so what you are looking at is only ever the fight you still have on your hands.",
                     "Pack members arrive with about half their usual health, and the purse and relic odds grow a little with the pack's size.",
                     "Serpent-lords always come alone — the river is only so wide.",
                 ]
@@ -775,7 +776,7 @@ struct InfoSheetView: View {
                         .foregroundStyle(Theme.ptahCopper)
                         .kerning(1.5)
                 }
-                Text("Ptah the craftsman rarely turns up in the spoils. His Chisel reshapes your whole weapon — never a single die — and your gods and their blessings are untouched. Two different Chisels a run, both active together. The optional ones arm per action from a small copper badge on the recipe's own chip; tapping it folds their cost and outcome into the forecast before you commit.")
+                Text("Ptah the craftsman rarely turns up in the spoils. His Chisel reshapes your whole weapon — never a single die — and your gods and their blessings are untouched. Two different Chisels a run, both active together. The optional ones are worked from the copper marks beside the turn count: tap a mark to pick that Chisel up, tap a chain in your plan to spend it there, and tap the mark again to put it down.")
                     .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)

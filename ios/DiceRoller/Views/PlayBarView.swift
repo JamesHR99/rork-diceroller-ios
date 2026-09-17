@@ -458,39 +458,26 @@ struct PlayBarView: View {
     }
 
     /// Who this attack is pointed at, on the card itself. The old targeting
-    /// popup is gone: the foe is chosen by tapping the fighter on the deck, and
-    /// this chip is both the read of where the blow is going and the control
-    /// that says which attack the next tap will point. Only drawn when there is
-    /// more than one foe standing — a single foe needs no aiming.
+    /// A mark saying this blow will be aimed. Aiming is its own moment now —
+    /// it happens after you commit, on the uncovered stage, one tap per blow —
+    /// so while you are planning this is a read rather than a control. Only
+    /// drawn when more than one creature is standing; a lone foe needs no aim.
     @ViewBuilder
     private func targetChip(_ step: PlanStep) -> some View {
         if engine.canTarget, step.targetsEnemy {
-            let isPointing = engine.activeTargetingStep?.id == step.id
-            let foe = engine.enemies.first { $0.id == engine.allocatedFoeID(for: step) }
-            Button {
-                engine.selectTargeting(step.id)
-            } label: {
-                HStack(spacing: 2) {
-                    DuatSymbol(art: DuatArt.Status.marked, fallback: "target",
-                               size: 9, tint: isPointing ? Theme.bg : Theme.parchmentDim)
-                    Text(foe?.displayName.uppercased() ?? "—")
-                        .font(.system(size: 8, weight: .black))
-                        .kerning(0.3)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
-                .foregroundStyle(isPointing ? Theme.bg : Theme.parchmentDim)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .frame(maxWidth: 92)
-                .background(isPointing ? Theme.gold : Theme.bg.opacity(0.7), in: .capsule)
-                .overlay(
-                    Capsule().strokeBorder(Theme.gold.opacity(isPointing ? 1 : 0.35),
-                                           lineWidth: isPointing ? 1.4 : 0.8)
-                )
+            HStack(spacing: 2) {
+                DuatSymbol(art: DuatArt.Status.marked, fallback: "target",
+                           size: 9, tint: Theme.parchmentDim)
+                Text("AIM")
+                    .font(.system(size: 8, weight: .black))
+                    .kerning(0.6)
+                    .foregroundStyle(Theme.parchmentDim)
             }
-            .buttonStyle(PressableButtonStyle())
-            .disabled(engine.phase != .player)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1.5)
+            .background(Theme.bg.opacity(0.7), in: .capsule)
+            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 0.8))
+            .accessibilityLabel("Aimed after you commit")
         }
     }
 
@@ -521,7 +508,7 @@ struct PlayBarView: View {
             return engine.stamina == 0 ? "No stamina left" : "Tap dice in — fused chains cost less"
         }
         if engine.canTarget {
-            return "Tap a foe to aim the lit attack · order matters"
+            return "Commit, then tap each foe to aim · order matters"
         }
         return "Tap a step to take it back · order matters"
     }

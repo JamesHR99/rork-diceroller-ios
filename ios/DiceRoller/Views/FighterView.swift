@@ -35,9 +35,12 @@ struct FighterView: View {
     var foe: EnemyState? = nil
     /// Packs squeeze down so two or three foes fit on the deck.
     var packScale: CGFloat = 1
-    /// True while this foe wears the gold ring — the attack being allocated
-    /// points here, or the blow in flight was sent here.
+    /// True while this foe wears the gold ring — the blow in flight was sent
+    /// here.
     var isTargeted: Bool = false
+    /// True while the stage is waiting for you to send a blow, and this
+    /// creature is a legal place to send it.
+    var isAimable: Bool = false
     var onTap: (() -> Void)? = nil
     var layout: Layout = .stage
     /// Tickers squeeze further still when a whole pack has to fit the rail.
@@ -87,9 +90,33 @@ struct FighterView: View {
         .frame(width: stageWidth)
         .overlay(alignment: .top) { floaters }
         .overlay { aimRing }
+        .overlay { aimInvite }
         .overlay { championRing }
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
+    }
+
+    /// While a blow is waiting to be aimed, every creature it could be sent at
+    /// breathes under a copper ring — so where you may tap is never a guess.
+    @ViewBuilder
+    private var aimInvite: some View {
+        if side == .enemy, isAimable, let foe, foe.isAlive {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Theme.gold.opacity(aimPulse ? 0.95 : 0.4),
+                              lineWidth: aimPulse ? 2.4 : 1.4)
+                .shadow(color: Theme.gold.opacity(aimPulse ? 0.6 : 0.2), radius: 12)
+                .overlay(alignment: .top) {
+                    Text("TAP TO STRIKE")
+                        .font(.system(size: 8.5, weight: .black))
+                        .kerning(1.6)
+                        .foregroundStyle(Theme.bg)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2.5)
+                        .background(Theme.gold, in: .capsule)
+                        .offset(y: -8)
+                }
+                .allowsHitTesting(false)
+        }
     }
 
     /// Stage cards keep their width in step with the pack, so three foes still

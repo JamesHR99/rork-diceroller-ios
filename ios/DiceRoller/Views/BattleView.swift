@@ -34,7 +34,8 @@ private struct BattleContentView: View {
 
     /// The dice deck rides up over the arena while you are planning, and slides
     /// away the moment you commit — that is what hands the whole screen back to
-    /// the fighters and the hull they are standing on.
+    /// the fighters and the hull they are standing on. Aiming happens on the
+    /// uncovered stage, so the deck is down for that too.
     private var deckUp: Bool {
         engine.phase == .player
     }
@@ -108,15 +109,26 @@ private struct BattleContentView: View {
             }
         }
         .overlay {
-            // Before the blow lands, the gods are named: which power answered
-            // this action and exactly what it was worth.
-            if let flash = engine.divineFlash {
-                DivineFlashView(flash: flash)
-                    .id(flash.id)
+            // Before an action lands it is named and held still: who is
+            // acting, what they are doing, what it is worth and every god
+            // power riding it, all at the same time.
+            if let card = engine.spotlight {
+                ActionSpotlightView(card: card)
+                    .id(card.id)
                     .zIndex(5)
                     .transition(.opacity)
             }
         }
+        .overlay(alignment: .bottom) {
+            // Aiming happens after you commit: the deck is down, the stage is
+            // uncovered, and each blow asks which creature it should strike.
+            if engine.isAiming, let aim = engine.activeAim {
+                aimPrompt(aim)
+                    .zIndex(6)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.34, dampingFraction: 0.82), value: engine.activeAim?.id)
         .overlay {
             if let announcement = engine.stageAnnouncement {
                 stageBanner(announcement)
@@ -240,17 +252,20 @@ private struct BattleContentView: View {
     private var tickerRail: some View {
         // The rail is cut to the screen it landed on. A pack used to be drawn
         // at a fixed width per card, which walked the third foe clean off the
-        // right-hand edge; now the room is measured and shared out.
+        // right-hand edge; now the room is measured and shared out. A card
+        // never grows past its natural size though — sharing out a wide rail
+        // between one foe and one demigod would blow both slabs up.
         GeometryReader { rail in
-            let foes = engine.enemies
+            let foes = engine.stagedFoes
             let compact = foes.count > 1
             let spacing: CGFloat = foes.count > 2 ? 4 : 6
+            let natural: CGFloat = compact ? 212 : 268
             // You take a smaller share of a crowded rail, because your own
             // read is one health channel and theirs carry whole sequences.
             let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
-            let playerWidth = max(120, rail.size.width * playerShare)
+            let playerWidth = min(natural, max(120, rail.size.width * playerShare))
             let foeRoom = rail.size.width - playerWidth - spacing * CGFloat(foes.count)
-            let foeWidth = max(96, foeRoom / CGFloat(max(foes.count, 1)))
+            let foeWidth = min(natural, max(96, foeRoom / CGFloat(max(foes.count, 1))))
 
             HStack(alignment: .top, spacing: spacing) {
                 FighterView(
@@ -305,7 +320,7 @@ private struct BattleContentView: View {
     /// sets the measure for everyone.
     private func fighterHeight(_ room: CGFloat) -> CGFloat {
         let chrome: CGFloat = 96
-        let tallest: CGFloat = engine.enemies.contains { $0.def.isBoss } ? 1.16 : 1
+        let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
         return min(232, max(112, free / (1.06 * tallest)))
     }
@@ -320,7 +335,7 @@ private struct BattleContentView: View {
             // screen instead of sinking through the bottom edge.
             GeometryReader { stage in
                 let room = stage.size.height
-                let foeCount = engine.enemies.count
+                let foeCount = engine.stagedFoes.count
                 // A crowd takes more of the deck than a single guardian, but
                 // the demigod always keeps a readable share of it.
                 let playerWidth = max(120, stage.size.width * (foeCount >= 3 ? 0.26 : 0.36))
@@ -381,7 +396,7 @@ private struct BattleContentView: View {
     /// allocated they are tapped to receive the selected blow; otherwise they
     /// stand quiet — no aiming happens during planning.
     private func enemyGroup(room: CGFloat, width: CGFloat) -> some View {
-        let foes = engine.enemies
+        let foes = engine.stagedFoes
         let scale: CGFloat = foes.count >= 3 ? 0.66 : (foes.count == 2 ? 0.8 : 1)
         // The pack is cut to the room the deck actually has. Three cards at a
         // fixed width overran an iPhone and pushed the last foe off-screen, so
@@ -398,20 +413,104 @@ private struct BattleContentView: View {
                     foe: foe,
                     packScale: scale,
                     isTargeted: engine.isTargeted(foeID: foe.id),
-                    onTap: engine.canTarget ? { engine.assignSelected(to: foe.id) } : nil,
+                    isAimable: engine.isAiming && foe.isAlive,
+                    onTap: engine.isAiming ? { engine.aim(at: foe.id) } : nil,
                     stageHeight: fighterHeight(room),
                     cardWidth: foes.count > 1 ? cardWidth : nil
                 )
                 .overlay(alignment: .bottom) { allocationTotal(for: foe) }
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.4), value: foes.count)
+    }
+
+    /// The blow waiting to be sent, named on a slab at the foot of the stage.
+    /// Aiming is its own moment now: the deck is down, the fighters are
+    /// full-size, and each attack asks which creature it should strike.
+    private func aimPrompt(_ aim: AimRequest) -> some View {
+        VStack(spacing: 8) {
+            Text("AIM THIS BLOW")
+                .font(.system(size: 9, weight: .black))
+                .kerning(2.6)
+                .foregroundStyle(Theme.gold)
+
+            HStack(spacing: 8) {
+                ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
+                    DuatSymbol(art: face.artName, fallback: face.symbol,
+                               size: 22, tint: face.tint)
+                        .frame(width: 27, height: 25)
+                        .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
+                }
+
+                Text(aim.title.uppercased())
+                    .font(.fantasy(19, weight: .black))
+                    .kerning(1)
+                    .foregroundStyle(aim.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+
+                Text(aim.detail)
+                    .font(.system(size: 12.5, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.ember)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Theme.bg.opacity(0.6), in: .capsule)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+
+            HStack(spacing: 10) {
+                Text("TAP THE CREATURE IT SHOULD STRIKE")
+                    .font(.system(size: 9.5, weight: .black))
+                    .kerning(1.4)
+                    .foregroundStyle(Theme.parchmentDim)
+
+                if engine.aimQueue.count > 1 {
+                    Text("\(engine.aimQueue.count) LEFT")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(1)
+                        .foregroundStyle(Theme.bg)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Theme.gold, in: .capsule)
+                }
+
+                Button {
+                    engine.cancelAiming()
+                } label: {
+                    Text("BACK TO PLAN")
+                        .font(.system(size: 9.5, weight: .black))
+                        .kerning(1.2)
+                        .foregroundStyle(Theme.parchment)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 5)
+                        .background(Theme.bgElevated, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(PressableButtonStyle())
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 13)
+        .background {
+            PapyrusSurface(ground: .panel, tint: Theme.bgElevated, strength: 0.55, shade: 0.44)
+                .clipShape(.rect(cornerRadius: 18))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.4)
+        )
+        .shadow(color: .black.opacity(0.7), radius: 16, y: 6)
+        .padding(.bottom, 18)
+        .padding(.horizontal, 14)
     }
 
     /// The running damage total pointed at a foe while attacks are being
     /// allocated — it builds up beside each fighter as blows are assigned.
     @ViewBuilder
     private func allocationTotal(for foe: EnemyState) -> some View {
-        if engine.canTarget {
+        if engine.isAiming {
             let total = engine.allocatedDamage(for: foe.id)
             if total > 0 {
                 HStack(spacing: 4) {

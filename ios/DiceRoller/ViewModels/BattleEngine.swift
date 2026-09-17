@@ -295,13 +295,53 @@ struct DivineFlashEntry: Identifiable, Equatable {
     let effect: String
 }
 
-/// Every god power that answered one action, held up together so the divine
-/// contribution to a turn is read rather than inferred from floaters.
-struct DivineFlash: Identifiable, Equatable {
+/// One hit waiting to be pointed at a creature during the aiming phase.
+///
+/// Aiming happens after you commit rather than while you plan: the deck
+/// drops, the stage is uncovered, and each attack in turn asks which creature
+/// it should strike. One tap per blow, on the thing you want it to hit.
+struct AimRequest: Identifiable, Equatable {
     let id = UUID()
-    /// The action the gods answered.
-    let action: String
+    /// The plan step this hit belongs to.
+    let stepID: UUID
+    /// True for a chisel-granted second hit rather than the blow itself.
+    let isSecondary: Bool
+    let title: String
+    let detail: String
+    let damage: Int
+    let faces: [FaceKind]
+    let tint: Color
+}
+
+/// One action, named and totalled before it resolves — whoever is acting.
+///
+/// A fight used to be legible only if you could read floaters while numbers
+/// were still moving: you saw a colour fly past and never learned which blow
+/// it belonged to or what it was worth. This card holds the whole action
+/// still for a beat: who is acting, what they are doing, the faces that fed
+/// it, what it will cost, and every god power riding it — all in one place
+/// and all at the same time.
+struct ActionSpotlight: Identifiable, Equatable {
+    let id = UUID()
+    /// Who is acting — the demigod, or the thing out of the river.
+    let actor: String
+    let isPlayer: Bool
+    /// The action's own name: a recipe, a face played alone, or a foe's move.
+    let title: String
+    /// What it will do, in the same words the plan card uses.
+    let detail: String
+    /// The foe it is pointed at, when more than one is standing.
+    let target: String?
+    /// The faces welded into it, drawn in order.
+    let faces: [FaceKind]
+    let crit: Bool
+    /// A wind-up's multiplier, when this action is a creature gathering itself.
+    let charge: Double
+    /// "2 of 3" for a creature spending its round on a sequence.
+    let sequence: String?
+    /// Every god power that answered this action, named and totalled.
     let entries: [DivineFlashEntry]
+    let tint: Color
 }
 
 /// How long the arena holds each beat of a fight, in milliseconds.
@@ -314,33 +354,46 @@ struct DivineFlash: Identifiable, Equatable {
 /// scattered sleeps.
 enum BattleBeat {
     /// Pause before a planned step steps into the light.
-    static let stepLeadIn = 340
+    static let stepLeadIn = 300
     /// A single face resolving on its own: long enough to play its clip out.
-    static let soloStep = 920
+    static let soloStep = 1050
     /// A chain landing — the floor, before its length and crit bonus.
-    static let comboBase = 880
+    static let comboBase = 1050
     /// Added per face welded into the chain.
-    static let comboPerFace = 90
+    static let comboPerFace = 110
     /// Added when the chain crits, so the flash has room.
-    static let comboCrit = 420
+    static let comboCrit = 520
     /// After the last step, before statuses tick.
-    static let turnSettle = 520
+    static let turnSettle = 620
     /// Either side of a poison, burn or bleed tick.
-    static let statusTick = 400
+    static let statusTick = 520
     /// Pause before a foe takes its turn.
-    static let foeLeadIn = 340
+    static let foeLeadIn = 300
     /// A foe raising its guard or licking its wounds.
-    static let foeSupport = 620
+    static let foeSupport = 900
     /// The tell before a blow — matches the drawn wind-up.
-    static let telegraph = 660
+    static let telegraph = 780
     /// A blow landing, long enough for the recoil animation to play.
-    static let strike = 860
+    static let strike = 1020
     /// A blow slipped or swallowed whole by the shield.
-    static let deflect = 780
+    static let deflect = 900
     /// Either side of the champion's Sentence.
-    static let sentence = 560
+    static let sentence = 720
     /// The breath between the last foe acting and the drums spinning again.
-    static let handover = 760
+    static let handover = 900
+
+    /// How long the card that names an action is held before the action
+    /// resolves. This is the beat that makes a fight readable: the name of
+    /// the blow, what it is worth, the faces that fed it and every god power
+    /// riding it are all on screen together, and they stay long enough to
+    /// actually be read.
+    static let spotlight = 1150
+    /// Added per god power named on the card, so a heavily blessed action
+    /// holds longer than a plain one.
+    static let spotlightPerGod = 300
+    /// A fallen creature's last moment on the deck before it sinks out of
+    /// the fight.
+    static let sink = 620
 }
 
 /// Animation pose for a fighter sprite in the arena.
@@ -472,6 +525,9 @@ struct EnemyState: Identifiable {
 final class BattleEngine {
     enum Phase: Equatable {
         case player
+        /// Between committing and the blows: every attack that needs a target
+        /// is pointed by tapping the foe it should strike, on the stage.
+        case aiming
         case resolving
         case enemyActing
         case won
@@ -482,6 +538,8 @@ final class BattleEngine {
     /// The foes in this fight, in the order they rose. Solo fights are a pack of one.
     private(set) var enemies: [EnemyState]
     let classID: String
+    /// The demigod's name, for the cards that say who is acting.
+    var heroName: String { GameData.heroClass(id: classID).name }
     let critBonus: Double
     let maxStamina: Int
     /// Beats this hero shaves off every action's preparation.
@@ -588,15 +646,16 @@ final class BattleEngine {
     /// resolution. Every blow carries its own statuses and god triggers to
     /// whichever foe it lands on.
     private(set) var allocations: [UUID: UUID] = [:]
-    /// The attack in the plan that the next tap on a foe will point. Targeting
-    /// happens while the turn is still being planned, so there is no separate
-    /// allocation step between committing and the blows.
-    private(set) var targetingStepID: UUID?
-    /// Which hit of the selected attack is being pointed: 0 the blow itself,
-    /// 1 its chisel-granted second hit (split arrow or splash).
-    private(set) var targetingHit = 0
+    /// The attacks still waiting to be pointed, in play order. Aiming happens
+    /// after you commit: the deck drops, the stage is uncovered, and each
+    /// attack is sent by tapping the foe it should strike.
+    private(set) var aimQueue: [AimRequest] = []
     /// The foe the blow currently being thrown was sent at.
     private(set) var activeTargetID: UUID?
+    /// Creatures that have gone under. A fallen foe holds the deck for a beat
+    /// and then leaves it, so the stage only ever shows the fight you still
+    /// have on your hands.
+    private(set) var sunkFoeIDs: Set<UUID> = []
     /// Set for a beat when a boss re-coils, so the arena can announce it.
     private(set) var stageAnnouncement: String?
 
@@ -675,8 +734,8 @@ final class BattleEngine {
     /// was aimed at.
     private(set) var shots: [ProjectileShot] = []
     private(set) var comboFlash: ComboFlash?
-    /// The gods' answer to the action about to land, held up mid-deck.
-    private(set) var divineFlash: DivineFlash?
+    /// The action about to land, named and totalled mid-deck.
+    private(set) var spotlight: ActionSpotlight?
     /// Collected while a step's powers resolve, then raised as one card.
     private var pendingDivineEntries: [DivineFlashEntry] = []
     private(set) var floaters: [FloatText] = []
@@ -1334,9 +1393,9 @@ final class BattleEngine {
         }
     }
 
-    // MARK: - Targeting
+    // MARK: - Aiming
 
-    /// True when the fight has enough foes standing for targeting to mean
+    /// True when the fight has enough foes standing for aiming to mean
     /// anything — with one foe every blow has only one place to go.
     var canTarget: Bool {
         livingFoes.count > 1 && turnPlan.contains(where: \.targetsEnemy)
@@ -1347,16 +1406,11 @@ final class BattleEngine {
         turnPlan.filter(\.targetsEnemy)
     }
 
-    /// The attack a tap on a foe will point right now: whatever was last
-    /// selected, or the first attack in the plan still lacking a chosen target
-    /// so a fresh plan can simply be tapped across the pack in order.
-    var activeTargetingStep: PlanStep? {
-        let steps = allocatableSteps
-        if let targetingStepID, let step = steps.first(where: { $0.id == targetingStepID }) {
-            return step
-        }
-        return steps.first { allocations[$0.id] == nil } ?? steps.first
-    }
+    /// The attack waiting to be pointed right now, during the aiming phase.
+    var activeAim: AimRequest? { aimQueue.first }
+
+    /// True while the stage is uncovered and waiting for you to send blows.
+    var isAiming: Bool { phase == .aiming }
 
     /// The foe a step is currently pointed at, falling back to the first
     /// living foe whenever the assignment is missing or has fallen.
@@ -1368,111 +1422,104 @@ final class BattleEngine {
         return livingFoes.first?.id
     }
 
-    /// Damage the current allocation points at one foe: primary hits, plus
-    /// the chisel-granted second hits pointed here.
+    /// Damage already sent at one foe, built up as blows are pointed during
+    /// the aiming phase.
     func allocatedDamage(for foeID: UUID) -> Int {
-        turnPlan.reduce(0) { total, step in
+        committedPlan.reduce(0) { total, step in
             guard step.targetsEnemy, step.damage > 0 else { return total }
             var sum = total
-            if allocatedFoeID(for: step) == foeID { sum += mainDamage(for: step) }
-            if secondaryFoeID(for: step) == foeID { sum += secondaryDamage(for: step) }
+            // Only blows actually pointed count — the queue is what is left.
+            if allocations[step.id] == foeID { sum += mainDamage(for: step) }
+            if secondaryAllocations[step.id] == foeID { sum += secondaryDamage(for: step) }
             return sum
         }
     }
 
-    /// Who wears the gold ring: while planning, the foe the attack being
-    /// pointed would land on; during resolution, the foe the blow in flight
-    /// was actually sent at.
+    /// Who wears the gold ring: while aiming, nobody until you choose;
+    /// during resolution, the foe the blow in flight was actually sent at.
     func isTargeted(foeID: UUID) -> Bool {
-        if phase == .player {
-            guard canTarget, let step = activeTargetingStep else { return false }
-            if targetingHit == 1 {
-                return secondaryFoeID(for: step) == foeID
-            }
-            return allocatedFoeID(for: step) == foeID
-        }
-        return activeTargetID == foeID
+        phase == .aiming ? false : activeTargetID == foeID
     }
 
-    // MARK: - Targeting during planning
-
-    /// Commit entry point. Targeting already happened while the plan was being
-    /// built — every attack either carries a chosen foe or falls to the first
-    /// living one — so committing always fires the turn.
+    /// Commit entry point. If the plan has attacks and more than one foe is
+    /// standing, the deck drops and the stage takes over for aiming: each
+    /// attack is sent by tapping the creature it should strike. Otherwise the
+    /// turn fires straight away.
     func beginCommit() {
         guard canCommit else { return }
-        commitTurn()
-    }
-
-    /// Select which attack the next tap on a foe will point. Tapping the same
-    /// attack again moves to its chisel-granted second hit where it has one,
-    /// so one control cycles the whole step.
-    func selectTargeting(_ stepID: UUID) {
-        guard phase == .player,
-              let step = allocatableSteps.first(where: { $0.id == stepID }) else { return }
-        if targetingStepID == stepID, hasSecondaryHit(step) {
-            targetingHit = targetingHit == 0 ? 1 : 0
-        } else {
-            targetingStepID = stepID
-            targetingHit = 0
+        let queue = buildAimQueue()
+        guard !queue.isEmpty else {
+            commitTurn()
+            return
         }
-        Haptics.light()
+        committedPlan = buildPlan(from: playedFaces)
+        aimQueue = queue
+        allocations = [:]
+        secondaryAllocations = [:]
+        phase = .aiming
+        lastAction = "Tap the creature this blow should strike."
+        Haptics.medium()
     }
 
-    /// Tap a foe to send the attack being pointed at it, then step to the next
-    /// attack still needing a target so a pack is armed with a few taps.
-    func assignSelected(to foeID: UUID) {
-        guard phase == .player, canTarget,
-              let step = activeTargetingStep,
+    /// Every hit in the committed plan that needs pointing, in play order —
+    /// each attack, plus any chisel-granted second hit it carries.
+    private func buildAimQueue() -> [AimRequest] {
+        guard livingFoes.count > 1 else { return [] }
+        var queue: [AimRequest] = []
+        for step in buildPlan(from: playedFaces) where step.targetsEnemy {
+            queue.append(
+                AimRequest(stepID: step.id, isSecondary: false, title: step.title,
+                           detail: step.valueLine, damage: mainDamage(for: step),
+                           faces: step.faces.map(\.matchFace), tint: step.tint)
+            )
+            if hasSecondaryHit(step) {
+                queue.append(
+                    AimRequest(stepID: step.id, isSecondary: true,
+                               title: "\(step.title) — second hit",
+                               detail: "\(secondaryDamage(for: step)) DMG",
+                               damage: secondaryDamage(for: step),
+                               faces: step.faces.map(\.matchFace), tint: Theme.ptahCopper)
+                )
+            }
+        }
+        return queue
+    }
+
+    /// Tap a creature to send the blow currently being aimed at it. When the
+    /// last one has been pointed, the turn fires on its own.
+    func aim(at foeID: UUID) {
+        guard phase == .aiming, let request = aimQueue.first,
               enemies.contains(where: { $0.id == foeID && $0.isAlive }) else { return }
-        if targetingHit == 1 {
-            secondaryAllocations[step.id] = foeID
+        if request.isSecondary {
+            secondaryAllocations[request.stepID] = foeID
         } else {
-            allocations[step.id] = foeID
+            allocations[request.stepID] = foeID
         }
+        aimQueue.removeFirst()
         Haptics.light()
-        let steps = allocatableSteps
-        // Move on to the next attack that has not been pointed yet; when they
-        // all have one, stay put so a target can be corrected by tapping again.
-        if let next = steps.first(where: { allocations[$0.id] == nil }) {
-            targetingStepID = next.id
-            targetingHit = 0
-        } else if let index = steps.firstIndex(where: { $0.id == step.id }),
-                  index + 1 < steps.count {
-            targetingStepID = steps[index + 1].id
-            targetingHit = 0
+        if let next = aimQueue.first {
+            lastAction = "Now aim \(next.title)."
+        } else {
+            lastAction = "Every blow is aimed."
+            commitTurn()
         }
     }
 
-    /// Cycle one attack's target through the living foes — the keyboard-free
-    /// way to retarget without reaching for the fighters.
-    func cycleTarget(for stepID: UUID) {
-        guard phase == .player,
-              let step = allocatableSteps.first(where: { $0.id == stepID }),
-              livingFoes.count > 1 else { return }
-        let living = livingFoes
-        let current: UUID
-        if targetingHit == 1 {
-            current = secondaryFoeID(for: step) ?? living[0].id
-        } else {
-            current = allocatedFoeID(for: step) ?? living[0].id
-        }
-        guard let index = living.firstIndex(where: { $0.id == current }) else { return }
-        let next = living[(index + 1) % living.count].id
-        if targetingHit == 1 {
-            secondaryAllocations[step.id] = next
-        } else {
-            allocations[step.id] = next
-        }
-        targetingStepID = step.id
+    /// Abandon aiming and go back to the plan — nothing has resolved yet.
+    func cancelAiming() {
+        guard phase == .aiming else { return }
+        aimQueue = []
+        allocations = [:]
+        secondaryAllocations = [:]
+        committedPlan = []
+        phase = .player
+        lastAction = "Back to the plan."
         Haptics.light()
     }
 
-    /// Clears the targeting selection when the plan is torn down or the turn
-    /// fires, so a fresh plan starts by pointing its own first attack.
+    /// Clears the aiming queue when the plan is torn down or the turn fires.
     func resetTargetingSelection() {
-        targetingStepID = nil
-        targetingHit = 0
+        aimQueue = []
     }
 
     /// The living foe a step resolves against: its assigned target, or the
@@ -1726,6 +1773,13 @@ final class BattleEngine {
 
     var canCommit: Bool { phase == .player && hasRolled && !isRolling }
 
+    /// True when the turn may actually fire: from the plan, or from the aiming
+    /// phase once the last blow has been pointed. The FIGHT slab tests
+    /// `canCommit`; resolution tests this, so aiming can hand off to it.
+    private var canResolve: Bool {
+        (phase == .player || phase == .aiming) && hasRolled && !isRolling
+    }
+
     // MARK: - Player actions
 
     func rollAll() {
@@ -1945,7 +1999,7 @@ final class BattleEngine {
     }
 
     func commitTurn() {
-        guard canCommit else { return }
+        guard canResolve else { return }
         resetTargetingSelection()
         phase = .resolving
         Task { await resolveTurn() }
@@ -2031,9 +2085,10 @@ final class BattleEngine {
                 resolveBoons(in: step, targetIndex: target)
                 attributing = .native
 
-                // The gods are named before the blows, so their contribution
-                // to the turn is legible instead of lost among the floaters.
-                await raiseDivineFlash(for: step)
+                // The action is named before it lands: what you are doing,
+                // what it is worth, and every god power riding it, all held
+                // together long enough to read.
+                await raiseSpotlight(for: step, targetIndex: target)
 
                 if let combo = step.combo {
                     let didCrit = Double.random(in: 0..<1) < step.comboCritChance
@@ -2097,6 +2152,7 @@ final class BattleEngine {
                 finishVictory()
                 return true
             }
+            await sinkTheFallen()
             return false
         }
 
@@ -2124,6 +2180,7 @@ final class BattleEngine {
                 if await foeActs(index: index, moveIndex: entry.chainIndex) { return }
                 if !hasLivingFoes { finishVictory(); return }
             }
+            await sinkTheFallen()
         }
         phase = .resolving
 
@@ -2209,6 +2266,34 @@ final class BattleEngine {
             activeTargetID = nil
             for index in enemies.indices { enemies[index].pose = .idle }
         }
+    }
+
+    /// A fallen creature holds the deck for one beat with its defeat pose, then
+    /// goes under and leaves the stage. The fight you are looking at is only
+    /// ever the fight you still have on your hands.
+    private func sinkTheFallen() async {
+        let fallen = enemies.filter { !$0.isAlive && !sunkFoeIDs.contains($0.id) }
+        guard !fallen.isEmpty, hasLivingFoes else { return }
+        for foe in fallen {
+            if let index = enemies.firstIndex(where: { $0.id == foe.id }) {
+                enemies[index].pose = .defeat
+            }
+            addFloat("SLAIN", color: Theme.boneWhite, onEnemy: true, big: true, foe: foe.id)
+        }
+        Haptics.medium()
+        try? await Task.sleep(for: .milliseconds(BattleBeat.sink))
+        withAnimation(.easeInOut(duration: 0.4)) {
+            sunkFoeIDs.formUnion(fallen.map(\.id))
+        }
+        try? await Task.sleep(for: .milliseconds(260))
+    }
+
+    /// The creatures actually standing on the deck: everything that has not
+    /// yet gone under. Victory and defeat keep the whole pack on screen so the
+    /// closing tableau still reads.
+    var stagedFoes: [EnemyState] {
+        guard phase != .won, phase != .lost else { return enemies }
+        return enemies.filter { !sunkFoeIDs.contains($0.id) }
     }
 
     /// Reads which gods stand behind the blow about to land, in play order.
@@ -2823,23 +2908,81 @@ final class BattleEngine {
         return parts.isEmpty ? "answers" : parts.joined(separator: " · ")
     }
 
-    /// Raises the gods' answer to one action in the middle of the deck, then
-    /// clears it. Nothing is shown when no power answered.
-    private func raiseDivineFlash(for step: PlanStep) async {
+    /// Names one of your actions before it resolves: what you are doing, what
+    /// it is worth, which faces fed it, who it is pointed at, and every god
+    /// power riding it — all held together long enough to read.
+    private func raiseSpotlight(for step: PlanStep, targetIndex target: Int?) async {
         let entries = pendingDivineEntries
         pendingDivineEntries = []
-        guard !entries.isEmpty else { return }
-        let flash = DivineFlash(action: step.title, entries: entries)
+        let targetName = livingFoes.count > 1
+            ? target.flatMap { enemies.indices.contains($0) ? enemies[$0].displayName : nil }
+            : nil
+        await hold(
+            ActionSpotlight(
+                actor: heroName,
+                isPlayer: true,
+                title: step.title,
+                detail: step.valueLine,
+                target: step.targetsEnemy ? targetName : nil,
+                faces: step.faces.map(\.matchFace),
+                crit: false,
+                charge: 0,
+                sequence: nil,
+                entries: entries,
+                tint: step.tint
+            )
+        )
+    }
+
+    /// Names one creature's action before it resolves, in the same shape as
+    /// your own — so what is being done to you is as legible as what you are
+    /// doing to it.
+    private func raiseFoeSpotlight(
+        foe: EnemyState,
+        move: EnemyMove,
+        moveIndex: Int,
+        strike: (damage: Int, heal: Int, block: Int)
+    ) async {
+        var parts: [String] = []
+        if move.charge > 0 {
+            parts.append("winding up — next blow ×\(String(format: "%.1f", move.charge))")
+        }
+        if strike.damage > 0 { parts.append("\(strike.damage) DMG") }
+        if strike.block > 0 { parts.append("+\(strike.block) Guard") }
+        if strike.heal > 0 { parts.append("+\(strike.heal) HP") }
+        if move.bleedAmount > 0 { parts.append("Bleed \(move.bleedAmount)×\(move.bleedTurns)") }
+        await hold(
+            ActionSpotlight(
+                actor: foe.displayName,
+                isPlayer: false,
+                title: move.comboName ?? move.name,
+                detail: parts.isEmpty ? "no effect" : parts.joined(separator: " · "),
+                target: nil,
+                faces: move.faces,
+                crit: false,
+                charge: move.charge,
+                sequence: foe.hasChainedIntents
+                    ? "\(moveIndex + 1) of \(foe.intents.count)"
+                    : nil,
+                entries: [],
+                tint: move.charge > 0 ? Theme.ember : Theme.blood
+            )
+        )
+    }
+
+    /// Holds one action's card on screen, then clears it. The hold grows with
+    /// the number of god powers named, so a heavily blessed blow gets the time
+    /// its card actually needs.
+    private func hold(_ card: ActionSpotlight) async {
         withAnimation(.spring(response: 0.34, dampingFraction: 0.7)) {
-            divineFlash = flash
+            spotlight = card
         }
         Haptics.light()
-        // Long enough to read a god's name and its number before the blow.
-        let hold = 620 + min(entries.count, 3) * 240
-        try? await Task.sleep(for: .milliseconds(hold))
-        guard divineFlash?.id == flash.id else { return }
-        withAnimation(.easeOut(duration: 0.22)) { divineFlash = nil }
-        try? await Task.sleep(for: .milliseconds(180))
+        let wait = BattleBeat.spotlight + min(card.entries.count, 3) * BattleBeat.spotlightPerGod
+        try? await Task.sleep(for: .milliseconds(wait))
+        guard spotlight?.id == card.id else { return }
+        withAnimation(.easeOut(duration: 0.24)) { spotlight = nil }
+        try? await Task.sleep(for: .milliseconds(200))
     }
 
     // MARK: - Blessings
@@ -3438,6 +3581,18 @@ final class BattleEngine {
         } else {
             lastAction = "\(foe.displayName) uses \(move.comboName ?? move.name)!"
         }
+
+        // The creature's action is named before it resolves, in the same shape
+        // as your own, so what is being done to you is as legible as what you
+        // are doing to it.
+        enemies[index] = foe
+        await raiseFoeSpotlight(
+            foe: foe,
+            move: move,
+            moveIndex: moveIndex,
+            strike: projectedStrike(for: foe, move: move,
+                                   spendingCharge: move.damage > 0 && foe.chargeBonus > 0)
+        )
 
         // A wind-up: it spends the round gathering itself and the blow that
         // follows is a great deal worse. That window is the whole point.
