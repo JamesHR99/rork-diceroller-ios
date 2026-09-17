@@ -2,7 +2,7 @@ import SwiftUI
 
 /// One slot type in a combo recipe. Most slots demand an exact face, but some
 /// accept a family — "any arrow", "any rune", "any swing", "any strike".
-/// Recipes ask for ingredients and quantities, never a tap order.
+/// Recipes ask for ingredients and quantities out of neighbouring dice.
 enum FacePattern: Hashable {
     case exact(FaceKind)
     case anyArrow

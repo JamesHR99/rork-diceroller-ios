@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Bottom play bar — the centre of the turn. A slim stamina rail on the far
-/// left, the tall turn plan taking the whole middle (fused combos drawn as one
-/// welded card), and the freeze / commit buttons on the right.
+/// left, the tall turn plan taking the whole middle (chains drawn as their own
+/// dice standing side by side), and the freeze / commit buttons on the right.
 struct PlayBarView: View {
     let engine: BattleEngine
 
@@ -298,17 +298,21 @@ struct PlayBarView: View {
         .transition(.scale(scale: 0.6).combined(with: .opacity))
     }
 
-    /// A fused chain: name in full type, the chain badge, every contributing
-    /// face welded in order, the whole effect line and the crit odds.
+    /// A chain in the plan: the dice stay separate tiles standing next to each
+    /// other, because adjacency is what made the chain in the first place.
+    /// A chain you have landed before is named; one you have never landed is
+    /// sealed — you can see you have built *something* and what it is worth,
+    /// but it only names itself when it fires.
     private func comboCard(_ step: PlanStep, number: Int) -> some View {
-        VStack(alignment: .leading, spacing: compact ? 2 : 3) {
+        let known = engine.isChainKnown(step)
+        return VStack(alignment: .leading, spacing: compact ? 2 : 3) {
             HStack(spacing: 4) {
                 orderBadge(number, tint: step.tint)
 
-                Text(step.title.uppercased())
+                Text(engine.planTitle(for: step).uppercased())
                     .font(.fantasy(compact ? 15.5 : 18, weight: .black))
-                    .kerning(0.5)
-                    .foregroundStyle(step.tint)
+                    .kerning(known ? 0.5 : 2)
+                    .foregroundStyle(known ? step.tint : Theme.parchmentDim)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
 
@@ -318,13 +322,13 @@ struct PlayBarView: View {
 
                 beatChip(step)
 
-                Text("\(step.faces.count)-CHAIN")
+                Text(known ? "\(step.faces.count)-CHAIN" : "NEW")
                     .font(.system(size: 10, weight: .black))
                     .kerning(0.5)
                     .foregroundStyle(Theme.bg)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(step.tint, in: .capsule)
+                    .background(known ? step.tint : Theme.sunGold, in: .capsule)
 
                 // The painted cost badge carries the stamina this step spends.
                 Text("\(step.staminaCost)")
@@ -363,10 +367,11 @@ struct PlayBarView: View {
         .frame(minWidth: compact ? 174 : 190, maxWidth: 320, alignment: .leading)
     }
 
-    /// The chain's faces, welded together by the painted connector rather
-    /// than spaced apart — a chain reads as one object, not a run of chips.
+    /// The chain's faces: each die kept as its own tile with the painted
+    /// connector between them, so the plan reads as dice you arranged in an
+    /// order rather than one welded lump you were handed.
     private func weldedFaces(_ step: PlanStep) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(Array(step.faces.enumerated()), id: \.element.id) { index, face in
                 DuatSymbol(art: face.face.artName,
                            fallback: face.face.symbol,
@@ -505,12 +510,12 @@ struct PlayBarView: View {
         guard engine.phase == .player else { return "Resolving in order..." }
         if engine.playedFaces.isEmpty {
             if !engine.hasRolled { return "Roll your dice first" }
-            return engine.stamina == 0 ? "No stamina left" : "Tap dice in — fused chains cost less"
+            return engine.stamina == 0 ? "No stamina left" : "Tap dice in — neighbours chain together"
         }
         if engine.canTarget {
             return "Commit, then tap each foe to aim · order matters"
         }
-        return "Tap a step to take it back · order matters"
+        return "Tap a step to take it back · where a die sits decides its chain"
     }
 
     // MARK: - Freeze

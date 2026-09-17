@@ -125,7 +125,7 @@ struct ActionSpotlightView: View {
     /// be able to read.
     private var titleLine: some View {
         Text(card.title.uppercased())
-            .font(.fantasy(24, weight: .black))
+            .font(.fantasy(card.isDiscovery ? 26 : 24, weight: .black))
             .kerning(1.6)
             .foregroundStyle(
                 LinearGradient(colors: [Theme.parchment, accent],

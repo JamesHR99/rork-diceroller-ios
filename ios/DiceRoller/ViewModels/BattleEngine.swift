@@ -232,48 +232,6 @@ struct PlanStep: Identifiable {
     }
 }
 
-/// A combo your roll could make right now, listed in the combo panel with a
-/// letter that matches the markers under the dice feeding it.
-struct ComboCandidate: Identifiable {
-    let combo: ComboDef
-    let slots: [RolledFace]
-    /// How many of its faces are already sitting in the turn plan.
-    let placedCount: Int
-    /// The letter this candidate wears in the panel, matching tray markers.
-    let letter: String
-    /// True when the player has locked this recipe in for the turn.
-    let isForced: Bool
-
-    var id: String { combo.id }
-    var chain: Int { combo.faceCount }
-    var faces: [RolledFace] { slots }
-    var isInPlan: Bool { placedCount == chain }
-    var critDice: Int { faces.filter(\.isCrit).count }
-
-    /// Damage the finished chain would deal at full length.
-    var projectedDamage: Int {
-        guard combo.damage > 0 else { return 0 }
-        let scale = GameData.comboOutputScale(faces: chain, critDice: critDice, crit: false)
-        return GameData.scaleUp(combo.damage, by: scale)
-    }
-}
-
-/// One letter carved under a die: the chain that letter names, in that
-/// chain's own colour. The letters are the compact read of the roll — tapping
-/// one fuses or dissolves its chain, so the full combo list underneath the
-/// tray is optional rather than the only way to form a combo.
-struct ComboMarker: Identifiable, Equatable {
-    let comboID: String
-    let name: String
-    let letter: String
-    let color: Color
-    let staminaCost: Int
-    /// True when the whole chain is already locked into the turn plan.
-    let isPlanned: Bool
-
-    var id: String { comboID }
-}
-
 /// The banner, shockwave and sparks thrown by a chain as it resolves.
 struct ComboFlash: Identifiable, Equatable {
     let id = UUID()
@@ -342,6 +300,9 @@ struct ActionSpotlight: Identifiable, Equatable {
     /// Every god power that answered this action, named and totalled.
     let entries: [DivineFlashEntry]
     let tint: Color
+    /// True the first time a chain ever lands: the card announces it as a find
+    /// and the codex keeps it from then on.
+    var isDiscovery: Bool = false
 }
 
 /// How long the arena holds each beat of a fight, in milliseconds.
@@ -391,6 +352,9 @@ enum BattleBeat {
     /// Added per god power named on the card, so a heavily blessed action
     /// holds longer than a plain one.
     static let spotlightPerGod = 300
+    /// Added the first time a chain ever lands. Finding a recipe is the one
+    /// moment in a fight worth stopping the board for.
+    static let spotlightDiscovery = 900
     /// A fallen creature's last moment on the deck before it sinks out of
     /// the fight.
     static let sink = 620
@@ -713,20 +677,20 @@ final class BattleEngine {
     /// Enemies that caught you stepping off the barque, quicker for round one.
     private(set) var surprisedBy: Set<UUID> = []
 
-    // Manual combo planning: recipes the player dissolved out of the auto
-    // grouping, and recipes the player locked in by hand.
-    private(set) var dissolvedCombos: Set<String> = []
-    private(set) var forcedCombos: Set<String> = []
+    /// Chains the player has landed for the first time this fight, so the
+    /// battle can announce a find once and the codex can keep it for good.
+    private(set) var chainsDiscoveredThisFight: [String] = []
+
+    /// Every chain the player has ever landed, read once at the start of the
+    /// fight and kept in memory so the plan bar is not hitting storage on
+    /// every redraw. Discoveries made mid-fight are folded in as they land.
+    private var knownChainIDs: Set<String> = ComboLore.known()
 
     // MARK: Fighter animation
     private(set) var playerPose: FighterPose = .idle
     /// The gods whose blessings ride the blow currently being thrown.
     private(set) var strikeGods: [Deity] = []
 
-    /// Every chain this roll could make, longest first — rebuilt whenever the
-    /// board changes rather than on every redraw.
-    private(set) var comboCandidates: [ComboCandidate] = []
-    private(set) var comboMarkers: [UUID: [ComboMarker]] = [:]
 
     // MARK: Effects & stats
     /// Shots crossing the deck right now: arrows, thrown knives, cast runes and
@@ -1328,7 +1292,6 @@ final class BattleEngine {
         if nockShiftedFaceID == faceID, rolled[index].effectiveFace != nil {
             rolled[index].effectiveFace = nil
             nockShiftedFaceID = nil
-            refreshCandidates()
             Haptics.light()
             return
         }
@@ -1338,7 +1301,6 @@ final class BattleEngine {
         guard tiers.indices.contains(shifted) else { return }
         rolled[index].effectiveFace = tiers[shifted]
         nockShiftedFaceID = faceID
-        refreshCandidates()
         Haptics.light()
     }
 
@@ -1597,84 +1559,23 @@ final class BattleEngine {
 
     var hasCombo: Bool { turnPlan.contains { $0.isCombo } }
 
+    /// True when the player has already landed this step's chain at some point
+    /// and so is allowed to see its name while planning. An undiscovered chain
+    /// stays anonymous until it fires.
+    func isChainKnown(_ step: PlanStep) -> Bool {
+        guard let combo = step.combo else { return true }
+        return knownChainIDs.contains(combo.id)
+    }
+
+    /// What a step calls itself in the plan. A chain you know is named; one you
+    /// have never landed reads as a sealed thing you built but cannot yet
+    /// identify — it will name itself when it lands.
+    func planTitle(for step: PlanStep) -> String {
+        guard step.isCombo else { return step.title }
+        return isChainKnown(step) ? step.title : "Unknown Chain"
+    }
+
     // MARK: - Chains in hand
-
-    /// Recomputes the combo panel: every chain the unassigned faces could
-    /// still make, plus the forced ones already locked in. Heavy, so it only
-    /// runs when the board actually changes.
-    private func refreshCandidates() {
-        guard phase == .player, hasRolled, !isRolling else { return clearChainCounts() }
-        guard !comboPool.isEmpty else { return clearChainCounts() }
-
-        let planned = Set(playOrder)
-        let assignedIDs = Set(buildPlan(from: playedFaces).filter(\.isCombo).flatMap { $0.faces.map(\.id) })
-        let free = rolled.filter { !assignedIDs.contains($0.id) }
-        var found: [ComboCandidate] = []
-        var markers: [UUID: [ComboMarker]] = [:]
-
-        var assisted = 0
-        for combo in comboPool {
-            let forced = forcedCombos.contains(combo.id)
-            let dissolved = dissolvedCombos.contains(combo.id)
-            guard forced || !dissolved else { continue }
-            let kinds = free.map(\.matchFace)
-            var indices = combo.match(from: kinds)
-            var substituted: (index: Int, kind: FaceKind)? = nil
-            if indices == nil, assisted < 1,
-               let match = chiselAssistedMatch(combo, kinds: kinds) {
-                indices = match.indices
-                substituted = match.substitution
-            }
-            guard let indices else { continue }
-            var slots = indices.map { free[$0] }
-            if let substituted {
-                assisted += 1
-                if let local = indices.firstIndex(of: substituted.index) {
-                    slots[local].effectiveFace = substituted.kind
-                }
-            }
-            let placed = slots.filter { planned.contains($0.id) }.count
-            let letter = Self.letter(at: found.count)
-            found.append(ComboCandidate(combo: combo, slots: slots, placedCount: placed,
-                                        letter: letter, isForced: forced))
-            let marker = ComboMarker(
-                comboID: combo.id,
-                name: combo.name,
-                letter: letter,
-                color: combo.tint,
-                staminaCost: combo.staminaCost,
-                isPlanned: forced && placed == slots.count
-            )
-            for face in slots {
-                markers[face.id, default: []].append(marker)
-            }
-        }
-        comboCandidates = found.sorted { lhs, rhs in
-            if lhs.isForced != rhs.isForced { return lhs.isForced }
-            if lhs.chain != rhs.chain { return lhs.chain > rhs.chain }
-            if lhs.projectedDamage != rhs.projectedDamage { return lhs.projectedDamage > rhs.projectedDamage }
-            return lhs.combo.name < rhs.combo.name
-        }
-        comboMarkers = markers
-    }
-
-    private static func letter(at index: Int) -> String {
-        let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        guard index < alphabet.count else { return "?" }
-        let offset = alphabet.index(alphabet.startIndex, offsetBy: index)
-        return String(alphabet[offset])
-    }
-
-    private func clearChainCounts() {
-        if !comboCandidates.isEmpty { comboCandidates = [] }
-        if !comboMarkers.isEmpty { comboMarkers = [:] }
-    }
-
-    /// How many chains this particular die could feed — the tray's tally dots.
-    func chainCount(for faceID: UUID) -> Int { comboMarkers[faceID]?.count ?? 0 }
-
-    var chainsInHand: Int { comboCandidates.count }
-    var maxChainCount: Int { comboMarkers.values.map(\.count).max() ?? 0 }
 
     /// Faces a chain could still be built out of *right now*.
     var availableFaces: [RolledFace] {
@@ -1785,7 +1686,6 @@ final class BattleEngine {
     func rollAll() {
         guard canRoll else { return }
         hasRolled = true
-        clearChainCounts()
         shuffleRow()
         let tumbling = rollableDice
         for index in slots.indices where !slots[index].isCarried {
@@ -1807,7 +1707,7 @@ final class BattleEngine {
             let crits = rolled.filter(\.isCrit).count
             lastAction = crits > 0
                 ? "\(crits) CRITICAL\(crits > 1 ? "S" : "")! Feed them into a chain."
-                : "Chain faces together — alone they barely scratch, fused they hit hard."
+                : "Lay dice side by side — alone they barely scratch. See what forms."
         }
     }
 
@@ -1838,7 +1738,6 @@ final class BattleEngine {
         rolled.append(result)
         slamPulse += 1
         lastReelLocked = isLast
-        refreshCandidates()
 
         let kick: CGFloat = outcome.isCrit ? 0.85 : (isLast ? 0.62 : 0.36)
         withAnimation(.linear(duration: 0.16)) { shakeTrigger += kick }
@@ -1856,9 +1755,9 @@ final class BattleEngine {
         }
     }
 
-    /// Place a rolled face into the play bar. A face costs 1 stamina on its
-    /// own, less once it fuses into a combo — the discount lands the moment
-    /// the fusion forms.
+    /// Place a rolled face into the play bar. Where it lands is the whole
+    /// decision now: a die only chains with the dice standing next to it, so
+    /// dropping one between two others can weld a chain — or break one.
     func placeInPlayBar(faceID: UUID, before targetID: UUID? = nil) {
         guard phase == .player, let face = rolled.first(where: { $0.id == faceID }) else { return }
         guard faceID != targetID else { return }
@@ -1882,7 +1781,6 @@ final class BattleEngine {
             freezesUsed = max(0, freezesUsed - 1)
         }
         playOrder = prospective
-        refreshCandidates()
         Haptics.light()
     }
 
@@ -1891,7 +1789,6 @@ final class BattleEngine {
     func returnToTray(faceID: UUID) {
         guard phase == .player, playOrder.contains(faceID) else { return }
         playOrder.removeAll { $0 == faceID }
-        refreshCandidates()
         Haptics.light()
     }
 
@@ -1954,50 +1851,6 @@ final class BattleEngine {
         Haptics.medium()
     }
 
-    // MARK: - Combo panel actions
-
-    /// Tap a combo in the panel. A planned combo dissolves — its faces stay
-    /// in the plan and resolve alone. An available combo locks in: its faces
-    /// join the plan and the recipe can no longer be beaten by the greedy
-    /// grouping.
-    func toggleCombo(_ comboID: String) {
-        guard phase == .player, let candidate = comboCandidates.first(where: { $0.combo.id == comboID }) else { return }
-
-        if candidate.isForced && candidate.isInPlan {
-            forcedCombos.remove(comboID)
-            dissolvedCombos.insert(comboID)
-            lastAction = "\(candidate.combo.name) dissolved — its faces play alone."
-            refreshCandidates()
-            Haptics.light()
-            return
-        }
-
-        // Lock it in and pull any of its faces that are not placed yet.
-        var prospective = playOrder
-        var missing: [RolledFace] = []
-        for face in candidate.faces where !prospective.contains(face.id) {
-            missing.append(face)
-        }
-        guard planCost(for: prospective) + missing.count <= turnStamina else {
-            lastAction = "Out of stamina to form \(candidate.combo.name)."
-            Haptics.warning()
-            return
-        }
-        for face in missing { prospective.append(face.id) }
-        for faceID in prospective {
-            if let slotID = slotID(showing: faceID), frozenSlotIDs.contains(slotID) {
-                frozenSlotIDs.remove(slotID)
-                freezesUsed = max(0, freezesUsed - 1)
-            }
-        }
-        playOrder = prospective
-        dissolvedCombos.remove(comboID)
-        forcedCombos.insert(comboID)
-        lastAction = "\(candidate.combo.name) planned — \(candidate.combo.ingredientSummary)."
-        refreshCandidates()
-        Haptics.medium()
-    }
-
     func commitTurn() {
         guard canResolve else { return }
         resetTargetingSelection()
@@ -2043,7 +1896,6 @@ final class BattleEngine {
             + (echoArmedComboID.map { planIDs.contains($0) ? GameData.echoStaminaCost : 0 } ?? 0)
         turnStamina = max(0, turnStamina - steps.reduce(0) { $0 + $1.staminaCost } - armedExtras)
         playOrder = []
-        clearChainCounts()
 
         // One action of yours, resolved at the beat it was scheduled for.
         // Returns true when the fight ended inside it.
@@ -2917,6 +2769,17 @@ final class BattleEngine {
         let targetName = livingFoes.count > 1
             ? target.flatMap { enemies.indices.contains($0) ? enemies[$0].displayName : nil }
             : nil
+
+        // A chain names itself here and nowhere earlier. This is the moment
+        // the player finds out what they built, and the first time one lands
+        // it is written into the codex for good.
+        var found = false
+        if let combo = step.combo, ComboLore.discover(combo.id) {
+            found = true
+            knownChainIDs.insert(combo.id)
+            chainsDiscoveredThisFight.append(combo.id)
+        }
+
         await hold(
             ActionSpotlight(
                 actor: heroName,
@@ -2929,7 +2792,8 @@ final class BattleEngine {
                 charge: 0,
                 sequence: nil,
                 entries: entries,
-                tint: step.tint
+                tint: step.tint,
+                isDiscovery: found
             )
         )
     }
@@ -2977,8 +2841,11 @@ final class BattleEngine {
         withAnimation(.spring(response: 0.34, dampingFraction: 0.7)) {
             spotlight = card
         }
-        Haptics.light()
+        if card.isDiscovery { Haptics.success() } else { Haptics.light() }
+        // A find holds longer than an action you already knew — it is the one
+        // card in a fight worth stopping for.
         let wait = BattleBeat.spotlight + min(card.entries.count, 3) * BattleBeat.spotlightPerGod
+            + (card.isDiscovery ? BattleBeat.spotlightDiscovery : 0)
         try? await Task.sleep(for: .milliseconds(wait))
         guard spotlight?.id == card.id else { return }
         withAnimation(.easeOut(duration: 0.24)) { spotlight = nil }
@@ -3881,11 +3748,8 @@ final class BattleEngine {
         }
         nextTurnStamina = 0
         playOrder = []
-        clearChainCounts()
         committedPlan = []
         activeStepIndex = nil
-        dissolvedCombos = []
-        forcedCombos = []
         capstoneUsedThisTurn = false
         thermalUsedThisTurn = false
 
@@ -3959,7 +3823,6 @@ final class BattleEngine {
         }
         phase = .player
         resetPoses()
-        refreshCandidates()
     }
 
     private func finishVictory() {
@@ -4014,54 +3877,52 @@ final class BattleEngine {
         return nil
     }
 
-    /// Groups played faces into steps: every recipe that fits forms a single
-    /// step, biggest and most specific first; everything left resolves alone.
-    /// Order inside a step is play order; steps are ordered by their first
-    /// member so the bar reads naturally.
+    /// Groups played faces into steps by *arrangement*.
+    ///
+    /// Chains are no longer found for you and fused wherever they happen to
+    /// sit: a recipe only forms out of dice standing next to each other, read
+    /// left to right in the order you laid them down. Two Fire runes at either
+    /// end of the plan are two lone runes; put them side by side and they are
+    /// a Fireball. That is the discovery game — where a die goes is now a real
+    /// decision rather than a formality.
+    ///
+    /// Within one run of adjacent dice order still does not matter, so a
+    /// recipe is never a memory test about which die you tapped first.
     func buildPlan(from faces: [RolledFace]) -> [PlanStep] {
-        var remaining = faces
-        var groups: [(combo: ComboDef, members: [RolledFace])] = []
-
-        var pool = comboPool.filter { !dissolvedCombos.contains($0.id) }
-        // Forced recipes come first, in the order the player locked them.
-        pool.sort { lhs, rhs in
-            let lForced = forcedCombos.contains(lhs.id)
-            let rForced = forcedCombos.contains(rhs.id)
-            if lForced != rForced { return lForced }
-            return false
-        }
-
-        var changed = true
+        var groups: [(position: Int, combo: ComboDef, members: [RolledFace])] = []
+        var consumed = Set<UUID>()
         var substitutions = 0
-        while changed {
-            changed = false
-            for combo in pool {
-                guard combo.faceCount <= remaining.count else { continue }
-                let kinds = remaining.map(\.matchFace)
-                var indices = combo.match(from: kinds)
+
+        // Walk the plan from the left. At each die take the largest recipe
+        // that fits the run starting there; the pass is deterministic because
+        // comboPool is already ordered biggest and most specific first.
+        var cursor = 0
+        while cursor < faces.count {
+            var matched = false
+            for combo in comboPool {
+                let end = cursor + combo.faceCount
+                guard end <= faces.count else { continue }
+                var window = Array(faces[cursor..<end])
+                let kinds = window.map(\.matchFace)
+                var isMatch = combo.match(from: kinds) != nil
                 var substituted: (index: Int, kind: FaceKind)? = nil
-                if indices == nil, substitutions < 1,
+                if !isMatch, substitutions < 1,
                    let assisted = chiselAssistedMatch(combo, kinds: kinds) {
-                    indices = assisted.indices
+                    isMatch = true
                     substituted = assisted.substitution
                 }
-                guard let indices else { continue }
-                var members = indices.map { remaining[$0] }
-                if let substituted {
+                guard isMatch else { continue }
+                if let substituted, window.indices.contains(substituted.index) {
                     substitutions += 1
-                    if let local = indices.firstIndex(of: substituted.index) {
-                        members[local].effectiveFace = substituted.kind
-                    }
+                    window[substituted.index].effectiveFace = substituted.kind
                 }
-                groups.append((combo, members))
-                var next: [RolledFace] = []
-                for (offset, face) in remaining.enumerated() where !indices.contains(offset) {
-                    next.append(face)
-                }
-                remaining = next
-                changed = true
+                groups.append((cursor, combo, window))
+                for member in window { consumed.insert(member.id) }
+                cursor = end
+                matched = true
                 break
             }
+            if !matched { cursor += 1 }
         }
 
         var steps: [PlanStep] = []
@@ -4069,17 +3930,14 @@ final class BattleEngine {
         var pendingFocus = 0
         var pendingMomentum = momentumCarry
 
-        // Merge everything back into play order, combos carried with their
-        // first member's position.
+        // Merge everything back into play order, each chain carried at the
+        // position of the die that opened it.
         var ordered: [(position: Int, step: PlanStep)] = []
-        var consumed = Set<UUID>()
         for group in groups {
-            let position = faces.firstIndex(where: { group.members.contains($0) && !consumed.contains($0.id) }) ?? 0
-            for member in group.members { consumed.insert(member.id) }
             let momentum = group.combo.damage > 0 ? momentumBonus(for: attacksSoFar) + pendingMomentum : 0
             let focus = group.combo.damage > 0 ? pendingFocus : 0
-            ordered.append((position, PlanStep(faces: group.members, combo: group.combo,
-                                               momentumBonus: momentum, focusBonus: focus)))
+            ordered.append((group.position, PlanStep(faces: group.members, combo: group.combo,
+                                                     momentumBonus: momentum, focusBonus: focus)))
             if group.combo.damage > 0 {
                 pendingFocus = 0
                 pendingMomentum = 0

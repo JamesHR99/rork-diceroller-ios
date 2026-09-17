@@ -5,6 +5,9 @@ import SwiftUI
 struct ClassCardView: View {
     let hero: HeroClass
 
+    /// Chains this player has landed at least once, so the card can name them.
+    private var knownCombos: Set<String> { ComboLore.known() }
+
     private var signatureCombos: [ComboDef] {
         Array(GameData.classCombos(hero.id)
             .filter { $0.source == .weapon }
@@ -104,17 +107,22 @@ struct ClassCardView: View {
                 .kerning(1.2)
                 .foregroundStyle(hero.accent)
 
+            // Only chains this player has actually landed are named here.
+            // Recipes are found in the fight, not read off the class select
+            // screen before the run even starts.
             ForEach(signatureCombos) { combo in
+                let found = knownCombos.contains(combo.id)
                 HStack(spacing: 7) {
-                    ComboRecipeView(combo: combo, tileSize: 18)
-                    Text(combo.name)
+                    ComboRecipeView(combo: combo, tileSize: 18, isRevealed: found)
+                    Text(found ? combo.name : "? ? ?")
                         .font(.fantasy(11, weight: .bold))
-                        .foregroundStyle(Theme.parchment)
+                        .kerning(found ? 0 : 2.5)
+                        .foregroundStyle(found ? Theme.parchment : Theme.parchmentDim.opacity(0.8))
                         .lineLimit(1)
                     Spacer(minLength: 0)
-                    Text("\(combo.damage) dmg")
+                    Text(found ? "\(combo.damage) dmg" : "\(combo.faceCount) dice")
                         .font(.system(size: 10, weight: .black).monospacedDigit())
-                        .foregroundStyle(hero.accent)
+                        .foregroundStyle(found ? hero.accent : Theme.parchmentDim.opacity(0.7))
                 }
             }
         }

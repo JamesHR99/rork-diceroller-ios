@@ -47,6 +47,15 @@ struct InfoSheetView: View {
 
     private var hero: HeroClass { GameData.heroClass(id: classID) }
 
+    /// Every chain the player has ever landed. Read once when the codex opens
+    /// rather than per row, so scrolling never touches storage.
+    private var knownCombos: Set<String> { ComboLore.known() }
+
+    /// Every chain this class could ever find, for the found-count heading.
+    private var allCombos: [ComboDef] {
+        GameData.classCombos(classID) + SharedContent.combos
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -255,6 +264,8 @@ struct InfoSheetView: View {
 
     private var combosTab: some View {
         VStack(alignment: .leading, spacing: 14) {
+            loreHeading
+
             comboGroup(
                 title: "\(hero.weaponName.uppercased()) — WEAPON COMBOS",
                 combos: GameData.classCombos(classID).filter { $0.source == .weapon }
@@ -282,52 +293,106 @@ struct InfoSheetView: View {
         }
     }
 
+    /// What the codex now opens with: a tally of what has been found, and the
+    /// rule that replaced the lettered suggestions under the tray.
+    private var loreHeading: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                DuatIcon(name: DuatArt.chainConnector, size: 20)
+                Text("WHAT YOU HAVE FOUND")
+                    .font(.system(size: 13, weight: .black))
+                    .kerning(1.5)
+                    .foregroundStyle(Theme.gold)
+                Spacer(minLength: 0)
+                Text("\(ComboLore.knownCount(among: allCombos)) / \(allCombos.count)")
+                    .font(.system(size: 13, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.sunGold)
+            }
+            Text("Dice standing next to each other chain together. Nothing tells you which arrangements mean something — lay them out, commit, and a chain names itself as it lands. Every one you land is written in here for good.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.parchmentDim)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+    }
+
     private func comboGroup(title: String, combos: [ComboDef]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             sectionTitle(title)
 
             VStack(spacing: 5) {
                 ForEach(combos) { combo in
-                    HStack(alignment: .top, spacing: 10) {
-                        ComboRecipeView(combo: combo, tileSize: 26)
-                            .frame(width: 128, alignment: .leading)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(combo.name)
-                                    .font(.fantasy(13, weight: .bold))
-                                    .foregroundStyle(combo.tint)
-                                Text("\(combo.staminaCost) stam")
-                                    .font(.system(size: 10.5, weight: .black))
-                                    .foregroundStyle(Theme.parchmentDim)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1.5)
-                                    .background(Theme.bg, in: .capsule)
-                                if combo.damage > 0 {
-                                    Text("crit → \(GameData.scaleUp(combo.damage, by: GameData.comboCritMultiplier)) dmg")
-                                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
-                                        .foregroundStyle(Theme.gold)
-                                }
-                            }
-                            Text(combo.effectSummary.prefix(1).uppercased() + combo.effectSummary.dropFirst())
-                                .font(.system(size: 12))
-                                .foregroundStyle(Theme.parchmentDim)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(combo.flavor)
-                                .font(.paper(10))
-                                .italic()
-                                .foregroundStyle(Theme.parchmentDim.opacity(0.65))
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.bgCard, in: .rect(cornerRadius: 10))
+                    comboRow(combo, found: knownCombos.contains(combo.id))
                 }
             }
         }
+    }
+
+    /// One chain in the codex. Landed at least once it reads in full: recipe,
+    /// name, cost and what it does. Never landed, it is a sealed row — how
+    /// many dice it takes and nothing else, so the codex tells you how much is
+    /// left to find without telling you what any of it is.
+    private func comboRow(_ combo: ComboDef, found: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            ComboRecipeView(combo: combo, tileSize: 26, isRevealed: found)
+                .frame(width: 128, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(found ? combo.name : "? ? ?")
+                        .font(.fantasy(13, weight: .bold))
+                        .kerning(found ? 0 : 3)
+                        .foregroundStyle(found ? combo.tint : Theme.parchmentDim.opacity(0.85))
+
+                    if found {
+                        Text("\(combo.staminaCost) stam")
+                            .font(.system(size: 10.5, weight: .black))
+                            .foregroundStyle(Theme.parchmentDim)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Theme.bg, in: .capsule)
+                        if combo.damage > 0 {
+                            Text("crit → \(GameData.scaleUp(combo.damage, by: GameData.comboCritMultiplier)) dmg")
+                                .font(.system(size: 10.5, weight: .black).monospacedDigit())
+                                .foregroundStyle(Theme.gold)
+                        }
+                    } else {
+                        Text("\(combo.faceCount) DICE, SIDE BY SIDE")
+                            .font(.system(size: 10, weight: .black))
+                            .kerning(0.8)
+                            .foregroundStyle(Theme.parchmentDim.opacity(0.75))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Theme.bg, in: .capsule)
+                    }
+                }
+
+                if found {
+                    Text(combo.effectSummary.prefix(1).uppercased() + combo.effectSummary.dropFirst())
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(combo.flavor)
+                        .font(.paper(10))
+                        .italic()
+                        .foregroundStyle(Theme.parchmentDim.opacity(0.65))
+                        .lineLimit(1)
+                } else {
+                    Text("Undiscovered — arrange it and see.")
+                        .font(.paper(11))
+                        .italic()
+                        .foregroundStyle(Theme.parchmentDim.opacity(0.55))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bgCard, in: .rect(cornerRadius: 10))
+        .opacity(found ? 1 : 0.75)
     }
 
     // MARK: - Pantheon tab
@@ -655,10 +720,10 @@ struct InfoSheetView: View {
                 icon: "link", tint: Theme.ember, title: "CHAINS ARE THE FIGHT",
                 lines: [
                     "A face played on its own is worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
-                    "A recipe asks for ingredients and quantities, never a tap order — any arrangement of the faces fuses into one step. Three Swift Slashes make the same chain whichever tap they arrived from.",
+                    "A chain forms out of dice standing next to each other, read left to right in the order you laid them down. Two Fire runes at either end of the plan are two lone runes; put them side by side and they are something else entirely.",
                     "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
                     "A step costs one stamina per face it uses — there is no bulk discount. A big recipe buys its power with preparation time instead: it lands later on the hour strip.",
-                    "Each die wears a coloured letter for every chain it could feed. Tap a letter to fuse that chain; tap it again once it turns gold to break it apart.",
+                    "Nothing tells you what to build. No letters, no suggestions, no list of what is in reach — you arrange the dice, commit, and each chain names itself as it lands. Every one you land is written into the codex for good.",
                     "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
                 ]
             )
@@ -887,11 +952,12 @@ struct InfoSheetView: View {
             )
 
             ruleCard(
-                icon: "arrow.left.arrow.right", tint: Theme.steelBlue, title: "RECIPES, NOT ORDERS",
+                icon: "arrow.left.arrow.right", tint: Theme.steelBlue, title: "ARRANGEMENT IS EVERYTHING",
                 lines: [
-                    "The plan resolves left to right, in the order you place the dice — but recipes themselves ask for ingredients, never order.",
-                    "Any arrangement of the right faces fuses into one combo step; competing recipes are settled by size and specificity, biggest first.",
-                    "Tap a recipe in the panel to fuse it by hand, or tap it again to dissolve it back into solo faces.",
+                    "The plan resolves left to right, in the order you place the dice — and that same order is what decides which chains form at all.",
+                    "Only neighbours chain. Dropping a die between two others can weld a chain together, or break one you already had.",
+                    "Inside a run of neighbours the order does not matter, so a chain is never a memory test about which die you tapped first.",
+                    "Where two chains could both claim the same dice, the longer and more specific one takes them.",
                     "Tap a step to take its dice back and reclaim the stamina.",
                 ]
             )

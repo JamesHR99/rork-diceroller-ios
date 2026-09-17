@@ -42,13 +42,6 @@ struct DiceTrayView: View {
 
     private var reelHeight: CGFloat { min(maxReelHeight, reelWidth * 1.3) }
 
-    /// The full combo rail under the tray: every chain spelled out with its
-    /// name, effect, cost and Chisel badge. Off by default — the letters
-    /// carved under each die carry the same read in a fraction of the height,
-    /// and the arena is short. The rail is kept whole so it can be switched
-    /// back on by flipping this to true.
-    static let showsComboRail = false
-
     var body: some View {
         VStack(spacing: 5) {
             header
@@ -57,15 +50,12 @@ struct DiceTrayView: View {
                 leadingControl
 
                 HStack(spacing: reelGap) {
-                    let counts = Dictionary(uniqueKeysWithValues:
-                        engine.comboMarkers.map { ($0.key, $0.value.count) })
                     ForEach(engine.slots) { slot in
                         DiceTrayReelView(
                             slot: slot,
                             engine: engine,
                             width: reelWidth,
-                            height: reelHeight,
-                            chainCounts: counts
+                            height: reelHeight
                         )
                     }
                 }
@@ -73,8 +63,6 @@ struct DiceTrayView: View {
                 .padding(.vertical, 6)
                 .background { reelBed }
             }
-
-            comboPanel
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
@@ -211,11 +199,8 @@ struct DiceTrayView: View {
                 .padding(.vertical, 2.5)
                 .background(Theme.frost.opacity(0.1), in: .capsule)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
-            } else if engine.chainsInHand > 0 && !freezeArmed {
-                chainsBadge
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.chainsInHand)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.frozenCount)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
     }
@@ -227,25 +212,6 @@ struct DiceTrayView: View {
         return "YOUR ROLL"
     }
 
-    /// How many chains are still reachable from where the plan stands. It is
-    /// live: lay a die down and the number reads the chains that survive that
-    /// choice, never naming a single one of them.
-    private var chainsBadge: some View {
-        HStack(spacing: 3) {
-            DuatImage(name: DuatArt.chainConnector, width: 14, fit: .fit)
-                .colorMultiply(Theme.parchment)
-            Text("\(engine.chainsInHand) CHAIN\(engine.chainsInHand > 1 ? "S" : "") STILL IN REACH")
-                .font(.system(size: 9, weight: .black).monospacedDigit())
-                .contentTransition(.numericText())
-        }
-        .foregroundStyle(Theme.parchment.opacity(0.85))
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2.5)
-        .background(Theme.bgCard, in: .capsule)
-        .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.35), lineWidth: 1))
-        .transition(.scale(scale: 0.7).combined(with: .opacity))
-    }
-
     private var hint: String {
         if freezeArmed {
             let left = engine.freezesRemaining
@@ -254,96 +220,10 @@ struct DiceTrayView: View {
 
         if engine.canRoll { return "Roll to begin the turn · the order changes every roll" }
         if engine.isRolling { return "The drums wind down, one by one..." }
-        if !engine.comboCandidates.isEmpty {
-            let count = engine.comboCandidates.count
-            return "Tap a letter under a die to fuse that chain · \(count) in reach"
-        }
-        return "Chain faces together — alone they barely scratch · FREEZE holds one face"
+        return "Dice side by side chain together · the order is yours to find"
     }
 
     // MARK: - Combo panel
-
-    /// Every chain the roll could still make: name, effect, ingredients and
-    /// stamina, with a letter that matches the markers under the dice feeding
-    /// it. Tap to fuse; tap a planned one to dissolve it back into solos.
-    @ViewBuilder
-    private var comboPanel: some View {
-        if Self.showsComboRail && !engine.canRoll && !engine.isRolling && !engine.comboCandidates.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(engine.comboCandidates) { candidate in
-                        comboChip(candidate)
-                    }
-                }
-                .padding(.vertical, 1)
-            }
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
-        }
-    }
-
-    private func comboChip(_ candidate: ComboCandidate) -> some View {
-        let planned = candidate.isForced && candidate.isInPlan
-        let partial = candidate.placedCount > 0 && !planned
-        return Button {
-            engine.toggleCombo(candidate.combo.id)
-        } label: {
-            HStack(spacing: 5) {
-                Text(candidate.letter)
-                    .font(.system(size: 11, weight: .black))
-                    .foregroundStyle(Theme.bg)
-                    .frame(width: 18, height: 18)
-                    .background(candidate.combo.tint, in: .circle)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(candidate.combo.name)
-                        .font(.system(size: 10.5, weight: .black))
-                        .kerning(0.4)
-                        .foregroundStyle(planned ? Theme.gold : Theme.parchment)
-                        .lineLimit(1)
-                    Text(candidate.combo.effectSummary)
-                        .font(.system(size: 8.5, weight: .semibold))
-                        .foregroundStyle(Theme.parchmentDim)
-                        .lineLimit(1)
-                }
-
-                Text("\(candidate.combo.staminaCost)")
-                    .font(.system(size: 10, weight: .black).monospacedDigit())
-                    .foregroundStyle(planned ? Theme.gold : Theme.parchmentDim)
-
-                // The Ptah badge: arms this recipe's optional Chisel — tap to
-                // see its cost and outcome fold into the forecast, tap again
-                // to disarm.
-                if let badgeChisel = engine.badgeChisel(for: candidate.combo.id) {
-                    let armed = engine.isArmed(badgeChisel, comboID: candidate.combo.id)
-                    Button {
-                        engine.toggleArmed(badgeChisel, comboID: candidate.combo.id)
-                    } label: {
-                        DuatSymbol(art: badgeChisel.artName ?? DuatArt.upgradeHammer,
-                                   fallback: "hammer.fill",
-                                   size: 13,
-                                   tint: armed ? Theme.bg : Theme.ptahCopper)
-                            .frame(width: 20, height: 20)
-                            .background(armed ? Theme.ptahCopper : Theme.bg, in: .circle)
-                            .overlay(Circle().strokeBorder(Theme.ptahCopper.opacity(armed ? 1 : 0.6), lineWidth: 1))
-                            .shadow(color: armed ? Theme.ptahCopper.opacity(0.6) : .clear, radius: 5)
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Theme.bgCard, in: .capsule)
-            .overlay(
-                Capsule().strokeBorder(
-                    planned ? Theme.gold : (partial ? candidate.combo.tint.opacity(0.7) : Theme.rule.opacity(0.35)),
-                    lineWidth: planned ? 1.8 : 1
-                )
-            )
-            .opacity(partial ? 0.75 : 1)
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
 
     // MARK: - Roll control
 
@@ -364,9 +244,6 @@ private struct DiceTrayReelView: View {
     let engine: BattleEngine
     let width: CGFloat
     let height: CGFloat
-    /// How many chains each die could still feed from where the plan stands —
-    /// never which ones.
-    let chainCounts: [UUID: Int]
 
     @State private var spinIndex = 0
     @State private var settled = false
@@ -400,17 +277,6 @@ private struct DiceTrayReelView: View {
     }
     private var tagSize: CGFloat { max(9.5, width * 0.135) }
 
-    /// The chain letters get a lane of their own along the foot of the die, so
-    /// they never sit on top of the damage number. They are deliberately small
-    /// — they are a tappable index of the chains in reach, not a headline.
-    private var letterDiameter: CGFloat { max(12, width * 0.15) }
-    private var letterLane: CGFloat { letterDiameter + 6 }
-
-    /// Whether this die is currently showing any chain letters at all.
-    private func hasChainLetters(_ face: RolledFace) -> Bool {
-        !freezeArmed && !(engine.comboMarkers[face.id] ?? []).isEmpty
-    }
-
     /// Smear on the drum, tied to how fast this particular reel is turning —
     /// the lazier late reels are read clearly rather than blurred away.
     private var spinBlur: CGFloat {
@@ -438,7 +304,6 @@ private struct DiceTrayReelView: View {
         }
         .frame(width: width, height: height)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.playOrder)
-        .animation(.spring(response: 0.3, dampingFraction: 0.78), value: chainCounts)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFrozen)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
     }
@@ -597,10 +462,7 @@ private struct DiceTrayReelView: View {
             }
             .padding(.horizontal, 4)
             .padding(.top, 6)
-            // The foot of the die is given over to the chain letters whenever
-            // it has any, so the face name and the damage number are laid out
-            // in the room above them instead of underneath them.
-            .padding(.bottom, hasChainLetters(face) ? letterLane : 6)
+            .padding(.bottom, 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { reelGround(opacity: 1) }
             .overlay { frostLayer }
@@ -634,14 +496,8 @@ private struct DiceTrayReelView: View {
             .offset(y: settled ? 0 : -height * 0.34)
             .rotation3DEffect(.degrees(settled ? 0 : (face.isCrit ? 26 : 18)), axis: (x: 1, y: 0, z: 0))
             .blur(radius: settled ? 0 : 5)
-            // A die that can no longer feed anything steps back a little so the
-            // live ones read clean — no colour, just weight.
-            .opacity(isDeadWeight(face) ? 0.6 : 1)
         }
         .buttonStyle(PressableButtonStyle())
-        // The chain letters ride outside the die's own button so their taps
-        // land on them rather than on the die underneath.
-        .overlay(alignment: .bottom) { chainCountBadge(face) }
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
@@ -676,65 +532,6 @@ private struct DiceTrayReelView: View {
         if isHeld { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return nil
-    }
-
-    /// How many chains this die could still feed from where the plan stands.
-    private func count(_ face: RolledFace) -> Int { chainCounts[face.id] ?? 0 }
-
-    /// A die that nothing left in reach can use.
-    private func isDeadWeight(_ face: RolledFace) -> Bool {
-        !freezeArmed && !chainCounts.isEmpty && count(face) == 0
-    }
-
-    /// The letters carved on a die: every chain this die could feed, each in
-    /// its chain's own colour. These are the whole combo read now that the
-    /// rail under the tray is folded away — tap a letter to fuse that chain,
-    /// tap a gold one to dissolve it. Letters fall away as dice commit
-    /// elsewhere, so a die's remaining options are always literally on it.
-    @ViewBuilder
-    private func chainCountBadge(_ face: RolledFace) -> some View {
-        let markers = engine.comboMarkers[face.id] ?? []
-        if !markers.isEmpty && !freezeArmed {
-            HStack(spacing: 2) {
-                ForEach(markers.prefix(3)) { marker in
-                    chainLetter(marker)
-                }
-                if markers.count > 3 {
-                    Text("+\(markers.count - 3)")
-                        .font(.system(size: max(7.5, width * 0.092), weight: .black))
-                        .foregroundStyle(Theme.parchmentDim)
-                }
-            }
-            .padding(.horizontal, 2.5)
-            .padding(.vertical, 1.5)
-            .background(Theme.bg.opacity(0.85), in: .capsule)
-            .overlay(Capsule().strokeBorder(Theme.rule.opacity(0.45), lineWidth: 0.8))
-            .padding(.bottom, 3)
-            .transition(.scale(scale: 0.4).combined(with: .opacity))
-        }
-    }
-
-    /// One tappable chain letter. A planned chain wears gold and a ring so a
-    /// glance tells you which chains you have already committed to.
-    private func chainLetter(_ marker: ComboMarker) -> some View {
-        let diameter = letterDiameter
-        return Button {
-            engine.toggleCombo(marker.comboID)
-        } label: {
-            Text(marker.letter)
-                .font(.system(size: max(8, width * 0.098), weight: .black))
-                .foregroundStyle(Theme.bg)
-                .frame(width: diameter, height: diameter)
-                .background(marker.isPlanned ? Theme.gold : marker.color, in: .circle)
-                .overlay(
-                    Circle().strokeBorder(marker.isPlanned ? Theme.gold : Theme.bg.opacity(0.6),
-                                          lineWidth: marker.isPlanned ? 1.6 : 0.5)
-                        .padding(marker.isPlanned ? -1.6 : 0)
-                )
-                .shadow(color: marker.isPlanned ? Theme.gold.opacity(0.7) : .clear, radius: 4)
-        }
-        .buttonStyle(PressableButtonStyle())
-        .accessibilityLabel("\(marker.name), \(marker.staminaCost) stamina")
     }
 
     /// Adjustable Nock: a held arrow may count one tier up or down, once a

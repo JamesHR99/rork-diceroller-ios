@@ -85,11 +85,44 @@ struct FaceTileView: View {
 }
 
 /// A compact recipe row of combo ingredient icons, with quantities.
+///
+/// A recipe you have never landed is drawn sealed: the right number of slots,
+/// so you can see how long the chain is, with nothing inside them. Recipes are
+/// found by arranging dice and watching what fires, not read off a list.
 struct ComboRecipeView: View {
     let combo: ComboDef
     var tileSize: CGFloat = 22
+    /// False until the player has landed this chain at least once.
+    var isRevealed: Bool = true
 
     var body: some View {
+        if isRevealed { revealed } else { sealed }
+    }
+
+    private var sealed: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<combo.faceCount, id: \.self) { index in
+                Text("?")
+                    .font(.system(size: tileSize * 0.52, weight: .black))
+                    .foregroundStyle(Theme.parchmentDim.opacity(0.7))
+                    .frame(width: tileSize, height: tileSize)
+                    .background(Theme.bg.opacity(0.6), in: .rect(cornerRadius: 5))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .strokeBorder(Theme.rule.opacity(0.55),
+                                          style: StrokeStyle(lineWidth: 1, dash: [2.5, 2.5]))
+                    )
+
+                if index < combo.faceCount - 1 {
+                    Image(systemName: "plus")
+                        .font(.system(size: tileSize * 0.32, weight: .bold))
+                        .foregroundStyle(Theme.parchmentDim.opacity(0.25))
+                }
+            }
+        }
+    }
+
+    private var revealed: some View {
         HStack(spacing: 3) {
             ForEach(Array(combo.required.enumerated()), id: \.offset) { index, ingredient in
                 HStack(spacing: 1) {

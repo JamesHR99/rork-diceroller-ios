@@ -16,8 +16,9 @@ enum ComboSource: String, Hashable {
 }
 
 /// One ingredient line of a combo recipe: a face pattern and how many of it
-/// the chain asks for. Order never matters — three Swift Slashes make the
-/// same chain whichever tap they arrived from.
+/// the chain asks for. Order within the run of neighbouring dice never
+/// matters — three Swift Slashes side by side make the same chain whichever
+/// tap they arrived from.
 struct ComboIngredient: Hashable {
     let pattern: FacePattern
     let count: Int
@@ -32,8 +33,10 @@ struct ComboIngredient: Hashable {
     }
 }
 
-/// A combo recipe. Any arrangement of the ingredients fuses into a single
-/// step; the player can still arrange the fused action however they like.
+/// A combo recipe. It only forms out of dice standing next to each other in
+/// the plan; within that run of neighbours the order of the ingredients does
+/// not matter. Recipes are never listed for the player — a chain names itself
+/// the first time it lands and is kept in the codex from then on.
 struct ComboDef: Identifiable, Hashable {
     let id: String
     let name: String
