@@ -401,7 +401,13 @@ struct EnemyState: Identifiable {
     var stagger = 0.0
     var mark = 1.0
     var pose: FighterPose = .idle
-    var intent: EnemyMove
+    /// Everything this creature has told you it is going to do this round, in
+    /// the order it will do it. A creature spends a stamina allowance like you
+    /// do, so a round can be one heavy blow or a guard and two quick cuts —
+    /// and every one of them is on the board before you commit.
+    var intents: [EnemyMove]
+    /// A wind-up it is holding: what its next attack is multiplied by.
+    var chargeBonus = 0.0
     /// Which stage a multi-stage serpent-lord is currently in.
     var stageIndex = 0
     /// Damage Anubis has stored against this foe. It detonates against health
@@ -414,8 +420,18 @@ struct EnemyState: Identifiable {
         self.hp = def.maxHP
         self.armourMax = def.armour
         self.armour = def.armour
-        self.intent = def.pickMove(hpFraction: 1)
+        self.intents = EnemyPlanner.plan(def: def, hpFraction: 1, context: .opening)
     }
+
+    /// The first thing this creature is going to do. Kept so every read that
+    /// only cares about the opening blow stays honest.
+    var intent: EnemyMove {
+        intents.first ?? def.moves.first
+            ?? EnemyMove(id: "wait", name: "Waits", faces: [], weight: 1)
+    }
+
+    /// True when this round is a sequence rather than a single blow.
+    var hasChainedIntents: Bool { intents.count > 1 }
 
     var isAlive: Bool { hp > 0 }
     var hpFraction: Double { def.maxHP > 0 ? Double(hp) / Double(def.maxHP) : 0 }
@@ -426,6 +442,12 @@ struct EnemyState: Identifiable {
         guard amount > 0 else { return }
         armour += amount
         armourMax = max(armourMax, armour)
+    }
+
+    /// True when this creature is standing behind a guard worth the name —
+    /// used by the planner to stop it stacking walls it does not need.
+    var isWellGuarded: Bool {
+        armour >= max(12, Int(Double(def.maxHP) * 0.18))
     }
     /// Divine Trials: this foe carries the attending god's lent power.
     var isTrialChampion = false
@@ -534,6 +556,9 @@ final class BattleEngine {
     private(set) var counterweightArmed: Set<String> = []
     private(set) var assassinArmed: Set<String> = []
     private(set) var echoArmedComboID: String?
+    /// The optional Chisel the copper mark by the turn count has picked up,
+    /// waiting for you to name the chain it rides. Tap the mark, tap a chain.
+    private(set) var armingChiselID: String?
     /// Twin Bowstring's second arrow, Crescent Edge's splash and the echo's
     /// retargets: step ID → foe ID, defaulted to the weakest living foe.
     private(set) var secondaryAllocations: [UUID: UUID] = [:]
@@ -788,18 +813,54 @@ final class BattleEngine {
             * GameData.enemyDamageScale(hour: hour))
     }
 
-    /// What this foe's telegraphed move will actually do if it resolves right
-    /// now — hour depth, heat and any pending stagger already applied.
-    func projectedStrike(for foe: EnemyState) -> (damage: Int, heal: Int, block: Int) {
+    /// What one of this foe's telegraphed moves will actually do if it
+    /// resolves right now — hour depth, heat, a held wind-up and any pending
+    /// stagger already applied.
+    func projectedStrike(
+        for foe: EnemyState,
+        move: EnemyMove,
+        spendingCharge: Bool = false
+    ) -> (damage: Int, heal: Int, block: Int) {
         var damage = 0
-        if foe.intent.damage > 0 {
-            damage = scaledDamage(foe.intent.damage, heat: heatDamage(for: foe))
+        if move.damage > 0 {
+            damage = scaledDamage(move.damage, heat: heatDamage(for: foe))
+            if spendingCharge, foe.chargeBonus > 0 {
+                damage = Int(Double(damage) * foe.chargeBonus)
+            }
             if foe.stagger > 0 {
                 damage = Int(Double(damage) * (1 - foe.stagger))
             }
             damage = max(0, damage)
         }
-        return (damage, foe.intent.heal, foe.intent.block)
+        return (damage, move.heal, move.block)
+    }
+
+    /// The opening blow of this foe's round, which is what the slim reads use.
+    func projectedStrike(for foe: EnemyState) -> (damage: Int, heal: Int, block: Int) {
+        projectedStrike(for: foe, move: foe.intent, spendingCharge: foe.intent.damage > 0)
+    }
+
+    /// Every telegraphed move of this foe's round, each with the beat it lands
+    /// on and what it will do — the whole read, in order.
+    func projectedRound(for foe: EnemyState) -> [(move: EnemyMove, beat: Int, strike: (damage: Int, heal: Int, block: Int))] {
+        var chargeSpent = false
+        return foe.intents.enumerated().map { index, move in
+            let spending = !chargeSpent && move.damage > 0 && foe.chargeBonus > 0
+            if spending { chargeSpent = true }
+            return (move,
+                    beat(for: foe, moveIndex: index),
+                    projectedStrike(for: foe, move: move, spendingCharge: spending))
+        }
+    }
+
+    /// Everything this foe's round adds up to, for the one-glance read on a
+    /// crowded deck: total damage coming, total guard going up, total mending.
+    func projectedRoundTotals(for foe: EnemyState) -> (damage: Int, heal: Int, block: Int) {
+        projectedRound(for: foe).reduce(into: (damage: 0, heal: 0, block: 0)) { total, entry in
+            total.damage += entry.strike.damage
+            total.heal += entry.strike.heal
+            total.block += entry.strike.block
+        }
     }
 
     var enemyDisplayName: String {
@@ -808,15 +869,33 @@ final class BattleEngine {
 
     // MARK: - The shared clock
 
-    /// How long one of this foe's moves takes to come round, after its own
-    /// agility and any delay you have pushed onto it.
-    func duration(for foe: EnemyState) -> Int {
+    /// How long one named move of this foe's takes to wind up, after its own
+    /// agility.
+    func duration(for foe: EnemyState, moveIndex: Int) -> Int {
         let surprise = surprisedBy.contains(foe.id) ? Timing.surpriseAgilityBonus : 0
-        let base = Timing.duration(
-            preparation: Timing.preparation(move: foe.intent),
+        let move = foe.intents.indices.contains(moveIndex) ? foe.intents[moveIndex] : foe.intent
+        return Timing.duration(
+            preparation: Timing.preparation(move: move),
             agility: Timing.agility(enemy: foe.def.id) + surprise
         )
-        return base + (foeDelays[foe.id] ?? 0)
+    }
+
+    /// The beat one of this foe's moves lands on. A creature's actions run in
+    /// sequence exactly as yours do — the second begins winding up when the
+    /// first has landed — so a three-action round is spread across the clock
+    /// rather than arriving all at once.
+    func beat(for foe: EnemyState, moveIndex: Int) -> Int {
+        var clock = foeDelays[foe.id] ?? 0
+        for index in 0...max(moveIndex, 0) where foe.intents.indices.contains(index) {
+            clock += duration(for: foe, moveIndex: index)
+        }
+        return clock
+    }
+
+    /// When this foe's opening blow lands, after its agility and any delay you
+    /// have pushed onto it.
+    func duration(for foe: EnemyState) -> Int {
+        beat(for: foe, moveIndex: 0)
     }
 
     /// How long a planned step takes, after class agility and earned Haste.
@@ -893,17 +972,22 @@ final class BattleEngine {
         }
 
         for foe in enemies where foe.isAlive {
-            let strike = projectedStrike(for: foe)
-            entries.append(TimelineEntry(
-                side: .foe(foe.id),
-                beat: duration(for: foe),
-                duration: duration(for: foe),
-                title: foe.intent.name,
-                detail: intentDetail(strike: strike, foe: foe),
-                targetID: foe.id,
-                roles: strike.damage > 0 ? .attack : .guardian,
-                sourceID: foe.id
-            ))
+            // Every action the creature has told you about goes on the clock,
+            // each on its own beat, so a guard-then-cut-then-cut round is
+            // three separate things you can plan around.
+            for (index, entry) in projectedRound(for: foe).enumerated() {
+                entries.append(TimelineEntry(
+                    side: .foe(foe.id),
+                    beat: entry.beat,
+                    duration: duration(for: foe, moveIndex: index),
+                    title: entry.move.name,
+                    detail: intentDetail(strike: entry.strike, move: entry.move),
+                    targetID: foe.id,
+                    roles: entry.strike.damage > 0 ? .attack : .guardian,
+                    sourceID: foe.id,
+                    chainIndex: index
+                ))
+            }
         }
 
         return TimelineBuilder.ordered(entries, foeOrder: enemies.map(\.id))
@@ -917,13 +1001,14 @@ final class BattleEngine {
     }
 
     /// What a foe's telegraphed move will do when it comes round.
-    private func intentDetail(strike: (damage: Int, heal: Int, block: Int), foe: EnemyState) -> String {
+    private func intentDetail(strike: (damage: Int, heal: Int, block: Int), move: EnemyMove) -> String {
         var parts: [String] = []
         if strike.damage > 0 { parts.append("\(strike.damage) dmg") }
         if strike.block > 0 { parts.append("+\(strike.block) guard") }
         if strike.heal > 0 { parts.append("+\(strike.heal) hp") }
-        if foe.intent.bleedAmount > 0 {
-            parts.append("bleed \(foe.intent.bleedAmount)×\(foe.intent.bleedTurns)")
+        if move.charge > 0 { parts.append("winding up ×\(String(format: "%.1f", move.charge))") }
+        if move.bleedAmount > 0 {
+            parts.append("bleed \(move.bleedAmount)×\(move.bleedTurns)")
         }
         return parts.isEmpty ? "no harm" : parts.joined(separator: " · ")
     }
@@ -1096,6 +1181,58 @@ final class BattleEngine {
         case "ch_echoingStaff": echoArmedComboID == comboID
         default: false
         }
+    }
+
+    // MARK: Arming a Chisel from the copper mark
+
+    /// The Chisel currently held up waiting for a chain to ride.
+    var armingChisel: ChiselDef? {
+        armingChiselID.flatMap { ChiselCatalog.def($0) }
+    }
+
+    /// True when this run carries the Chisel and it is the sort you choose to
+    /// spend rather than one that reshapes the weapon on its own.
+    func isOptionalChiselCarried(_ id: String) -> Bool {
+        chisels.contains(id) && ChiselCatalog.def(id)?.isOptional == true
+    }
+
+    /// Picks the copper mark up, or puts it back down. While one is held every
+    /// chain in the plan it could ride lights up, and tapping one arms it.
+    func beginArming(_ id: String) {
+        guard phase == .player, isOptionalChiselCarried(id) else {
+            // A passive Chisel has nothing to arm — say what it does instead.
+            if let def = ChiselCatalog.def(id), chisels.contains(id) {
+                lastAction = "\(def.name): \(def.detail)"
+            }
+            return
+        }
+        armingChiselID = armingChiselID == id ? nil : id
+        Haptics.light()
+    }
+
+    func cancelArming() {
+        guard armingChiselID != nil else { return }
+        armingChiselID = nil
+    }
+
+    /// The Chisel being held, if it can ride this step's recipe.
+    func armableChisel(for step: PlanStep) -> ChiselDef? {
+        guard let armingChiselID, let combo = step.combo,
+              let chisel = badgeChisel(for: combo.id),
+              chisel.id == armingChiselID else { return nil }
+        return chisel
+    }
+
+    /// Arms the held Chisel onto this step, then puts the mark down. Tapping
+    /// an already-armed chain takes the Chisel back off it.
+    /// Returns true when the tap was spent on arming rather than on the
+    /// step's ordinary "return these faces to the tray" job.
+    @discardableResult
+    func armHeldChisel(onto step: PlanStep) -> Bool {
+        guard let chisel = armableChisel(for: step), let combo = step.combo else { return false }
+        toggleArmed(chisel, comboID: combo.id)
+        armingChiselID = nil
+        return true
     }
 
     func toggleArmed(_ chisel: ChiselDef, comboID: String) {
@@ -1984,7 +2121,7 @@ final class BattleEngine {
                 phase = .enemyActing
                 activeStepIndex = nil
                 try? await Task.sleep(for: .milliseconds(BattleBeat.foeLeadIn))
-                if await foeActs(index: index) { return }
+                if await foeActs(index: index, moveIndex: entry.chainIndex) { return }
                 if !hasLivingFoes { finishVictory(); return }
             }
         }
@@ -3287,17 +3424,38 @@ final class BattleEngine {
         }
     }
 
-    /// One foe takes its telegraphed turn. Returns true when the player died.
-    private func foeActs(index: Int) async -> Bool {
+    /// One foe performs one of its telegraphed moves. A creature that spent
+    /// its round on three actions comes through here three times, each on its
+    /// own beat of the shared clock. Returns true when the player died.
+    private func foeActs(index: Int, moveIndex: Int = 0) async -> Bool {
         var foe = enemies[index]
         defer { enemies[index] = foe }
 
-        let move = foe.intent
-        lastAction = "\(foe.displayName) uses \(move.comboName ?? move.name)!"
+        guard foe.intents.indices.contains(moveIndex) else { return false }
+        let move = foe.intents[moveIndex]
+        if foe.hasChainedIntents {
+            lastAction = "\(foe.displayName) — \(move.comboName ?? move.name) (\(moveIndex + 1)/\(foe.intents.count))"
+        } else {
+            lastAction = "\(foe.displayName) uses \(move.comboName ?? move.name)!"
+        }
+
+        // A wind-up: it spends the round gathering itself and the blow that
+        // follows is a great deal worse. That window is the whole point.
+        if move.charge > 0 {
+            foe.pose = .telegraph
+            foe.chargeBonus = move.charge
+            addFloat("WINDING UP ×\(String(format: "%.1f", move.charge))",
+                     color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
+            lastAction = "\(foe.displayName) is winding up — break it before it lands."
+            Haptics.heavy()
+            try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
+            resetPoses()
+            return false
+        }
 
         // Anubis's Sentence: every second turn the trial champion forgoes its
         // attack and weighs your heart instead.
-        if isChampion(foe), trial?.deity == .anubis, enemyTurnCount % 2 == 0 {
+        if isChampion(foe), trial?.deity == .anubis, enemyTurnCount % 2 == 0, moveIndex == 0 {
             foe.pose = .telegraph
             try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
             foe.pose = .attack
@@ -3332,6 +3490,12 @@ final class BattleEngine {
             var total = scaledDamage(move.damage, heat: heat)
             if heat > 0 {
                 addFloat("+\(heat) Heat", color: Theme.ember, onEnemy: true, foe: foe.id)
+            }
+            // A held wind-up is spent on the first blow that follows it.
+            if foe.chargeBonus > 0 {
+                total = Int(Double(total) * foe.chargeBonus)
+                addFloat("UNLEASHED!", color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
+                foe.chargeBonus = 0
             }
             if foe.stagger > 0 {
                 total = Int(Double(total) * (1 - foe.stagger))
@@ -3446,7 +3610,8 @@ final class BattleEngine {
         }
 
         // Bes's trial gift: after acting, the gate rises against your turn.
-        if isChampion(foe), trial?.deity == .bes {
+        // Once a round, not once per action in a chained round.
+        if isChampion(foe), trial?.deity == .bes, moveIndex == foe.intents.count - 1 {
             foe.gainGuard(8)
             addFloat("UNBROKEN GATE +8", color: Deity.bes.tint, onEnemy: true, foe: foe.id)
         }
@@ -3456,6 +3621,20 @@ final class BattleEngine {
             return true
         }
         return false
+    }
+
+    /// Everything a creature can see when it decides what to do with its
+    /// round — its own condition, its guard, and how close you are to going
+    /// over the side.
+    private func turnContext(for foe: EnemyState) -> EnemyTurnContext {
+        EnemyTurnContext(
+            hpFraction: foe.hpFraction,
+            isBare: foe.armour <= 0,
+            isWellGuarded: foe.isWellGuarded,
+            playerHPFraction: playerMaxHP > 0 ? Double(playerHP) / Double(playerMaxHP) : 0,
+            playerHasShield: playerShield > 0,
+            isCharging: foe.chargeBonus > 0
+        )
     }
 
     private struct StatusTick {
@@ -3580,7 +3759,15 @@ final class BattleEngine {
                 addFloat(stage.name, color: Theme.blood, onEnemy: true, big: true, foe: enemies[index].id)
             }
             enemies[index].stageIndex = newStage
-            enemies[index].intent = enemies[index].def.pickMove(hpFraction: fraction)
+            // Every creature plans its whole round now, reading its own
+            // condition and yours: a hurt one looks for a mend, a bare one
+            // raises guard, one standing over a nearly-dead enemy presses,
+            // and a healthy one with time to spare winds something up.
+            enemies[index].intents = EnemyPlanner.plan(
+                def: enemies[index].def,
+                hpFraction: fraction,
+                context: turnContext(for: enemies[index])
+            )
         }
         turnNumber += 1
 

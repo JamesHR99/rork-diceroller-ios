@@ -1,5 +1,20 @@
 import SwiftUI
 
+/// What a move is *for*, which is what the situational AI weighs. A move can
+/// be more than one of these at once — a gorge that bites and heals is both an
+/// attack and a recovery.
+struct MoveIntentKind: OptionSet, Hashable {
+    let rawValue: Int
+
+    static let attack = MoveIntentKind(rawValue: 1 << 0)
+    static let guard_ = MoveIntentKind(rawValue: 1 << 1)
+    static let recover = MoveIntentKind(rawValue: 1 << 2)
+    /// A wind-up: it does nothing this round and makes the next blow worse.
+    static let charge = MoveIntentKind(rawValue: 1 << 3)
+
+    nonisolated static let none: MoveIntentKind = []
+}
+
 /// One weighted action the enemy AI can telegraph and perform.
 struct EnemyMove: Identifiable, Hashable {
     let id: String
@@ -12,6 +27,12 @@ struct EnemyMove: Identifiable, Hashable {
     let heal: Int
     let bleedAmount: Int
     let bleedTurns: Int
+    /// What the next attack this creature throws is multiplied by, when this
+    /// move is a wind-up. 0 for everything that is not a charge.
+    let charge: Double
+    /// What this move costs out of the creature's round stamina. Authored
+    /// moves leave it nil and pay by their own weight of faces.
+    private let authoredCost: Int?
 
     init(
         id: String,
@@ -23,7 +44,9 @@ struct EnemyMove: Identifiable, Hashable {
         block: Int = 0,
         heal: Int = 0,
         bleedAmount: Int = 0,
-        bleedTurns: Int = 0
+        bleedTurns: Int = 0,
+        charge: Double = 0,
+        cost: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -35,17 +58,47 @@ struct EnemyMove: Identifiable, Hashable {
         self.heal = heal
         self.bleedAmount = bleedAmount
         self.bleedTurns = bleedTurns
+        self.charge = charge
+        self.authoredCost = cost
     }
 
-    /// A scaled copy, used for heralds and for Nehebkau's rising heat.
-    func scaled(damage multiplier: Double, block blockMultiplier: Double = 1) -> EnemyMove {
+    /// Stamina this move takes out of the round: a jab is cheap, a three-face
+    /// recipe is the creature's whole turn.
+    var cost: Int {
+        if let authoredCost { return max(1, authoredCost) }
+        return max(1, min(3, faces.count))
+    }
+
+    var kind: MoveIntentKind {
+        var kind: MoveIntentKind = .none
+        if damage > 0 { kind.insert(.attack) }
+        if block > 0 { kind.insert(.guard_) }
+        if heal > 0 { kind.insert(.recover) }
+        if charge > 0 { kind.insert(.charge) }
+        return kind
+    }
+
+    /// A scaled copy, used for heralds, for chained turns and for Nehebkau's
+    /// rising heat. Everything a move produces scales together, so a creature
+    /// that spends its round on three actions does not also get full guard.
+    func scaled(damage multiplier: Double, block blockMultiplier: Double = 1,
+                heal healMultiplier: Double = 1) -> EnemyMove {
         EnemyMove(
             id: id, name: name, faces: faces, weight: weight, comboName: comboName,
             damage: Int(Double(damage) * multiplier),
             block: Int(Double(block) * blockMultiplier),
-            heal: heal,
-            bleedAmount: bleedAmount, bleedTurns: bleedTurns
+            heal: Int(Double(heal) * healMultiplier),
+            bleedAmount: bleedAmount, bleedTurns: bleedTurns,
+            charge: charge, cost: authoredCost
         )
+    }
+
+    /// This move as it lands when the creature is taking `actions` swings in
+    /// one round: more actions, less behind each one.
+    func inChain(of actions: Int) -> EnemyMove {
+        guard actions > 1 else { return self }
+        let scale = GameData.enemyChainScale(actions: actions)
+        return scaled(damage: scale, block: scale, heal: scale)
     }
 }
 
@@ -82,6 +135,10 @@ struct EnemyDef: Identifiable, Hashable {
     /// Metal worn over the health. Direct damage chips armour away before it
     /// can touch health; poison, burn and bleed seep under it. 0 = unarmoured.
     let armour: Int
+    /// What this creature can spend in one round. A jab costs 1 and a
+    /// three-face recipe 3, so this is what decides whether it throws one
+    /// heavy blow or strings a guard and two quick cuts together.
+    let stamina: Int
 
     init(
         id: String,
@@ -95,7 +152,8 @@ struct EnemyDef: Identifiable, Hashable {
         moves: [EnemyMove],
         stages: [EnemyStage] = [],
         heatPerTurn: Int = 0,
-        armour: Int = 0
+        armour: Int = 0,
+        stamina: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -111,6 +169,7 @@ struct EnemyDef: Identifiable, Hashable {
         self.stages = stages
         self.heatPerTurn = heatPerTurn
         self.armour = armour
+        self.stamina = stamina ?? (isBoss ? GameData.bossRoundStamina : GameData.enemyRoundStamina)
     }
 
     // MARK: - Stages
@@ -137,17 +196,11 @@ struct EnemyDef: Identifiable, Hashable {
 
     // MARK: - Moves
 
-    /// Weighted random move selection from whichever stage is running.
-    func pickMove(hpFraction: Double = 1) -> EnemyMove {
+    /// Every move available at this health, which is what the planner draws
+    /// its round from.
+    func movePool(hpFraction: Double = 1) -> [EnemyMove] {
         let pool = stage(hpFraction: hpFraction)?.moves ?? moves
-        let usable = pool.isEmpty ? moves : pool
-        let total = usable.reduce(0) { $0 + $1.weight }
-        var roll = Int.random(in: 0..<max(total, 1))
-        for move in usable {
-            if roll < move.weight { return move }
-            roll -= move.weight
-        }
-        return usable[0]
+        return pool.isEmpty ? moves : pool
     }
 
     /// A tougher variant used for Heralds of Apep on optional stops.
@@ -162,7 +215,8 @@ struct EnemyDef: Identifiable, Hashable {
             goldReward: Int(Double(goldReward) * 1.8),
             moves: moves.map { $0.scaled(damage: 1.3, block: 1.3) },
             stages: stages,
-            heatPerTurn: heatPerTurn
+            heatPerTurn: heatPerTurn,
+            stamina: stamina + 1
         )
     }
 
@@ -181,7 +235,8 @@ struct EnemyDef: Identifiable, Hashable {
             moves: moves,
             stages: stages,
             heatPerTurn: heatPerTurn,
-            armour: max(16, Int(Double(maxHP) * 0.2))
+            armour: max(16, Int(Double(maxHP) * 0.2)),
+            stamina: stamina
         )
     }
 
@@ -200,7 +255,10 @@ struct EnemyDef: Identifiable, Hashable {
             moves: moves,
             stages: stages,
             heatPerTurn: heatPerTurn,
-            armour: armour
+            armour: armour,
+            // One of three cannot also take three actions a round, or a pack
+            // turn becomes nine blows.
+            stamina: max(2, stamina - 2)
         )
     }
 }

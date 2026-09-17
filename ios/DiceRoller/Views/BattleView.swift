@@ -238,23 +238,35 @@ private struct BattleContentView: View {
     /// that rose out of the river on the right, each with its health and the
     /// blow it is winding up.
     private var tickerRail: some View {
-        let foes = engine.enemies
-        let compact = foes.count > 1
-        return HStack(alignment: .top, spacing: 8) {
-            FighterView(
-                engine: engine,
-                side: .player,
-                heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
-                heroName: game.heroClass?.name ?? "Hero",
-                accent: game.heroClass?.accent ?? Theme.gold,
-                heroClassID: game.classID,
-                layout: .ticker,
-                tickerCompact: compact
-            )
+        // The rail is cut to the screen it landed on. A pack used to be drawn
+        // at a fixed width per card, which walked the third foe clean off the
+        // right-hand edge; now the room is measured and shared out.
+        GeometryReader { rail in
+            let foes = engine.enemies
+            let compact = foes.count > 1
+            let spacing: CGFloat = foes.count > 2 ? 4 : 6
+            // You take a smaller share of a crowded rail, because your own
+            // read is one health channel and theirs carry whole sequences.
+            let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
+            let playerWidth = max(120, rail.size.width * playerShare)
+            let foeRoom = rail.size.width - playerWidth - spacing * CGFloat(foes.count)
+            let foeWidth = max(96, foeRoom / CGFloat(max(foes.count, 1)))
 
-            Spacer(minLength: 0)
+            HStack(alignment: .top, spacing: spacing) {
+                FighterView(
+                    engine: engine,
+                    side: .player,
+                    heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
+                    heroName: game.heroClass?.name ?? "Hero",
+                    accent: game.heroClass?.accent ?? Theme.gold,
+                    heroClassID: game.classID,
+                    layout: .ticker,
+                    tickerCompact: compact,
+                    cardWidth: playerWidth
+                )
 
-            HStack(alignment: .top, spacing: 6) {
+                Spacer(minLength: 0)
+
                 ForEach(foes) { foe in
                     FighterView(
                         engine: engine,
@@ -265,12 +277,23 @@ private struct BattleContentView: View {
                         foe: foe,
                         isTargeted: engine.isTargeted(foeID: foe.id),
                         layout: .ticker,
-                        tickerCompact: compact
+                        tickerCompact: compact,
+                        cardWidth: foeWidth
                     )
                     .opacity(foe.isAlive ? 1 : 0.4)
                 }
             }
+            .frame(width: rail.size.width, alignment: .leading)
         }
+        .frame(height: tickerRailHeight)
+    }
+
+    /// How tall the slim rail runs. A creature that spends its round on three
+    /// actions prints three lines of intent, so the rail is measured off the
+    /// longest sequence on the deck rather than assumed to be one line.
+    private var tickerRailHeight: CGFloat {
+        let longest = engine.enemies.filter(\.isAlive).map(\.intents.count).max() ?? 1
+        return 74 + CGFloat(max(longest - 1, 0)) * 16
     }
 
     // MARK: - Stage
@@ -297,6 +320,11 @@ private struct BattleContentView: View {
             // screen instead of sinking through the bottom edge.
             GeometryReader { stage in
                 let room = stage.size.height
+                let foeCount = engine.enemies.count
+                // A crowd takes more of the deck than a single guardian, but
+                // the demigod always keeps a readable share of it.
+                let playerWidth = max(120, stage.size.width * (foeCount >= 3 ? 0.26 : 0.36))
+                let foeWidth = max(96, stage.size.width - 20 - playerWidth)
                 HStack(alignment: .bottom, spacing: 8) {
                     FighterView(
                         engine: engine,
@@ -305,12 +333,13 @@ private struct BattleContentView: View {
                         heroName: game.heroClass?.name ?? "Hero",
                         accent: game.heroClass?.accent ?? Theme.gold,
                         heroClassID: game.classID,
-                        stageHeight: fighterHeight(room)
+                        stageHeight: fighterHeight(room),
+                        cardWidth: foeCount > 1 ? playerWidth : nil
                     )
 
                     Spacer(minLength: 0)
 
-                    enemyGroup(room: room)
+                    enemyGroup(room: room, width: foeWidth)
                 }
                 .padding(.horizontal, 10)
                 .frame(width: stage.size.width, height: room, alignment: .center)
@@ -351,10 +380,14 @@ private struct BattleContentView: View {
     /// two or three wide when the river sends company. While attacks are being
     /// allocated they are tapped to receive the selected blow; otherwise they
     /// stand quiet — no aiming happens during planning.
-    private func enemyGroup(room: CGFloat) -> some View {
+    private func enemyGroup(room: CGFloat, width: CGFloat) -> some View {
         let foes = engine.enemies
         let scale: CGFloat = foes.count >= 3 ? 0.66 : (foes.count == 2 ? 0.8 : 1)
-        return HStack(alignment: .bottom, spacing: foes.count > 1 ? 0 : 0) {
+        // The pack is cut to the room the deck actually has. Three cards at a
+        // fixed width overran an iPhone and pushed the last foe off-screen, so
+        // the share is measured and the figures squeeze to fit it.
+        let cardWidth = max(92, width / CGFloat(max(foes.count, 1)))
+        return HStack(alignment: .bottom, spacing: 0) {
             ForEach(foes) { foe in
                 FighterView(
                     engine: engine,
@@ -366,7 +399,8 @@ private struct BattleContentView: View {
                     packScale: scale,
                     isTargeted: engine.isTargeted(foeID: foe.id),
                     onTap: engine.canTarget ? { engine.assignSelected(to: foe.id) } : nil,
-                    stageHeight: fighterHeight(room)
+                    stageHeight: fighterHeight(room),
+                    cardWidth: foes.count > 1 ? cardWidth : nil
                 )
                 .overlay(alignment: .bottom) { allocationTotal(for: foe) }
             }
@@ -419,20 +453,23 @@ private struct BattleContentView: View {
             .background(Theme.bgElevated, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1))
 
-            // Chisels of Ptah: small copper marks beside the turn.
+            // Chisels of Ptah: the copper marks beside the turn. The optional
+            // ones are controls — tap a mark to pick the Chisel up, then tap
+            // the chain in your plan you want it to ride. Tap it again to put
+            // it back down.
             if !engine.chisels.isEmpty {
                 HStack(spacing: 3) {
                     ForEach(engine.chisels.sorted(), id: \.self) { id in
-                        DuatSymbol(art: DuatArt.chisel(id),
-                                   fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
-                                   size: 18,
-                                   tint: Theme.ptahCopper)
+                        chiselMark(id)
                     }
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(Theme.bgElevated, in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
+                .overlay(Capsule().strokeBorder(
+                    Theme.ptahCopper.opacity(engine.armingChisel != nil ? 0.9 : 0.4),
+                    lineWidth: engine.armingChisel != nil ? 1.6 : 1
+                ))
             }
 
             Text(engine.lastAction)
@@ -469,6 +506,45 @@ private struct BattleContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 3)
+    }
+
+    /// One Chisel's copper mark. An optional Chisel is a button: it lifts the
+    /// mark, lights every chain in the plan it could ride, and waits for you
+    /// to name one. A passive Chisel just says what it is already doing.
+    private func chiselMark(_ id: String) -> some View {
+        let optional = engine.isOptionalChiselCarried(id)
+        let held = engine.armingChiselID == id
+        return Button {
+            engine.beginArming(id)
+        } label: {
+            DuatSymbol(art: DuatArt.chisel(id),
+                       fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
+                       size: 18,
+                       tint: held ? Theme.bg : Theme.ptahCopper)
+                .frame(width: 26, height: 26)
+                .background {
+                    if held {
+                        Circle().fill(Theme.ptahCopper)
+                    } else if optional {
+                        Circle().strokeBorder(Theme.ptahCopper.opacity(0.55), lineWidth: 1)
+                    }
+                }
+                .shadow(color: held ? Theme.ptahCopper.opacity(0.8) : .clear, radius: 7)
+                .overlay(alignment: .topTrailing) {
+                    // A small copper pip marks the Chisels that are yours to
+                    // spend, so they read apart from the passive ones.
+                    if optional, !held {
+                        Circle()
+                            .fill(Theme.ptahCopper)
+                            .frame(width: 5, height: 5)
+                            .offset(x: 1, y: -1)
+                    }
+                }
+        }
+        .buttonStyle(PressableButtonStyle())
+        .disabled(engine.phase != .player)
+        .accessibilityLabel(ChiselCatalog.def(id)?.name ?? "Chisel")
+        .accessibilityHint(optional ? "Tap, then tap a chain to spend it" : "Always active")
     }
 
     /// Announces a serpent-lord re-coiling into a new stage, on the painted

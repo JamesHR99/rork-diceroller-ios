@@ -2,6 +2,12 @@ import Foundation
 
 /// Warrior: longsword and plate. Heavy, committed swings behind a shield that
 /// stays until it breaks.
+///
+/// The collection is uniform: all five sword dice are the same longsword and
+/// all three armour dice the same plate, so a draw's shape is a question of how
+/// many weapon dice came up rather than which named die did. The Warrior owns
+/// no evade at all — every point of survival is guard, mend and focus off the
+/// plate.
 enum WarriorContent {
     // MARK: - Starting gear
 
@@ -11,51 +17,20 @@ enum WarriorContent {
             faces: [.overhead, .overhead, .overhead, .sideSwing, .sideSwing, .block])
     }
 
-    /// Plate die: 4× Block, 1× Heal, 1× Focus.
+    /// Plate die: 2× Block, 2× Heal, 2× Focus.
     static func armorDie(rarity: Rarity = .common, name: String = "Plate Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.block, .block, .block, .block, .heal, .focus])
-    }
-
-    /// Opening blade three: wide swings and shields — Riposte fuel.
-    static func siegeAxe(rarity: Rarity = .common) -> Die {
-        Die(name: "Siege Axe", slot: .weapon, rarity: rarity,
-            faces: [.overhead, .overhead, .sideSwing, .sideSwing, .block, .block])
-    }
-
-    /// Opening blade four: pure swing weight — Blood Tide fuel.
-    static func boardingMaul(rarity: Rarity = .common) -> Die {
-        Die(name: "Boarding Maul", slot: .weapon, rarity: rarity,
-            faces: [.overhead, .overhead, .overhead, .sideSwing, .sideSwing, .sideSwing])
-    }
-
-    /// Opening armour three: bronze and breath — Second Wind fuel.
-    static func bronzeAegis(rarity: Rarity = .common) -> Die {
-        Die(name: "Bronze Aegis", slot: .armor, rarity: rarity,
-            faces: [.block, .block, .block, .heal, .heal, .focus])
-    }
-
-    /// Opening blade five: the reserve blade. Swings with a block, so an
-    /// all-weapon draw can still answer with Riposte or Warlord's Answer.
-    static func reserveBlade(rarity: Rarity = .common) -> Die {
-        Die(name: "Oathkeeper", slot: .weapon, rarity: rarity,
-            faces: [.overhead, .overhead, .sideSwing, .sideSwing, .block, .focus])
-    }
-
-    /// Opening armour three: the wall's second course — blocks and a mend.
-    static func rampartPlate(rarity: Rarity = .common) -> Die {
-        Die(name: "Rampart Plate", slot: .armor, rarity: rarity,
-            faces: [.block, .block, .block, .evade, .heal, .focus])
+            faces: [.block, .block, .heal, .heal, .focus, .focus])
     }
 
     static func weapon() -> GearPiece {
         GearPiece(name: "Longsword", symbol: "arrow.down.circle.fill", slot: .weapon,
-                  dice: [swordDie(), swordDie(), siegeAxe(), boardingMaul(), reserveBlade()])
+                  dice: (0..<GameData.ownedWeaponDice).map { _ in swordDie() })
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Plate Armour", symbol: "shield.fill", slot: .armor,
-                  dice: [armorDie(), bronzeAegis(), rampartPlate()])
+                  dice: (0..<GameData.ownedArmourDice).map { _ in armorDie() })
     }
 
     // MARK: - Combos
@@ -71,6 +46,16 @@ enum WarriorContent {
         ComboDef(id: "war_earthshaker", name: "Earthshaker", owner: "warrior", source: .weapon,
                  required: [ComboIngredient(.exact(.overhead), 3)], damage: 46, stagger: 0.4,
                  flavor: "Three hammer-falls. The ground remembers."),
+        ComboDef(id: "war_shieldBash", name: "Shield Bash", owner: "warrior", source: .weapon,
+                 required: [ComboIngredient(.exact(.block)), ComboIngredient(.anySwing)],
+                 damage: 22, shield: 10, stagger: 0.2,
+                 flavor: "Rim to the teeth, then the sword."),
+        ComboDef(id: "war_executioner", name: "Executioner", owner: "warrior", source: .weapon,
+                 required: [ComboIngredient(.anySwing, 2), ComboIngredient(.anyStrike)],
+                 damage: 44, scalesWithWounds: true,
+                 flavor: "The wounded do not get to leave."),
+
+        // Armour — the plate
         ComboDef(id: "war_riposte", name: "Riposte", owner: "warrior", source: .armor,
                  required: [ComboIngredient(.exact(.block), 2)], shield: 20, reflect: 0.5,
                  flavor: "Catch it, turn it, give it back."),
@@ -78,10 +63,16 @@ enum WarriorContent {
                  required: [ComboIngredient(.exact(.heal)), ComboIngredient(.exact(.block))],
                  heal: 12, shield: 10,
                  flavor: "Armour holds, lungs fill, you stand taller."),
-        ComboDef(id: "war_executioner", name: "Executioner", owner: "warrior", source: .weapon,
-                 required: [ComboIngredient(.anySwing, 2), ComboIngredient(.anyStrike)],
-                 damage: 44, scalesWithWounds: true,
-                 flavor: "The wounded do not get to leave."),
+        ComboDef(id: "war_fieldSurgery", name: "Field Surgery", owner: "warrior", source: .armor,
+                 required: [ComboIngredient(.exact(.heal), 2)], heal: 24, regenAmount: 4, regenTurns: 2,
+                 flavor: "Strap it, brace it, keep moving."),
+        ComboDef(id: "war_setTheLine", name: "Set the Line", owner: "warrior", source: .armor,
+                 required: [ComboIngredient(.exact(.focus)), ComboIngredient(.exact(.block))],
+                 shield: 16, staminaNext: 1,
+                 flavor: "Heels down, shield up, breathe."),
+        ComboDef(id: "war_gatherWeight", name: "Gather Weight", owner: "warrior", source: .armor,
+                 required: [ComboIngredient(.exact(.focus), 2)], staminaNext: 2, momentumNext: 10,
+                 flavor: "Wind the whole body up and wait for the opening."),
 
         // Signatures
         ComboDef(id: "war_warlordsAnswer", name: "Warlord's Answer", owner: "warrior", source: .armor,
@@ -100,7 +91,7 @@ enum WarriorContent {
         case .common:
             [
                 (Die(name: "Iron Broadsword", slot: .weapon, rarity: rarity,
-                     faces: [.overhead, .overhead, .sideSwing, .sideSwing, .block, .block]), "Crushing Blow · Wide Sweep"),
+                     faces: [.overhead, .overhead, .sideSwing, .sideSwing, .block, .block]), "Crushing Blow · Shield Bash"),
                 (Die(name: "Banded Mail", slot: .armor, rarity: rarity,
                      faces: [.block, .block, .block, .heal, .heal, .focus]), "Riposte · Second Wind"),
             ]
@@ -109,21 +100,21 @@ enum WarriorContent {
                 (Die(name: "Warblade", slot: .weapon, rarity: rarity,
                      faces: [.overhead, .overhead, .overhead, .sideSwing, .sideSwing, .sideSwing]), "Blood Tide · Earthshaker"),
                 (Die(name: "Guardian's Plate", slot: .armor, rarity: rarity,
-                     faces: [.block, .block, .block, .block, .heal, .heal]), "Riposte · Warlord's Answer"),
+                     faces: [.block, .block, .block, .block, .heal, .focus]), "Riposte · Set the Line"),
             ]
         case .rare:
             [
                 (Die(name: "Executioner's Edge", slot: .weapon, rarity: rarity,
                      faces: [.overhead, .overhead, .overhead, .overhead, .sideSwing, .block]), "Earthshaker · Executioner"),
                 (Die(name: "Bastion Harness", slot: .armor, rarity: rarity,
-                     faces: [.block, .block, .block, .block, .block, .heal]), "Riposte · Warlord's Answer"),
+                     faces: [.block, .block, .block, .block, .heal, .heal]), "Riposte · Warlord's Answer"),
             ]
         case .signature:
             [
                 (Die(name: "Cyclone Greatsword", slot: .weapon, rarity: rarity,
                      faces: [.overhead, .sideSwing, .overhead, .sideSwing, .overhead, .sideSwing]), "Blood Tide — pure swing mixing"),
                 (Die(name: "Warlord's Bulwark", slot: .armor, rarity: rarity,
-                     faces: [.block, .block, .block, .block, .block, .block]), "Riposte — the wall made dice"),
+                     faces: [.block, .block, .block, .block, .block, .heal]), "Riposte — the wall made dice"),
             ]
         }
     }

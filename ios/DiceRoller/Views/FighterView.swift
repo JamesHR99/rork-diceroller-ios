@@ -45,6 +45,10 @@ struct FighterView: View {
     /// How tall an ordinary fighter stands on the stage, measured by the arena
     /// from the room it actually has.
     var stageHeight: CGFloat = 164
+    /// The width this card has been given. The arena and the rail measure the
+    /// screen and hand a share down, so three foes fit an iPhone instead of
+    /// the third one walking off the right-hand edge.
+    var cardWidth: CGFloat? = nil
 
     @State private var aimPulse = false
 
@@ -68,13 +72,13 @@ struct FighterView: View {
         VStack(spacing: 4) {
             nameRow
             if side == .enemy, let foe, foe.armourMax > 0 {
-                armourBar(foe, width: 210)
+                armourBar(foe, width: barWidth)
             }
             // The guard sits directly over health, the way armour does on a
             // foe: a steel channel you can read the depth of at a glance,
             // rather than a small number lost in the status row.
             if shieldValue > 0 {
-                shieldBar(width: 210, height: 13)
+                shieldBar(width: barWidth, height: 13)
             }
             healthBar
             sprite
@@ -89,9 +93,17 @@ struct FighterView: View {
     }
 
     /// Stage cards keep their width in step with the pack, so three foes still
-    /// fit the deck without overlapping the demigod.
+    /// fit the deck without overlapping the demigod. The arena measures the
+    /// screen and hands the share down; the figure itself is free to draw
+    /// wider than its card, which is what makes a pack read as a crowd.
     private var stageWidth: CGFloat {
-        side == .enemy ? 248 * max(packScale, 0.7) : 248
+        cardWidth ?? (side == .enemy ? 248 * max(packScale, 0.7) : 248)
+    }
+
+    /// The bars are cut to the card rather than drawn at a fixed 210, so a
+    /// packed deck keeps every health channel on screen.
+    private var barWidth: CGFloat {
+        max(74, stageWidth - 38)
     }
 
     // MARK: - Ticker
@@ -113,14 +125,14 @@ struct FighterView: View {
                 }
 
                 if side == .enemy, let foe, foe.armourMax > 0 {
-                    armourBar(foe, width: tickerWidth - 62)
+                    armourBar(foe, width: tickerBarWidth)
                 }
 
                 if shieldValue > 0 {
-                    shieldBar(width: tickerWidth - 62, height: 11)
+                    shieldBar(width: tickerBarWidth, height: 11)
                 }
 
-                healthBar(width: tickerWidth - 62, height: 15)
+                healthBar(width: tickerBarWidth, height: 15)
 
                 if side == .enemy, let foe {
                     intentLine(foe)
@@ -140,7 +152,7 @@ struct FighterView: View {
         )
     }
 
-    private var tickerWidth: CGFloat { tickerCompact ? 212 : 268 }
+    private var tickerWidth: CGFloat { cardWidth ?? (tickerCompact ? 212 : 268) }
 
     private var tickerPortrait: some View {
         PortraitMedallionView(
@@ -152,27 +164,73 @@ struct FighterView: View {
         )
     }
 
-    /// What this foe will throw when the deck goes down, under its health —
-    /// and, ahead of it, the beat it lands on. The separate hour band is gone,
-    /// so this line carries the whole read: when the blow comes, what it is,
-    /// and what it will cost you.
-    private func intentLine(_ foe: EnemyState) -> some View {
-        let strike = engine.projectedStrike(for: foe)
-        let move = foe.intent
-        return HStack(spacing: 4) {
-            beatCartouche(engine.duration(for: foe))
+    private var tickerBarWidth: CGFloat { max(72, tickerWidth - 62) }
 
-            ForEach(Array(move.faces.prefix(3).enumerated()), id: \.offset) { _, face in
-                DuatSymbol(art: face.artName, fallback: face.symbol, size: 15, tint: face.tint)
-                    .frame(width: 18, height: 18)
+    /// Everything this foe is going to do when the deck goes down, in order,
+    /// each with the beat it lands on. A creature spends a stamina allowance
+    /// like you do, so a round can be a guard and two quick cuts rather than
+    /// one blow — and all of it is on the board before you commit, which is
+    /// what makes blocking, striking and blocking again worth planning.
+    @ViewBuilder
+    private func intentLine(_ foe: EnemyState) -> some View {
+        let round = engine.projectedRound(for: foe)
+        if round.count > 1 {
+            VStack(alignment: .trailing, spacing: 2) {
+                ForEach(Array(round.enumerated()), id: \.offset) { index, entry in
+                    intentStep(entry.move, beat: entry.beat, strike: entry.strike,
+                               step: index + 1, of: round.count)
+                }
+            }
+        } else if let entry = round.first {
+            intentStep(entry.move, beat: entry.beat, strike: entry.strike, step: 1, of: 1)
+        }
+    }
+
+    /// One of the foe's telegraphed actions: when it lands, what it is, and
+    /// what it will cost you.
+    private func intentStep(
+        _ move: EnemyMove,
+        beat: Int,
+        strike: (damage: Int, heal: Int, block: Int),
+        step: Int,
+        of total: Int
+    ) -> some View {
+        let tight = tickerWidth < 200
+        return HStack(spacing: 3) {
+            beatCartouche(beat)
+
+            if total > 1 {
+                Text("\(step)")
+                    .font(.system(size: 8, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.parchmentDim)
+                    .frame(width: 10)
             }
 
-            Text(move.comboName ?? move.name)
-                .font(.fantasy(11, weight: .bold))
-                .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+            ForEach(Array(move.faces.prefix(tight ? 1 : 3).enumerated()), id: \.offset) { _, face in
+                DuatSymbol(art: face.artName, fallback: face.symbol,
+                           size: tight ? 13 : 15, tint: face.tint)
+                    .frame(width: tight ? 15 : 18, height: tight ? 15 : 18)
+            }
 
+            if !tight {
+                Text(move.comboName ?? move.name)
+                    .font(.fantasy(11, weight: .bold))
+                    .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+            }
+
+            // A wind-up is the read that matters most: nothing lands now and
+            // the next blow is a great deal worse.
+            if move.charge > 0 {
+                HStack(spacing: 2) {
+                    DuatSymbol(art: DuatArt.Status.critical, fallback: "bolt.trianglebadge.exclamationmark.fill",
+                               size: 11, tint: Theme.ember)
+                    Text("×\(String(format: "%.1f", move.charge))")
+                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.ember)
+                }
+            }
             if strike.damage > 0 {
                 HStack(spacing: 2) {
                     DuatSymbol(art: DuatArt.Status.piercing, fallback: "burst.fill",
@@ -189,6 +247,15 @@ struct FighterView: View {
                     Text("\(strike.block)")
                         .font(.system(size: 10.5, weight: .black).monospacedDigit())
                         .foregroundStyle(Theme.bronze)
+                }
+            }
+            if strike.heal > 0 {
+                HStack(spacing: 2) {
+                    DuatSymbol(art: DuatArt.Status.regeneration, fallback: "heart.fill",
+                               size: 11, tint: Theme.forest)
+                    Text("\(strike.heal)")
+                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.forest)
                 }
             }
         }
@@ -405,7 +472,7 @@ struct FighterView: View {
     /// The numbers ride the bar itself so a foe's remaining health is legible
     /// at a glance even when the fill is nearly gone.
     private var healthBar: some View {
-        healthBar(width: 210, height: 19)
+        healthBar(width: barWidth, height: 19)
     }
 
     private func healthBar(width: CGFloat, height: CGFloat) -> some View {
@@ -423,6 +490,9 @@ struct FighterView: View {
                 .shadow(color: .black, radius: 2.5)
                 .shadow(color: .black.opacity(0.9), radius: 1)
                 .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .padding(.horizontal, 2)
                 .allowsHitTesting(false)
         }
     }

@@ -73,6 +73,8 @@ enum EnemyContent {
                       comboName: "Bulwark", block: 26),
             EnemyMove(id: "swallow", name: "Swallow the Shallows", faces: [.overhead, .heal], weight: 24,
                       damage: 22, heal: 18),
+            EnemyMove(id: "coilBack", name: "Coils Back to Strike", faces: [.focus], weight: 20,
+                      charge: 1.8, cost: 2),
         ]
     )
 
@@ -104,6 +106,8 @@ enum EnemyContent {
                       comboName: "Fortress", block: 32),
             EnemyMove(id: "shove", name: "Brazier Shove", faces: [.block, .sideSwing], weight: 22,
                       comboName: "Shield Bash", damage: 20, block: 14),
+            EnemyMove(id: "bellows", name: "Works the Bellows", faces: [.focus], weight: 18,
+                      charge: 1.9, cost: 2),
         ]
     )
 
@@ -135,6 +139,8 @@ enum EnemyContent {
                       comboName: "Fortress", block: 32, heal: 14),
             EnemyMove(id: "sear", name: "Sear the Deck", faces: [.runeFire, .sideSwing], weight: 24,
                       damage: 36, bleedAmount: 9, bleedTurns: 2),
+            EnemyMove(id: "drawTheFurnace", name: "Draws the Furnace In", faces: [.focus], weight: 22,
+                      charge: 2.0, cost: 2),
         ],
         heatPerTurn: 4
     )
@@ -181,6 +187,8 @@ enum EnemyContent {
                       comboName: "Wide Sweep", damage: 42),
             EnemyMove(id: "rewind", name: "Turn the Glass", faces: [.runeFrost, .runeLife], weight: 24,
                       damage: 30, heal: 24),
+            EnemyMove(id: "holdTheHour", name: "Holds the Hour Still", faces: [.focus], weight: 20,
+                      charge: 1.9, cost: 2),
         ]
     )
 
@@ -204,6 +212,8 @@ enum EnemyContent {
                               comboName: "Fortress", block: 38),
                     EnemyMove(id: "lash", name: "Tail Lash", faces: [.sideSwing, .sideSwing], weight: 24,
                               comboName: "Wide Sweep", damage: 42),
+                    EnemyMove(id: "rearHead", name: "Rears the Head Back", faces: [.focus], weight: 20,
+                              charge: 2.0, cost: 2),
                 ]
             ),
             EnemyStage(
@@ -218,6 +228,8 @@ enum EnemyContent {
                               comboName: "Crushing Blow", damage: 62),
                     EnemyMove(id: "shed", name: "Shed the Wounds", faces: [.runeLife, .block], weight: 22,
                               block: 30, heal: 34),
+                    EnemyMove(id: "tighten", name: "Draws the Coils Tight", faces: [.focus], weight: 22,
+                              charge: 2.2, cost: 2),
                 ]
             ),
             EnemyStage(
@@ -232,6 +244,8 @@ enum EnemyContent {
                               comboName: "Wide Sweep", damage: 52),
                     EnemyMove(id: "coilTight", name: "Coil Tight", faces: [.block, .block], weight: 18,
                               comboName: "Bulwark", block: 34),
+                    EnemyMove(id: "inhale", name: "Breathes the Dark In", faces: [.focus], weight: 24,
+                              charge: 2.4, cost: 2),
                 ]
             ),
         ],
@@ -254,6 +268,8 @@ enum EnemyContent {
             EnemyMove(id: "sweep", name: "Pincer Sweep", faces: [.sideSwing, .sideSwing], weight: 24,
                       comboName: "Wide Sweep", damage: 22, bleedAmount: 5, bleedTurns: 2),
             EnemyMove(id: "settle", name: "Settle into the Silt", faces: [.block], weight: 22, block: 18),
+            EnemyMove(id: "rearUp", name: "Rears Up on Its Legs", faces: [.focus], weight: 20,
+                      charge: 2.1, cost: 2),
         ],
         armour: 26
     )
@@ -272,6 +288,8 @@ enum EnemyContent {
             EnemyMove(id: "burst", name: "Furnace Burst", faces: [.runeFire, .runeFire], weight: 24,
                       comboName: "Fireball", damage: 34, bleedAmount: 6, bleedTurns: 2),
             EnemyMove(id: "stamp", name: "Effigy's Stamp", faces: [.sideSwing], weight: 24, damage: 20),
+            EnemyMove(id: "glowWhite", name: "Glows White Hot", faces: [.focus], weight: 20,
+                      charge: 2.0, cost: 2),
         ],
         armour: 34
     )
@@ -290,6 +308,8 @@ enum EnemyContent {
             EnemyMove(id: "gnaw", name: "Gnaw", faces: [.swiftSlash, .swiftSlash], weight: 24,
                       comboName: "Flurry", damage: 26, bleedAmount: 8, bleedTurns: 2),
             EnemyMove(id: "gorge", name: "Gorge", faces: [.overhead, .heal], weight: 24, damage: 24, heal: 20),
+            EnemyMove(id: "unhinge", name: "Unhinges Its Jaw", faces: [.focus], weight: 20,
+                      charge: 2.1, cost: 2),
         ],
         armour: 42
     )

@@ -152,9 +152,11 @@ struct PlayBarView: View {
                 .kerning(1.4)
                 .foregroundStyle(Theme.gold.opacity(0.85))
 
-            Text(hintText)
+            Text(engine.armingChisel.map { "\($0.name.uppercased()) — tap a chain to spend it" } ?? hintText)
                 .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(Theme.parchmentDim.opacity(0.8))
+                .foregroundStyle(engine.armingChisel != nil
+                                 ? Theme.ptahCopper
+                                 : Theme.parchmentDim.opacity(0.8))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
@@ -210,8 +212,18 @@ struct PlayBarView: View {
 
     @ViewBuilder
     private func planCard(_ step: PlanStep, number: Int, isActive: Bool) -> some View {
+        // While a copper mark is held up, the chains it can ride glow and a
+        // tap arms it there instead of breaking the chain apart.
+        let armable = engine.armableChisel(for: step)
         Button {
             guard engine.phase == .player else { return }
+            if engine.armHeldChisel(onto: step) { return }
+            if engine.armingChisel != nil {
+                // A held mark makes every other tap a miss rather than an
+                // accidental dismantling of the plan.
+                engine.cancelArming()
+                return
+            }
             for face in step.faces { engine.returnToTray(faceID: face.id) }
         } label: {
             Group {
@@ -248,12 +260,28 @@ struct PlayBarView: View {
             .shadow(color: step.tint.opacity(isActive ? 0.85 : (step.isCombo ? 0.45 : 0)),
                     radius: isActive ? 12 : 6)
             .scaleEffect(isActive ? 1.06 : 1)
+            // A chain the held Chisel could ride wears Ptah's copper until it
+            // is either taken or the mark is put back down.
+            .overlay {
+                if armable != nil {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Theme.ptahCopper, lineWidth: 2.4)
+                        .shadow(color: Theme.ptahCopper.opacity(0.8), radius: 9)
+                        .allowsHitTesting(false)
+                }
+            }
             .overlay(alignment: .topTrailing) {
-                // A copper hammer when an optional Chisel rides this recipe.
+                // A copper hammer when an optional Chisel rides this recipe,
+                // and a beckoning one while a mark is waiting to be placed.
                 if engine.isComboArmed(step) {
                     DuatIcon(name: DuatArt.upgradeHammer, size: 18)
                         .padding(5)
                         .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 5)
+                } else if armable != nil {
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 18)
+                        .padding(5)
+                        .opacity(0.65)
+                        .shadow(color: Theme.ptahCopper.opacity(0.6), radius: 6)
                 }
             }
         }

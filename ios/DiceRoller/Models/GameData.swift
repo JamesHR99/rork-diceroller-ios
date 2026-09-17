@@ -30,8 +30,8 @@ enum GameData {
             symbol: "bolt.circle.fill", accentName: "Venom",
             maxHP: 82, maxStamina: 5,
             weaponName: "Twin Daggers", armorName: "Leather Armour",
-            blurb: "Fast, bleeding cuts. Stack Evade faces to slip blows outright, then answer from the dark.",
-            playstyle: "Fragile · fastest · bleed",
+            blurb: "Fast, bleeding cuts with venom on the blades. Stack Evade faces to slip blows outright, then answer from the dark.",
+            playstyle: "Fragile · fastest · bleed and venom",
             agility: 3,
             timingIdentity: "Fast defence, quick attacks and sequential opportunities"
         ),
@@ -40,8 +40,8 @@ enum GameData {
             symbol: "wand.and.stars", accentName: "Arcane",
             maxHP: 88, maxStamina: 4,
             weaponName: "Magic Wand", armorName: "Robes",
-            blurb: "Runes are nothing alone. Fold them into Fireball, Ice Blast, Meteor and the Arcane Storm.",
-            playstyle: "Fragile · spell recipes · utility",
+            blurb: "No shield face, no evade, no bandage — every guard, escape and mend has to be spelled out of runes. Thirty spells live in six syllables.",
+            playstyle: "Fragile · pure spellcraft · everything is a recipe",
             agility: 1,
             timingIdentity: "Quick emergency wards and slower powerful spells"
         ),
@@ -285,6 +285,68 @@ enum GameData {
     /// Chance a regular fight's foe (or one pack member) spawns as an
     /// armoured elite wearing a bronze plate over its health.
     static let eliteArmourChance = 0.12
+
+    // MARK: - Enemy rounds
+
+    /// What an ordinary creature can spend in one round, and what a
+    /// serpent-lord can. A jab costs 1 and a three-face recipe 3, so three
+    /// points buys one heavy recipe or a guard and a couple of quick cuts,
+    /// while a serpent-lord can reliably do two real things a round.
+    static let enemyRoundStamina = 3
+    static let bossRoundStamina = 5
+
+    /// The most separate actions any creature may take in one round, however
+    /// much stamina it is holding.
+    static let enemyMaxActionsPerRound = 3
+
+    /// What each blow in a chained round is worth. A creature that swings
+    /// three times hits for less each time than one that commits everything
+    /// to a single blow — more chances to block or slip, less behind each.
+    ///
+    /// The totals climb only slightly (one action 100%, two 116%, three 126%)
+    /// because the real change is the shape of the round, not its weight: a
+    /// blow you can answer is worth more to the fight than a bigger number.
+    static func enemyChainScale(actions: Int) -> Double {
+        switch actions {
+        case ...1: return 1.0
+        case 2: return 0.58
+        default: return 0.42
+        }
+    }
+
+    /// How much a wind-up multiplies the blow that follows it, when a
+    /// creature's move does not author its own figure.
+    static let enemyChargeDefault = 1.8
+
+    // MARK: - Enemy situational weights
+
+    /// How much more likely a creature is to mend when it is badly hurt, and
+    /// how much less when it is nearly untouched.
+    static let enemyHealUrgentBoost = 3.4
+    static let enemyHealHealthyDamp = 0.15
+    /// Health fraction under which a creature starts looking for a mend.
+    static let enemyHurtThreshold = 0.45
+    /// Health fraction over which mending is close to a wasted round.
+    static let enemyHealthyThreshold = 0.8
+
+    /// How much more likely a bare creature is to raise guard, and how much
+    /// less when it is already standing behind a deep one.
+    static let enemyGuardBareBoost = 2.2
+    static let enemyGuardStackedDamp = 0.2
+
+    /// How much more likely a creature is to go for the throat when you are
+    /// nearly out, and the health fraction that counts as nearly out.
+    static let enemyFinisherBoost = 2.6
+    static let enemyFinisherThreshold = 0.3
+
+    /// How much more likely a heavy blow is when you are standing bare, with
+    /// no shield to eat it.
+    static let enemyUnguardedBoost = 1.5
+
+    /// How much more likely a creature is to wind up when it is healthy,
+    /// unhurried and you are not about to die — and how much less otherwise.
+    static let enemyChargeBoost = 2.0
+    static let enemyChargeDamp = 0.12
 
     // MARK: - Chisels of Ptah
 

@@ -73,15 +73,29 @@ enum Timing {
         // Warrior
         "war_crushingBlow": 6, "war_wideSweep": 6, "war_earthshaker": 9,
         "war_riposte": 4, "war_secondWind": 5, "war_executioner": 9,
+        "war_shieldBash": 5, "war_fieldSurgery": 6, "war_setTheLine": 4,
+        "war_gatherWeight": 5,
         "war_warlordsAnswer": 12, "war_bloodTide": 12,
         // Rogue
         "rog_flurry": 6, "rog_openingCut": 6, "rog_twinFang": 6,
         "rog_shadowstep": 5, "rog_patchUp": 6, "rog_hemorrhage": 9,
-        "rog_vanishingStrike": 9, "rog_thousandCuts": 9,
-        // Magician
-        "mag_fireball": 6, "mag_iceBlast": 6, "mag_chillWard": 4,
-        "mag_lifeSiphon": 6, "mag_kindle": 5, "mag_blink": 4,
-        "mag_meteor": 9, "mag_arcaneStorm": 9,
+        "rog_coatedEdge": 6, "rog_creepingDeath": 6, "rog_witheringTouch": 6,
+        "rog_smokeAndSteel": 4, "rog_readTheRoom": 4,
+        "rog_vanishing": 9, "rog_thousandCuts": 9, "rog_deathByInches": 9,
+        // Magician — wards are quick, artillery is slow. A caster with no
+        // shield face needs its emergency spells to actually arrive in time.
+        "mag_fireball": 6, "mag_iceBlast": 6, "mag_arcaneBarrage": 6,
+        "mag_chainSpark": 5, "mag_mendingBloom": 5, "mag_deepChannel": 4,
+        "mag_scaldingMist": 5, "mag_emberPoultice": 5, "mag_cinderWard": 4,
+        "mag_ignition": 5, "mag_stokeTheFlame": 5,
+        "mag_rimePlate": 4, "mag_chillWard": 4, "mag_staticChill": 5,
+        "mag_frostgather": 4,
+        "mag_lifeSiphon": 6, "mag_quickening": 5, "mag_wellspring": 5,
+        "mag_arcLash": 6, "mag_blink": 3, "mag_capacitor": 5,
+        "mag_meteor": 9, "mag_glacier": 9, "mag_phoenixRite": 9,
+        "mag_stormcall": 9, "mag_sanctuary": 6, "mag_prismWard": 6,
+        "mag_runicBulwark": 6, "mag_arcaneStorm": 9,
+        "mag_fourfoldWord": 12,
         // Shared
         "shr_detonate": 6, "shr_venomCoat": 6, "shr_steadiedStrike": 6,
         "shr_breachStrike": 6, "shr_envenomedEdge": 6, "shr_blindingBlast": 5,
@@ -96,7 +110,7 @@ enum Timing {
     static let hasteGranting: Set<String> = ["rog_shadowstep"]
 
     /// Recipes that push one pending enemy action a beat later, once a round.
-    static let delayGranting: Set<String> = ["mag_iceBlast", "war_earthshaker"]
+    static let delayGranting: Set<String> = ["mag_iceBlast", "mag_glacier", "war_earthshaker"]
 
     // MARK: - Enemy timing
 
@@ -116,8 +130,10 @@ enum Timing {
 
     /// How long an enemy move takes to come round. Pure defence and recovery
     /// land quickly; damaging moves take their weight in preparation, so a
-    /// heavy hit is visible on the strip well before it arrives.
+    /// heavy hit is visible on the strip well before it arrives. A wind-up is
+    /// slow on purpose — the whole point of it is the window it leaves you.
     static func preparation(move: EnemyMove) -> Int {
+        if move.charge > 0 { return pairPrep }
         if move.damage <= 0 { return soloGuardPrep }
         if move.faces.count >= 3 { return triplePrep }
         if move.faces.count == 2 { return pairPrep }
@@ -158,6 +174,9 @@ struct TimelineEntry: Identifiable, Hashable {
     let sourceID: UUID
     /// Set when Haste pulled this action earlier than its printed preparation.
     let hastened: Int
+    /// Which of the creature's telegraphed moves this entry is — a foe that
+    /// spends its round on three actions puts three entries on the clock.
+    let chainIndex: Int
 
     init(
         id: UUID = UUID(),
@@ -169,7 +188,8 @@ struct TimelineEntry: Identifiable, Hashable {
         targetID: UUID? = nil,
         roles: ActionRole = .none,
         sourceID: UUID,
-        hastened: Int = 0
+        hastened: Int = 0,
+        chainIndex: Int = 0
     ) {
         self.id = id
         self.side = side
@@ -181,6 +201,7 @@ struct TimelineEntry: Identifiable, Hashable {
         self.roles = roles
         self.sourceID = sourceID
         self.hastened = hastened
+        self.chainIndex = chainIndex
     }
 
     var isPlayer: Bool { side.isPlayer }
