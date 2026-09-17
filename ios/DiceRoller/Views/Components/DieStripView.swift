@@ -134,8 +134,6 @@ struct RunStatusBar: View {
         HStack(spacing: compact ? 6 : 8) {
             pill(DuatArt.Status.health, "heart.fill", "\(game.currentHP)/\(game.maxHP)", Theme.blood)
             pill(DuatArt.currency, "circle.hexagongrid.fill", "\(game.gold)", Theme.gold)
-            pill(DuatArt.DieFrame.ready.rawValue, "dice.fill",
-                 "\(game.diceCount)/\(Loadout.maxDice)", Theme.steel)
             if let hero = game.heroClass, !compact {
                 pill(DuatArt.classSigil(hero.id) ?? "", hero.symbol, hero.name, hero.accent)
             }

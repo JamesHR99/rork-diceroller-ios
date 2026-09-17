@@ -47,7 +47,7 @@ struct FrameSet {
 enum CharacterArt {
     private static let demigods: [String: String] = [
         "archer": "egyptian_archer_demigod",
-        "warrior": "egyptian_warrior_khopesh",
+        "warrior": "duat_hero_warrior_idle_f0",
         "rogue": "egyptian_rogue_assassin",
         "magician": "egyptian_priest_wand",
     ]
@@ -94,16 +94,19 @@ enum CharacterArt {
             .defeat: ["hero_archer_defeat", "egyptian_archer_defeat_pose"],
             .victory: ["hero_archer_victory", "egyptian_archer_victory"],
         ],
+        // His sheets landed, so every pose comes off his own drawn plates:
+        // the khopesh at rest, the top of the swing, the guard braced and the
+        // recoil — rather than the older pipeline's stand-ins.
         "warrior": [
-            .idle: ["egyptian_warrior_idle", "egyptian_warrior_khopesh"],
-            .windup: ["hero_warrior_windup", "the_same_character_2"],
-            .strike: ["hero_warrior_strike", "the_same_character", "egyptian_warrior_attack"],
-            .follow: ["hero_warrior_followthrough", "egyptian_warrior_attack"],
-            .guardUp: ["hero_warrior_guard", "egyptian_warrior_guard"],
-            .hurt: ["hero_warrior_hurt", "egyptian_warrior_hurt"],
-            .dodge: ["hero_warrior_dodge", "egyptian_warrior_dodge"],
-            .defeat: ["hero_warrior_defeat", "egyptian_warrior_defeated"],
-            .victory: ["hero_warrior_victory", "egyptian_warrior_victory"],
+            .idle: ["duat_hero_warrior_idle_f0", "egyptian_warrior_idle"],
+            .windup: ["duat_hero_warrior_attack_f1", "hero_warrior_windup"],
+            .strike: ["duat_hero_warrior_attack_f4", "hero_warrior_strike"],
+            .follow: ["duat_hero_warrior_attack_f6", "hero_warrior_followthrough"],
+            .guardUp: ["duat_hero_warrior_block_f3", "hero_warrior_guard"],
+            .hurt: ["duat_hero_warrior_hurt_f3", "hero_warrior_hurt"],
+            .dodge: ["duat_hero_warrior_block_f1", "hero_warrior_dodge"],
+            .defeat: ["duat_hero_warrior_hurt_f6", "hero_warrior_defeat"],
+            .victory: ["duat_hero_warrior_block_f6", "hero_warrior_victory"],
         ],
         "rogue": [
             .idle: ["egyptian_rogue_idle", "egyptian_rogue_assassin"],
@@ -131,10 +134,11 @@ enum CharacterArt {
 
     /// The painted pose each hero falls back to when nothing else was drawn —
     /// their strongest plate from the Duat pack, standing in for the resting
-    /// pose so a painted figure is always on the deck. The warrior has no
-    /// painted pose yet and keeps his inked figure until his art lands.
+    /// pose so a painted figure is always on the deck. Every hero now has a
+    /// drawn sheet, so each one rests on a real plate of their own.
     private static let heroRestingPlates: [String: String] = [
         "archer": "duat_hero_archer_guardUp",
+        "warrior": "duat_hero_warrior_idle_f0",
         "rogue": "duat_hero_rogue_hurt",
         "magician": "duat_hero_magician_follow",
     ]

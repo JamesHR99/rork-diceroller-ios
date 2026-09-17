@@ -14,8 +14,10 @@ enum OfferKind: Hashable {
     /// A level on a power you already carry: same slot, same rarity, one step
     /// stronger. Never a second copy.
     case boonLevel(EquippedBoon)
-    /// A legendary evolution replacing the named regular boon in its slot.
-    case legendary(GodBoonDef)
+    /// A legendary, found the same way as any other boon and kept in its own
+    /// Legendary slot. Carries the rarity it was offered at, unless the power
+    /// it evolved from is equipped and hands its own across.
+    case legendary(GodBoonDef, BoonRarity)
     /// A god claims one of your dice as its patron — an unblessed die, or
     /// (rarely, `replace: true`) explicitly taking a die from another god.
     case patron(Deity, replace: Bool)
@@ -83,7 +85,7 @@ struct Offer: Identifiable, Hashable {
         switch kind {
         case .boon(_, let rarity): rarity
         case .boonLevel(let owned): owned.rarity
-        case .legendary: BoonRarity.epic
+        case .legendary(_, let rarity): rarity
         default: nil
         }
     }

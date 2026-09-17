@@ -680,8 +680,8 @@ final class GameManager {
             equip(boon: def, rarity: rarity)
         case .boonLevel(let owned):
             levelUp(owned)
-        case .legendary(let def):
-            evolve(into: def)
+        case .legendary(let def, let rarity):
+            evolve(into: def, rarity: rarity)
         case .patron(let deity, let replace):
             pendingSelection = .patron(deity, replace: replace, title: offer.name)
         case .upgrade(let upgrade):
@@ -873,20 +873,29 @@ final class GameManager {
         finishSelection("\(now.def?.name ?? "Power") → level \(now.level) (\(now.rarity.label)).")
     }
 
-    /// A legendary replaces its source power in the same slot, keeping that
-    /// power's rarity and level. One legendary per run.
-    func evolve(into legendary: GodBoonDef) {
-        guard let sourceID = legendary.evolves,
-              let index = equippedBoons.firstIndex(where: { $0.defID == sourceID }) else {
-            finishSelection("\(legendary.name) needs its source power equipped.")
+    /// A legendary goes into the run's single Legendary slot, so it never
+    /// costs an Attack or Defence place. Carrying the power it evolved from
+    /// consumes that copy and hands its rarity and level across; otherwise the
+    /// card simply arrives at the rarity it was offered at. One per run.
+    func evolve(into legendary: GodBoonDef, rarity: BoonRarity) {
+        guard !owns(boon: legendary.id) else {
+            finishSelection("\(legendary.name) is already yours.")
             return
         }
-        let source = equippedBoons[index]
-        equippedBoons[index] = EquippedBoon(defID: legendary.id,
-                                            rarity: source.rarity,
-                                            level: source.level)
+        var carried = rarity
+        var level = 1
+        var line = "\(legendary.name) takes the Legendary slot — \(rarity.label)."
+        if let sourceID = legendary.evolves,
+           let index = equippedBoons.firstIndex(where: { $0.defID == sourceID }) {
+            let source = equippedBoons[index]
+            carried = source.rarity
+            level = source.level
+            equippedBoons.remove(at: index)
+            line = "\(legendary.name) — \(source.rarity.label) level \(source.level) carried over from \(source.def?.name ?? "its source")."
+        }
+        equippedBoons.append(EquippedBoon(defID: legendary.id, rarity: carried, level: level))
         legendariesTaken += 1
-        finishSelection("\(legendary.name) — \(source.rarity.label) level \(source.level) carried over.")
+        finishSelection(line)
     }
 
     /// Swap a new power in for one already equipped in that slot.
@@ -897,15 +906,10 @@ final class GameManager {
         finishSelection("\(def.name) takes the place of \(replaced).")
     }
 
-    /// Is this legendary's offer unlocked? Its source must be equipped along
-    /// with one other regular power of the same god, and the run allows one.
-    func legendaryUnlocked(_ legendary: GodBoonDef) -> Bool {
-        guard legendariesTaken == 0, let sourceID = legendary.evolves,
-              owns(boon: sourceID) else { return false }
-        return equippedBoons.contains { owned in
-            guard let def = owned.def else { return false }
-            return def.god == legendary.god && def.id != sourceID && def.kind == .regular
-        }
+    /// Can a legendary still turn up? The run allows one, and its slot must
+    /// be free. No prerequisite: it is a rare find, not an assembly.
+    func legendaryOfferable(_ legendary: GodBoonDef) -> Bool {
+        legendariesTaken == 0 && hasRoom(for: .legendary) && !owns(boon: legendary.id)
     }
 
     /// Commit to a capstone — one per run.
@@ -1181,23 +1185,6 @@ final class GameManager {
     /// presents choices you can actually take.
     func makeGodFavourOffers(deity: Deity, count: Int, progress: Double) -> [Offer] {
         var cards: [Offer] = []
-        let pool = GodCatalog.regulars(of: deity)
-
-        // A legendary evolution when its source and a second power of the same
-        // god are both carried — one per run.
-        let legendaries = GodCatalog.legendaries
-            .filter { $0.god == deity && legendaryUnlocked($0) }
-        if let legendary = legendaries.first {
-            cards.append(makeLegendaryOffer(legendary))
-        }
-
-        // A duo, once both its source groups are equipped and it is legal.
-        let duos = GodCatalog.duos.filter { duo in
-            duo.god == deity && !owns(boon: duo.id) && duoOfferable(duo)
-        }.shuffled()
-        if let duo = duos.first, cards.count < count {
-            cards.append(makeBoonOffer(duo, rarity: .common))
-        }
 
         // A level on a power of this god you already carry. A repeat is
         // explicitly an upgrade: same slot, same rarity, one step stronger.
@@ -1208,14 +1195,19 @@ final class GameManager {
             cards.append(makeLevelOffer(owned))
         }
 
-        // New powers, each rolling and showing its own rarity before the
-        // choice. The slots are no longer a template: the god offers whatever
-        // they happen to be holding, so three attacks or three utilities are
-        // both legal hands and the screen keeps its surprise.
-        var fresh = pool.filter { !owns(boon: $0.id) }.shuffled()
+        // Everything else this god is holding, drawn from one pool: their ten
+        // regulars, whichever duos they had a hand in making, and — rarely —
+        // one of their legendaries. A duo and a legendary are ordinary cards
+        // now, found the same way as anything else rather than earned through
+        // a separate ceremony.
+        var fresh = offerablePowers(of: deity).shuffled()
         while cards.count < count, !fresh.isEmpty {
             let def = fresh.removeFirst()
-            cards.append(makeBoonOffer(def, rarity: BoonRarity.roll(progress: progress)))
+            if def.kind == .legendary {
+                cards.append(makeLegendaryOffer(def, progress: progress))
+            } else {
+                cards.append(makeBoonOffer(def, rarity: BoonRarity.roll(progress: progress)))
+            }
         }
 
         // Never force a no-op duplicate to fill the template — the river's own
@@ -1226,6 +1218,22 @@ final class GameManager {
             cards.append(fill)
         }
         return Array(cards.prefix(max(count, 3)))
+    }
+
+    /// Every card this god could put on the table: their regulars, the duos
+    /// they helped make, and their legendaries at the guide's rare odds. A
+    /// legendary is rolled for once per meeting, so most nights never see one.
+    private func offerablePowers(of deity: Deity) -> [GodBoonDef] {
+        var pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) }
+        pool += GodCatalog.duos(of: deity).filter { duo in
+            !owns(boon: duo.id) && duoOfferable(duo)
+        }
+        if Double.random(in: 0..<1) < GameData.legendaryOfferChance {
+            pool += GodCatalog.legendaries(of: deity)
+                .filter { legendaryOfferable($0) }
+                .shuffled().prefix(1)
+        }
+        return pool
     }
 
     /// Could this duo be equipped right now while keeping its prerequisites?
@@ -1289,20 +1297,24 @@ final class GameManager {
         )
     }
 
-    /// A legendary evolution: it replaces its source in that slot and carries
-    /// the source's rarity and level across.
-    private func makeLegendaryOffer(_ def: GodBoonDef) -> Offer {
+    /// A legendary: a rare find in its own slot. Carrying the power it evolved
+    /// from hands that copy's rarity and level across; without it the card
+    /// simply arrives at the rarity it rolled.
+    private func makeLegendaryOffer(_ def: GodBoonDef, progress: Double) -> Offer {
         let source = equippedBoons.first { $0.defID == def.evolves }
-        let rarity = source?.rarity ?? .common
+        let rarity = source?.rarity ?? BoonRarity.roll(progress: progress)
         let level = source?.level ?? 1
+        let note = source == nil
+            ? "Legendary · \(rarity.label) level \(level) · its own slot"
+            : "Legendary · carries \(GodCatalog.boon(def.evolves ?? "")?.name ?? "its source") at \(rarity.label) level \(level)"
         return Offer(
             name: def.name,
             detail: def.text(rarity: rarity, level: level),
             symbol: def.god.symbol,
             rarity: .signature,
-            comboHint: "Legendary · replaces \(GodCatalog.boon(def.evolves ?? "")?.name ?? "its source") · one per run",
+            comboHint: note,
             price: 0,
-            kind: .legendary(def),
+            kind: .legendary(def, rarity),
             deity: def.god
         )
     }

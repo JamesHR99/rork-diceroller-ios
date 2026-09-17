@@ -1,11 +1,13 @@
 import SwiftUI
 
-/// Which of the seven character slots a power occupies. Three Attack, two
-/// Defence, two Utility — powers from any number of gods may share an action.
+/// Which character slot a power occupies. Three Attack, two Defence, two
+/// Utility, and one Legendary kept apart from them — powers from any number
+/// of gods may share an action.
 enum BoonSlot: String, CaseIterable, Hashable, Identifiable {
     case attack
     case defence
     case utility
+    case legendary
 
     var id: String { rawValue }
 
@@ -14,15 +16,18 @@ enum BoonSlot: String, CaseIterable, Hashable, Identifiable {
         case .attack: "Attack"
         case .defence: "Defence"
         case .utility: "Utility"
+        case .legendary: "Legendary"
         }
     }
 
-    /// How many of this slot a character carries.
+    /// How many of this slot a character carries. The legendary slot holds one
+    /// and never competes with an ordinary power for room.
     var capacity: Int {
         switch self {
         case .attack: 3
         case .defence: 2
         case .utility: 2
+        case .legendary: 1
         }
     }
 
@@ -31,6 +36,7 @@ enum BoonSlot: String, CaseIterable, Hashable, Identifiable {
         case .attack: "burst.fill"
         case .defence: "shield.lefthalf.filled"
         case .utility: "sparkles"
+        case .legendary: "crown.fill"
         }
     }
 
@@ -39,6 +45,7 @@ enum BoonSlot: String, CaseIterable, Hashable, Identifiable {
         case .attack: Theme.ember
         case .defence: Theme.steelBlue
         case .utility: Theme.gold
+        case .legendary: Theme.goldLeaf
         }
     }
 }
@@ -260,6 +267,18 @@ struct GodBoonDef: Identifiable, Hashable {
 
     var isFixed: Bool { scales == nil }
 
+    /// Which gods may bring this card. A regular or a legendary is its own
+    /// god's to give; a duo belongs to both gods it was made from, so either
+    /// of them may offer it — it is never found any other way.
+    var offeringGods: [Deity] {
+        guard kind == .duo else { return [god] }
+        var found: [Deity] = []
+        for source in sources where !found.contains(source.god) {
+            found.append(source.god)
+        }
+        return found.isEmpty ? [god] : found
+    }
+
     /// The live value for this rarity and level. Level adds the card's own
     /// step; rarity adds one more than that step, which is what makes a
     /// Common level 3 able to beat a fresh Rare while the Rare keeps the
@@ -321,6 +340,19 @@ enum BoonSourceGroup: String, Hashable {
         case .horusFrozen: "Horus Frozen"
         case .horusPierce: "Horus Pierce"
         case .bastetEvade: "Bastet Evade"
+        }
+    }
+
+    /// The god this group of powers belongs to — which is what makes a duo
+    /// offerable by either of the two gods who made it.
+    var god: Deity {
+        switch self {
+        case .raBurn: .ra
+        case .sobekBleed, .sobekHealing: .sobek
+        case .anubisJudgement: .anubis
+        case .besShield: .bes
+        case .horusFrozen, .horusPierce: .horus
+        case .bastetEvade: .bastet
         }
     }
 

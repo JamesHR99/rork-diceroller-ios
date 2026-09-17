@@ -32,11 +32,8 @@ struct OfferCardView: View {
                        rarity: owned.rarity,
                        level: min(owned.level + 1, boonMaxLevel),
                        isUpgrade: true)
-        case .legendary(let def):
-            HStack(spacing: 5) {
-                sealBadge(def.god.artName, def.god.symbol, tint: Theme.goldLeaf)
-                footnote("legendary · one per run")
-            }
+        case .legendary(let def, let rarity):
+            boonDigest(slot: def.slot, god: def.god, rarity: rarity, level: 1, isUpgrade: false)
         case .upgrade(let upgrade):
             HStack(spacing: 5) {
                 sealBadge(offer.deity?.artName, upgrade.symbol, tint: offer.tint)

@@ -66,6 +66,11 @@ enum GameData {
     /// a different hand every turn.
     static let diceDrawCount = 6
 
+    /// Odds that a god brings one of their legendaries to a meeting at all.
+    /// A legendary is found the same way as any other boon — it is simply a
+    /// rare sight, so most nights never see one.
+    static let legendaryOfferChance = 0.07
+
     // MARK: - Round economy
 
     /// The round's stamina allowance: 3 on the first round, 4 on the second, 5

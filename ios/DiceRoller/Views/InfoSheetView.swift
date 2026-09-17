@@ -82,7 +82,7 @@ struct InfoSheetView: View {
                         .font(.fantasy(17, weight: .black))
                         .foregroundStyle(Theme.parchment)
                         .kerning(2)
-                    Text("\(hero.name) · \(loadout.diceCount)/\(Loadout.maxDice) dice")
+                    Text(hero.name)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.parchmentDim)
                 }
@@ -334,7 +334,7 @@ struct InfoSheetView: View {
 
     private var pantheonTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("YOUR POWERS — THREE ATTACK, TWO DEFENCE, TWO UTILITY")
+            sectionTitle("YOUR POWERS — THREE ATTACK, TWO DEFENCE, TWO UTILITY, ONE LEGENDARY")
 
             Text("A power belongs to you, not to a die. Several gods can answer the same action, and nothing needs an entry purchase. Rarity is rolled and shown before you choose it; level climbs inside that rarity, to \(boonMaxLevel). Being offered a power you already carry is a level, never a second copy.")
                 .font(.system(size: 12.5))
@@ -351,7 +351,7 @@ struct InfoSheetView: View {
             }
 
             sectionTitle("FIFTEEN DUOS — TWO GODS ANSWERING TOGETHER")
-            Text("A duo needs its two source powers equipped and keeps needing them. It never satisfies its own prerequisite, and its values are fixed — duos do not level. Two duos at most, inside the ordinary slots.")
+            Text("A duo comes as an ordinary card from either of the two gods who made it — there is no separate way to find one. It needs its two source powers equipped and keeps needing them. It never satisfies its own prerequisite, and its values are fixed — duos do not level. Two duos at most, inside the ordinary slots.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -361,7 +361,7 @@ struct InfoSheetView: View {
             }
 
             sectionTitle("SIX LEGENDARY EVOLUTIONS — ONE PER RUN")
-            Text("A legendary replaces its source power in the same slot and carries that power's rarity and level across. It is unlocked by equipping the source plus one other power of the same god.")
+            Text("A legendary is a very rare find on a god's card, exactly like any other boon — nothing needs assembling first. It lands in its own Legendary slot, so it never costs you an Attack or Defence place. Carrying its source power hands that power's rarity and level across; without it the legendary arrives at the rarity it was offered at.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -863,13 +863,13 @@ struct InfoSheetView: View {
             .background(Theme.bgCard, in: .rect(cornerRadius: 14))
 
             ruleCard(
-                icon: "shield.fill", tint: Theme.bronze, title: "ARMOUR",
+                icon: "shield.fill", tint: Theme.bronze, title: "ENEMY GUARD",
                 lines: [
-                    "Armoured foes wear a bronze plate above their health. Your hits chip the plate first; only when it shatters can their health be touched.",
-                    "Pierce punches through armour exactly as it does block.",
-                    "Poison, burn and bleed seep under the plate and tick health directly — DoT builds are the anti-armour answer.",
-                    "Their block still sits in front of the plate, so you must chew through guard, then armour, then health.",
-                    "Armour never regenerates — once broken, it is broken. But breaking it is a real investment, so armoured brutes trade burst damage for staying power.",
+                    "A foe keeps one guard pool on a bronze channel over its health — plate it was born wearing and block it raises mid-fight are the same resource, so there is only ever one layer to chew through.",
+                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, exactly like your own shield.",
+                    "Pierce ignores part of the guard, measured against the deepest it has ever stood.",
+                    "Poison, burn and bleed seep under it and tick health directly — damage over time is the answer to a heavy guard.",
+                    "Guard never regenerates on its own, so breaking a plated brute is a real investment: they trade burst damage for staying power.",
                 ]
             )
 
@@ -877,10 +877,10 @@ struct InfoSheetView: View {
                 icon: "drop.triangle.fill", tint: Theme.venom, title: "STATUS EFFECTS",
                 lines: [
                     "Bleed, Poison and Burn tick on the enemy at the start of their turn. Burn caps at 12 a tick; bleed refreshes to the stronger value rather than stacking.",
-                    "Statuses seep under armour and land on health directly — so does Anubis's stored judgement when it detonates.",
+                    "Statuses seep under an enemy's guard and land on health directly — so does Anubis's stored judgement when it detonates.",
                     "Stagger weakens the enemy's very next attack by its percentage, then wears off.",
                     "Mark multiplies your next hit on that enemy.",
-                    "Pierce ignores part of the enemy's block and armour. Your own shield soaks damage before health and stays until something breaks it.",
+                    "Pierce ignores part of the enemy's guard. Your own shield soaks damage before health and stays until something breaks it.",
                     "Evade is a chance to slip a hit entirely, rolled fresh for every blow — chances add up to a ceiling, and it clears after the enemy turn.",
                 ]
             )

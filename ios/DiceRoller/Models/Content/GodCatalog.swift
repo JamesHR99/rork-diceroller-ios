@@ -31,6 +31,18 @@ enum GodCatalog {
         legendaries.first { $0.evolves == id }
     }
 
+    /// The duos a god may bring. A duo belongs to both gods who made it, so
+    /// either of them can be the one holding the card.
+    static func duos(of god: Deity) -> [GodBoonDef] {
+        duos.filter { $0.offeringGods.contains(god) }
+    }
+
+    /// The legendaries a god may bring — their own, offered as a rare find
+    /// rather than earned by assembling its source first.
+    static func legendaries(of god: Deity) -> [GodBoonDef] {
+        legendaries.filter { $0.god == god }
+    }
+
     // MARK: - Ra — fire, commitment and rising power
 
     static let ra: [GodBoonDef] = [
@@ -527,44 +539,49 @@ enum GodCatalog {
     ]
 
     // MARK: - The six legendary evolutions
+    //
+    // Each one is a very rare find on an ordinary god's card, not a reward for
+    // assembling its source first. It lands in the run's single Legendary slot,
+    // so it never costs an Attack or Defence place; for a duo's prerequisites
+    // it still counts as the power it evolved from.
 
     static let legendaries: [GodBoonDef] = [
         GodBoonDef(
-            id: "LG-RA", god: .ra, slot: .attack, name: "Crown of Noon",
+            id: "LG-RA", god: .ra, slot: .legendary, name: "Crown of Noon",
             effect: "Your first large attack combo each round gains %V direct damage. If its primary target survives the native hit, consume that target's pre-action Burn for twice that potency as direct HP damage, capped at 20; then, if it still survives, add 6 Burn.",
             function: "Evolves Solar Flare", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(burn: 6), scales: .flatDamage, values: [10, 12, 14],
             evolves: "RA-A1"
         ),
         GodBoonDef(
-            id: "LG-SO", god: .sobek, slot: .attack, name: "Lord of the Bloodied Nile",
+            id: "LG-SO", god: .sobek, slot: .legendary, name: "Lord of the Bloodied Nile",
             effect: "Your first large attack combo each round applies Bleed %V, pays one early Bleed tick, and heals for HP actually lost to that tick up to 6. If the target was already below half HP before the action, the native attack also gains +20% direct damage.",
             function: "Evolves Jaws of the Nile", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(heal: 6, bonusCondition: .targetBleeding, bonusPercentDamage: 20),
             scales: .bleed, values: [6, 7, 8], evolves: "SO-A5"
         ),
         GodBoonDef(
-            id: "LG-AN", god: .anubis, slot: .attack, name: "Final Verdict",
+            id: "LG-AN", god: .anubis, slot: .legendary, name: "Final Verdict",
             effect: "Your first large attack combo each round gains 20 percentage points of pierce, adds %V Judgement and advances that target's entire pending ledger to the end of the current round. Further additions this turn join it. It still resolves only once for that target at the scheduled phase.",
             function: "Evolves Final Sentence", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(pierce: 20), scales: .judgement, values: [14, 16, 18],
             evolves: "AN-A4"
         ),
         GodBoonDef(
-            id: "LG-BE", god: .bes, slot: .attack, name: "Unbroken House",
+            id: "LG-BE", god: .bes, slot: .legendary, name: "Unbroken House",
             effect: "Retain Sheltering Blow at its current level. At round-end settlement, retaliate for half the shield absorbed during that round, rounded down and capped at 15 direct HP damage, against the living enemy whose hits consumed most shield. If no shield-damaging attacker survives, no retaliation occurs.",
             function: "Evolves Sheltering Blow", kind: .legendary, trigger: .roundEnd,
             payload: BoonPayload(perIngredient: true, perIngredientCap: 8), evolves: "BE-A1"
         ),
         GodBoonDef(
-            id: "LG-HO", god: .horus, slot: .attack, name: "Eye of the Falcon",
+            id: "LG-HO", god: .horus, slot: .legendary, name: "Eye of the Falcon",
             effect: "Your first frozen Attack each round gains %V% direct damage and ignores all block and armour. It is still a single once-per-round activation, even with several frozen ingredients.",
             function: "Evolves Falcon's Eye", kind: .legendary, trigger: .firstFrozenAttack,
             payload: BoonPayload(pierce: 100, haste: 2), scales: .percentDamage, values: [35, 40, 45],
             evolves: "HO-A1"
         ),
         GodBoonDef(
-            id: "LG-BA", god: .bastet, slot: .defence, name: "Nine Lives Unbound",
+            id: "LG-BA", god: .bastet, slot: .legendary, name: "Nine Lives Unbound",
             effect: "Retain Hunting Step at its current level. Once per encounter, a lethal hit or damage-over-time event leaves you at 1 HP instead. Set evade chance to its normal 60% cap through the end of the current round; later hits or damage-over-time can still kill you.",
             function: "Evolves Hunting Step", kind: .legendary, trigger: .firstEvade,
             payload: BoonPayload(bonusCondition: .isTwoFaceCombo, bonusEvadePoints: 5),

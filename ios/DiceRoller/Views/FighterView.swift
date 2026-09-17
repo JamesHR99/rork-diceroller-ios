@@ -68,7 +68,7 @@ struct FighterView: View {
         VStack(spacing: 4) {
             nameRow
             if side == .enemy, let foe, foe.armourMax > 0 {
-                armourBar(foe)
+                armourBar(foe, width: 210)
             }
             // The guard sits directly over health, the way armour does on a
             // foe: a steel channel you can read the depth of at a glance,
@@ -184,11 +184,11 @@ struct FighterView: View {
             }
             if strike.block > 0 {
                 HStack(spacing: 2) {
-                    DuatSymbol(art: DuatArt.Status.shield, fallback: "shield.fill",
-                               size: 11, tint: Theme.steel)
+                    DuatSymbol(art: DuatArt.Status.armour, fallback: "shield.fill",
+                               size: 11, tint: Theme.bronze)
                     Text("\(strike.block)")
                         .font(.system(size: 10.5, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.steel)
+                        .foregroundStyle(Theme.bronze)
                 }
             }
         }
@@ -427,10 +427,11 @@ struct FighterView: View {
         }
     }
 
-    /// The guard standing on this fighter right now — your shield, or a foe's
-    /// own block.
+    /// The guard standing on this fighter right now. A foe keeps its whole
+    /// guard in one pool, drawn on its own bronze channel, so only your own
+    /// shield uses the steel one.
     private var shieldValue: Int {
-        side == .player ? engine.playerShield : (foe?.block ?? 0)
+        side == .player ? engine.playerShield : 0
     }
 
     /// The steel channel worn over health. Shield has no fixed maximum, so the
@@ -461,9 +462,12 @@ struct FighterView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: shieldValue)
     }
 
-    /// The bronze plate worn over health. Direct hits chip it away first;
-    /// cracks open as it thins, and once it is gone the health is bare.
+    /// The guard worn over health — plate it was born in and block it raised,
+    /// one pool on one bronze channel. Direct hits chip it away first; once it
+    /// is gone the health is bare. The number rides on the bar the way your
+    /// own shield's does, so both sides of the deck read the same way.
     private func armourBar(_ foe: EnemyState, width: CGFloat = 176) -> some View {
+        let height: CGFloat = 13
         let fraction = foe.armourMax > 0
             ? CGFloat(foe.armour) / CGFloat(foe.armourMax)
             : 0
@@ -471,17 +475,21 @@ struct FighterView: View {
             kind: .armour,
             fraction: Double(fraction),
             width: width,
-            height: 13
+            height: height
         )
-        .overlay(alignment: .trailing) {
-            HStack(spacing: 2) {
-                DuatIcon(name: DuatArt.Status.armour, size: 12)
+        .overlay {
+            HStack(spacing: 2.5) {
+                DuatSymbol(art: DuatArt.Status.armour, fallback: "shield.fill",
+                           size: height * 0.85, tint: Theme.parchment)
                 Text("\(foe.armour)")
-                    .font(.system(size: 10, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.bronze)
+                    .font(.system(size: height * 0.78, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.parchment)
+                    .contentTransition(.numericText())
             }
-            .offset(x: 28)
+            .shadow(color: .black, radius: 2)
+            .allowsHitTesting(false)
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: foe.armour)
     }
 
     /// Everything riding this fighter right now, each on its painted mark.
@@ -516,9 +524,6 @@ struct FighterView: View {
                 if foe.evadeCharges > 0 {
                     badge(DuatArt.Status.evade, "wind", "EVADE", Deity.bastet.tint)
                 }
-                if foe.armourMax > 0 && foe.armour > 0 {
-                    badge(DuatArt.Status.armour, "shield.fill", "\(foe.armour)", Theme.bronze)
-                }
                 if foe.judgementPending {
                     badge(DuatArt.Status.judgement, "scalemass.fill",
                           "\(foe.judgementAmount)", Deity.anubis.tint)
@@ -545,7 +550,7 @@ struct FighterView: View {
         }
         .frame(height: layout == .ticker ? 16 : 21)
         .animation(.spring(response: 0.3, dampingFraction: 0.7),
-                   value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.block ?? 0) + (foe?.armour ?? 0))
+                   value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.armour ?? 0))
     }
 
     private func badge(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {

@@ -2,61 +2,35 @@ import Foundation
 
 /// Archer: longbow and light armour. Arrow tiers stack into heavy volleys,
 /// with a real shield and a rolling evade behind the draw.
+///
+/// The collection is deliberately uniform: all five bow dice are the same
+/// bow and all three armour dice the same leathers, so a draw's shape is a
+/// question of how many weapon dice came up rather than which named die did.
+/// The riser smack lives on the armour, which is what puts Point-Blank behind
+/// a mixed hand instead of handing it to any bow face.
 enum ArcherContent {
     // MARK: - Starting gear
 
-    /// Bow die: 2× Arrow I, 2× Arrow II, 1× Arrow III, 1× Bow Smack.
+    /// Bow die: 2× Arrow I, 2× Arrow II, 1× Arrow III, 1× Focus.
     static func bowDie(rarity: Rarity = .common, name: String = "Longbow") -> Die {
         Die(name: name, slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow1, .arrow2, .arrow2, .arrow3, .bowSmack])
+            faces: [.arrow1, .arrow1, .arrow2, .arrow2, .arrow3, .focus])
     }
 
-    /// Light armour die: 2× Evade, 2× Block, 1× Heal, 1× Focus.
+    /// Light armour die: 2× Bow Smack, 2× Block, 1× Evade, 1× Heal.
     static func armorDie(rarity: Rarity = .common, name: String = "Light Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.evade, .evade, .block, .block, .heal, .focus])
-    }
-
-    /// Opening bow three: mid-weight draws and smacks — Twin Shot fuel.
-    static func cadenceBow(rarity: Rarity = .common) -> Die {
-        Die(name: "Recurve Cadence", slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow2, .arrow2, .bowSmack, .bowSmack, .focus])
-    }
-
-    /// Opening bow four: heavy shafts — Piercing Bolt and Perfect Shot fuel.
-    static func heronBow(rarity: Rarity = .common) -> Die {
-        Die(name: "Heron's Shaft", slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow3, .arrow3, .bowSmack, .evade, .focus])
-    }
-
-    /// Opening armour three: padded plate — Field Dressing fuel behind shields.
-    static func paddedCuirass(rarity: Rarity = .common) -> Die {
-        Die(name: "Padded Cuirass", slot: .armor, rarity: rarity,
-            faces: [.block, .block, .heal, .heal, .evade, .focus])
-    }
-
-    /// Opening bow five: the spare quiver. Mid arrows and a focus face, so a
-    /// draw that comes up all-weapon still has Steady Aim in reach.
-    static func quiverDie(rarity: Rarity = .common) -> Die {
-        Die(name: "Fletcher's Quiver", slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow1, .arrow2, .arrow3, .bowSmack, .focus])
-    }
-
-    /// Opening armour three: the ranger's wrap — block, evade and a mend, so
-    /// Quick Guard is reachable from any armour die in the collection.
-    static func rangerWrap(rarity: Rarity = .common) -> Die {
-        Die(name: "Ranger's Wrap", slot: .armor, rarity: rarity,
-            faces: [.block, .block, .evade, .evade, .heal, .focus])
+            faces: [.bowSmack, .bowSmack, .block, .block, .evade, .heal])
     }
 
     static func weapon() -> GearPiece {
         GearPiece(name: "Longbow", symbol: "arrowshape.up.circle.fill", slot: .weapon,
-                  dice: [bowDie(), bowDie(), cadenceBow(), heronBow(), quiverDie()])
+                  dice: (0..<GameData.ownedWeaponDice).map { _ in bowDie() })
     }
 
     static func armor() -> GearPiece {
         GearPiece(name: "Light Armour", symbol: "shield.lefthalf.filled", slot: .armor,
-                  dice: [armorDie(), paddedCuirass(), rangerWrap()])
+                  dice: (0..<GameData.ownedArmourDice).map { _ in armorDie() })
     }
 
     // MARK: - Combos

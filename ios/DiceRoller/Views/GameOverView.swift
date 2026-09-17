@@ -239,8 +239,6 @@ struct GameOverView: View {
             statRow(DuatArt.Status.burn, "flame.fill", "Damage dealt", "\(game.totalDamage)", Theme.ember)
             statRow(DuatArt.chainConnector, "link", "Combos landed", "\(game.totalCombos)", Theme.gold)
             statRow(DuatArt.Status.critical, "sparkles", "Critical dice", "\(game.totalCrits)", Theme.gold)
-            statRow(DuatArt.DieFrame.ready.rawValue, "dice.fill", "Dice carried",
-                    "\(game.diceCount)/\(Loadout.maxDice)", Theme.steel)
             statRow(DuatArt.classSigil(game.classID) ?? "", game.heroClass?.symbol ?? "person.fill",
                     "Demigod", game.heroClass?.name ?? "—", accent)
             if let followed = game.followedDeities.first, followed.dice > 0 {

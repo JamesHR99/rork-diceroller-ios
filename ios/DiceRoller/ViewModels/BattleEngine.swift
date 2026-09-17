@@ -378,16 +378,20 @@ struct PendingEcho {
     let foeID: UUID?
 }
 
-/// One foe on the deck: its own health, armour, block, statuses, telegraphed
-/// intent and pose. A battle holds one for every enemy in the fight.
+/// One foe on the deck: its own health, guard, statuses, telegraphed intent
+/// and pose. A battle holds one for every enemy in the fight.
 struct EnemyState: Identifiable {
     let id = UUID()
     let def: EnemyDef
     var hp: Int
-    /// Metal worn over the health; direct damage chips it before health.
-    let armourMax: Int
+    /// The deepest this foe's guard has ever stood, which is what its bar is
+    /// drawn against. Raising guard mid-fight raises the mark with it.
+    var armourMax: Int
+    /// The one guard pool. Worn plate and a raised block are the same
+    /// resource: direct damage chips it before health, statuses seep under it,
+    /// and what is left stands until something breaks it — exactly like your
+    /// own shield.
     var armour: Int
-    var block = 0
     var bleedAmount = 0
     var bleedTurns = 0
     var poisonAmount = 0
@@ -415,6 +419,14 @@ struct EnemyState: Identifiable {
 
     var isAlive: Bool { hp > 0 }
     var hpFraction: Double { def.maxHP > 0 ? Double(hp) / Double(def.maxHP) : 0 }
+
+    /// Raises the guard, carrying the bar's mark up with it so a foe that
+    /// blocks past its authored plate still reads honestly.
+    mutating func gainGuard(_ amount: Int) {
+        guard amount > 0 else { return }
+        armour += amount
+        armourMax = max(armourMax, armour)
+    }
     /// Divine Trials: this foe carries the attending god's lent power.
     var isTrialChampion = false
     /// Bastet's trial gift: a charge that slips one blow this turn.
@@ -908,7 +920,7 @@ final class BattleEngine {
     private func intentDetail(strike: (damage: Int, heal: Int, block: Int), foe: EnemyState) -> String {
         var parts: [String] = []
         if strike.damage > 0 { parts.append("\(strike.damage) dmg") }
-        if strike.block > 0 { parts.append("+\(strike.block) block") }
+        if strike.block > 0 { parts.append("+\(strike.block) guard") }
         if strike.heal > 0 { parts.append("+\(strike.heal) hp") }
         if foe.intent.bleedAmount > 0 {
             parts.append("bleed \(foe.intent.bleedAmount)×\(foe.intent.bleedTurns)")
@@ -1971,8 +1983,6 @@ final class BattleEngine {
                 attributing = .indirect
                 phase = .enemyActing
                 activeStepIndex = nil
-                // A foe's block stands until it comes round again.
-                enemies[index].block = 0
                 try? await Task.sleep(for: .milliseconds(BattleBeat.foeLeadIn))
                 if await foeActs(index: index) { return }
                 if !hasLivingFoes { finishVictory(); return }
@@ -2949,15 +2959,9 @@ final class BattleEngine {
 
         var damage = Int(Double(raw) * foe.mark)
         if foe.mark > 1 { foe.mark = 1.0 }
-        if foe.block > 0 {
-            let ignored = Int(Double(foe.block) * pierce)
-            let effectiveBlock = max(0, foe.block - ignored)
-            let absorbed = min(effectiveBlock, damage)
-            foe.block -= absorbed
-            damage -= absorbed
-            if absorbed > 0 { addFloat("Blocked \(absorbed)", color: Theme.steel, onEnemy: true, foe: foe.id) }
-            if ignored > 0 { addFloat("Pierced!", color: Theme.gold, onEnemy: true, foe: foe.id) }
-        }
+        // One pool to chew through, whether the foe was born wearing it or
+        // raised it on the spot. Pierce is measured against the mark, so
+        // punching through deep plate is worth the same as it ever was.
         if foe.armour > 0 {
             let ignored = Int(Double(foe.armourMax) * pierce)
             let effectiveArmour = max(0, foe.armour - ignored)
@@ -2965,9 +2969,9 @@ final class BattleEngine {
             foe.armour -= absorbed
             damage -= absorbed
             if absorbed > 0 {
-                addFloat("Armour \(absorbed)", color: Theme.bronze, onEnemy: true, foe: foe.id)
+                addFloat("Guard \(absorbed)", color: Theme.bronze, onEnemy: true, foe: foe.id)
                 if foe.armour == 0 {
-                    addFloat("ARMOUR BROKEN", color: Theme.boneWhite, onEnemy: true, big: true, foe: foe.id)
+                    addFloat("GUARD BROKEN", color: Theme.boneWhite, onEnemy: true, big: true, foe: foe.id)
                     withAnimation(.linear(duration: 0.4)) { shakeTrigger += 0.8 }
                     Haptics.heavy()
                 }
@@ -3308,8 +3312,8 @@ final class BattleEngine {
 
         if move.block > 0 {
             foe.pose = .block
-            foe.block += move.block
-            addFloat("+\(move.block) Block", color: Theme.steel, onEnemy: true, foe: foe.id)
+            foe.gainGuard(move.block)
+            addFloat("+\(move.block) Guard", color: Theme.bronze, onEnemy: true, foe: foe.id)
             try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
             resetPoses()
         }
@@ -3443,7 +3447,7 @@ final class BattleEngine {
 
         // Bes's trial gift: after acting, the gate rises against your turn.
         if isChampion(foe), trial?.deity == .bes {
-            foe.block += 8
+            foe.gainGuard(8)
             addFloat("UNBROKEN GATE +8", color: Deity.bes.tint, onEnemy: true, foe: foe.id)
         }
 

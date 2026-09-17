@@ -770,7 +770,7 @@ extension Offer {
             return def.god.artName
         case .boonLevel(let owned):
             return owned.def?.god.artName ?? deity?.artName
-        case .legendary(let def):
+        case .legendary(let def, _):
             return def.god.artName
         case .upgrade, .capstone:
             return deity?.artName ?? DuatArt.resolve(DuatArt.Status.judgement)
