@@ -1,13 +1,13 @@
 //
-//  DiceRollerUITestsLaunchTests.swift
-//  DiceRollerUITests
+//  DuatUITestsLaunchTests.swift
+//  DuatUITests
 //
 //  Created by Rork on July 22, 2026.
 //
 
 import XCTest
 
-final class DiceRollerUITestsLaunchTests: XCTestCase {
+final class DuatUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

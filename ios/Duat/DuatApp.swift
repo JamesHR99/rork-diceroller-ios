@@ -1,6 +1,6 @@
 //
-//  DiceRollerApp.swift
-//  DiceRoller
+//  DuatApp.swift
+//  Duat
 //
 //  Created by Rork on July 22, 2026.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct DiceRollerApp: App {
+struct DuatApp: App {
     init() {
         PaperFonts.registerBundled()
     }

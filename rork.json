@@ -1,10 +1,13 @@
 {
+  "$schema": "https://rork.com/schema/rork.json",
   "apps": [
     {
       "name": "DiceRoller",
       "path": "ios",
-      "framework": "swift"
+      "framework": "swift",
+      "settings": {
+        "displayName": "Duat "
+      }
     }
-  ],
-  "$schema": "https://rork.com/schema/rork.json"
+  ]
 }

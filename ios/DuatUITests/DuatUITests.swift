@@ -1,13 +1,13 @@
 //
-//  DiceRollerUITests.swift
-//  DiceRollerUITests
+//  DuatUITests.swift
+//  DuatUITests
 //
 //  Created by Rork on July 22, 2026.
 //
 
 import XCTest
 
-final class DiceRollerUITests: XCTestCase {
+final class DuatUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
