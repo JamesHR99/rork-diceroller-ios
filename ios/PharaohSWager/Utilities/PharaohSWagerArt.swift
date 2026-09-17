@@ -691,7 +691,6 @@ extension StageKind {
         case .herald: PharaohSWagerArt.resolve("duat_route_herald")
         case .shrine: PharaohSWagerArt.resolve("duat_route_shrine")
         case .ferryman: PharaohSWagerArt.resolve("duat_route_ferryman")
-        case .mooring: PharaohSWagerArt.resolve("duat_route_mooring")
         case .omen: PharaohSWagerArt.resolve("duat_route_omen")
         case .boss: PharaohSWagerArt.resolve("duat_route_serpentLord")
         }

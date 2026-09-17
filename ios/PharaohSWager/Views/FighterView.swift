@@ -92,6 +92,7 @@ struct FighterView: View {
         .overlay { aimRing }
         .overlay { aimInvite }
         .overlay { championRing }
+        .overlay { verdictRing }
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
     }
@@ -350,6 +351,19 @@ struct FighterView: View {
                     .offset(y: 2)
             }
             .allowsHitTesting(false)
+        }
+    }
+
+    /// The scales tipping on this creature. A verdict ignores guard and armour
+    /// entirely, so it gets its own unmistakable spectacle rather than an
+    /// ordinary damage number: jackal-dark rings thrown off the figure, a pair
+    /// of scales rising through them, and the amount struck across the middle.
+    @ViewBuilder
+    private var verdictRing: some View {
+        if side == .enemy, let foe, let burst = engine.verdictBurst, burst.foeID == foe.id {
+            VerdictBurstView(burst: burst)
+                .id(burst.id)
+                .allowsHitTesting(false)
         }
     }
 
@@ -669,7 +683,11 @@ struct FighterView: View {
                 list.append(LiveStatus(kind: .evade, onSelf: false, total: foe.evadeCharges))
             }
             if foe.judgementPending {
-                list.append(LiveStatus(kind: .judgement, onSelf: false, total: foe.judgementAmount))
+                // The badge carries the count as well as the pile, so the wait
+                // before the scales tip is never a mystery.
+                list.append(LiveStatus(kind: .judgement, onSelf: false,
+                                       total: foe.judgementAmount,
+                                       turnsLeft: max(1, foe.judgementFuse)))
             }
             if foe.bleedTurns > 0 {
                 list.append(LiveStatus(kind: .bleed, onSelf: false,

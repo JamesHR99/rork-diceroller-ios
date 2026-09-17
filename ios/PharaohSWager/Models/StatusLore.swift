@@ -108,7 +108,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .poison:
             return "Venom in the blood. It bites once at the end of every round and ignores guard entirely."
         case .judgement:
-            return "Stored damage waiting on the scales. It falls against \(your) health all at once at the end of \(your) turn, and guard does not stop it."
+            return "Stored damage waiting on the scales. It sits there for \(GameData.judgementFuseTurns) of your turns while you keep adding to it, then falls against \(your) health all at once — and guard does not stop it. A heavier pile tips harder: every \(GameData.judgementScaleStep) stored past the first adds a share of itself again."
         case .stagger:
             return "A blow that landed badly. \(onSelf ? "Your" : "Its") very next attack lands weaker, and then the effect is spent."
         case .mark:
@@ -132,7 +132,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .burn, .bleed, .poison, .regeneration:
             "End of every round, one tick at a time."
         case .judgement:
-            "All at once, at the end of the wearer's turn."
+            "All at once, \(GameData.judgementFuseTurns) of your turns after the first weight lands."
         case .stagger:
             "On the very next attack, then gone."
         case .mark:
@@ -154,7 +154,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .burn, .poison:
             "A fresh application takes whichever value and duration is stronger."
         case .judgement:
-            "Stacks up, and keeps stacking until it falls."
+            "Stacks up, and keeps stacking until the scales tip. Adding more never resets the count — and a heavier pile is worth more than the sum of its parts."
         case .stagger:
             "Only the strongest stagger on the target counts."
         case .mark:
@@ -214,6 +214,9 @@ struct LiveStatus: Identifiable {
     let total: Int?
     /// A percentage reading, for Evade, Stagger and Mark.
     let percent: Int?
+    /// Turns left before a stored effect fires — Judgement's fuse on the
+    /// scales. Distinct from `ticksLeft`, which counts repeating bites.
+    let turnsLeft: Int?
 
     var id: String { kind.rawValue + (onSelf ? ".self" : ".foe") }
 
@@ -223,7 +226,8 @@ struct LiveStatus: Identifiable {
         perTick: Int? = nil,
         ticksLeft: Int? = nil,
         total: Int? = nil,
-        percent: Int? = nil
+        percent: Int? = nil,
+        turnsLeft: Int? = nil
     ) {
         self.kind = kind
         self.onSelf = onSelf
@@ -231,12 +235,15 @@ struct LiveStatus: Identifiable {
         self.ticksLeft = ticksLeft
         self.total = total
         self.percent = percent
+        self.turnsLeft = turnsLeft
     }
 
-    /// The badge's own short label, e.g. "6×3" or "40%".
+    /// The badge's own short label, e.g. "6×3", "40%", or "12·2" for a pile
+    /// on the scales with two turns left before it tips.
     var badgeText: String {
         if let perTick, let ticksLeft { return "\(perTick)×\(ticksLeft)" }
         if let percent { return "\(percent)%" }
+        if let total, let turnsLeft { return "\(total)·\(turnsLeft)" }
         if let total { return "\(total)" }
         return kind.name.uppercased()
     }
@@ -252,6 +259,20 @@ struct LiveStatus: Identifiable {
         }
         if let total, perTick == nil {
             lines.append((kind == .judgement ? "Stored" : "Depth", "\(total)"))
+        }
+        // Judgement is the one status you can watch coming, so the bubble
+        // spells out both the wait and what the pile is currently worth.
+        if kind == .judgement, let total {
+            if let turnsLeft {
+                lines.append(("Tips in", turnsLeft == 1 ? "1 more turn of yours" : "\(turnsLeft) more turns of yours"))
+            }
+            let verdict = GameData.judgementVerdict(stored: total)
+            let bonus = GameData.judgementBonus(stored: total)
+            lines.append(("Falls for", bonus > 0 ? "\(verdict) (\(total) +\(bonus) heavy scales)" : "\(verdict)"))
+            let toNext = GameData.judgementScaleStep - (total % GameData.judgementScaleStep)
+            if total + toNext <= GameData.judgementCap {
+                lines.append(("Next step at", "\(total + toNext) stored"))
+            }
         }
         if let percent {
             switch kind {

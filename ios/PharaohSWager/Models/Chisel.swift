@@ -29,8 +29,8 @@ enum ChiselCatalog {
         ),
         ChiselDef(
             id: "ch_siegeDraw", classID: "archer", name: "Siege Draw",
-            detail: "Before committing an arrow combo, overdraw it for 1 extra stamina: +40% damage and half of block and armour ignored.",
-            example: "Piercing Bolt 38 overdraws to 53 and goes through almost any plate.",
+            detail: "Tap the copper mark, then tap any arrow in your turn plan to overdraw it for 1 extra stamina: +40% damage and half of block and armour ignored. If that arrow fuses into a chain, the whole chain is overdrawn.",
+            example: "Overdraw a lone Arrow III and it hits 40% harder; overdraw an arrow that becomes Piercing Bolt and all 38 of it goes through the plate.",
             symbol: "arrow.up.circle.fill", isOptional: true
         ),
         ChiselDef(

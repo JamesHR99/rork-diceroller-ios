@@ -1,42 +1,34 @@
 import SwiftUI
 
-/// The Night Chart — a branching map of the gate you are currently sailing.
-/// Each hour runs four fifteen-minute stages; channels open ahead of the
-/// barque and close behind it, so no run ever sees every node.
+/// The Night Chart. The river runs straight now: at every stop the water forks
+/// into two channels and you commit to one. A gate is eight stops — three
+/// encounters, its herald, three more, then its serpent-lord — and the ribbon
+/// along the top shows exactly where in that shape the barque is sitting.
+///
+/// Channels are often dark. A dark channel says nothing about what is in it
+/// until you sail in, which is what makes the fork a real decision rather than
+/// a menu.
 struct NightChartView: View {
     @Environment(GameManager.self) private var game
     @State private var pulse = false
     @State private var showInfo = false
 
-    // The chart is read by tapping it, so the markers are drawn at a size you
-    // can actually aim at. That makes a gate wider than the screen — scrolling
-    // the river is the intended way to look ahead.
-    private let columnWidth: CGFloat = 104
-    private let mapHeight: CGFloat = 300
-    private let topInset: CGFloat = 40
-    private let edgePadding: CGFloat = 32
-
     private var gate: Gate { game.gate }
 
-    private var stagesPerGate: Int { Voyage.stagesPerHour * 4 }
+    /// The channels open right now — two at an ordinary stop, one at a herald
+    /// or a serpent-lord.
+    private var options: [VoyageNode] { game.availableNodes }
 
-    private var gateStageRange: Range<Int> {
-        let start = (gate.firstHour - 1) * Voyage.stagesPerHour
-        return start..<(start + stagesPerGate)
-    }
-
-    private var gateNodes: [VoyageNode] {
-        game.voyage.nodes.filter { gateStageRange.contains($0.stage) }
-    }
-
-    private var contentWidth: CGFloat {
-        edgePadding * 2 + columnWidth * CGFloat(stagesPerGate)
-    }
+    /// Where the next stop sits inside its gate, 0 through 7.
+    private var indexInGate: Int { game.nextStage % Voyage.stagesPerGate }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            map
+            gateRibbon
+            Spacer(minLength: 0)
+            channels
+            Spacer(minLength: 0)
             footer
         }
         .animation(.easeInOut(duration: 0.7), value: gate)
@@ -113,19 +105,23 @@ struct NightChartView: View {
     }
 
     private var instruction: String {
-        let open = game.availableNodes.count
-        if game.lastClearedNode == nil {
-            return "\(gate.region) · The river mouth — one channel open."
+        guard let first = options.first else { return gate.region }
+        if options.count == 1 {
+            return first.kind == .boss
+                ? "\(gate.region) · The river ends here. There is no way around it."
+                : "\(gate.region) · The channels close to one. It is waiting for you."
         }
-        if open == 1 {
-            return "\(gate.region) · The channels narrow — one way forward."
+        let dark = options.filter { !$0.isRevealed }.count
+        switch dark {
+        case 0: return "\(gate.region) · Two channels, both read clearly."
+        case 1: return "\(gate.region) · Two channels — one of them is dark water."
+        default: return "\(gate.region) · Two channels, both dark. Pick a side."
         }
-        return "\(gate.region) · \(open) channels open — the rest close behind you."
     }
 
     private var footer: some View {
         HStack(spacing: 12) {
-            ForEach([StageKind.battle, .shrine, .ferryman, .mooring, .omen, .herald], id: \.self) { kind in
+            ForEach([StageKind.battle, .shrine, .ferryman, .omen, .herald], id: \.self) { kind in
                 HStack(spacing: 4) {
                     PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol, size: 20, tint: kind.tint)
                     Text(kind.label)
@@ -148,244 +144,150 @@ struct NightChartView: View {
         .padding(.bottom, 6)
     }
 
-    // MARK: - The map
+    // MARK: - The gate ribbon
 
-    private var map: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                ZStack {
-                    columnAnchors
-                    channelLayer
-                    hourGuides
-                    ForEach(gateNodes) { node in
-                        nodeView(node)
-                            .position(position(of: node))
-                    }
+    /// The shape of a gate, drawn once: three encounters, the herald, three
+    /// more, the serpent-lord. Stops behind the barque are struck through, the
+    /// one you are choosing for glows, and the two ahead stay dim.
+    private var gateRibbon: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<Voyage.stagesPerGate, id: \.self) { index in
+                ribbonBead(index)
+                if index < Voyage.stagesPerGate - 1 {
+                    Rectangle()
+                        .fill(index < indexInGate
+                              ? Theme.gold.opacity(0.55)
+                              : Theme.parchmentDim.opacity(0.18))
+                        .frame(height: 1.5)
+                        .frame(maxWidth: 34)
                 }
-                .frame(width: contentWidth, height: mapHeight)
-                .id(gate)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
             }
-            .frame(height: mapHeight + 14)
-            .onAppear { scrollToCurrent(proxy) }
-            .onChange(of: gate) { _, _ in scrollToCurrent(proxy) }
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
+        .animation(.easeInOut(duration: 0.4), value: indexInGate)
     }
 
-    private func scrollToCurrent(_ proxy: ScrollViewProxy) {
-        let target: Int
-        if let last = game.lastClearedNode {
-            target = min(last.stage + 1, gateStageRange.upperBound - 1)
-        } else {
-            target = gateStageRange.lowerBound
-        }
-        withAnimation(.easeInOut(duration: 0.9)) {
-            proxy.scrollTo("stage-\(target)", anchor: .center)
-        }
-    }
+    private func ribbonBead(_ index: Int) -> some View {
+        let kind = Voyage.spine(ofStage: index)
+        let done = index < indexInGate
+        let here = index == indexInGate
+        let tint = kind.isForced ? kind.tint : Theme.gold
+        let size: CGFloat = kind.isForced ? 30 : 22
 
-    /// Invisible anchors so the map can scroll itself to the barque.
-    private var columnAnchors: some View {
-        ForEach(gateStageRange, id: \.self) { stage in
-            Color.clear
-                .frame(width: 1, height: mapHeight)
-                .id("stage-\(stage)")
-                .position(x: x(ofStage: stage), y: mapHeight / 2)
-        }
-    }
-
-    // MARK: - Geometry
-
-    private func x(ofStage stage: Int) -> CGFloat {
-        edgePadding + CGFloat(stage - gateStageRange.lowerBound) * columnWidth + columnWidth / 2
-    }
-
-    private func position(of node: VoyageNode) -> CGPoint {
-        let columnNodes = game.voyage.nodes(inStage: node.stage)
-        let index = columnNodes.firstIndex { $0.id == node.id } ?? 0
-        let fraction: Double
-        switch columnNodes.count {
-        case 1: fraction = 0.5
-        case 2: fraction = index == 0 ? 0.16 : 0.84
-        default: fraction = [0.04, 0.5, 0.96][min(index, 2)]
-        }
-        let usable = mapHeight - topInset - 30
-        return CGPoint(x: x(ofStage: node.stage), y: topInset + CGFloat(fraction) * usable)
-    }
-
-    // MARK: - Channels
-
-    private var channelLayer: some View {
-        Canvas { context, _ in
-            for node in gateNodes {
-                for targetID in node.connections {
-                    guard let target = game.voyage.node(targetID),
-                          gateStageRange.contains(target.stage) else { continue }
-
-                    var path = Path()
-                    path.move(to: position(of: node))
-                    path.addLine(to: position(of: target))
-
-                    let traveled = game.clearedNodeIDs.contains(node.id)
-                        && game.clearedNodeIDs.contains(target.id)
-                    let open = game.lastClearedNodeID == node.id
-                        && game.availableNodes.contains { $0.id == target.id }
-
-                    if open {
-                        context.stroke(
-                            path,
-                            with: .color(Theme.gold.opacity(0.22)),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        context.stroke(
-                            path,
-                            with: .color(Theme.gold),
-                            style: StrokeStyle(lineWidth: 2.2, lineCap: .round)
-                        )
-                    } else if traveled {
-                        context.stroke(
-                            path,
-                            with: .color(Theme.gold.opacity(0.45)),
-                            style: StrokeStyle(lineWidth: 1.4, lineCap: .round)
-                        )
-                    } else {
-                        context.stroke(
-                            path,
-                            with: .color(Theme.parchmentDim.opacity(0.16)),
-                            style: StrokeStyle(lineWidth: 1, lineCap: .round)
-                        )
-                    }
+        return VStack(spacing: 2) {
+            PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol,
+                       size: size * 0.66,
+                       tint: here ? Theme.parchment
+                           : done ? Theme.forest
+                           : tint.opacity(0.55))
+                .frame(width: size, height: size)
+                .background {
+                    Circle()
+                        .fill(here ? tint.opacity(0.32) : Theme.bg.opacity(0.7))
+                        .overlay(Circle().strokeBorder(
+                            here ? tint : tint.opacity(done ? 0.5 : 0.22),
+                            lineWidth: here ? 2 : 1))
                 }
+                .shadow(color: here ? tint.opacity(pulse ? 0.8 : 0.35) : .clear,
+                        radius: here ? 10 : 0)
+
+            if kind.isForced {
+                Text(kind == .boss ? "LORD" : "HERALD")
+                    .font(.system(size: 7, weight: .black))
+                    .kerning(0.6)
+                    .foregroundStyle(here ? tint : tint.opacity(done ? 0.6 : 0.35))
             }
         }
     }
 
-    /// Hour boundaries and roman numerals along the bottom.
-    private var hourGuides: some View {
-        ForEach(gate.hours, id: \.self) { hour in
-            let offset = (hour - gate.hours.lowerBound) * Voyage.stagesPerHour
-            Group {
-                if offset > 0 {
-                    VStack(spacing: 0) {
-                        ForEach(0..<7, id: \.self) { tick in
-                            Rectangle()
-                                .fill(Theme.parchmentDim.opacity(0.14))
-                                .frame(width: 1, height: 12)
-                            if tick < 6 {
-                                Rectangle()
-                                    .fill(Theme.parchmentDim.opacity(0.06))
-                                    .frame(width: 1, height: 10)
-                            }
-                        }
-                    }
-                    .frame(width: 1)
-                    .position(x: edgePadding + CGFloat(offset) * columnWidth, y: topInset + 70)
-                }
+    // MARK: - The fork
 
-                HStack(spacing: 3) {
-                    // The painted hour tick, with the current-hour pointer on
-                    // the water you are sailing right now.
-                    PharaohSWagerImage(name: hour == game.currentHour ? PharaohSWagerArt.nightCurrent : PharaohSWagerArt.nightHour,
-                              height: hour == game.currentHour ? 13 : 11,
-                              fit: .fit)
-                        .colorMultiply(hour == game.currentHour ? Theme.gold : Theme.parchmentDim)
-                        .opacity(hour == game.currentHour ? 1 : 0.45)
-
-                    Text(Voyage.romanNumeral(hour))
-                        .font(.system(size: 8.5, weight: .black))
-                        .kerning(1)
-                        .foregroundStyle(hour == game.currentHour ? Theme.gold : Theme.parchmentDim.opacity(0.5))
-
-                    if hour % 4 == 0 {
-                        PharaohSWagerImage(name: PharaohSWagerArt.nightBoundary, height: 11, fit: .fit)
-                            .colorMultiply(Theme.blood)
-                            .opacity(0.8)
-                    }
-                }
-                .position(x: edgePadding + (CGFloat(offset) + 2) * columnWidth, y: mapHeight - 10)
+    private var channels: some View {
+        HStack(spacing: 18) {
+            ForEach(options) { node in
+                channelCard(node)
             }
         }
+        .padding(.horizontal, 24)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: options.map(\.id))
     }
 
-    // MARK: - One node
-
-    private func nodeView(_ node: VoyageNode) -> some View {
-        let cleared = game.clearedNodeIDs.contains(node.id)
-        let available = game.isNodeAvailable(node)
-        let isLast = game.lastClearedNodeID == node.id
-        let size: CGFloat = node.isBoss ? 104 : 80
-        let tint = node.kind.tint
-
-        // Which painted marker this stop wears: the barque's current mooring,
-        // water already behind you, an open channel, a serpent-lord's gate, or
-        // a channel that closed when you chose otherwise.
-        let marker: PharaohSWagerArt.RouteState = isLast ? .selected
-            : cleared ? .cleared
-            : node.isBoss ? .boss
-            : available ? .available
-            : .locked
+    /// One channel. A revealed channel says what it is; a dark one only says
+    /// that it is dark, and finding out costs you the choice.
+    private func channelCard(_ node: VoyageNode) -> some View {
+        let solo = options.count == 1
+        let known = node.isRevealed || node.kind.isForced
+        let tint = known ? node.kind.tint : Theme.duskViolet
+        let marker: PharaohSWagerArt.RouteState = node.isBoss ? .boss : .available
 
         return Button {
             game.enter(node)
         } label: {
-            ZStack {
-                if available {
+            VStack(spacing: 10) {
+                ZStack {
                     PharaohSWagerImage(name: PharaohSWagerArt.RouteState.available.rawValue,
-                              height: size + 18, fit: .fit)
+                              height: (solo ? 128 : 108) + 18, fit: .fit)
                         .colorMultiply(tint)
-                        .scaleEffect(pulse ? 1.1 : 0.96)
-                        .opacity(pulse ? 0.22 : 0.5)
+                        .scaleEffect(pulse ? 1.08 : 0.96)
+                        .opacity(pulse ? 0.22 : 0.48)
                         .blur(radius: 3)
+
+                    PharaohSWagerImage(name: marker.rawValue, height: solo ? 128 : 108, fit: .fit)
+                        .modifier(TintWash(tint: tint))
+
+                    PharaohSWagerSymbol(art: known ? node.kind.artName : nil,
+                               fallback: known ? node.kind.symbol : "questionmark",
+                               size: solo ? 62 : 50,
+                               tint: Theme.parchment)
+                        .padding(solo ? 12 : 9)
+                        .background {
+                            Circle()
+                                .fill(Theme.bg.opacity(0.82))
+                                .overlay(Circle().strokeBorder(tint.opacity(0.6), lineWidth: 1))
+                        }
+                        .shadow(color: .black.opacity(0.8), radius: 5)
                 }
+                .shadow(color: tint.opacity(pulse ? 0.7 : 0.3), radius: 14)
 
-                PharaohSWagerImage(name: marker.rawValue, height: size, fit: .fit)
-                    .modifier(TintWash(tint: available || isLast ? tint : nil))
-                    .opacity(available || isLast || cleared ? 0.95 : 0.45)
-
-                // What happens at this stop, drawn large and sitting on its
-                // own dark disc so it reads against the painted marker.
-                PharaohSWagerSymbol(art: node.kind.artName,
-                           fallback: node.kind.symbol,
-                           size: node.isBoss ? 58 : 44,
-                           tint: available ? Theme.parchment
-                               : isLast ? Theme.gold
-                               : cleared ? Theme.forest
-                               : Theme.parchmentDim.opacity(0.7))
-                    .padding(node.isBoss ? 10 : 7)
-                    .background {
-                        Circle()
-                            .fill(Theme.bg.opacity(0.82))
-                            .overlay(Circle().strokeBorder(tint.opacity(0.55), lineWidth: 1))
-                    }
-                    .opacity(cleared && !isLast ? 0.55 : 1)
-                    .shadow(color: .black.opacity(0.8), radius: 5)
-            }
-            .frame(width: size + 18, height: size + 18)
-            .shadow(color: available ? tint.opacity(pulse ? 0.85 : 0.4) : .clear, radius: pulse ? 14 : 6)
-            .overlay(alignment: .bottom) {
-                // Every stop says what it is now that there is room for a
-                // label — a serpent-lord by name, everything else by kind.
-                Text(node.isBoss
-                     ? EnemyContent.enemy(hour: node.hour, isHerald: false).name.uppercased()
-                     : node.kind.label.uppercased())
-                    .font(.system(size: node.isBoss ? 9.5 : 8.5, weight: .black))
-                    .kerning(0.8)
-                    .foregroundStyle(node.isBoss ? Theme.blood
-                                     : (available || isLast ? node.kind.tint
-                                        : Theme.parchmentDim.opacity(0.6)))
+                Text(known ? node.kind.label.uppercased() : "DARK WATER")
+                    .font(.fantasy(solo ? 20 : 17, weight: .black))
+                    .kerning(1.4)
+                    .foregroundStyle(node.isBoss ? Theme.blood : tint)
                     .lineLimit(1)
-                    .fixedSize()
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Theme.bg.opacity(0.85), in: .capsule)
-                    .offset(y: 20)
+                    .minimumScaleFactor(0.7)
+
+                Text(known
+                     ? (node.isBoss
+                        ? EnemyContent.enemy(hour: node.hour, isHerald: false).name
+                        : node.kind.title)
+                     : "The water tells you nothing")
+                    .font(.fantasy(13, weight: .bold))
+                    .foregroundStyle(Theme.parchment.opacity(0.9))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Text(known ? node.kind.blurb : "You will know when you are in it.")
+                    .font(.paper(11.5))
+                    .italic()
+                    .foregroundStyle(Theme.parchmentDim)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(Voyage.fullName(node.hour).uppercased())
+                    .font(.system(size: 8, weight: .black))
+                    .kerning(1)
+                    .foregroundStyle(Theme.parchmentDim.opacity(0.65))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .contentShape(Rectangle().inset(by: -10))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+            .frame(maxWidth: solo ? 360 : .infinity)
+            .duatPanel(tint: tint, cornerRadius: 20)
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(!available)
     }
 }

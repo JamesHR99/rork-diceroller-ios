@@ -241,6 +241,19 @@ struct ComboFlash: Identifiable, Equatable {
     let crit: Bool
 }
 
+/// The scales tipping on one creature: Anubis's verdict landing, drawn as a
+/// ring of jackal-dark light bursting off the figure it fell on. Distinct from
+/// ordinary damage so a verdict can never be mistaken for a normal hit.
+struct VerdictBurst: Identifiable, Equatable {
+    let id = UUID()
+    /// The creature the scales tipped against.
+    let foeID: UUID
+    /// What the verdict actually took.
+    let amount: Int
+    /// True when the pile was heavy enough to earn the scaling bonus.
+    let heavy: Bool
+}
+
 /// One god's answer to an action, named and totalled, for the card that rises
 /// in the middle of the deck before the blows land.
 struct DivineFlashEntry: Identifiable, Equatable {
@@ -426,10 +439,14 @@ struct EnemyState: Identifiable {
     var chargeBonus = 0.0
     /// Which stage a multi-stage serpent-lord is currently in.
     var stageIndex = 0
-    /// Damage Anubis has stored against this foe. It detonates against health
-    /// at the end of your next turn; further additions join the pile.
+    /// Damage Anubis has stored against this foe. The scales hold it for a
+    /// few of your turns before tipping, so the pile is worth feeding;
+    /// further additions join it and do not restart the count.
     var judgementAmount = 0
     var judgementPending = false
+    /// Your turns left before the scales tip. Set when the first weight lands
+    /// and counted down at the end of each of your turns.
+    var judgementFuse = 0
 
     init(def: EnemyDef) {
         self.def = def
@@ -574,7 +591,13 @@ final class BattleEngine {
 
     // Chisels of Ptah: optional Chisels arm per recipe, keyed by combo id, and
     // hold until fired or disarmed.
-    private(set) var siegeArmed: Set<String> = []
+    //
+    // Siege Draw is the exception: it arms onto a single arrow *die* in the
+    // plan, because a chain is hidden until it fires and you cannot overdraw a
+    // recipe you have not been told you built. Whatever step that die ends up
+    // in carries the overdraw — so a die that fuses into a chain hands the
+    // bonus to the whole chain.
+    private(set) var siegeArmedFaceIDs: Set<UUID> = []
     private(set) var counterweightArmed: Set<String> = []
     private(set) var assassinArmed: Set<String> = []
     private(set) var echoArmedComboID: String?
@@ -643,7 +666,6 @@ final class BattleEngine {
     // MARK: The shared clock
     /// Anubis's Preserved Moment, armed in planning: this one commitment may
     /// hold three faces instead of two.
-    private(set) var preservedMomentArmed = false
     private var preservedMomentUsed = false
     /// Beats of Haste earned this round, spent by the next action that starts.
     private(set) var earnedHaste = 0
@@ -701,6 +723,8 @@ final class BattleEngine {
     /// impact stars, scorches, ice crusts, lattices and healing blooms.
     private(set) var impacts: [ImpactMark] = []
     private(set) var comboFlash: ComboFlash?
+    /// The scales tipping on a creature right now, if a verdict just fell.
+    private(set) var verdictBurst: VerdictBurst?
     /// The action about to land, named and totalled mid-deck.
     private(set) var spotlight: ActionSpotlight?
     /// Collected while a step's powers resolve, then raised as one card.
@@ -1135,21 +1159,30 @@ final class BattleEngine {
         return 0
     }
 
+    /// True when a Siege Draw armed onto one of this step's dice rides it. A
+    /// lone overdrawn arrow keeps the bonus; an overdrawn arrow that fused into
+    /// a chain hands the bonus to the whole chain.
+    func siegeApplies(_ step: PlanStep) -> Bool {
+        step.faces.contains { siegeArmedFaceIDs.contains($0.id) }
+    }
+
     /// Multiplier on a step's raw damage from its armed optional Chisels.
     private func armedDamageMultiplier(for step: PlanStep) -> Double {
-        guard let combo = step.combo else { return 1.0 }
         var multiplier = 1.0
-        if siegeArmed.contains(combo.id) { multiplier += GameData.siegeDamageBonus }
-        if assassinArmed.contains(combo.id) { multiplier += GameData.assassinDamageBonus }
+        if siegeApplies(step) { multiplier += GameData.siegeDamageBonus }
+        if let combo = step.combo, assassinArmed.contains(combo.id) {
+            multiplier += GameData.assassinDamageBonus
+        }
         return multiplier
     }
 
     /// Extra pierce this step's armed Chisels grant.
     private func armedPierce(for step: PlanStep) -> Double {
-        guard let combo = step.combo else { return 0 }
         var pierce = 0.0
-        if siegeArmed.contains(combo.id) { pierce += GameData.siegePierce }
-        if assassinArmed.contains(combo.id) { pierce += GameData.assassinPierce }
+        if siegeApplies(step) { pierce += GameData.siegePierce }
+        if let combo = step.combo, assassinArmed.contains(combo.id) {
+            pierce += GameData.assassinPierce
+        }
         return pierce
     }
 
@@ -1164,9 +1197,12 @@ final class BattleEngine {
     /// One copper line naming what the armed Chisels and passives do to this
     /// step, printed under its effect line.
     func chiselLine(for step: PlanStep) -> String? {
-        guard let combo = step.combo else { return nil }
+        // Siege Draw rides a die, so it can light up a lone arrow that never
+        // became a chain — this line has to survive a step with no recipe.
+        guard step.combo != nil || siegeApplies(step) else { return nil }
         var parts: [String] = []
-        if siegeArmed.contains(combo.id) { parts.append("SIEGE +40% · PIERCE 50%") }
+        if siegeApplies(step) { parts.append("SIEGE +40% · PIERCE 50%") }
+        guard let combo = step.combo else { return parts.isEmpty ? nil : parts.joined(separator: " · ") }
         if assassinArmed.contains(combo.id) { parts.append("COMMITTED +40% · PIERCE 50%") }
         if counterweightArmed.contains(combo.id) {
             let spend = min(GameData.counterweightMaxSpend, playerShield)
@@ -1183,10 +1219,6 @@ final class BattleEngine {
     func badgeChisel(for comboID: String) -> ChiselDef? {
         guard phase == .player,
               let combo = comboPool.first(where: { $0.id == comboID }) else { return nil }
-        if hasChisel("ch_siegeDraw"), combo.damage > 0,
-           combo.required.contains(where: { $0.pattern.matches(.arrow1) }) {
-            return ChiselCatalog.def("ch_siegeDraw")
-        }
         if hasChisel("ch_counterweight"), combo.damage > 0, playerShield > 0 {
             return ChiselCatalog.def("ch_counterweight")
         }
@@ -1202,7 +1234,6 @@ final class BattleEngine {
 
     func isArmed(_ chisel: ChiselDef, comboID: String) -> Bool {
         switch chisel.id {
-        case "ch_siegeDraw": siegeArmed.contains(comboID)
         case "ch_counterweight": counterweightArmed.contains(comboID)
         case "ch_assassin": assassinArmed.contains(comboID)
         case "ch_echoingStaff": echoArmedComboID == comboID
@@ -1242,12 +1273,22 @@ final class BattleEngine {
         armingChiselID = nil
     }
 
-    /// The Chisel being held, if it can ride this step's recipe.
+    /// The Chisel being held, if it can ride this step's recipe. Siege Draw is
+    /// not offered here — it rides a die, not a recipe.
     func armableChisel(for step: PlanStep) -> ChiselDef? {
         guard let armingChiselID, let combo = step.combo,
               let chisel = badgeChisel(for: combo.id),
               chisel.id == armingChiselID else { return nil }
         return chisel
+    }
+
+    /// True when Siege Draw could be overdrawn onto this particular die: it has
+    /// to be an arrow, and it has to be in the plan so there is an action for
+    /// the overdraw to ride.
+    func siegeArmable(faceID: UUID) -> Bool {
+        guard hasChisel("ch_siegeDraw"), phase == .player,
+              let face = playedFaces.first(where: { $0.id == faceID }) else { return false }
+        return face.matchFace.isArrow
     }
 
     /// The hidden step a die in the plan belongs to. The plan only shows an
@@ -1257,23 +1298,41 @@ final class BattleEngine {
         turnPlan.first { $0.faces.contains { $0.id == faceID } }
     }
 
-    /// The held Chisel, if the chain this die is part of could carry it. Lets
-    /// the die glow copper without ever naming the chain behind it.
+    /// The held Chisel, if this die can carry it. Siege Draw answers for the
+    /// die itself; everything else answers for the hidden chain the die is part
+    /// of, so the die glows copper without ever naming that chain.
     func armableChisel(forFace faceID: UUID) -> ChiselDef? {
+        if armingChiselID == "ch_siegeDraw" {
+            return siegeArmable(faceID: faceID) ? ChiselCatalog.def("ch_siegeDraw") : nil
+        }
         guard let step = step(containing: faceID) else { return nil }
         return armableChisel(for: step)
     }
 
-    /// True when the chain this die belongs to already carries an armed Chisel.
+    /// True when this die itself is overdrawn, or the chain it belongs to
+    /// already carries an armed Chisel.
     func isChiselArmed(onFace faceID: UUID) -> Bool {
+        if siegeArmedFaceIDs.contains(faceID) { return true }
         guard let step = step(containing: faceID) else { return false }
         return isComboArmed(step)
     }
 
-    /// Arms the held Chisel onto whatever chain this die is part of. Returns
-    /// true when the tap was spent arming rather than taking the die back.
+    /// Arms the held Chisel onto this die — or, for the recipe-keyed Chisels,
+    /// onto whatever chain the die is part of. Returns true when the tap was
+    /// spent arming rather than taking the die back out of the plan.
     @discardableResult
     func armHeldChisel(ontoFace faceID: UUID) -> Bool {
+        if armingChiselID == "ch_siegeDraw" {
+            guard siegeArmable(faceID: faceID) else { return false }
+            if siegeArmedFaceIDs.contains(faceID) {
+                siegeArmedFaceIDs.remove(faceID)
+            } else {
+                siegeArmedFaceIDs.insert(faceID)
+            }
+            armingChiselID = nil
+            Haptics.light()
+            return true
+        }
         guard let step = step(containing: faceID) else { return false }
         return armHeldChisel(onto: step)
     }
@@ -1293,8 +1352,6 @@ final class BattleEngine {
     func toggleArmed(_ chisel: ChiselDef, comboID: String) {
         guard phase == .player else { return }
         switch chisel.id {
-        case "ch_siegeDraw":
-            if siegeArmed.contains(comboID) { siegeArmed.remove(comboID) } else { siegeArmed.insert(comboID) }
         case "ch_counterweight":
             guard playerShield > 0 else { return }
             if counterweightArmed.contains(comboID) { counterweightArmed.remove(comboID) } else { counterweightArmed.insert(comboID) }
@@ -1342,7 +1399,7 @@ final class BattleEngine {
     /// read by the copper mark beside the tray title.
     func isChiselArmed(_ id: String) -> Bool {
         switch id {
-        case "ch_siegeDraw": !siegeArmed.isEmpty
+        case "ch_siegeDraw": !siegeArmedFaceIDs.isEmpty
         case "ch_counterweight": !counterweightArmed.isEmpty
         case "ch_assassin": !assassinArmed.isEmpty
         case "ch_echoingStaff": echoArmedComboID != nil
@@ -1353,8 +1410,9 @@ final class BattleEngine {
     /// True when any optional Chisel is armed onto this step's recipe — the
     /// copper hammer worn by the plan card.
     func isComboArmed(_ step: PlanStep) -> Bool {
+        if siegeApplies(step) { return true }
         guard let combo = step.combo else { return false }
-        return siegeArmed.contains(combo.id) || counterweightArmed.contains(combo.id)
+        return counterweightArmed.contains(combo.id)
             || assassinArmed.contains(combo.id) || echoArmedComboID == combo.id
     }
 
@@ -1567,9 +1625,9 @@ final class BattleEngine {
     }
 
     var planStaminaCost: Int {
-        let siege = turnPlan.filter { step in
-            step.combo.map { siegeArmed.contains($0.id) } == true
-        }.count
+        // One overdraw costs one stamina, even when the arrow it rides fused
+        // into a chain alongside a second overdrawn arrow.
+        let siege = turnPlan.filter { siegeApplies($0) }.count
         let echo = echoArmedComboID.map { comboID in
             turnPlan.contains { $0.combo?.id == comboID } ? GameData.echoStaminaCost : 0
         } ?? 0
@@ -1678,10 +1736,17 @@ final class BattleEngine {
 
     var freezesRemaining: Int { max(0, freezesPerTurn - freezesUsed) }
 
-    /// Holds allowed at this commitment. Two every round — Anubis's Preserved
-    /// Moment is the only thing that lifts it, once per encounter.
+    /// Holds allowed at this commitment. Two every round — plus Anubis's
+    /// Preserved Moment, which simply sits in the freeze bar as a third pip
+    /// until the commitment that actually spends it, then is gone for the rest
+    /// of the encounter. Nothing to arm: an extra hold you either use or not.
     var freezesPerTurn: Int {
-        preservedMomentArmed ? GameData.preservedMomentFreezes : GameData.freezesPerTurn
+        GameData.freezesPerTurn + (hasPreservedMomentSpare ? 1 : 0)
+    }
+
+    /// True while Anubis's extra hold is still unspent this encounter.
+    var hasPreservedMomentSpare: Bool {
+        hasPreservedMoment && !preservedMomentUsed
     }
 
     var undrawnCount: Int { max(0, loadoutDice.count - drawnDieIDs.count) }
@@ -1845,28 +1910,12 @@ final class BattleEngine {
         Audio.shared.play(.diceTake)
     }
 
-    /// Anubis's Preserved Moment: once per encounter, this one commitment may
-    /// hold three faces instead of two. Still six active slots, so three held
-    /// dice mean drawing three from the other five.
+    /// Anubis's Preserved Moment: one extra hold, once per encounter. It is
+    /// always available rather than something you switch on — the third pip is
+    /// simply in the freeze bar until a commitment uses it. Still six active
+    /// slots, so three held dice mean drawing three from the other five.
     var hasPreservedMoment: Bool {
         boons.contains { $0.defID == "AN-U2" }
-    }
-
-    var canArmPreservedMoment: Bool {
-        hasPreservedMoment && !preservedMomentUsed && phase == .player
-    }
-
-    func togglePreservedMoment() {
-        guard canArmPreservedMoment else { return }
-        preservedMomentArmed.toggle()
-        if preservedMomentArmed {
-            lastAction = "Preserved Moment — hold three faces this commitment."
-            Haptics.medium()
-        } else {
-            // Thawing back below the ordinary limit if a third was already held.
-            lastAction = "Preserved Moment set aside."
-            Haptics.light()
-        }
     }
 
     /// Freeze (or thaw) a settled reel. Freezing is free but you only get
@@ -1927,9 +1976,12 @@ final class BattleEngine {
         for index in slots.indices {
             if case .rolled = slots[index].state { slots[index].state = .spent }
         }
-        // Preserved Moment is spent by the commitment that actually used it.
-        if preservedMomentArmed, carriedSlots.count > GameData.freezesPerTurn {
+        // Preserved Moment is spent only by a commitment that actually carried
+        // a third face over. Holding two and thawing one costs nothing, so the
+        // extra pip survives until it genuinely does some work.
+        if hasPreservedMomentSpare, carriedSlots.count > GameData.freezesPerTurn {
             preservedMomentUsed = true
+            addFloat("Preserved Moment spent", color: Deity.anubis.tint, onEnemy: false)
         }
         frozenSlotIDs = []
         freezesUsed = 0
@@ -1947,7 +1999,7 @@ final class BattleEngine {
             return nil
         }
         let planIDs = Set(steps.compactMap { $0.combo?.id })
-        let armedExtras = steps.filter { $0.combo.map { planIDs.contains($0.id) && siegeArmed.contains($0.id) } == true }.count * GameData.siegeStaminaCost
+        let armedExtras = steps.filter { siegeApplies($0) }.count * GameData.siegeStaminaCost
             + (echoArmedComboID.map { planIDs.contains($0) ? GameData.echoStaminaCost : 0 } ?? 0)
         turnStamina = max(0, turnStamina - steps.reduce(0) { $0 + $1.staminaCost } - armedExtras)
         playOrder = []
@@ -3074,9 +3126,11 @@ final class BattleEngine {
         }
     }
 
-    /// Anubis stores damage against a foe; it detonates at the end of your
-    /// next turn. Additions to an already-pending pile join it at once —
-    /// doubled for the Second Reading.
+    /// Anubis stores damage against a foe. The scales hold it for
+    /// `judgementFuseTurns` of your turns before tipping, so a pile is worth
+    /// feeding rather than spending. Additions join an existing pile at once —
+    /// doubled for the Second Reading — and never restart the count, so
+    /// stacking cannot be used to keep a verdict from ever falling.
     private func applyJudgement(_ amount: Int, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
         var value = amount
@@ -3084,17 +3138,39 @@ final class BattleEngine {
             value *= 2
             addFloat("Second Reading", color: Deity.anubis.tint, onEnemy: false)
         }
+        let wasPending = enemies[target].judgementPending
         enemies[target].judgementAmount = min(GameData.judgementCap, enemies[target].judgementAmount + value)
         enemies[target].judgementPending = true
-        addFloat("Judgement \(enemies[target].judgementAmount)", color: Deity.anubis.tint, onEnemy: true, foe: enemies[target].id)
+        if !wasPending {
+            enemies[target].judgementFuse = GameData.judgementFuseTurns
+        }
+        let stored = enemies[target].judgementAmount
+        let turns = max(1, enemies[target].judgementFuse)
+        addFloat("Judgement \(stored) · \(turns)", color: Deity.anubis.tint,
+                 onEnemy: true, foe: enemies[target].id)
     }
 
-    /// The end of your turn: stored judgement falls against health directly,
-    /// whatever armour or shield stands in the way.
+    /// The end of your turn: every pending verdict loses a turn off its fuse,
+    /// and the ones that run out fall against health directly, whatever armour
+    /// or shield stands in the way. A heavy pile lands harder than a light one.
     private func detonateJudgements() {
         for index in enemies.indices where enemies[index].isAlive && enemies[index].judgementPending {
-            var amount = enemies[index].judgementAmount
+            enemies[index].judgementFuse -= 1
+            guard enemies[index].judgementFuse <= 0 else {
+                // Still on the scales — say how long it has left so the wait
+                // is legible rather than mysterious.
+                let left = enemies[index].judgementFuse
+                addFloat("Scales \(enemies[index].judgementAmount) · \(left)",
+                         color: Deity.anubis.tint, onEnemy: true, foe: enemies[index].id)
+                continue
+            }
+
             let foe = enemies[index]
+            let stored = foe.judgementAmount
+            // Heavy scales tip harder: every full step past the first adds a
+            // share of the pile again.
+            var amount = GameData.judgementVerdict(stored: stored)
+            let scaleBonus = GameData.judgementBonus(stored: stored)
             // Pairing: Funeral Pyre — detonations burn brighter with burn stacks.
             if pairing?.id == "pair_ra_anubis" {
                 amount += foe.burnAmount * 2
@@ -3114,8 +3190,44 @@ final class BattleEngine {
             }
             enemies[index].judgementAmount = 0
             enemies[index].judgementPending = false
+            enemies[index].judgementFuse = 0
+            announceVerdict(foe: foe, stored: stored, total: amount, scaleBonus: scaleBonus)
             damageEnemyDirect(foe.id, amount, label: "Judgement")
-            withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.6 }
+            withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.9 }
+        }
+    }
+
+    /// The scales tipping, made unmistakable: Anubis's own banner across the
+    /// deck, a burst on the creature it fell on, and the arithmetic spelled
+    /// out so a heavy verdict visibly pays more than a light one.
+    private func announceVerdict(foe: EnemyState, stored: Int, total: Int, scaleBonus: Int) {
+        let flash = ComboFlash(
+            name: "The Scales Tip",
+            chain: max(1, stored / GameData.judgementScaleStep),
+            summary: scaleBonus > 0
+                ? "\(stored) stored +\(scaleBonus) heavy scales · \(total) through guard"
+                : "\(stored) stored · \(total) through guard",
+            tint: Deity.anubis.tint,
+            crit: scaleBonus > 0
+        )
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) {
+            comboFlash = flash
+        }
+        verdictBurst = VerdictBurst(foeID: foe.id, amount: total, heavy: scaleBonus > 0)
+        addFloat("VERDICT \(total)", color: Deity.anubis.tint,
+                 onEnemy: true, big: true, foe: foe.id)
+        if scaleBonus > 0 {
+            addFloat("HEAVY SCALES +\(scaleBonus)", color: Theme.gold, onEnemy: true, foe: foe.id)
+        }
+        Haptics.chain(length: 4, crit: scaleBonus > 0)
+        Audio.shared.play(.chain)
+        let flashID = flash.id
+        Task {
+            try? await Task.sleep(for: .milliseconds(1100))
+            if comboFlash?.id == flashID {
+                withAnimation(.easeOut(duration: 0.25)) { comboFlash = nil }
+            }
+            withAnimation(.easeOut(duration: 0.3)) { verdictBurst = nil }
         }
     }
 
@@ -3801,7 +3913,6 @@ final class BattleEngine {
         turnStamina = min(GameData.staminaBudgetCap, allowance + nextTurnStamina)
         freezesUsed = 0
         freezeArmed = false
-        preservedMomentArmed = false
         earnedHaste = 0
         foeDelays = [:]
         currentBeat = 0

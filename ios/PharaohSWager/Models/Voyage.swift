@@ -7,7 +7,6 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
     case herald
     case shrine
     case ferryman
-    case mooring
     case omen
     case boss
 
@@ -17,7 +16,6 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         case .herald: "Herald"
         case .shrine: "Shrine"
         case .ferryman: "Ferryman"
-        case .mooring: "Mooring"
         case .omen: "Omen"
         case .boss: "Serpent-Lord"
         }
@@ -29,7 +27,6 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         case .herald: "Herald of Apep"
         case .shrine: "Shrine on the Bank"
         case .ferryman: "The Ferryman"
-        case .mooring: "Mooring the Barque"
         case .omen: "An Omen on the River"
         case .boss: "The Serpent-Lord"
         }
@@ -41,7 +38,6 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         case .herald: "A harder fight, guarding richer spoils."
         case .shrine: "A god's altar rises out of the water."
         case .ferryman: "A hooded boatman trades in gold."
-        case .mooring: "Tie off. Heal, or work the whetstone."
         case .omen: "Something on the river wants your attention."
         case .boss: "It fills the river from bank to bank."
         }
@@ -53,7 +49,6 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         case .herald: "crown.fill"
         case .shrine: "building.columns.fill"
         case .ferryman: "ferry.fill"
-        case .mooring: "moon.stars.fill"
         case .omen: "eye.fill"
         case .boss: "lizard.fill"
         }
@@ -65,42 +60,55 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         case .herald: Theme.blood
         case .shrine: Theme.sunGold
         case .ferryman: Theme.gold
-        case .mooring: Theme.nileGreen
         case .omen: Theme.duskViolet
         case .boss: Theme.blood
         }
     }
+
+    /// Forced stops are the spine of a gate — they are never a choice and are
+    /// always named on the chart.
+    var isForced: Bool { self == .herald || self == .boss }
 }
 
-/// One stage of the night: a single fifteen-minute chunk of the voyage, drawn
-/// on the chart as a node. Edges to later stages are the open channels; every
-/// stage you clear closes the ones you did not take.
+/// One stop on the river. The night is a straight run of stages; at each one
+/// the water forks into two channels and you commit to a side.
 struct VoyageNode: Identifiable, Hashable, Codable {
     let id: UUID
     let kind: StageKind
-    /// Index across the whole night, 0 through 47.
+    /// Index across the whole night, 0 through 23.
     let stage: Int
-    /// Which hour this chunk belongs to, 1 through 12.
+    /// Which hour this stop belongs to, 1 through 12.
     let hour: Int
-    /// Stages the barque may sail to from here.
-    var connections: [UUID] = []
+    /// True when the barque can see what is waiting. A dark channel is a
+    /// gamble: you learn what it was by sailing into it.
+    let isRevealed: Bool
 
     var isHourEnd: Bool { stage % Voyage.stagesPerHour == Voyage.stagesPerHour - 1 }
-    var isGateMouth: Bool { stage % Voyage.stagesPerHour == 0 }
     var isBoss: Bool { kind == .boss }
     var isCombat: Bool { kind == .battle || kind == .herald || kind == .boss }
     var gate: Gate { Gate.forHour(hour) }
+    /// Where this stop sits inside its gate, 0 through 7.
+    var indexInGate: Int { stage % Voyage.stagesPerGate }
 }
 
-/// The whole night as a branching river, generated fresh for every run.
-/// Structure: four stages per hour, sixteen per gate. Each hour opens with a
-/// single forced fight, branches through its middle chunks, offers one last
-/// chance to prepare, then seals with a lone herald — or, at hours 4, 8 and 12,
-/// with the gate's serpent-lord.
+/// The whole night as a straight run of forks, generated fresh for every run.
+///
+/// A gate is eight stops: three ordinary encounters, the gate's herald, three
+/// more encounters, then its serpent-lord. Every ordinary stop offers two
+/// channels — sometimes both named, often one or both dark — and the herald
+/// and the serpent-lord stand alone, because a gate has to be fought through
+/// rather than sailed around.
 struct Voyage: Hashable, Codable {
     static let totalHours = 12
-    static let stagesPerHour = 4
+    /// Two stops to an hour, so twelve hours still read as twelve hours.
+    static let stagesPerHour = 2
+    /// Eight stops to a gate: 3 · herald · 3 · serpent-lord.
+    static let stagesPerGate = 8
     static var totalStages: Int { totalHours * stagesPerHour }
+
+    /// Where the herald and the serpent-lord stand inside every gate.
+    static let heraldIndex = 3
+    static let lordIndex = 7
 
     var nodes: [VoyageNode]
 
@@ -112,125 +120,82 @@ struct Voyage: Hashable, Codable {
 
     var entryNode: VoyageNode? { nodes.first { $0.stage == 0 } }
 
+    /// What kind of stop stage `n` is, before its channels are rolled. Read by
+    /// the chart's gate ribbon so the shape of a gate is legible up front.
+    static func spine(ofStage stage: Int) -> StageKind {
+        switch stage % stagesPerGate {
+        case heraldIndex: .herald
+        case lordIndex: .boss
+        default: .battle
+        }
+    }
+
     // MARK: - Generation
 
     static func generate() -> Voyage {
-        var columns: [[VoyageNode]] = []
+        var nodes: [VoyageNode] = []
 
         for stage in 0..<totalStages {
             let hour = stage / stagesPerHour + 1
-            let inHour = stage % stagesPerHour
-            let isBoss = hour % 4 == 0 && inHour == stagesPerHour - 1
+            let spineKind = spine(ofStage: stage)
 
-            // One herald to a gate, at the close of its second hour. Sealing
-            // every single hour with one made the whole night read as a
-            // corridor of mini-bosses; now a gate builds to one herald and
-            // then to its serpent-lord.
-            let isHerald = hour % 4 == 2 && inHour == stagesPerHour - 1
-
-            let kinds: [StageKind]
-            if isBoss {
-                // The serpent-lord stands alone at the end of the gate.
-                kinds = [.boss]
-            } else if isHerald {
-                // A lone, forced mini-boss standing mid-gate.
-                kinds = [.herald]
-            } else if inHour == stagesPerHour - 1 {
-                // Every other hour closes on a forced fight instead.
-                kinds = [.battle]
-            } else if inHour == 0 {
-                // The mouth of every hour is a single, forced channel.
-                kinds = [.battle]
-            } else if inHour == stagesPerHour - 2 {
-                // The last quiet water before the herald: a chance to prepare.
-                kinds = distinctKinds(count: 2, hour: hour, preparation: true)
-            } else {
-                kinds = distinctKinds(count: Bool.random() ? 3 : 2, hour: hour, preparation: false)
+            if spineKind.isForced {
+                // A herald or a serpent-lord is the one channel there is, and
+                // you always see it coming.
+                nodes.append(VoyageNode(id: UUID(), kind: spineKind, stage: stage,
+                                        hour: hour, isRevealed: true))
+                continue
             }
 
-            let column = kinds.map { kind in
-                VoyageNode(id: UUID(), kind: kind, stage: stage, hour: hour)
-            }
-            columns.append(column)
-        }
-
-        var nodes = columns.flatMap { $0 }
-
-        // Channels: from every node in a column, one or two ways onward — but
-        // every node in the next column must be reachable by someone, so the
-        // branches converge and split again down the river.
-        var links: [UUID: [UUID]] = [:]
-        for index in 1..<columns.count {
-            let previous = columns[index - 1]
-            let current = columns[index]
-            var incoming: Set<UUID> = []
-
-            for node in previous {
-                let count = current.count == 1 ? 1 : Int.random(in: 1...min(2, current.count))
-                let targets = current.shuffled().prefix(count)
-                links[node.id, default: []].append(contentsOf: targets.map(\.id))
-                incoming.formUnion(targets.map(\.id))
-            }
-
-            // A channel nobody can reach would be invisible — hand it a donor.
-            for node in current where !incoming.contains(node.id) {
-                guard let donor = previous.randomElement() else { continue }
-                if !(links[donor.id]?.contains(node.id) ?? false) {
-                    links[donor.id, default: []].append(node.id)
-                }
-                incoming.insert(node.id)
+            for kind in optionPair() {
+                nodes.append(VoyageNode(id: UUID(), kind: kind, stage: stage, hour: hour,
+                                        isRevealed: Double.random(in: 0..<1) < revealChance))
             }
         }
 
-        nodes = nodes.map { node in
-            var n = node
-            n.connections = links[node.id] ?? []
-            return n
-        }
         return Voyage(nodes: nodes)
     }
 
-    /// Rolls kinds for one stage column, never repeating a kind within it.
-    private static func distinctKinds(count: Int, hour: Int, preparation: Bool) -> [StageKind] {
-        var picked: [StageKind] = []
-        var attempts = 0
-        while picked.count < count && attempts < 40 {
-            attempts += 1
-            let candidate: StageKind = preparation
-                ? preparationKind()
-                : rolledKind(hour: hour)
-            // Lead columns with a fight more often than not.
-            let lead: StageKind = picked.isEmpty && !preparation && Bool.random() ? .battle : candidate
-            guard !picked.contains(lead) else { continue }
-            picked.append(lead)
+    /// How often a channel tells you what is in it. The rest of the time the
+    /// water is dark and the choice is a genuine gamble.
+    private static let revealChance = 0.55
+
+    /// The two channels at one ordinary stop. Two identical quiet stops would
+    /// be a choice in name only, so the pair is nudged apart — but two fights
+    /// are left to stand, because which creature rises is its own difference.
+    private static func optionPair() -> [StageKind] {
+        let first = rolledKind()
+        var second = rolledKind()
+        if first == second {
+            if first == .battle {
+                // Half of the double-fight forks open one quieter channel, so
+                // the run still breathes without handing out a stop every time.
+                if Bool.random() { second = quietKind() }
+            } else {
+                second = .battle
+            }
         }
-        return picked.isEmpty ? [.battle] : picked
+        return [first, second]
     }
 
-    /// The last quiet water before a herald or a serpent-lord. Still mostly a
-    /// fight or a god's altar — tying off to rest is the rare option now, not
-    /// the default one.
-    private static func preparationKind() -> StageKind {
+    /// What ordinary water holds. The river is dangerous: three channels in
+    /// four are something that has to be fought. A god's altar and the
+    /// Ferryman are deliberately scarce — finding one should feel like luck.
+    private static func rolledKind() -> StageKind {
         switch Int.random(in: 0..<100) {
-        case 0..<38: .battle
-        case 38..<66: .shrine
-        case 66..<88: .ferryman
-        default: .mooring
+        case 0..<76: .battle
+        case 76..<88: .omen
+        case 88..<95: .shrine
+        default: .ferryman
         }
     }
 
-    /// What ordinary mid-hour water holds. The river is dangerous: two stops in
-    /// three are something that has to be fought. A shrine is not a stop of its
-    /// own so much as a fight the gods interrupted, so it is the commonest of
-    /// the quiet options; moorings are genuinely scarce.
-    private static func rolledKind(hour: Int) -> StageKind {
+    /// The quiet stops, for when a fork needs one.
+    private static func quietKind() -> StageKind {
         switch Int.random(in: 0..<100) {
-        case 0..<66: .battle
-        case 66..<78: .shrine
-        case 78..<86: .ferryman
-        case 86..<94: .omen
-        // Tying off to rest is the rarest water on the river.
-        default: .mooring
+        case 0..<56: .omen
+        case 56..<83: .shrine
+        default: .ferryman
         }
     }
 

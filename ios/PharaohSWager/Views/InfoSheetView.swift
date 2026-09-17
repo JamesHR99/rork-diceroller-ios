@@ -743,7 +743,7 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "snowflake", tint: Theme.frost, title: "FREEZING DICE",
                 lines: [
-                    "Holding is free: \(GameData.freezesPerTurn) dice every round, at every gate. Anubis's Preserved Moment is the only thing that lifts it, once per fight.",
+                    "Holding is free: \(GameData.freezesPerTurn) dice every round, at every gate. Anubis's Preserved Moment adds a third pip to the freeze bar — it sits there until a commitment actually carries a third face over, then it is gone for the rest of the fight.",
                     "Hit the FREEZE button on the right of the tray, then tap a die to hold its face.",
                     "A held face keeps exactly as it landed, crit and all — and the die it came from still rolls again next turn. A freeze hands you an extra face, it never benches a die.",
                     "The die behind a held face sits out the next draw, so the held face never arrives beside a fresh roll of its own die — the hold is the only way to guarantee a face comes back.",

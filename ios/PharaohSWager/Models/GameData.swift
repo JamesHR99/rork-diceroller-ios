@@ -123,8 +123,35 @@ enum GameData {
     static let evadeCeiling = 0.8
 
     /// The most Judgement a fighter may have stored on the scales at once.
-    /// It falls against health all at once at the end of the wearer's turn.
+    /// It falls against health all at once when the scales finally tip.
     static let judgementCap = 30
+
+    /// How many of your turns a verdict sits on the scales before it falls.
+    /// Anubis is a slow god: the pile is worth building because you get time
+    /// to keep feeding it.
+    static let judgementFuseTurns = 3
+
+    /// A heavy verdict lands harder than a light one. Every whole step of
+    /// stored Judgement past the first adds a share of itself again, so
+    /// stacking the scales high is worth more than detonating early.
+    static let judgementScaleStep = 5
+    static let judgementScalePerStep = 0.2
+
+    /// What a stored verdict actually takes when it falls: the pile, plus a
+    /// fifth of itself again for every full \(judgementScaleStep) on the
+    /// scales beyond the first.
+    static func judgementVerdict(stored: Int) -> Int {
+        guard stored > 0 else { return 0 }
+        let steps = max(0, stored / judgementScaleStep - 1)
+        guard steps > 0 else { return stored }
+        return Int((Double(stored) * (1 + Double(steps) * judgementScalePerStep)).rounded())
+    }
+
+    /// How much of a verdict is the heavy-scales bonus rather than the pile
+    /// itself — printed beside the burst so the scaling is visible.
+    static func judgementBonus(stored: Int) -> Int {
+        max(0, judgementVerdict(stored: stored) - stored)
+    }
 
     /// The most a single burn tick may ever take.
     static let burnTickCap = 12

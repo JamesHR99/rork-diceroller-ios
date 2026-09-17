@@ -41,9 +41,6 @@ struct ContentView: View {
             case .event:
                 EventView()
                     .transition(.opacity)
-            case .rest:
-                RestView()
-                    .transition(.opacity)
             case .gameOver(let won):
                 GameOverView(won: won)
                     .transition(.opacity)
@@ -116,7 +113,7 @@ struct ContentView: View {
     /// there is never a second barque drifting behind the one you are on.
     private var stagesOwnBarque: Bool {
         switch game.screen {
-        case .title, .tutorial, .battle, .rest, .shop, .gameOver: true
+        case .title, .tutorial, .battle, .shop, .gameOver: true
         default: false
         }
     }

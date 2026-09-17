@@ -236,8 +236,8 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "AN-U2", god: .anubis, slot: .utility, name: "Preserved Moment",
-            effect: "Once per encounter, choose to freeze up to three faces at commitment instead of two. Still six active slots from eight owned dice. On the following commitment the normal two-face limit returns, unless this boon was not yet used. Fixed.",
-            function: "One large preparation turn", kind: .regular, trigger: .atCommitment
+            effect: "Adds a third pip to your freeze bar for the encounter. Nothing to switch on — hold three faces whenever you like, and the pip is spent only by a commitment that actually carries a third face over. Still six active slots from eight owned dice. Fixed.",
+            function: "One extra hold, once per fight", kind: .regular, trigger: .atCommitment
         ),
     ]
 

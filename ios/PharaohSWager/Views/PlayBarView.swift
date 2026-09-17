@@ -357,19 +357,34 @@ struct PlayBarView: View {
     }
 
     /// One painted pip per freeze; filled pips are still in hand.
+    ///
+    /// Anubis's Preserved Moment rides as an extra pip in his own colour, so
+    /// the spare hold is something you can see sitting in the bar rather than a
+    /// rule you have to remember — and it visibly leaves once a commitment
+    /// actually spends it.
     private var freezePips: some View {
         HStack(spacing: 2.5) {
             ForEach(0..<engine.freezesPerTurn, id: \.self) { index in
+                let inHand = index < engine.freezesRemaining
+                let isAnubisPip = engine.hasPreservedMomentSpare
+                    && index == engine.freezesPerTurn - 1
                 PharaohSWagerImage(
-                    name: index < engine.freezesRemaining ? PharaohSWagerArt.staminaFull : PharaohSWagerArt.staminaEmpty,
-                    height: 11,
+                    name: inHand ? PharaohSWagerArt.staminaFull : PharaohSWagerArt.staminaEmpty,
+                    height: isAnubisPip ? 12.5 : 11,
                     fit: .fit
                 )
-                .colorMultiply(engine.freezeArmed ? Theme.bg : Theme.frost)
-                .opacity(index < engine.freezesRemaining ? 1 : 0.35)
+                .colorMultiply(engine.freezeArmed
+                               ? Theme.bg
+                               : (isAnubisPip ? Deity.anubis.tint : Theme.frost))
+                .opacity(inHand ? 1 : 0.35)
+                .shadow(color: isAnubisPip && inHand && !engine.freezeArmed
+                        ? Deity.anubis.tint.opacity(0.9)
+                        : .clear,
+                        radius: 5)
             }
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.freezesRemaining)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: engine.freezesPerTurn)
     }
 
     // MARK: - Commit

@@ -38,7 +38,6 @@ final class GameManager {
         case reward
         case shop
         case event
-        case rest
         case gameOver(won: Bool)
     }
 
@@ -79,7 +78,7 @@ final class GameManager {
     private(set) var voyage = Voyage.generate()
     /// Stages the barque has already cleared.
     private(set) var clearedNodeIDs: Set<UUID> = []
-    /// The last node cleared; its connections are the open channels.
+    /// The last node cleared. The stop after it is the fork now open.
     private(set) var lastClearedNodeID: UUID?
     /// The node the barque is at right now, if any.
     private(set) var currentNodeID: UUID?
@@ -94,7 +93,6 @@ final class GameManager {
     private(set) var shopStock: [Offer] = []
     private(set) var currentEvent: RunEvent?
     private(set) var eventOutcome: String?
-    private(set) var restUsed = false
     private(set) var pendingSelection: PendingSelection?
     private(set) var statusMessage: String?
     private var usedEventIDs: Set<String> = []
@@ -162,12 +160,16 @@ final class GameManager {
         return max(0.18, min(1, 0.35 + health * 0.65) * gate.discBrightness)
     }
 
-    /// Channels open from the last cleared stage — or, at the start, the river mouth.
+    /// The stop the barque is sailing into next. An ordinary stop offers two
+    /// channels; a herald or a serpent-lord is the only water there is.
     var availableNodes: [VoyageNode] {
-        guard let last = lastClearedNode else {
-            return voyage.nodes(inStage: 0)
-        }
-        return last.connections.compactMap { voyage.node($0) }
+        voyage.nodes(inStage: nextStage)
+    }
+
+    /// Which stop of the night is open now.
+    var nextStage: Int {
+        guard let last = lastClearedNode else { return 0 }
+        return min(Voyage.totalStages - 1, last.stage + 1)
     }
 
     func isNodeAvailable(_ node: VoyageNode) -> Bool {
@@ -326,7 +328,7 @@ final class GameManager {
     }
 
     /// The autosave taken every time the barque returns to open water: after a
-    /// reward is claimed, and on leaving a shop, an omen or a mooring.
+    /// reward is claimed, and on leaving a shop or an omen.
     private func autosave() {
         // Nothing is in flight here, so the save resumes exactly where it is.
         saveRun(resumingAt: nil)
@@ -498,9 +500,6 @@ final class GameManager {
             currentEvent = event
             eventOutcome = nil
             withAnimation { screen = .event }
-        case .mooring:
-            restUsed = false
-            withAnimation { screen = .rest }
         case .shrine:
             enterShrine()
         }
@@ -569,7 +568,9 @@ final class GameManager {
 
     /// The last quiet water before a serpent-lord never hosts a Trial.
     private func leadsToBoss(_ node: VoyageNode) -> Bool {
-        node.connections.contains { voyage.node($0)?.isBoss == true }
+        let next = node.stage + 1
+        guard next < Voyage.totalStages else { return false }
+        return Voyage.spine(ofStage: next) == .boss
     }
 
     /// The very first fight of a run — nothing cleared behind you yet. The
@@ -1167,25 +1168,6 @@ final class GameManager {
         if returnToChartAfterSelection {
             returnToChartAfterSelection = false
             leaveEncounter()
-        }
-    }
-
-    // MARK: - Mooring
-
-    func rest(heal: Bool) {
-        guard !restUsed else { return }
-        restUsed = true
-        if heal {
-            let amount = max(20, Int(Double(maxHP) * 0.35))
-            currentHP = min(maxHP, currentHP + amount)
-            statusMessage = "+\(amount) health"
-            Haptics.success()
-            leaveEncounter()
-        } else {
-            let rarity = Rarity.roll(progress: progress)
-            let pick = GameData.faceOffers(classID, rarity).randomElement()
-            returnToChartAfterSelection = true
-            pendingSelection = .reforge(pick?.face ?? .heal, title: "Whetstone on the Deck")
         }
     }
 
