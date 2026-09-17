@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What waits at a stage of the river. Fights dominate; the rest are chances
 /// to prepare, trade, or gamble on the strange.
-enum StageKind: String, CaseIterable, Hashable {
+enum StageKind: String, CaseIterable, Hashable, Codable {
     case battle
     case herald
     case shrine
@@ -75,7 +75,7 @@ enum StageKind: String, CaseIterable, Hashable {
 /// One stage of the night: a single fifteen-minute chunk of the voyage, drawn
 /// on the chart as a node. Edges to later stages are the open channels; every
 /// stage you clear closes the ones you did not take.
-struct VoyageNode: Identifiable, Hashable {
+struct VoyageNode: Identifiable, Hashable, Codable {
     let id: UUID
     let kind: StageKind
     /// Index across the whole night, 0 through 47.
@@ -97,7 +97,7 @@ struct VoyageNode: Identifiable, Hashable {
 /// single forced fight, branches through its middle chunks, offers one last
 /// chance to prepare, then seals with a lone herald — or, at hours 4, 8 and 12,
 /// with the gate's serpent-lord.
-struct Voyage: Hashable {
+struct Voyage: Hashable, Codable {
     static let totalHours = 12
     static let stagesPerHour = 4
     static var totalStages: Int { totalHours * stagesPerHour }

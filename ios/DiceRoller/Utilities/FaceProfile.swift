@@ -1,11 +1,10 @@
 import Foundation
 
-/// A digest of a multi-dice offer — a relic's three dice or an item's pair.
+/// A digest of a multi-dice offer.
 ///
-/// Cards used to draw every face of every die, which meant eighteen tiles on a
-/// relic: too wide for the card and too dense to read. What actually decides
-/// the pick is which faces the set is built around and which way it leans, so
-/// that is all this keeps.
+/// Cards used to draw every face of every die, which was too wide for the card
+/// and too dense to read. What actually decides the pick is which faces the
+/// set is built around and which way it leans, so that is all this keeps.
 struct FaceProfile {
     /// One face kind and how many times the set carries it.
     struct Tally: Identifiable, Hashable {

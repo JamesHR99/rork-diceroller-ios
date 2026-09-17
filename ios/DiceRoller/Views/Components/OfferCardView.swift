@@ -50,8 +50,6 @@ struct OfferCardView: View {
                 sealBadge(pairing.second.artName, pairing.second.symbol, tint: pairing.second.tint)
                 footnote("2 gods · once per turn")
             }
-        case .item(let item):
-            faceDigest(FaceProfile(item.faces), diceCount: 2)
         case .chiselPick(let chisel):
             HStack(spacing: 5) {
                 sealBadge(chisel.artName, "hammer.fill", tint: Theme.ptahCopper)
@@ -140,35 +138,20 @@ struct OfferCardView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.6)
 
-                // What the thing actually does. This is the line that decides
-                // the choice, so it is set at reading size and given the room
-                // it needs rather than being squeezed to a whisper.
+                // What the thing actually does — the line that decides the
+                // choice. The gold hint capsule that used to sit along the
+                // bottom is gone and its room came here, so a long Chisel
+                // reads at full size instead of being clipped to a whisper.
                 Text(offer.detail)
-                    .font(.system(size: 12.5, weight: .medium))
-                    .foregroundStyle(Theme.parchment.opacity(0.88))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.parchment.opacity(0.92))
                     .multilineTextAlignment(.center)
-                    .lineSpacing(1.5)
-                    .lineLimit(6)
-                    .minimumScaleFactor(0.8)
+                    .lineSpacing(2)
+                    .minimumScaleFactor(0.85)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxHeight: .infinity, alignment: .top)
 
                 kindDigest
-
-                HStack(spacing: 4) {
-                    DuatImage(name: DuatArt.chainConnector, width: 15, fit: .fit)
-                        .colorMultiply(Theme.gold)
-                    Text(offer.comboHint)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.gold.opacity(0.95))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.7)
-                }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .background(Theme.gold.opacity(0.14), in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 0.8))
             }
             .padding(11)
             .frame(width: width)

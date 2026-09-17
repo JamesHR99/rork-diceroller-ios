@@ -54,6 +54,8 @@ struct FighterView: View {
     var cardWidth: CGFloat? = nil
 
     @State private var aimPulse = false
+    /// Which status badge has its explanation bubble open, if any.
+    @State private var openStatusID: String?
 
     var body: some View {
         Group {
@@ -589,60 +591,13 @@ struct FighterView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: foe.armour)
     }
 
-    /// Everything riding this fighter right now, each on its painted mark.
+    /// Everything riding this fighter right now, each on its painted mark, and
+    /// each one tappable for a plain explanation of what it is doing.
     /// The guard is no longer among them — it has its own channel over health.
     private var badgeRow: some View {
         HStack(spacing: 4) {
-            if side == .player {
-                if engine.evadeChance > 0 {
-                    badge(DuatArt.Status.evade, "wind", "\(Int(engine.evadeChance * 100))%", Theme.steel)
-                }
-                if engine.regenTurns > 0 {
-                    badge(DuatArt.Status.regeneration, "leaf.fill",
-                          "\(engine.regenAmount)×\(engine.regenTurns)", Theme.forest)
-                }
-                if engine.playerBleedTurns > 0 {
-                    badge(DuatArt.Status.bleed, "drop.fill",
-                          "\(engine.playerBleedAmount)×\(engine.playerBleedTurns)", Theme.blood)
-                }
-                if engine.playerBurnTurns > 0 {
-                    badge(DuatArt.Status.burn, "flame.fill",
-                          "\(engine.playerBurnAmount)×\(engine.playerBurnTurns)", Theme.ember)
-                }
-                if engine.playerJudgementPending {
-                    badge(DuatArt.Status.judgement, "scalemass.fill",
-                          "\(engine.playerJudgementAmount)", Deity.anubis.tint)
-                }
-            } else if let foe {
-                if foe.isTrialChampion, engine.trialAccepted {
-                    badge(DuatArt.Status.champion, "crown.fill", "CHAMPION",
-                          engine.trial?.deity.tint ?? Theme.gold)
-                }
-                if foe.evadeCharges > 0 {
-                    badge(DuatArt.Status.evade, "wind", "EVADE", Deity.bastet.tint)
-                }
-                if foe.judgementPending {
-                    badge(DuatArt.Status.judgement, "scalemass.fill",
-                          "\(foe.judgementAmount)", Deity.anubis.tint)
-                }
-                if foe.bleedTurns > 0 {
-                    badge(DuatArt.Status.bleed, "drop.fill",
-                          "\(foe.bleedAmount)×\(foe.bleedTurns)", Theme.blood)
-                }
-                if foe.poisonTurns > 0 {
-                    badge(DuatArt.Status.poison, "drop.triangle.fill",
-                          "\(foe.poisonAmount)×\(foe.poisonTurns)", Theme.venom)
-                }
-                if foe.burnTurns > 0 {
-                    badge(DuatArt.Status.burn, "flame.fill",
-                          "\(foe.burnAmount)×\(foe.burnTurns)", Theme.ember)
-                }
-                if foe.stagger > 0 {
-                    badge(DuatArt.Status.frost, "snowflake", "\(Int(foe.stagger * 100))%", Theme.frost)
-                }
-                if foe.mark > 1 {
-                    badge(DuatArt.Status.marked, "scope", "MARK", Theme.venom)
-                }
+            ForEach(liveStatuses) { status in
+                badge(status)
             }
         }
         .frame(height: layout == .ticker ? 16 : 21)
@@ -650,17 +605,107 @@ struct FighterView: View {
                    value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.armour ?? 0))
     }
 
-    private func badge(_ art: String, _ fallback: String, _ text: String, _ tint: Color) -> some View {
-        let scale: CGFloat = layout == .ticker ? 0.85 : 1
-        return HStack(spacing: 2.5) {
-            DuatSymbol(art: art, fallback: fallback, size: 14 * scale, tint: tint)
-            Text(text)
-                .font(.system(size: 11 * scale, weight: .bold).monospacedDigit())
-                .foregroundStyle(tint)
+    /// Every status on this fighter right now, with its live numbers. Reading
+    /// them into one list means the badges and their bubbles can never drift
+    /// apart, and the fight and the codex describe a status the same way.
+    private var liveStatuses: [LiveStatus] {
+        var list: [LiveStatus] = []
+        if side == .player {
+            if engine.evadeChance > 0 {
+                list.append(LiveStatus(kind: .evade, onSelf: true,
+                                       percent: Int(engine.evadeChance * 100)))
+            }
+            if engine.regenTurns > 0 {
+                list.append(LiveStatus(kind: .regeneration, onSelf: true,
+                                       perTick: engine.regenAmount, ticksLeft: engine.regenTurns))
+            }
+            if engine.playerBleedTurns > 0 {
+                list.append(LiveStatus(kind: .bleed, onSelf: true,
+                                       perTick: engine.playerBleedAmount,
+                                       ticksLeft: engine.playerBleedTurns))
+            }
+            if engine.playerBurnTurns > 0 {
+                list.append(LiveStatus(kind: .burn, onSelf: true,
+                                       perTick: engine.playerBurnAmount,
+                                       ticksLeft: engine.playerBurnTurns))
+            }
+            if engine.playerJudgementPending {
+                list.append(LiveStatus(kind: .judgement, onSelf: true,
+                                       total: engine.playerJudgementAmount))
+            }
+        } else if let foe {
+            if foe.isTrialChampion, engine.trialAccepted {
+                list.append(LiveStatus(kind: .champion, onSelf: false))
+            }
+            if foe.evadeCharges > 0 {
+                list.append(LiveStatus(kind: .evade, onSelf: false, total: foe.evadeCharges))
+            }
+            if foe.judgementPending {
+                list.append(LiveStatus(kind: .judgement, onSelf: false, total: foe.judgementAmount))
+            }
+            if foe.bleedTurns > 0 {
+                list.append(LiveStatus(kind: .bleed, onSelf: false,
+                                       perTick: foe.bleedAmount, ticksLeft: foe.bleedTurns))
+            }
+            if foe.poisonTurns > 0 {
+                list.append(LiveStatus(kind: .poison, onSelf: false,
+                                       perTick: foe.poisonAmount, ticksLeft: foe.poisonTurns))
+            }
+            if foe.burnTurns > 0 {
+                list.append(LiveStatus(kind: .burn, onSelf: false,
+                                       perTick: foe.burnAmount, ticksLeft: foe.burnTurns))
+            }
+            if foe.stagger > 0 {
+                list.append(LiveStatus(kind: .stagger, onSelf: false,
+                                       percent: Int(foe.stagger * 100)))
+            }
+            if foe.mark > 1 {
+                list.append(LiveStatus(kind: .mark, onSelf: false,
+                                       percent: Int(foe.mark * 100)))
+            }
         }
-        .padding(.horizontal, 6 * scale)
-        .padding(.vertical, 3 * scale)
-        .background(tint.opacity(0.16), in: .capsule)
-        .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 0.8))
+        return list
+    }
+
+    /// One status badge. Tapping it opens the bubble pinned beside it; the
+    /// champion's crown keeps its word rather than a number.
+    private func badge(_ status: LiveStatus) -> some View {
+        let scale: CGFloat = layout == .ticker ? 0.85 : 1
+        let tint = status.kind == .champion
+            ? (engine.trial?.deity.tint ?? Theme.gold)
+            : status.kind.tint
+        let isOpen = openStatusID == status.id
+        return Button {
+            Haptics.light()
+            Audio.shared.play(.uiTap)
+            withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) {
+                openStatusID = isOpen ? nil : status.id
+            }
+        } label: {
+            HStack(spacing: 2.5) {
+                DuatSymbol(art: status.kind.art, fallback: status.kind.fallbackSymbol,
+                           size: 14 * scale, tint: tint)
+                Text(status.badgeText)
+                    .font(.system(size: 11 * scale, weight: .bold).monospacedDigit())
+                    .foregroundStyle(tint)
+            }
+            .padding(.horizontal, 6 * scale)
+            .padding(.vertical, 3 * scale)
+            .background(tint.opacity(isOpen ? 0.3 : 0.16), in: .capsule)
+            .overlay(Capsule().strokeBorder(tint.opacity(isOpen ? 0.9 : 0.35),
+                                            lineWidth: isOpen ? 1.4 : 0.8))
+        }
+        .buttonStyle(PressableButtonStyle())
+        // The bubble hangs off the badge itself, so it always points at the
+        // thing it is explaining.
+        .overlay(alignment: side == .player ? .bottomLeading : .bottomTrailing) {
+            if isOpen {
+                StatusBubbleView(status: status, pointsUp: true)
+                    .offset(y: 30 * scale)
+                    .transition(.scale(scale: 0.9, anchor: .top).combined(with: .opacity))
+                    .zIndex(50)
+            }
+        }
+        .zIndex(isOpen ? 50 : 0)
     }
 }

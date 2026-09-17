@@ -122,9 +122,12 @@ enum GameData {
     /// leave a second face something to buy, but well short of certainty.
     static let evadeCeiling = 0.8
 
-    /// Chance a successful evade fires a "first evade this turn" reward.
-    /// (Not a chance — a marker: the first roll that actually saves you.)
+    /// The most Judgement a fighter may have stored on the scales at once.
+    /// It falls against health all at once at the end of the wearer's turn.
     static let judgementCap = 30
+
+    /// The most a single burn tick may ever take.
+    static let burnTickCap = 12
 
     /// How much harder enemies are at reading your chains now that solo
     /// attacks hit for two thirds and recipes no longer multiply by length.
@@ -152,7 +155,7 @@ enum GameData {
     // MARK: - Combos
 
     /// Every combo a class can perform: its weapon and armour set plus the
-    /// shared item combos. Gods speak through blessings now, not recipes.
+    /// chains every class shares. Gods speak through blessings now, not recipes.
     static func combos(for classID: String) -> [ComboDef] {
         classCombos(classID) + SharedContent.combos
     }

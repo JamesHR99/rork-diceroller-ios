@@ -104,6 +104,8 @@ struct NightChartView: View {
                 }
             }
             .buttonStyle(PressableButtonStyle())
+
+            PauseButton()
         }
         .padding(.horizontal, 18)
         .padding(.top, 8)

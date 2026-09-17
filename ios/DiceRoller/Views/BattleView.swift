@@ -93,8 +93,13 @@ private struct BattleContentView: View {
             // Arrows, thrown knives, cast runes and lobbed bombs cross the air
             // above the deck, launched from the frames the fighters reported.
             .overlayPreferenceValue(FighterAnchorKey.self) { anchors in
-                ProjectileLayerView(shots: engine.shots, anchors: anchors)
-                    .zIndex(3)
+                ZStack {
+                    ProjectileLayerView(shots: engine.shots, anchors: anchors)
+                    // Every blow leaves its own mark on the body it struck:
+                    // gashes, punctures, impact stars, scorches and lattices.
+                    ImpactLayerView(marks: engine.impacts, anchors: anchors)
+                }
+                .zIndex(3)
             }
             .animation(.spring(response: 0.52, dampingFraction: 0.86), value: deckUp)
         }
@@ -602,6 +607,8 @@ private struct BattleContentView: View {
                 .clipShape(.rect(cornerRadius: 11))
             }
             .buttonStyle(PressableButtonStyle())
+
+            PauseButton()
         }
         .padding(.horizontal, 14)
         .padding(.top, 3)

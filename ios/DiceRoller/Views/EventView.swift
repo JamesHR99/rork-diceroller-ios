@@ -58,9 +58,12 @@ struct EventView: View {
 
             Spacer(minLength: 0)
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .trailing, spacing: 5) {
                 RunStatusBar(game: game)
-                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+                HStack(spacing: 6) {
+                    NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+                    PauseButton()
+                }
             }
         }
         .frame(width: 330, alignment: .leading)

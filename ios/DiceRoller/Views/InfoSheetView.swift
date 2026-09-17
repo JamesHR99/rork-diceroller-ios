@@ -220,17 +220,6 @@ struct InfoSheetView: View {
                 .background(Theme.bgCard, in: .rect(cornerRadius: 14))
             }
 
-            if loadout.item == nil {
-                HStack(spacing: 8) {
-                    DuatIcon(name: DuatArt.slotItem, size: 26).opacity(0.5)
-                    Text("Item slot empty — the river gives up a relic after the practice bout. Relics bring three dice, items two.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.parchmentDim)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.bgCard.opacity(0.6), in: .rect(cornerRadius: 14))
-            }
         }
     }
 
@@ -275,7 +264,7 @@ struct InfoSheetView: View {
                 combos: GameData.classCombos(classID).filter { $0.source == .armor }
             )
             comboGroup(
-                title: "ITEM COMBOS — SHARED BY EVERY CLASS",
+                title: "SHARED CHAINS — EVERY CLASS CAN FIND THESE",
                 combos: SharedContent.combos
             )
 
@@ -826,7 +815,7 @@ struct InfoSheetView: View {
                     "Every creature you may send it at breathes under a copper ring, and the damage already pointed at each one builds up beside it. Nothing has resolved yet — you can go back to the plan until the last blow is aimed.",
                     "Each blow carries its own god triggers and statuses to wherever you send it, and a fallen target's attack slides to the nearest living foe.",
                     "Every living foe shows its whole round before you commit — health, guard, statuses and each action in order. A creature that goes under leaves the deck, so what you are looking at is only ever the fight you still have on your hands.",
-                    "Pack members arrive with about half their usual health, and the purse and relic odds grow a little with the pack's size.",
+                    "Pack members arrive with about half their usual health, and the purse grows a little with the pack's size.",
                     "Serpent-lords always come alone — the river is only so wide.",
                 ]
             )
@@ -891,7 +880,7 @@ struct InfoSheetView: View {
                         .foregroundStyle(Theme.gold)
                         .kerning(1.5)
                 }
-                Text("Any ordinary fight can quietly be a god's Trial: a champion carrying that god's power, ringed in its colour for the whole fight. The encounter itself is ordinary — the god lends a mechanic, never health or damage. Declining costs nothing; at most one Trial per run, never before your relic is armed and a blessing carried, and never on a herald, a serpent-lord or the water before one. Win, and the god offers a choice of three of its own boons.")
+                Text("Any ordinary fight can quietly be a god's Trial: a champion carrying that god's power, ringed in its colour for the whole fight. The encounter itself is ordinary — the god lends a mechanic, never health or damage. Declining costs nothing; at most one Trial per run, never before a blessing is carried, and never on a herald, a serpent-lord or the water before one. Win, and the god offers a choice of three of its own boons.")
                     .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
@@ -939,17 +928,7 @@ struct InfoSheetView: View {
                 ]
             )
 
-            ruleCard(
-                icon: "drop.triangle.fill", tint: Theme.venom, title: "STATUS EFFECTS",
-                lines: [
-                    "Bleed, Poison and Burn tick on the enemy at the start of their turn. Burn caps at 12 a tick; bleed refreshes to the stronger value rather than stacking.",
-                    "Statuses seep under an enemy's guard and land on health directly — so does Anubis's stored judgement when it detonates.",
-                    "Stagger weakens the enemy's very next attack by its percentage, then wears off.",
-                    "Mark multiplies your next hit on that enemy.",
-                    "Pierce ignores part of the enemy's guard. Your own shield soaks damage before health and stays until something breaks it.",
-                    "Evade is a chance to slip a hit entirely, rolled fresh for every blow — chances add up to a ceiling, and it clears after the enemy turn.",
-                ]
-            )
+            statusGlossary
 
             ruleCard(
                 icon: "arrow.left.arrow.right", tint: Theme.steelBlue, title: "ARRANGEMENT IS EVERYTHING",
@@ -958,10 +937,108 @@ struct InfoSheetView: View {
                     "Only neighbours chain. Dropping a die between two others can weld a chain together, or break one you already had.",
                     "Inside a run of neighbours the order does not matter, so a chain is never a memory test about which die you tapped first.",
                     "Where two chains could both claim the same dice, the longer and more specific one takes them.",
-                    "Tap a step to take its dice back and reclaim the stamina.",
+                    "The plan only ever shows the order you will play, never what it adds up to — a chain names itself when it lands.",
+                    "Tap a die in the plan to take it back and reclaim the stamina.",
                 ]
             )
         }
+    }
+
+    // MARK: - Status glossary
+
+    /// Every status defined properly, once: its mark, what it does, when it
+    /// fires, whether it stacks, whether guard stops it, and its ceiling.
+    /// The fight's tap-a-badge bubbles read from the same definitions, so a
+    /// status can never be explained two different ways.
+    private var statusGlossary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "drop.triangle.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.venom)
+                Text("EVERY STATUS, DEFINED")
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(Theme.venom)
+                    .kerning(1.5)
+            }
+
+            Text("Tap any badge under a fighter mid-fight and this same reading opens beside it, with your live numbers.")
+                .font(.system(size: 11.5))
+                .italic()
+                .foregroundStyle(Theme.parchmentDim.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(StatusKind.allCases) { status in
+                statusEntry(status)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+    }
+
+    private func statusEntry(_ status: StatusKind) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                DuatSymbol(art: status.art, fallback: status.fallbackSymbol,
+                           size: 17, tint: status.tint)
+                    .frame(width: 24, height: 24)
+                    .background(status.tint.opacity(0.15), in: .rect(cornerRadius: 6))
+
+                Text(status.name.uppercased())
+                    .font(.system(size: 12.5, weight: .black))
+                    .kerning(0.8)
+                    .foregroundStyle(status.tint)
+
+                // The god who owns this status, named right beside it.
+                if let patron = status.patron {
+                    HStack(spacing: 3) {
+                        DuatSymbol(art: patron.artName, fallback: patron.symbol,
+                                   size: 11, tint: patron.tint)
+                        Text(patron.name.uppercased())
+                            .font(.system(size: 8.5, weight: .black))
+                            .kerning(0.5)
+                            .foregroundStyle(patron.tint)
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(patron.tint.opacity(0.14), in: .capsule)
+                }
+
+                Spacer(minLength: 0)
+
+                if status.bypassesGuard {
+                    Text("PAST GUARD")
+                        .font(.system(size: 8, weight: .black))
+                        .kerning(0.5)
+                        .foregroundStyle(Theme.bg)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Theme.blood, in: .capsule)
+                }
+            }
+
+            // Written from the wearer's point of view, as in the fight.
+            Text(status.summary(onSelf: true))
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.parchment.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(status.codexLine)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.parchmentDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(status.stacking)
+                .font(.system(size: 11))
+                .italic()
+                .foregroundStyle(Theme.parchmentDim.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
     }
 
     private func critRow(_ label: String, _ value: String) -> some View {

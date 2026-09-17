@@ -29,8 +29,6 @@ enum OfferKind: Hashable {
     case pairing(PairingDef)
     /// Permanently raise one chosen face's crit chance.
     case imbue(Double)
-    /// A carryable item (replaces the one you hold).
-    case item(ItemDef)
     /// Immediate healing.
     case heal(Int)
     /// Permanent max health.

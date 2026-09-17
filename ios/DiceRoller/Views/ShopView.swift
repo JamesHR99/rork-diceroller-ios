@@ -61,7 +61,11 @@ struct ShopView: View {
                 Spacer(minLength: 0)
             }
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            HStack(spacing: 6) {
+                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+                Spacer(minLength: 0)
+                PauseButton()
+            }
 
             Spacer(minLength: 6)
 

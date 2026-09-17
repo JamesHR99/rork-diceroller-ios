@@ -4,13 +4,11 @@ import SwiftUI
 enum ComboSource: String, Hashable {
     case weapon
     case armor
-    case item
 
     var label: String {
         switch self {
         case .weapon: "Weapon Combos"
         case .armor: "Armour Combos"
-        case .item: "Item Combos"
         }
     }
 }

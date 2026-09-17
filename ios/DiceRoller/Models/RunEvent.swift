@@ -26,8 +26,6 @@ enum EventReward: Hashable {
     case imbue
     /// Roll a class-appropriate die at the current tier.
     case die
-    /// Roll an item at the current tier.
-    case item
     /// An ultra-rare omen favour: a god claims one of your dice as patron.
     case patronOffer
     /// A gamble: `chance` to win the first reward, else take damage.
@@ -75,8 +73,8 @@ enum EventContent {
             choices: [
                 EventChoice(id: "crew_count", label: "Count every one of them", detail: "Lose 14 health to the cold, gain 55 gold in grave-goods",
                             hpCost: 14, goldCost: 0, maxHPChange: 0, reward: .gold(55)),
-                EventChoice(id: "crew_takeOne", label: "Take one aboard", detail: "Gain a relic die from their kit",
-                            hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .die),
+                EventChoice(id: "crew_takeOne", label: "Take one aboard", detail: "They show you a trick — reforge one face",
+                            hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .reforge),
                 EventChoice(id: "crew_cut", label: "Cut the hands away", detail: "+18 gold, and the river remembers it",
                             hpCost: 0, goldCost: 0, maxHPChange: -6, reward: .gold(18)),
             ]
@@ -87,8 +85,8 @@ enum EventContent {
             choices: [
                 EventChoice(id: "shrine_dive", label: "Dive for the offering box", detail: "70% chance of 65 gold, else take 18 damage",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .gamble(chance: 0.7, damage: 18)),
-                EventChoice(id: "shrine_pry", label: "Pry the lintel carefully", detail: "Lose 6 health, gain an amulet",
-                            hpCost: 6, goldCost: 0, maxHPChange: 0, reward: .item),
+                EventChoice(id: "shrine_pry", label: "Pry the lintel carefully", detail: "Lose 6 health, sharpen one face's crit",
+                            hpCost: 6, goldCost: 0, maxHPChange: 0, reward: .imbue),
                 EventChoice(id: "shrine_leave", label: "Leave the dead their things", detail: "Row on",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .none),
             ]
@@ -99,8 +97,8 @@ enum EventContent {
             choices: [
                 EventChoice(id: "embalm_reforge", label: "Let her rework a face", detail: "-30 gold, reforge one face",
                             hpCost: 0, goldCost: 30, maxHPChange: 0, reward: .reforge),
-                EventChoice(id: "embalm_item", label: "Buy from the jars", detail: "-35 gold, gain an item",
-                            hpCost: 0, goldCost: 35, maxHPChange: 0, reward: .item),
+                EventChoice(id: "embalm_item", label: "Buy from the jars", detail: "-35 gold, restore 40 health",
+                            hpCost: 0, goldCost: 35, maxHPChange: 0, reward: .heal(40)),
                 EventChoice(id: "embalm_sell", label: "Sell her the night's scrap", detail: "+28 gold",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .gold(28)),
             ]
@@ -145,8 +143,8 @@ enum EventContent {
             id: "apepSkin", title: "A Shed Skin", symbol: "lizard.fill",
             body: "Half a mile of translucent skin lies draped over a sandbar, still warm. Apep has grown since it left this behind. So can you.",
             choices: [
-                EventChoice(id: "skin_wear", label: "Cut armour from it", detail: "-10 health working it, gain a relic die",
-                            hpCost: 10, goldCost: 0, maxHPChange: 0, reward: .die),
+                EventChoice(id: "skin_wear", label: "Cut armour from it", detail: "-10 health working it, +14 max health",
+                            hpCost: 10, goldCost: 0, maxHPChange: 14, reward: .none),
                 EventChoice(id: "skin_burn", label: "Burn it and take the ash", detail: "Reforge one face with serpent ash",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .reforge),
                 EventChoice(id: "skin_sell", label: "Bundle it for the Ferryman", detail: "+45 gold",

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Quality tier for anything on offer. Shops, loot and events roll higher
 /// tiers the deeper you travel.
-enum Rarity: Int, CaseIterable, Hashable, Comparable {
+enum Rarity: Int, CaseIterable, Hashable, Comparable, Codable {
     case common = 0
     case uncommon = 1
     case rare = 2

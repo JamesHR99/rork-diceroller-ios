@@ -8,7 +8,6 @@ enum FaceFamily: String, Hashable {
     case rogue
     case magician
     case shared
-    case item
     case divine
 }
 
@@ -26,8 +25,8 @@ enum SoloKind: Hashable {
 /// Every die face in the game. The old defensive families have collapsed into
 /// single meanings: every guard face is Block, every escape face is Evade,
 /// every restorative is Heal. A face means the same thing wherever it appears
-/// — weapon, armour, item or relic.
-enum FaceKind: String, CaseIterable, Hashable {
+/// — weapon or armour.
+enum FaceKind: String, CaseIterable, Hashable, Codable {
     // Archer
     case arrow1
     case arrow2
@@ -41,6 +40,9 @@ enum FaceKind: String, CaseIterable, Hashable {
     // Rogue
     case swiftSlash
     case daggerThrow
+    /// Venom on the blades: the Rogue's own armour-die face, and the mark
+    /// three of the river's creatures attack with.
+    case poison
 
     // Magician
     case runeFire
@@ -56,10 +58,6 @@ enum FaceKind: String, CaseIterable, Hashable {
     case heal
     case focus
     case energize
-
-    // Item faces
-    case bomb
-    case poison
 
     // MARK: - Presentation
 
@@ -84,7 +82,6 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .heal: return "Heal"
         case .focus: return "Focus"
         case .energize: return "Energize"
-        case .bomb: return "Bomb"
         case .poison: return "Poison"
         }
     }
@@ -130,7 +127,6 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .heal: return "heart.fill"
         case .focus: return "eye.fill"
         case .energize: return "bolt.circle.fill"
-        case .bomb: return "burst.fill"
         case .poison: return "drop.triangle.fill"
         }
     }
@@ -139,9 +135,8 @@ enum FaceKind: String, CaseIterable, Hashable {
         switch self {
         case .arrow1, .arrow2, .arrow3, .bowSmack: return .archer
         case .overhead, .sideSwing: return .warrior
-        case .swiftSlash, .daggerThrow: return .rogue
+        case .swiftSlash, .daggerThrow, .poison: return .rogue
         case .runeFire, .runeFrost, .runeLife, .runeArcane, .wandZap, .channel: return .magician
-        case .bomb, .poison: return .item
         default: return .shared
         }
     }
@@ -170,7 +165,6 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .heal: return 10
         case .focus: return 0
         case .energize: return 0
-        case .bomb: return 15
         case .poison: return 3
         }
     }
@@ -199,7 +193,7 @@ enum FaceKind: String, CaseIterable, Hashable {
     var baseCrit: Double {
         switch self {
         case .arrow3, .overhead, .daggerThrow: return 0.08
-        case .arrow2, .swiftSlash, .runeArcane, .bomb: return 0.06
+        case .arrow2, .swiftSlash, .runeArcane: return 0.06
         default: return 0.05
         }
     }
@@ -209,8 +203,7 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .arrow1, .arrow2, .arrow3, .bowSmack,
              .overhead, .sideSwing,
              .swiftSlash, .daggerThrow,
-             .runeFire, .runeFrost, .runeArcane, .wandZap,
-             .bomb:
+             .runeFire, .runeFrost, .runeArcane, .wandZap:
             return true
         default:
             return false
@@ -246,7 +239,6 @@ enum FaceKind: String, CaseIterable, Hashable {
     var soloEffect: String {
         switch self {
         case .runeFrost: return "Deal \(soloValue) damage and slow the next attack"
-        case .bomb: return "Deal \(soloValue) damage and burn 4 for 2 turns"
         case .poison: return "Poison \(soloValue) for 2 turns"
         case .evade: return "Gain 50% chance to evade each hit this turn"
         case .focus: return "+1 stamina next turn, next attack this turn +5"
@@ -290,7 +282,6 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .heal: return Theme.forest
         case .focus: return Theme.gold
         case .energize: return Theme.gold
-        case .bomb: return Theme.blood
         case .poison: return Theme.venom
         }
     }

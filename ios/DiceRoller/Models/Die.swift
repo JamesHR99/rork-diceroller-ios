@@ -1,16 +1,14 @@
 import Foundation
 
 /// Which piece of gear a die is bolted to.
-enum GearSlot: String, Hashable, CaseIterable {
+enum GearSlot: String, Hashable, CaseIterable, Codable {
     case weapon
     case armor
-    case item
 
     var label: String {
         switch self {
         case .weapon: "Weapon"
         case .armor: "Armour"
-        case .item: "Item"
         }
     }
 
@@ -18,15 +16,14 @@ enum GearSlot: String, Hashable, CaseIterable {
         switch self {
         case .weapon: "burst.fill"
         case .armor: "shield.lefthalf.filled"
-        case .item: "bag.fill"
         }
     }
 }
 
-/// A six-faced die belonging to a weapon, armour or item. At most one god may
+/// A six-faced die belonging to a weapon or armour. At most one god may
 /// claim any die as its patron; the claim never changes the faces, it makes
 /// the god answer whatever those faces do.
-struct Die: Identifiable, Hashable {
+struct Die: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var slot: GearSlot

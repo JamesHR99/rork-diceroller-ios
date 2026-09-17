@@ -93,13 +93,6 @@ struct ClassCardView: View {
                 die: hero.startingLoadout.armor.dice.first
             )
 
-            HStack(spacing: 6) {
-                DuatIcon(name: DuatArt.slotItem, size: 16).opacity(0.5)
-                Text("Item slot — empty. Find one on the river.")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.parchmentDim)
-            }
-
             GoldRule(height: 4, opacity: 0.55)
 
             Text("SIGNATURE COMBOS")

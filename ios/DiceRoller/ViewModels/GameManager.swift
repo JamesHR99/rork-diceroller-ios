@@ -23,8 +23,6 @@ enum PendingSelection: Equatable {
     case replaceBoon(GodBoonDef, rarity: BoonRarity)
     /// You are at the dice cap — pick which die this one replaces.
     case swapDie(Die)
-    /// You already carry an item — confirm the swap.
-    case swapItem(ItemDef)
 }
 
 /// Run-level state: class, permanent loadout, gold, the twelve hours of the
@@ -33,6 +31,8 @@ enum PendingSelection: Equatable {
 final class GameManager {
     enum Screen: Equatable {
         case title
+        /// The opening briefing, before the first fight of a run.
+        case tutorial
         case chart
         case battle
         case reward
@@ -242,6 +242,181 @@ final class GameManager {
         return index + 1
     }
 
+    // MARK: - Saved nights
+
+    /// The saved night waiting to be picked up, if there is one. Read when the
+    /// title screen appears so the Continue card can describe it.
+    private(set) var savedRun: RunSave? = RunSaveStore.load()
+
+    var hasSavedRun: Bool { savedRun != nil }
+
+    /// True while the pause panel is up. The fight keeps its state; it simply
+    /// stops being touchable behind the panel.
+    var isPaused = false
+
+    // MARK: - The opening briefing
+
+    /// The demigod the briefing is teaching. Set before the run proper starts,
+    /// so the demo and the class page read from the dice you actually picked.
+    private(set) var tutorialHero: HeroClass?
+    /// True when the briefing was opened from the title screen for a read
+    /// rather than as the doorstep of a new run — closing it goes back to the
+    /// title instead of casting off.
+    private(set) var tutorialIsPreview = false
+
+    /// Opens the briefing from the title screen, for a class you are looking
+    /// at rather than one you have committed to.
+    func openBriefing(for hero: HeroClass) {
+        tutorialHero = hero
+        tutorialIsPreview = true
+        Audio.shared.play(.uiTap)
+        withAnimation { screen = .tutorial }
+    }
+
+    /// Closes the briefing. A briefing that opened a run hands over to the
+    /// first guardian; one opened from the title simply goes back.
+    func finishBriefing(suppressFuture: Bool = false) {
+        if suppressFuture { TutorialStore.suppress() }
+        let wasPreview = tutorialIsPreview
+        tutorialIsPreview = false
+        Audio.shared.play(.uiConfirm)
+        if wasPreview {
+            withAnimation { screen = .title }
+        } else {
+            castOff()
+        }
+    }
+
+    /// Writes the night down. Only ever called between fights — a rolled hand
+    /// is never part of a save, so a saved night cannot be reloaded and
+    /// re-rolled for a better result.
+    ///
+    /// `atNode` is the stage to resume at. While a fight is underway that is
+    /// the fight's own node, so the night resumes at the *start* of it with
+    /// the health and gear you walked in with.
+    func saveRun(resumingAt node: UUID?) {
+        guard let heroClass, let loadout, screen != .title else { return }
+        let save = RunSave(
+            classID: heroClass.id,
+            loadout: loadout,
+            maxHP: maxHP,
+            currentHP: currentHP,
+            gold: gold,
+            critBonus: critBonus,
+            equippedBoons: equippedBoons,
+            legendariesTaken: legendariesTaken,
+            acquiredUpgrades: Array(acquiredUpgrades),
+            capstoneID: capstoneID,
+            pairingID: pairingID,
+            ownedChisels: ownedChisels,
+            trialUsed: trialUsed,
+            voyage: voyage,
+            clearedNodeIDs: Array(clearedNodeIDs),
+            lastClearedNodeID: lastClearedNodeID,
+            currentNodeID: node,
+            deepestHour: deepestHour,
+            usedEventIDs: Array(usedEventIDs),
+            totalDamage: totalDamage,
+            totalCombos: totalCombos,
+            totalCrits: totalCrits,
+            savedAt: Date()
+        )
+        RunSaveStore.save(save)
+        savedRun = save
+    }
+
+    /// The autosave taken every time the barque returns to open water: after a
+    /// reward is claimed, and on leaving a shop, an omen or a mooring.
+    private func autosave() {
+        // Nothing is in flight here, so the save resumes exactly where it is.
+        saveRun(resumingAt: nil)
+    }
+
+    /// Puts the run away and returns to the title. A fight in progress is
+    /// saved at its own doorstep rather than mid-blow.
+    func saveAndExit() {
+        let resumeNode = screen == .battle ? currentNodeID : nil
+        saveRun(resumingAt: resumeNode)
+        isPaused = false
+        battle = nil
+        pendingSelection = nil
+        selectionQueue = []
+        statusMessage = nil
+        Audio.shared.play(.uiConfirm)
+        withAnimation { screen = .title }
+    }
+
+    /// Throws the night away for good.
+    func abandonRun() {
+        clearSavedRun()
+        isPaused = false
+        battle = nil
+        pendingSelection = nil
+        selectionQueue = []
+        statusMessage = nil
+        Haptics.warning()
+        withAnimation { screen = .title }
+    }
+
+    private func clearSavedRun() {
+        RunSaveStore.clear()
+        savedRun = nil
+    }
+
+    /// Picks a saved night back up. A fight that was underway resumes at its
+    /// own start: the same creatures, but the dice roll fresh.
+    func continueRun() {
+        guard let save = savedRun else { return }
+        let hero = save.hero
+        heroClass = hero
+        loadout = save.loadout
+        maxHP = save.maxHP
+        currentHP = save.currentHP
+        gold = save.gold
+        critBonus = save.critBonus
+        equippedBoons = save.equippedBoons
+        legendariesTaken = save.legendariesTaken
+        acquiredUpgrades = Set(save.acquiredUpgrades)
+        capstoneID = save.capstoneID
+        pairingID = save.pairingID
+        ownedChisels = save.ownedChisels
+        trialUsed = save.trialUsed
+        voyage = save.voyage
+        clearedNodeIDs = Set(save.clearedNodeIDs)
+        lastClearedNodeID = save.lastClearedNodeID
+        currentNodeID = nil
+        deepestHour = save.deepestHour
+        usedEventIDs = Set(save.usedEventIDs)
+        totalDamage = save.totalDamage
+        totalCombos = save.totalCombos
+        totalCrits = save.totalCrits
+        isPtahForge = false
+        crossedGate = nil
+        battle = nil
+        rewardOffers = []
+        shopStock = []
+        currentEvent = nil
+        eventOutcome = nil
+        pendingSelection = nil
+        selectionQueue = []
+        visitingDeity = nil
+        isShrine = false
+        isPaused = false
+        latestRecordID = nil
+        statusMessage = "The night takes you back — \(save.placeLabel)."
+        Haptics.success()
+
+        // A fight that was underway is re-entered from its doorstep; anything
+        // quiet simply hands the chart back.
+        if let nodeID = save.currentNodeID, let node = voyage.node(nodeID) {
+            currentNodeID = node.id
+            deepestHour = max(deepestHour, node.hour)
+            enterBattle()
+        } else {
+            withAnimation { screen = .chart }
+        }
+    }
+
     // MARK: - Flow
 
     func startRun(with hero: HeroClass) {
@@ -279,9 +454,25 @@ final class GameManager {
         isShrine = false
         latestRecordID = nil
         statusMessage = nil
+        isPaused = false
+        // A fresh voyage writes over any night that was still waiting.
+        clearSavedRun()
         Haptics.success()
-        // The barque casts off straight into the mouth of the river — the chart
-        // opens once that first guardian is down.
+
+        // The briefing comes first, taught in this demigod's own dice, unless
+        // the player has asked never to see it again.
+        tutorialHero = hero
+        if TutorialStore.isSuppressed {
+            castOff()
+        } else {
+            tutorialIsPreview = false
+            withAnimation { screen = .tutorial }
+        }
+    }
+
+    /// The barque casts off straight into the mouth of the river — the chart
+    /// opens once that first guardian is down.
+    private func castOff() {
         if let entry = voyage.entryNode {
             enter(entry)
         } else {
@@ -340,14 +531,14 @@ final class GameManager {
         default:
             if isOpeningEncounter {
                 // The night opens on the practice bank: a straw effigy that
-                // never fights back, and spoils that arm the relic slot.
+                // never fights back, and a god's first audience for spoils.
                 enemies = [EnemyContent.trainingDummy]
             } else {
                 enemies = makePack(gate: node.gate, allowPack: true)
             }
         }
         // Any ordinary fight can quietly turn out to be a god's Trial — never
-        // before the relic is armed and a blessing carried, never on a herald,
+        // before a blessing is carried, never on a herald,
         // a serpent-lord or the last quiet water before one.
         var trial: DivineTrial? = nil
         if node.kind == .battle, !isOpeningEncounter, !trialUsed, !patrons.isEmpty,
@@ -419,6 +610,9 @@ final class GameManager {
         if battle.phase == .lost {
             self.battle = nil
             recordRun(sawDawn: false)
+            // Going under ends the night for good — a finished run can never be
+            // reloaded to farm the table.
+            clearSavedRun()
             withAnimation { screen = .gameOver(won: false) }
             return
         }
@@ -427,6 +621,7 @@ final class GameManager {
         if activeNode?.isBoss == true && currentHour >= Voyage.totalHours {
             self.battle = nil
             recordRun(sawDawn: true)
+            clearSavedRun()
             withAnimation { screen = .gameOver(won: true) }
             return
         }
@@ -444,8 +639,8 @@ final class GameManager {
         self.battle = nil
 
         // The practice bout ends at your first god's audience: one god, chosen
-        // at random, offering three of their powers. Relics are gone — the
-        // collection stays at eight dice and the gods speak through powers now.
+        // at random, offering three of their powers. The collection stays at
+        // eight dice and the gods speak through powers now.
         if isOpeningEncounter {
             let deity = Deity.allCases.randomElement() ?? .ra
             visitingDeity = deity
@@ -457,9 +652,9 @@ final class GameManager {
         }
 
         let kind = activeNode?.kind
-        // Relics are gone: the collection stays at eight dice, so a serpent-lord
-        // pays out in a god's audience rather than a fourth gear slot. Bosses
-        // and heralds are where a god reliably comes to the water's edge.
+        // The collection stays at eight dice, so a serpent-lord pays out in a
+        // god's audience rather than more gear. Bosses and heralds are where a
+        // god reliably comes to the water's edge.
         let godAttends = kind == .boss
             || (kind == .herald && Int.random(in: 0..<100) < 62)
             || Int.random(in: 0..<100) < 42
@@ -514,14 +709,17 @@ final class GameManager {
         return Double.random(in: 0..<1) < GameData.chiselSecondChance
     }
 
-    /// One Chisel on Ptah's bench, read like a god's boon card.
+    /// One Chisel on Ptah's bench, read like a god's boon card. The worked
+    /// example folds into the main text rather than being squeezed into a
+    /// footnote capsule, so a Chisel reads as one block: what it changes,
+    /// then what that looks like in practice.
     private func makeChiselOffer(_ chisel: ChiselDef) -> Offer {
         Offer(
             name: chisel.name,
-            detail: chisel.detail,
+            detail: "\(chisel.detail)\n\n\(chisel.example)",
             symbol: chisel.symbol,
             rarity: .signature,
-            comboHint: "e.g. \(chisel.example)",
+            comboHint: chisel.example,
             price: 0,
             kind: .chiselPick(chisel)
         )
@@ -595,6 +793,9 @@ final class GameManager {
 
     func leaveEncounter() {
         completeEncounter()
+        // Back on open water with nothing in flight: the honest moment to
+        // write the night down.
+        autosave()
         withAnimation { screen = .chart }
     }
 
@@ -671,6 +872,9 @@ final class GameManager {
 
     private func apply(_ offer: Offer) {
         Haptics.success()
+        // A god's favour rings in its own register; the river's own spoils
+        // just land on the deck.
+        Audio.shared.play(offer.deity == nil ? .uiConfirm : .boon)
         switch offer.kind {
         case .die(let die):
             grant(die: die.instantiated())
@@ -692,8 +896,6 @@ final class GameManager {
             applyPairing(pairing)
         case .imbue(let amount):
             pendingSelection = .imbue(amount, title: offer.name)
-        case .item(let item):
-            grant(item: item)
         case .heal(let amount):
             currentHP = min(maxHP, currentHP + amount)
             statusMessage = "+\(amount) health"
@@ -720,17 +922,6 @@ final class GameManager {
             statusMessage = "\(die.name) added to your \(die.slot.label.lowercased())."
         } else {
             pendingSelection = .swapDie(die)
-        }
-    }
-
-    private func grant(item: ItemDef) {
-        guard var loadout else { return }
-        if loadout.item == nil {
-            loadout.item = item.makePiece()
-            self.loadout = loadout
-            statusMessage = "\(item.name) equipped."
-        } else {
-            pendingSelection = .swapItem(item)
         }
     }
 
@@ -949,13 +1140,6 @@ final class GameManager {
         finishSelection("\(newDie.name) takes its place.")
     }
 
-    func applyItemSwap(to item: ItemDef) {
-        guard var loadout else { return }
-        loadout.item = item.makePiece()
-        self.loadout = loadout
-        finishSelection("\(item.name) equipped.")
-    }
-
     /// Queues one or more targeting steps; a shrine pairing uses two.
     private func enqueue(_ selections: [PendingSelection]) {
         guard let first = selections.first else { return }
@@ -1049,11 +1233,6 @@ final class GameManager {
                 grant(die: pick.die.instantiated())
                 lines.append("Gained \(pick.die.name)")
             }
-        case .item:
-            if let pick = SharedContent.items(upTo: rarity).randomElement() {
-                grant(item: pick)
-                lines.append("Found \(pick.name)")
-            }
         case .patronOffer:
             // Gods no longer claim dice — an omen hands over one of their
             // powers instead, at a rarity rolled for this point in the night.
@@ -1106,13 +1285,13 @@ final class GameManager {
     }
 
     private func makeOffer(rarity: Rarity, priced: Bool, index: Int) -> Offer? {
-        // The Ferryman does not deal in whole dice — those are relics.
+        // Items are gone, so their share of the shelf goes to the work that
+        // always does something: reforges, crit etchings and restoratives.
         let roll = Int.random(in: 0..<100)
         let category: Int
         switch roll {
-        case 0..<30: category = 1   // face reforge
-        case 30..<58: category = 2  // crit imbue
-        case 58..<78: category = 3  // item
+        case 0..<40: category = 1   // face reforge
+        case 40..<74: category = 2  // crit imbue
         default: category = 4       // restorative
         }
 
@@ -1138,17 +1317,6 @@ final class GameManager {
                 comboHint: "Crit dice make your combos crit",
                 price: priced ? GameData.price(base: 40, rarity: rarity) : 0,
                 kind: .imbue(amount)
-            )
-        case 3:
-            guard let item = SharedContent.items(upTo: rarity).randomElement() else { return nil }
-            return Offer(
-                name: item.name,
-                detail: item.blurb,
-                symbol: item.symbol,
-                rarity: item.rarity,
-                comboHint: "Item combos — shared by every class",
-                price: priced ? GameData.price(base: 45, rarity: item.rarity) : 0,
-                kind: .item(item)
             )
         default:
             if index % 2 == 0 {
@@ -1389,28 +1557,8 @@ final class GameManager {
         )
     }
 
-    /// Whole dice are relics — serpent-lord spoils and the Ferryman's centrepiece.
-    private func makeRelicOffer(progress: Double, priced: Bool) -> Offer? {
-        let rarity = max(Rarity.roll(progress: progress), .rare)
-        guard let pick = GameData.diceOffers(classID, rarity).randomElement() else { return nil }
-        let die = pick.die
-        return Offer(
-            name: die.name,
-            detail: "A relic \(die.slot.label.lowercased()) die — a whole new die, not a face. \(faceSummary(die))",
-            symbol: die.slot.symbol,
-            rarity: rarity,
-            comboHint: pick.hint,
-            price: priced ? GameData.price(base: 130, rarity: rarity) : 0,
-            kind: .die(die)
-        )
-    }
-
     private func makeShopStock() -> [Offer] {
         var stock = makeOffers(count: 5, progress: progress, priced: true)
-        // Roughly one crossing in four, the Ferryman has a relic under the bench.
-        if Int.random(in: 0..<100) < 26, let relic = makeRelicOffer(progress: progress, priced: true) {
-            stock.insert(relic, at: 0)
-        }
         // Roughly one crossing in three, the deep whetstone is out: a whole
         // die's unclaimed faces rolled anew.
         if Int.random(in: 0..<100) < 35 {

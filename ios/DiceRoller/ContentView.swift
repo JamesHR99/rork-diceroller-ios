@@ -23,6 +23,9 @@ struct ContentView: View {
             case .title:
                 TitleView()
                     .transition(.opacity)
+            case .tutorial:
+                TutorialView()
+                    .transition(.opacity)
             case .chart:
                 NightChartView()
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
@@ -52,6 +55,12 @@ struct ContentView: View {
                     .zIndex(10)
             }
 
+            if game.isPaused {
+                PauseView()
+                    .transition(.opacity)
+                    .zIndex(25)
+            }
+
             if let gate = game.crossedGate, game.screen == .chart {
                 GateTitleCardView(gate: gate) {
                     game.crossedGate = nil
@@ -68,8 +77,35 @@ struct ContentView: View {
         .environment(game)
         .animation(.easeInOut(duration: 0.35), value: game.screen)
         .animation(.easeInOut(duration: 0.25), value: game.pendingSelection)
+        .animation(.easeInOut(duration: 0.25), value: game.isPaused)
         .preferredColorScheme(.dark)
         .statusBarHidden()
+        .onAppear { Audio.shared.play(music) }
+        .onChange(of: game.screen) { old, _ in
+            Audio.shared.play(music)
+            // A change of screen passes like a page turning — but not into or
+            // out of the title, where the theme's own entrance carries it.
+            if old != .title, game.screen != .title {
+                Audio.shared.play(.uiTransition)
+            }
+        }
+    }
+
+    /// Which of the four tracks belongs under the screen that is up. The
+    /// serpent-lords and a god's Trial get the heavier bed; everything quiet
+    /// shares the drifting river.
+    private var music: MusicTrack {
+        switch game.screen {
+        case .title, .tutorial, .gameOver:
+            return .title
+        case .battle:
+            guard let battle = game.battle else { return .battle }
+            let isBoss = game.activeNode?.isBoss == true
+                || battle.enemies.contains { $0.def.isBoss }
+            return (isBoss || battle.trialAccepted) ? .boss : .battle
+        default:
+            return .river
+        }
     }
 
     /// Screens that stage their own hull, close up and lit for the moment.
@@ -77,7 +113,7 @@ struct ContentView: View {
     /// there is never a second barque drifting behind the one you are on.
     private var stagesOwnBarque: Bool {
         switch game.screen {
-        case .title, .battle, .rest, .shop, .gameOver: true
+        case .title, .tutorial, .battle, .rest, .shop, .gameOver: true
         default: false
         }
     }
@@ -86,6 +122,7 @@ struct ContentView: View {
     private var sceneDim: Double {
         switch game.screen {
         case .title: 0.05
+        case .tutorial: 0.5
         // The chart is read, not watched — the river drops well back so the
         // route markers are the brightest thing on screen.
         case .chart: 0.55
@@ -154,6 +191,7 @@ struct GateTitleCardView: View {
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { shown = true }
             Haptics.medium()
+            Audio.shared.play(.gate)
             Task {
                 try? await Task.sleep(for: .milliseconds(2400))
                 dismiss()

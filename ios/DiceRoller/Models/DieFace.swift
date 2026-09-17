@@ -3,7 +3,7 @@ import Foundation
 /// One of the six faces on a die. Faces carry their own crit chance, which
 /// imbues raise permanently. A patron god may claim the die these faces sit
 /// on — the faces never change, the god simply answers what you play.
-struct DieFace: Identifiable, Hashable {
+struct DieFace: Identifiable, Hashable, Codable {
     let id: UUID
     var kind: FaceKind
     /// How many imbues have been etched into this face (gold notches).

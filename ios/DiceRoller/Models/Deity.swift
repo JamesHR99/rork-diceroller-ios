@@ -2,7 +2,7 @@ import SwiftUI
 
 /// One of the six gods who may claim a die and follow your run. Which gods
 /// turn up is always random — a shrine is where they reliably make offers.
-enum Deity: String, CaseIterable, Identifiable, Hashable {
+enum Deity: String, CaseIterable, Identifiable, Hashable, Codable {
     case ra
     case sobek
     case anubis

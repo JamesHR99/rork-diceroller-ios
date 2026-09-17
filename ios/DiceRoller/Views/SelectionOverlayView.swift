@@ -2,9 +2,9 @@ import SwiftUI
 
 /// The overlay that appears whenever an upgrade needs a target: pick the die
 /// and face to reforge or imbue, choose which die a god claims as patron,
-/// pick which die a new one replaces, or confirm an item swap. God upgrades,
-/// capstones and pairings need no target — they apply the moment they are
-/// taken, so they never reach this overlay.
+/// or pick which die a new one replaces. God upgrades, capstones and pairings
+/// need no target — they apply the moment they are taken, so they never reach
+/// this overlay.
 struct SelectionOverlayView: View {
     let selection: PendingSelection
     @Environment(GameManager.self) private var game
@@ -36,8 +36,6 @@ struct SelectionOverlayView: View {
                     boonReplacePicker(incoming: def, rarity: rarity)
                 case .swapDie(let die):
                     dieSwapPicker(incoming: die)
-                case .swapItem(let item):
-                    itemSwapPicker(incoming: item)
                 default:
                     facePicker
                 }
@@ -65,7 +63,7 @@ struct SelectionOverlayView: View {
         }
     }
 
-    /// Every die you carry, weapon first, then armour, then the item.
+    /// Every die you carry, weapon first, then armour.
     private var carriedDice: [Die] {
         (game.loadout?.pieces ?? []).flatMap(\.dice)
     }
@@ -108,7 +106,6 @@ struct SelectionOverlayView: View {
         case .patron(_, _, let title): title
         case .imbue(_, let title): title
         case .swapDie: "Your dice are full"
-        case .swapItem: "Swap your item?"
         case .replaceBoon(let def, _): "Your \(def.slot.label.lowercased()) slots are full"
         default: ""
         }
@@ -128,8 +125,6 @@ struct SelectionOverlayView: View {
             "Choose a face to etch. Its crit chance rises permanently by \(Int(amount * 100))%."
         case .swapDie(let die):
             "You carry \(Loadout.maxDice) dice. Pick one to replace with \(die.name)."
-        case .swapItem(let item):
-            "You already carry an item. Taking \(item.name) discards it."
         case .replaceBoon(let def, _):
             "You carry \(def.slot.capacity) \(def.slot.label.lowercased()) powers. Choose which one \(def.name) takes the place of — its level and rarity are lost."
         default:
@@ -178,7 +173,6 @@ struct SelectionOverlayView: View {
         case .patron(let deity, _, _): deity.symbol
         case .imbue: GameData.imbueSymbol(game.classID)
         case .swapDie: "arrow.triangle.2.circlepath"
-        case .swapItem: "bag.fill"
         case .replaceBoon(let def, _): def.god.symbol
         default: "sparkles"
         }
@@ -192,7 +186,6 @@ struct SelectionOverlayView: View {
         case .patron(let deity, _, _): deity.artName
         case .imbue: DuatArt.resolve(DuatArt.interactionImbue)
         case .swapDie: DuatArt.resolve(DuatArt.interactionSwap)
-        case .swapItem: DuatArt.resolve(DuatArt.slotItem)
         case .replaceBoon(let def, _): def.god.artName
         default: DuatArt.resolve(DuatArt.interactionReforge)
         }
@@ -265,7 +258,7 @@ struct SelectionOverlayView: View {
 
     private var cancelLabel: String {
         switch selection {
-        case .swapDie, .swapItem: "Leave it behind"
+        case .swapDie: "Leave it behind"
         default: "Skip"
         }
     }
@@ -277,7 +270,6 @@ struct SelectionOverlayView: View {
         case .patron: "Claim It"
         case .imbue: "Etch It"
         case .swapDie: "Swap It In"
-        case .swapItem: "Take the New Item"
         case .replaceBoon: "Take Its Place"
         default: "Confirm"
         }
@@ -287,7 +279,6 @@ struct SelectionOverlayView: View {
         switch selection {
         case .reforge, .imbue: chosenFaceID != nil
         case .reforgeDie, .patron, .swapDie: chosenDieID != nil
-        case .swapItem: true
         case .replaceBoon: chosenBoonID != nil
         default: false
         }
@@ -310,8 +301,6 @@ struct SelectionOverlayView: View {
         case .swapDie(let die):
             guard let dieID = chosenDieID else { return }
             game.applySwap(replacing: dieID, with: die.instantiated())
-        case .swapItem(let item):
-            game.applyItemSwap(to: item)
         case .replaceBoon(let def, let rarity):
             guard let chosenBoonID else { return }
             game.replaceBoon(chosenBoonID, with: def, rarity: rarity)
@@ -628,71 +617,4 @@ struct SelectionOverlayView: View {
         )
     }
 
-    // MARK: - Item swap
-
-    private func itemSwapPicker(incoming: ItemDef) -> some View {
-        HStack(spacing: 16) {
-            itemCard(
-                title: "CURRENTLY CARRIED",
-                name: game.loadout?.item?.name ?? "None",
-                art: carriedItemArt,
-                symbol: game.loadout?.item?.symbol ?? "bag",
-                faces: game.loadout?.item?.dice.first?.faces.map(\.kind) ?? [],
-                tint: Theme.parchmentDim
-            )
-
-            DuatImage(name: DuatArt.utilityForward, width: 24, fit: .fit)
-                .colorMultiply(Theme.gold)
-
-            itemCard(
-                title: "NEW ITEM",
-                name: incoming.name,
-                art: incoming.artName,
-                symbol: incoming.symbol,
-                faces: incoming.faces,
-                tint: incoming.rarity.tint
-            )
-        }
-        .frame(maxHeight: .infinity)
-    }
-
-    /// The painted drawing of whatever item is in the slot right now.
-    private var carriedItemArt: String? {
-        guard let name = game.loadout?.item?.name else { return nil }
-        if let item = SharedContent.items.first(where: { $0.name == name }) {
-            return item.artName
-        }
-        // Relics name their dice after themselves, so the piece name matches.
-        return RelicContent.relics.first { name.hasPrefix($0.name) }?.artName
-    }
-
-    private func itemCard(title: String, name: String, art: String?, symbol: String,
-                          faces: [FaceKind], tint: Color) -> some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.system(size: 9, weight: .black))
-                .kerning(1.2)
-                .foregroundStyle(tint)
-            DuatSymbol(art: art, fallback: symbol, size: 40, tint: tint)
-                .frame(width: 56, height: 56)
-                .background(Theme.bg, in: .circle)
-            Text(name)
-                .font(.fantasy(15, weight: .bold))
-                .foregroundStyle(Theme.parchment)
-            HStack(spacing: 4) {
-                ForEach(Array(faces.enumerated()), id: \.offset) { _, face in
-                    DuatSymbol(art: face.artName, fallback: face.symbol, size: 17, tint: face.tint)
-                        .frame(width: 23, height: 23)
-                        .background(Theme.bgElevated, in: .rect(cornerRadius: 5))
-                }
-            }
-            Text("2 dice")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Theme.parchmentDim)
-        }
-        .padding(16)
-        .frame(width: 240)
-        .papyrusPanel(tint: Theme.bgCard, cornerRadius: 18)
-        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(tint.opacity(0.4), lineWidth: 1.5))
-    }
 }

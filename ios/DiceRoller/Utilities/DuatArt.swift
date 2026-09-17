@@ -187,7 +187,6 @@ enum DuatArt {
 
     static let slotWeapon = "duat_slot_weapon"
     static let slotArmour = "duat_slot_armour"
-    static let slotItem = "duat_slot_item"
 
     static let upgradeHammer = "duat_upgrade_hammer"
     static let upgradeWhetstone = "duat_upgrade_whetstone"
@@ -321,36 +320,9 @@ enum DuatArt {
 
     // MARK: - Content mappings
 
-    static func item(_ id: String) -> String? {
-        resolve(itemPlates[id])
-    }
-
-    static func relic(_ id: String) -> String? {
-        resolve(relicPlates[id])
-    }
-
     static func chisel(_ id: String) -> String? {
         resolve(chiselPlates[id])
     }
-
-    private static let itemPlates: [String: String] = [
-        "healingPotion": "duat_item_healingPotion",
-        "smokeBomb": "duat_item_smokeBomb",
-        "poisonVial": "duat_item_poisonVial",
-        "explosive": "duat_item_explosiveCharge",
-        "alchemistKit": "duat_item_alchemistsKit",
-        "warlockCharm": "duat_item_warlocksCharm",
-        "phoenixFlask": "duat_item_phoenixFlask",
-    ]
-
-    private static let relicPlates: [String: String] = [
-        "brazierOfTheDawn": "duat_relic_brazierOfDawn",
-        "vialOfTheNile": "duat_relic_vialOfNile",
-        "wardOfBes": "duat_relic_wardOfBes",
-        "eyeOfHorus": "duat_relic_eyeOfHorus",
-        "ferrymansToll": "duat_relic_ferrymansToll",
-        "canopicHeart": "duat_relic_canopicHeart",
-    ]
 
     private static let chiselPlates: [String: String] = [
         "ch_twinBowstring": "duat_chisel_twinBowstring",
@@ -736,21 +708,12 @@ extension GearSlot {
         switch self {
         case .weapon: DuatArt.resolve(DuatArt.slotWeapon)
         case .armor: DuatArt.resolve(DuatArt.slotArmour)
-        case .item: DuatArt.resolve(DuatArt.slotItem)
         }
     }
 }
 
 extension ChiselDef {
     var artName: String? { DuatArt.chisel(id) }
-}
-
-extension ItemDef {
-    var artName: String? { DuatArt.item(id) }
-}
-
-extension RelicDef {
-    var artName: String? { DuatArt.relic(id) }
 }
 
 extension Offer {
@@ -778,12 +741,10 @@ extension Offer {
             return pairing.first.artName
         case .imbue:
             return DuatArt.resolve(DuatArt.interactionImbue)
-        case .item(let item):
-            return item.artName
         case .heal:
             return DuatArt.resolve(DuatArt.Status.health)
         case .maxHP:
-            return DuatArt.resolve("duat_relic_canopicHeart")
+            return DuatArt.resolve(DuatArt.Status.health)
         case .gold:
             return DuatArt.resolve(DuatArt.currency)
         case .chiselPick(let chisel):

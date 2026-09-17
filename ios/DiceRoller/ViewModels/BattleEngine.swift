@@ -212,7 +212,6 @@ struct PlanStep: Identifiable {
         case .focus: list = ["+1 Stam", "Next hit +5"]
         case .damage:
             if face.face == .runeFrost { list = ["Slow"] }
-            else if face.face == .bomb { list = ["Burn 4×2"] }
         }
         return list
     }
@@ -697,6 +696,9 @@ final class BattleEngine {
     /// lobbed bombs, each flying from the fighter who threw it to the one it
     /// was aimed at.
     private(set) var shots: [ProjectileShot] = []
+    /// Marks burning on the bodies that were just struck: gashes, punctures,
+    /// impact stars, scorches, ice crusts, lattices and healing blooms.
+    private(set) var impacts: [ImpactMark] = []
     private(set) var comboFlash: ComboFlash?
     /// The action about to land, named and totalled mid-deck.
     private(set) var spotlight: ActionSpotlight?
@@ -1246,6 +1248,34 @@ final class BattleEngine {
         return chisel
     }
 
+    /// The hidden step a die in the plan belongs to. The plan only shows an
+    /// order now, so anything that used to act on a chain card acts through
+    /// one of its dice instead.
+    func step(containing faceID: UUID) -> PlanStep? {
+        turnPlan.first { $0.faces.contains { $0.id == faceID } }
+    }
+
+    /// The held Chisel, if the chain this die is part of could carry it. Lets
+    /// the die glow copper without ever naming the chain behind it.
+    func armableChisel(forFace faceID: UUID) -> ChiselDef? {
+        guard let step = step(containing: faceID) else { return nil }
+        return armableChisel(for: step)
+    }
+
+    /// True when the chain this die belongs to already carries an armed Chisel.
+    func isChiselArmed(onFace faceID: UUID) -> Bool {
+        guard let step = step(containing: faceID) else { return false }
+        return isComboArmed(step)
+    }
+
+    /// Arms the held Chisel onto whatever chain this die is part of. Returns
+    /// true when the tap was spent arming rather than taking the die back.
+    @discardableResult
+    func armHeldChisel(ontoFace faceID: UUID) -> Bool {
+        guard let step = step(containing: faceID) else { return false }
+        return armHeldChisel(onto: step)
+    }
+
     /// Arms the held Chisel onto this step, then puts the mark down. Tapping
     /// an already-armed chain takes the Chisel back off it.
     /// Returns true when the tap was spent on arming rather than on the
@@ -1305,6 +1335,18 @@ final class BattleEngine {
     }
 
     var hasEchoPending: Bool { pendingEcho != nil }
+
+    /// True when this Chisel is armed onto any chain in the plan right now —
+    /// read by the copper mark beside the tray title.
+    func isChiselArmed(_ id: String) -> Bool {
+        switch id {
+        case "ch_siegeDraw": !siegeArmed.isEmpty
+        case "ch_counterweight": !counterweightArmed.isEmpty
+        case "ch_assassin": !assassinArmed.isEmpty
+        case "ch_echoingStaff": echoArmedComboID != nil
+        default: false
+        }
+    }
 
     /// True when any optional Chisel is armed onto this step's recipe — the
     /// copper hammer worn by the plan card.
@@ -1694,6 +1736,7 @@ final class BattleEngine {
         lastAction = "The drums spin..."
         lastReelLocked = false
         Haptics.medium()
+        Audio.shared.play(.diceRoll)
         let gaps = lockGaps(count: tumbling.count)
         Task {
             try? await Task.sleep(for: .seconds(Self.firstLockDelay))
@@ -1744,14 +1787,18 @@ final class BattleEngine {
         if outcome.isCrit {
             critsLanded += 1
             Haptics.heavy()
+            Audio.shared.play(.diceLock)
+            Audio.shared.play(.crit, after: 0.06, volumeScale: 0.7)
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(55))
                 Haptics.heavy()
             }
         } else if isLast {
             Haptics.heavy()
+            Audio.shared.play(.diceLock)
         } else {
             Haptics.medium()
+            Audio.shared.play(.diceLock, volumeScale: 0.8)
         }
     }
 
@@ -1782,6 +1829,9 @@ final class BattleEngine {
         }
         playOrder = prospective
         Haptics.light()
+        // The knock climbs a step for each die already in the plan, so a long
+        // turn builds audibly as you lay it out.
+        Audio.shared.planKnock(position: playOrder.count - 1)
     }
 
     /// Send a chip from the play bar back to the tray. The bar reprices the
@@ -1790,6 +1840,7 @@ final class BattleEngine {
         guard phase == .player, playOrder.contains(faceID) else { return }
         playOrder.removeAll { $0 == faceID }
         Haptics.light()
+        Audio.shared.play(.diceTake)
     }
 
     /// Anubis's Preserved Moment: once per encounter, this one commitment may
@@ -1828,6 +1879,7 @@ final class BattleEngine {
             freezesUsed = max(0, freezesUsed - 1)
             lastAction = "\(face.displayName) thaws — it will not carry over."
             Haptics.light()
+            Audio.shared.play(.diceTake)
             return
         }
 
@@ -1849,6 +1901,7 @@ final class BattleEngine {
             : "\(face.displayName) held — it carries over and the die still rolls next turn."
         if left == 0 { freezeArmed = false }
         Haptics.medium()
+        Audio.shared.play(.diceFreeze)
     }
 
     func commitTurn() {
@@ -1948,7 +2001,8 @@ final class BattleEngine {
                     noteStrikeGods(in: step.faces)
                     if combo.damage > 0 {
                         launchShots(faces: step.faces.map(\.matchFace),
-                                    fromPlayer: true, foeID: activeTargetID)
+                                    fromPlayer: true, foeID: activeTargetID,
+                                    magnitude: step.faces.count, isCrit: didCrit)
                     }
                     applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
                     // Concealed Blade: the substituted Evade still grants its
@@ -1987,7 +2041,8 @@ final class BattleEngine {
                     playerPose = pose(for: face.face)
                     noteStrikeGods(in: [face])
                     if face.matchFace.isAttack || face.matchFace == .poison {
-                        launchShots(faces: [face.matchFace], fromPlayer: true, foeID: activeTargetID)
+                        launchShots(faces: [face.matchFace], fromPlayer: true,
+                                    foeID: activeTargetID, isCrit: face.isCrit)
                     }
                     let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
                     attributing = .divine
@@ -2345,9 +2400,6 @@ final class BattleEngine {
             if face.face == .runeFrost, let target, enemies.indices.contains(target), enemies[target].isAlive {
                 enemies[target].stagger = max(enemies[target].stagger, 0.2)
                 addFloat("Slowed", color: Theme.frost, onEnemy: true, foe: foeID)
-            }
-            if face.face == .bomb {
-                applyBurn(face.isCrit ? 6 : 4, turns: 2, targetIndex: target)
             }
             return true
         }
@@ -3074,7 +3126,7 @@ final class BattleEngine {
 
     private func applyBurn(_ amount: Int, turns: Int, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
-        enemies[target].burnAmount = min(12, max(enemies[target].burnAmount, amount))
+        enemies[target].burnAmount = min(GameData.burnTickCap, max(enemies[target].burnAmount, amount))
         enemies[target].burnTurns = max(enemies[target].burnTurns, turns)
         addFloat("Burning!", color: Theme.ember, onEnemy: true, foe: enemies[target].id)
     }
@@ -3539,6 +3591,7 @@ final class BattleEngine {
                     playerPose = .dodge
                     addFloat("Evaded!", color: Theme.steel, onEnemy: false)
                     Haptics.light()
+                    Audio.shared.play(.evade)
                     firstEvadeRewards(attacker: foe)
                     try? await Task.sleep(for: .milliseconds(BattleBeat.deflect))
                     resetPoses()
@@ -3559,6 +3612,7 @@ final class BattleEngine {
                         playerPose = .block
                         addFloat("Shield \(absorbed)", color: Theme.steel, onEnemy: false)
                         shieldAbsorbed(absorbed, attacker: foe)
+                        Audio.shared.play(.block)
                     }
                     if playerShield == 0, !shieldRebuiltThisBattle, hasUpgrade("be_rebuild") {
                         shieldRebuiltThisBattle = true
@@ -3830,6 +3884,7 @@ final class BattleEngine {
         playerPose = .victory
         for index in enemies.indices { enemies[index].pose = .defeat }
         Haptics.success()
+        Audio.shared.play(.death)
         lastAction = isPack
             ? "The last of the pack sinks beneath the water!"
             : "\(enemyDisplayName) is defeated!"
@@ -3842,6 +3897,7 @@ final class BattleEngine {
             enemies[index].pose = .victory
         }
         Haptics.failure()
+        Audio.shared.play(.death)
         lastAction = message
     }
 
@@ -3996,6 +4052,7 @@ final class BattleEngine {
         let kick = CGFloat(min(Double(length), 5.0)) * (crit ? 0.26 : 0.16)
         withAnimation(.linear(duration: 0.3)) { shakeTrigger += kick }
         Haptics.chain(length: length, crit: crit)
+        Audio.shared.play(.chain)
         Task {
             try? await Task.sleep(for: .milliseconds(crit ? 1250 : 1000))
             guard comboFlash?.id == flash.id else { return }
@@ -4009,21 +4066,77 @@ final class BattleEngine {
     /// the deck. Faces swung where the fighter stands — an axe, a guard, a
     /// heal — have no flight and are simply skipped. Several shots in one
     /// action stagger so a volley reads as a volley.
-    private func launchShots(faces: [FaceKind], fromPlayer: Bool, foeID: UUID?) {
+    private func launchShots(
+        faces: [FaceKind],
+        fromPlayer: Bool,
+        foeID: UUID?,
+        magnitude: Int = 1,
+        isCrit: Bool = false
+    ) {
         guard let foeID else { return }
+        let landsOn: FighterAnchorID = fromPlayer ? .foe(foeID) : .player
+
+        // Faces swung where the fighter stands never cross the deck — an axe
+        // lands where it is swung. They still whistle, and they still leave a
+        // mark at the point of contact.
+        for (index, face) in faces.prefix(4).enumerated() where face.projectile == nil {
+            let delay = Double(index) * 0.1
+            if let cue = face.launchCue { Audio.shared.play(cue, after: delay) }
+            if let impact = face.impactCue { Audio.shared.play(impact, after: delay + 0.22) }
+            landMark(face: face, on: landsOn, after: delay + 0.22,
+                     magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
+        }
+
         let flying = faces.compactMap { face -> ProjectileShot? in
             guard let style = face.projectile else { return nil }
             return ProjectileShot(face: face, style: style, tint: face.tint,
-                                  fromPlayer: fromPlayer, foeID: foeID)
+                                  fromPlayer: fromPlayer, foeID: foeID,
+                                  magnitude: magnitude, isCrit: isCrit)
         }
         guard !flying.isEmpty else { return }
         for (index, shot) in flying.prefix(4).enumerated() {
             Task {
                 try? await Task.sleep(for: .milliseconds(index * 120))
                 shots.append(shot)
+                // Fires as it leaves the hand, lands as it arrives.
+                if let cue = shot.face.launchCue { Audio.shared.play(cue) }
+                if let impact = shot.face.impactCue {
+                    Audio.shared.play(impact, after: shot.style.flight)
+                }
+                landMark(face: shot.face, on: landsOn, after: shot.style.flight,
+                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
                 try? await Task.sleep(for: .seconds(shot.style.flight + 0.2))
                 shots.removeAll { $0.id == shot.id }
             }
+        }
+    }
+
+    /// Burns a mark onto whoever was struck, once the blow has had time to
+    /// arrive. Every attack leaves one, so a hit can be read on the body.
+    private func landMark(
+        face: FaceKind,
+        on target: FighterAnchorID,
+        after delay: Double,
+        magnitude: Int,
+        isCrit: Bool,
+        fromPlayer: Bool
+    ) {
+        guard let form = face.impactForm else { return }
+        let mark = ImpactMark(
+            form: form,
+            tint: face.impactTint,
+            target: target,
+            // Blows from the player arrive travelling right; the river's own
+            // come back the other way.
+            angle: fromPlayer ? 0 : 180,
+            isCrit: isCrit,
+            magnitude: magnitude
+        )
+        Task {
+            try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
+            impacts.append(mark)
+            try? await Task.sleep(for: .seconds(mark.lifetime + 0.15))
+            impacts.removeAll { $0.id == mark.id }
         }
     }
 

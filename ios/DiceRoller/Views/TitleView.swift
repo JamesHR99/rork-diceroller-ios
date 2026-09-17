@@ -8,6 +8,8 @@ struct TitleView: View {
     @State private var selectedIndex = 0
     @State private var glowPulse = false
     @State private var showRecords = false
+    /// Raised when casting off would write over a night still waiting.
+    @State private var confirmingOverwrite = false
 
     private var hero: HeroClass { GameData.classes[selectedIndex] }
 
@@ -49,6 +51,16 @@ struct TitleView: View {
         }
         .sheet(isPresented: $showRecords) {
             RecordsSheetView()
+        }
+        .alert("Leave that night behind?", isPresented: $confirmingOverwrite) {
+            Button("Cast Off Anyway", role: .destructive) {
+                game.startRun(with: hero)
+            }
+            Button("Keep It", role: .cancel) {}
+        } message: {
+            if let save = game.savedRun {
+                Text("\(save.hero.name) is still on the river at \(save.placeLabel). Starting a new voyage writes that night over for good.")
+            }
         }
     }
 
@@ -96,10 +108,22 @@ struct TitleView: View {
 
             Spacer(minLength: 0)
 
+            // A night still waiting is the first thing offered, above the
+            // class select — with the hour and purse you would step back into.
+            if let save = game.savedRun {
+                continueButton(save)
+            }
+
             classPicker
 
             Button {
-                game.startRun(with: hero)
+                // Casting off over a saved night asks first.
+                if game.hasSavedRun {
+                    confirmingOverwrite = true
+                    Haptics.warning()
+                } else {
+                    game.startRun(with: hero)
+                }
             } label: {
                 VStack(spacing: 1) {
                     Text("Cast Off")
@@ -123,9 +147,86 @@ struct TitleView: View {
             }
             .buttonStyle(PressableButtonStyle())
 
-            recordsButton
-                .padding(.bottom, 14)
+            HStack(spacing: 6) {
+                recordsButton
+                briefingButton
+            }
+            .padding(.bottom, 14)
         }
+    }
+
+    /// The night still waiting on the river. Shows who is out there, how deep
+    /// they got and what they are carrying, so stepping back in is never a
+    /// guess.
+    private func continueButton(_ save: RunSave) -> some View {
+        Button {
+            game.continueRun()
+        } label: {
+            HStack(spacing: 10) {
+                DuatSymbol(art: DuatArt.classSigil(save.classID),
+                           fallback: save.hero.symbol,
+                           size: 24, tint: save.hero.accent)
+                    .frame(width: 34)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Continue the Voyage")
+                        .font(.fantasy(17, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                    Text("\(save.hero.name) · \(save.placeLabel)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    HStack(spacing: 3) {
+                        DuatIcon(name: DuatArt.currency, size: 13)
+                        Text("\(save.gold)")
+                            .font(.system(size: 12, weight: .black).monospacedDigit())
+                            .foregroundStyle(Theme.gold)
+                    }
+                    Text("\(save.currentHP)/\(save.maxHP) HP")
+                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                        .foregroundStyle(save.currentHP * 3 < save.maxHP
+                                         ? Theme.blood : Theme.parchmentDim)
+                }
+            }
+            .padding(.horizontal, 13)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background {
+                DeckButtonSurface(tone: .secondary, state: .normal,
+                                  rim: save.hero.accent, cornerRadius: 15)
+            }
+            .shadow(color: save.hero.accent.opacity(0.3), radius: 12, y: 4)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .padding(.bottom, 4)
+    }
+
+    /// The opening briefing stays reachable here, even once it has been
+    /// dismissed for good — it is taught in whichever demigod is selected.
+    private var briefingButton: some View {
+        Button {
+            game.openBriefing(for: hero)
+            Haptics.light()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 11, weight: .bold))
+                Text("How to Play")
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(Theme.gold)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .background(Theme.bgCard.opacity(0.85), in: .capsule)
+            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
+        }
+        .buttonStyle(PressableButtonStyle())
     }
 
     /// Quick way into the personal leaderboard from the title screen.

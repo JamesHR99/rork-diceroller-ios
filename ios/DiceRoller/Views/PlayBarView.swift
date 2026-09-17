@@ -1,8 +1,14 @@
 import SwiftUI
 
 /// Bottom play bar — the centre of the turn. A slim stamina rail on the far
-/// left, the tall turn plan taking the whole middle (chains drawn as their own
-/// dice standing side by side), and the freeze / commit buttons on the right.
+/// left, the turn plan taking the whole middle, and the freeze / commit buttons
+/// on the right.
+///
+/// The plan is deliberately only an *order*: one numbered tile per die, in the
+/// sequence they will resolve. It never groups chained dice, never names a
+/// chain and never totals the damage — a chain is a complete surprise until it
+/// fires. The stamina rail still prints the cost, because a cost is not a
+/// spoiler.
 struct PlayBarView: View {
     let engine: BattleEngine
 
@@ -116,7 +122,11 @@ struct PlayBarView: View {
 
     // MARK: - Turn plan
 
-    private var plan: [PlanStep] { engine.displayedPlan }
+    /// The plan as a flat run of dice in play order. Chains still form behind
+    /// the scenes; they simply are not drawn here.
+    private var planFaces: [RolledFace] {
+        engine.phase == .player ? engine.playedFaces : engine.committedPlan.flatMap(\.faces)
+    }
 
     private var planSection: some View {
         VStack(spacing: compact ? 2 : 3) {
@@ -152,7 +162,7 @@ struct PlayBarView: View {
                 .kerning(1.4)
                 .foregroundStyle(Theme.gold.opacity(0.85))
 
-            Text(engine.armingChisel.map { "\($0.name.uppercased()) — tap a chain to spend it" } ?? hintText)
+            Text(engine.armingChisel.map { "\($0.name.uppercased()) — tap a die to spend it" } ?? hintText)
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(engine.armingChisel != nil
                                  ? Theme.ptahCopper
@@ -162,6 +172,8 @@ struct PlayBarView: View {
 
             Spacer(minLength: 4)
 
+            // The plan prints how many dice are committed, never what they add
+            // up to — a total would give the chain away before it lands.
             if engine.hasEchoPending {
                 HStack(spacing: 3) {
                     DuatIcon(name: DuatArt.echoMarker, size: 16)
@@ -171,32 +183,26 @@ struct PlayBarView: View {
                 }
                 .foregroundStyle(Theme.ptahCopper)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
-            } else if engine.projectedDamage > 0 {
-                HStack(spacing: 3) {
-                    DuatIcon(name: DuatArt.Status.critical, size: 15)
-                    Text("\(engine.projectedDamage) TOTAL DMG")
-                        .font(.system(size: 12, weight: .black).monospacedDigit())
-                }
-                .foregroundStyle(Theme.ember)
-                .shadow(color: Theme.ember.opacity(0.6), radius: 5)
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
+            } else if !planFaces.isEmpty {
+                Text("\(planFaces.count) \(planFaces.count == 1 ? "DIE" : "DICE")")
+                    .font(.system(size: 11, weight: .black).monospacedDigit())
+                    .kerning(0.8)
+                    .foregroundStyle(Theme.gold.opacity(0.75))
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
         .frame(height: compact ? 14 : 16)
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.projectedDamage)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: planFaces.count)
     }
 
+    /// The plan: one numbered tile per die, in the order they will resolve.
+    /// No connectors, no grouping — the row says what you will play and when,
+    /// and nothing about what it will add up to.
     private var planRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
-                ForEach(Array(plan.enumerated()), id: \.element.id) { index, step in
-                    planCard(step, number: index + 1, isActive: engine.activeStepIndex == index)
-
-                    if index < plan.count - 1 {
-                        DuatImage(name: DuatArt.chainConnector, width: 18, fit: .fit)
-                            .colorMultiply(Theme.parchmentDim)
-                            .opacity(0.65)
-                    }
+                ForEach(Array(planFaces.enumerated()), id: \.element.id) { index, face in
+                    planDieCard(face, number: index + 1)
                 }
 
                 // Nothing stands in for stamina you have not spent — an empty
@@ -207,63 +213,72 @@ struct PlayBarView: View {
         }
         .frame(height: bodyHeight)
         .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.activeStepIndex)
     }
 
-    @ViewBuilder
-    private func planCard(_ step: PlanStep, number: Int, isActive: Bool) -> some View {
-        // While a copper mark is held up, the chains it can ride glow and a
-        // tap arms it there instead of breaking the chain apart.
-        let armable = engine.armableChisel(for: step)
-        Button {
+    /// One die in the plan: its place in the order, its face, and what that
+    /// face does on its own. Tapping takes it back; dragging reorders it.
+    private func planDieCard(_ face: RolledFace, number: Int) -> some View {
+        let tint = face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint)
+        // A held copper mark lights the dice whose hidden chain could carry it.
+        // The plan never names that chain — the die simply glows and takes the
+        // mark, so a Chisel can still be spent without giving the chain away.
+        let armable = engine.armableChisel(forFace: face.id) != nil
+        let armed = engine.isChiselArmed(onFace: face.id)
+        return Button {
             guard engine.phase == .player else { return }
-            if engine.armHeldChisel(onto: step) { return }
+            if engine.armHeldChisel(ontoFace: face.id) { return }
             if engine.armingChisel != nil {
                 // A held mark makes every other tap a miss rather than an
                 // accidental dismantling of the plan.
                 engine.cancelArming()
                 return
             }
-            for face in step.faces { engine.returnToTray(faceID: face.id) }
+            engine.returnToTray(faceID: face.id)
         } label: {
-            Group {
-                if step.isCombo {
-                    comboCard(step, number: number)
-                } else {
-                    soloCard(step, number: number)
+            VStack(spacing: compact ? 3 : 5) {
+                orderBadge(number, tint: tint)
+
+                DuatSymbol(art: face.face.artName,
+                           fallback: face.face.symbol,
+                           size: compact ? 30 : 36,
+                           tint: tint)
+                    .modifier(FaceWash(tint: Theme.gold, active: face.isCrit))
+
+                Text(face.face.label.uppercased())
+                    .font(.system(size: 9.5, weight: .black))
+                    .kerning(0.4)
+                    .foregroundStyle(Theme.parchment.opacity(0.9))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+
+                Text(face.face.soloTag)
+                    .font(.system(size: 9.5, weight: .bold).monospacedDigit())
+                    .foregroundStyle(Theme.parchmentDim)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+
+                if face.isCrit {
+                    Text("CRIT")
+                        .font(.system(size: 8.5, weight: .black))
+                        .kerning(0.5)
+                        .foregroundStyle(Theme.gold)
                 }
             }
-            .frame(height: bodyHeight)
+            .padding(.horizontal, 5)
+            .padding(.vertical, compact ? 5 : 7)
+            .frame(width: compact ? 76 : 84, height: bodyHeight)
             .background {
-                // Every step is a slab of painted paper, so a plan reads as a
-                // row of carved tablets rather than flat chips.
                 PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.7, shade: 0.34)
                     .clipShape(.rect(cornerRadius: 12))
             }
-            .overlay {
-                // A fused chain wears its own colour as an inner wash so it
-                // reads as one welded object, not a run of loose chips.
-                if step.isCombo {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            LinearGradient(colors: [step.tint.opacity(0.26), .clear],
-                                           startPoint: .bottom, endPoint: .top)
-                        )
-                        .allowsHitTesting(false)
-                }
-            }
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(step.tint.opacity(isActive ? 1 : (step.isCombo ? 0.75 : 0.45)),
-                                  lineWidth: isActive ? 2.6 : (step.isCombo ? 2 : 1.2))
+                    .strokeBorder(tint.opacity(face.isCrit ? 0.9 : 0.45),
+                                  lineWidth: face.isCrit ? 2 : 1.2)
             )
-            .shadow(color: step.tint.opacity(isActive ? 0.85 : (step.isCombo ? 0.45 : 0)),
-                    radius: isActive ? 12 : 6)
-            .scaleEffect(isActive ? 1.06 : 1)
-            // A chain the held Chisel could ride wears Ptah's copper until it
-            // is either taken or the mark is put back down.
+            .shadow(color: face.isCrit ? Theme.gold.opacity(0.5) : .clear, radius: 6)
             .overlay {
-                if armable != nil {
+                if armable {
                     RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(Theme.ptahCopper, lineWidth: 2.4)
                         .shadow(color: Theme.ptahCopper.opacity(0.8), radius: 9)
@@ -271,15 +286,13 @@ struct PlayBarView: View {
                 }
             }
             .overlay(alignment: .topTrailing) {
-                // A copper hammer when an optional Chisel rides this recipe,
-                // and a beckoning one while a mark is waiting to be placed.
-                if engine.isComboArmed(step) {
-                    DuatIcon(name: DuatArt.upgradeHammer, size: 18)
-                        .padding(5)
+                if armed {
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 16)
+                        .padding(3)
                         .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 5)
-                } else if armable != nil {
-                    DuatIcon(name: DuatArt.upgradeHammer, size: 18)
-                        .padding(5)
+                } else if armable {
+                    DuatIcon(name: DuatArt.upgradeHammer, size: 16)
+                        .padding(3)
                         .opacity(0.65)
                         .shadow(color: Theme.ptahCopper.opacity(0.6), radius: 6)
                 }
@@ -287,152 +300,14 @@ struct PlayBarView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(engine.phase != .player)
-        .draggable(step.faces.first?.id.uuidString ?? "")
+        .draggable(face.id.uuidString)
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first,
-                  let droppedID = UUID(uuidString: idString),
-                  let targetID = step.faces.first?.id else { return false }
-            engine.placeInPlayBar(faceID: droppedID, before: targetID)
+                  let droppedID = UUID(uuidString: idString) else { return false }
+            engine.placeInPlayBar(faceID: droppedID, before: face.id)
             return true
         }
         .transition(.scale(scale: 0.6).combined(with: .opacity))
-    }
-
-    /// A chain in the plan: the dice stay separate tiles standing next to each
-    /// other, because adjacency is what made the chain in the first place.
-    /// A chain you have landed before is named; one you have never landed is
-    /// sealed — you can see you have built *something* and what it is worth,
-    /// but it only names itself when it fires.
-    private func comboCard(_ step: PlanStep, number: Int) -> some View {
-        let known = engine.isChainKnown(step)
-        return VStack(alignment: .leading, spacing: compact ? 2 : 3) {
-            HStack(spacing: 4) {
-                orderBadge(number, tint: step.tint)
-
-                Text(engine.planTitle(for: step).uppercased())
-                    .font(.fantasy(compact ? 15.5 : 18, weight: .black))
-                    .kerning(known ? 0.5 : 2)
-                    .foregroundStyle(known ? step.tint : Theme.parchmentDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-
-                Spacer(minLength: 2)
-
-                targetChip(step)
-
-                beatChip(step)
-
-                Text(known ? "\(step.faces.count)-CHAIN" : "NEW")
-                    .font(.system(size: 10, weight: .black))
-                    .kerning(0.5)
-                    .foregroundStyle(Theme.bg)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(known ? step.tint : Theme.sunGold, in: .capsule)
-
-                // The painted cost badge carries the stamina this step spends.
-                Text("\(step.staminaCost)")
-                    .font(.system(size: 12, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.parchment)
-                    .frame(width: 26, height: 26)
-                    .background {
-                        DuatImage(name: DuatArt.costBadge, width: 28, height: 28, fit: .fit)
-                            .modifier(TintWash(
-                                tint: step.staminaCost < step.faces.count ? Theme.sunGold : nil
-                            ))
-                    }
-            }
-
-            weldedFaces(step)
-
-            Text(step.valueLine)
-                .font(.system(size: 11.5, weight: .bold).monospacedDigit())
-                .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchment.opacity(0.9))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-
-            if let chiselLine = engine.chiselLine(for: step) {
-                Text(chiselLine)
-                    .font(.system(size: 9.5, weight: .black))
-                    .kerning(0.4)
-                    .foregroundStyle(Theme.ptahCopper)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-
-            critLine(step)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, compact ? 5 : 7)
-        .frame(minWidth: compact ? 174 : 190, maxWidth: 320, alignment: .leading)
-    }
-
-    /// The chain's faces: each die kept as its own tile with the painted
-    /// connector between them, so the plan reads as dice you arranged in an
-    /// order rather than one welded lump you were handed.
-    private func weldedFaces(_ step: PlanStep) -> some View {
-        HStack(spacing: 2) {
-            ForEach(Array(step.faces.enumerated()), id: \.element.id) { index, face in
-                DuatSymbol(art: face.face.artName,
-                           fallback: face.face.symbol,
-                           size: compact ? 23 : 28,
-                           tint: face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint))
-                    .modifier(FaceWash(tint: Theme.gold, active: face.isCrit))
-                    .frame(width: compact ? 28 : 34, height: compact ? 26 : 32)
-                    .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(face.isCrit ? Theme.gold.opacity(0.9) : step.tint.opacity(0.5),
-                                          lineWidth: 1)
-                    )
-                    .shadow(color: face.isCrit ? Theme.gold.opacity(0.7) : .clear, radius: 4)
-
-                if index < step.faces.count - 1 {
-                    DuatImage(name: DuatArt.chainConnector, width: compact ? 11 : 14, fit: .fit)
-                        .colorMultiply(step.tint)
-                }
-            }
-        }
-    }
-
-    /// A face played on its own — deliberately small next to a real chain.
-    private func soloCard(_ step: PlanStep, number: Int) -> some View {
-        VStack(spacing: compact ? 2 : 3) {
-            HStack(spacing: 3) {
-                orderBadge(number, tint: step.tint)
-                beatChip(step)
-            }
-
-            targetChip(step)
-
-            DuatSymbol(art: step.faces.first?.face.artName,
-                       fallback: step.faces.first?.face.symbol ?? "questionmark",
-                       size: compact ? 28 : 34,
-                       tint: step.tint)
-
-            Text(step.title.uppercased())
-                .font(.system(size: 10, weight: .black))
-                .foregroundStyle(Theme.parchment.opacity(0.85))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-
-            Text(step.valueLine)
-                .font(.system(size: 10, weight: .bold).monospacedDigit())
-                .foregroundStyle(step.damage > 0 ? Theme.ember : Theme.parchmentDim)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.5)
-
-            if step.hasCritFace {
-                Text("CRIT")
-                    .font(.system(size: 9, weight: .black))
-                    .kerning(0.5)
-                    .foregroundStyle(Theme.gold)
-            }
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, compact ? 5 : 7)
-        .frame(width: compact ? 74 : 82)
     }
 
     private func orderBadge(_ number: Int, tint: Color) -> some View {
@@ -442,68 +317,6 @@ struct PlayBarView: View {
             .frame(width: 18, height: 18)
             .background(tint, in: .circle)
             .overlay(Circle().strokeBorder(Theme.bg.opacity(0.5), lineWidth: 0.8))
-    }
-
-    /// The beat this step lands on, in the same numerals the hour strip uses.
-    /// Reordering the plan moves it, so a card always says when it will fire.
-    @ViewBuilder
-    private func beatChip(_ step: PlanStep) -> some View {
-        if let beat = engine.beat(for: step) {
-            HStack(spacing: 1.5) {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 7, weight: .black))
-                Text("\(beat)")
-                    .font(.system(size: 9, weight: .black).monospacedDigit())
-            }
-            .foregroundStyle(Theme.bg)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 1)
-            .background(Theme.frost, in: .capsule)
-        }
-    }
-
-    /// Who this attack is pointed at, on the card itself. The old targeting
-    /// A mark saying this blow will be aimed. Aiming is its own moment now —
-    /// it happens after you commit, on the uncovered stage, one tap per blow —
-    /// so while you are planning this is a read rather than a control. Only
-    /// drawn when more than one creature is standing; a lone foe needs no aim.
-    @ViewBuilder
-    private func targetChip(_ step: PlanStep) -> some View {
-        if engine.canTarget, step.targetsEnemy {
-            HStack(spacing: 2) {
-                DuatSymbol(art: DuatArt.Status.marked, fallback: "target",
-                           size: 9, tint: Theme.parchmentDim)
-                Text("AIM")
-                    .font(.system(size: 8, weight: .black))
-                    .kerning(0.6)
-                    .foregroundStyle(Theme.parchmentDim)
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1.5)
-            .background(Theme.bg.opacity(0.7), in: .capsule)
-            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 0.8))
-            .accessibilityLabel("Aimed after you commit")
-        }
-    }
-
-    /// The crit read-out under a chain: how many crit dice fed it and what the
-    /// chain jumps to if its own roll lands.
-    @ViewBuilder
-    private func critLine(_ step: PlanStep) -> some View {
-        if step.comboCritChance > 0 {
-            HStack(spacing: 3) {
-                DuatIcon(name: DuatArt.Status.critical, size: 15)
-                Text(step.isGuaranteedCrit
-                     ? "CRIT GUARANTEED"
-                     : "\(step.critDice)◆ · \(Int(step.comboCritChance * 100))% → \(step.critDamage)")
-                    .font(.system(size: 11, weight: .black).monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            .foregroundStyle(Theme.gold)
-        } else {
-            Color.clear.frame(height: compact ? 10 : 13)
-        }
     }
 
     private var hintText: String {
@@ -528,6 +341,7 @@ struct PlayBarView: View {
                 engine.freezeArmed.toggle()
             }
             Haptics.light()
+            Audio.shared.play(.uiTap)
         } label: {
             VStack(spacing: 1) {
                 HStack(spacing: 5) {
@@ -586,6 +400,7 @@ struct PlayBarView: View {
         return Button {
             engine.beginCommit()
             Haptics.medium()
+            Audio.shared.play(.uiConfirm)
         } label: {
             VStack(spacing: 2) {
                 DuatIcon(name: DuatArt.Status.burn, size: compact ? 21 : 26)

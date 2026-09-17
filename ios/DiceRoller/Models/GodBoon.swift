@@ -52,7 +52,7 @@ enum BoonSlot: String, CaseIterable, Hashable, Identifiable {
 
 /// A boon's quality, rolled and shown *before* you choose it. Separate from
 /// level: rarity sets the ceiling, level climbs within it.
-enum BoonRarity: Int, CaseIterable, Hashable, Comparable {
+enum BoonRarity: Int, CaseIterable, Hashable, Comparable, Codable {
     case common = 0
     case rare = 1
     case epic = 2
@@ -381,7 +381,7 @@ enum BoonSourceGroup: String, Hashable {
 
 /// A power as the character actually carries it: which card, how good a copy,
 /// and how far it has been levelled.
-struct EquippedBoon: Identifiable, Hashable {
+struct EquippedBoon: Identifiable, Hashable, Codable {
     let defID: String
     var rarity: BoonRarity
     var level: Int

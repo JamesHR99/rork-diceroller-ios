@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A playable class. Weapon and armour are permanent; the item slot starts empty.
+/// A playable class. Weapon and armour are permanent and the only gear there is.
 struct HeroClass: Identifiable, Hashable {
     let id: String
     let name: String
@@ -41,7 +41,7 @@ struct HeroClass: Identifiable, Hashable {
     /// Fresh weapon + armour for a new run. Three dice in the weapon, two in
     /// the armour — defence is something you play, not something you carry.
     var startingLoadout: Loadout {
-        Loadout(weapon: startingWeapon, armor: startingArmor, item: nil)
+        Loadout(weapon: startingWeapon, armor: startingArmor)
     }
 
     private var startingWeapon: GearPiece {

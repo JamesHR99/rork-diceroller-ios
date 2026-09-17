@@ -17,6 +17,8 @@ struct DiceTrayView: View {
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
+    /// Which Chisel mark has its explanation open, if any.
+    @State private var openChiselID: String?
 
     private var freezeArmed: Bool { engine.freezeArmed }
 
@@ -151,14 +153,13 @@ struct DiceTrayView: View {
                 .kerning(1.6)
                 .foregroundStyle(freezeArmed ? Theme.frost : Theme.gold)
 
-            // Chisels of Ptah, struck in his copper beside the title.
+            // Chisels of Ptah, struck in his copper beside the title. A
+            // Chisel's rule is otherwise only legible on the card it came
+            // from, so each mark opens its own explanation.
             if !engine.chisels.isEmpty {
                 HStack(spacing: 2) {
                     ForEach(engine.chisels.sorted(), id: \.self) { id in
-                        DuatSymbol(art: DuatArt.chisel(id),
-                                   fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
-                                   size: 13,
-                                   tint: Theme.ptahCopper)
+                        chiselMark(id)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -203,6 +204,37 @@ struct DiceTrayView: View {
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.frozenCount)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+    }
+
+    /// One copper Chisel mark. Tapping it opens the rule the Chisel is quietly
+    /// applying to your whole weapon, which is otherwise only written on the
+    /// card you first took it from.
+    private func chiselMark(_ id: String) -> some View {
+        let isOpen = openChiselID == id
+        return Button {
+            Haptics.light()
+            Audio.shared.play(.uiTap)
+            withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) {
+                openChiselID = isOpen ? nil : id
+            }
+        } label: {
+            DuatSymbol(art: DuatArt.chisel(id),
+                       fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
+                       size: 13,
+                       tint: Theme.ptahCopper)
+                .padding(2)
+                .background(Theme.ptahCopper.opacity(isOpen ? 0.28 : 0), in: .circle)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .overlay(alignment: .topLeading) {
+            if isOpen, let def = ChiselCatalog.def(id) {
+                ChiselBubbleView(def: def, isArmed: engine.isChiselArmed(id))
+                    .offset(y: 26)
+                    .transition(.scale(scale: 0.9, anchor: .top).combined(with: .opacity))
+                    .zIndex(60)
+            }
+        }
+        .zIndex(isOpen ? 60 : 0)
     }
 
     private var headerTitle: String {

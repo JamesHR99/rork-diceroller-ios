@@ -1,8 +1,8 @@
 import Foundation
 
-/// A permanent piece of equipment. The weapon and armour are never replaced —
-/// only upgraded — while the item slot starts empty and can be swapped.
-struct GearPiece: Identifiable, Hashable {
+/// A permanent piece of equipment. The weapon and armour are never replaced,
+/// only upgraded.
+struct GearPiece: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var symbol: String
@@ -19,10 +19,9 @@ struct GearPiece: Identifiable, Hashable {
 }
 
 /// Everything the hero carries into a fight.
-struct Loadout: Hashable {
+struct Loadout: Hashable, Codable {
     var weapon: GearPiece
     var armor: GearPiece
-    var item: GearPiece?
 
     /// The collection never grows: five weapon dice and three armour dice.
     /// Equipment improvements replace or modify a die rather than quietly
@@ -30,18 +29,14 @@ struct Loadout: Hashable {
     static let maxDice = GameData.ownedDiceTotal
 
     var allDice: [Die] {
-        weapon.dice + armor.dice + (item?.dice ?? [])
+        weapon.dice + armor.dice
     }
 
     var diceCount: Int { allDice.count }
 
     var isFull: Bool { diceCount >= Loadout.maxDice }
 
-    var pieces: [GearPiece] {
-        var list = [weapon, armor]
-        if let item { list.append(item) }
-        return list
-    }
+    var pieces: [GearPiece] { [weapon, armor] }
 
     /// Adds a die to its matching gear piece. Returns false when at the cap.
     mutating func add(_ die: Die) -> Bool {
@@ -49,8 +44,6 @@ struct Loadout: Hashable {
         switch die.slot {
         case .weapon: weapon.dice.append(die)
         case .armor: armor.dice.append(die)
-        case .item:
-            if item != nil { item?.dice.append(die) } else { return false }
         }
         return true
     }
@@ -58,7 +51,6 @@ struct Loadout: Hashable {
     mutating func remove(dieID: UUID) {
         weapon.dice.removeAll { $0.id == dieID }
         armor.dice.removeAll { $0.id == dieID }
-        item?.dice.removeAll { $0.id == dieID }
     }
 
     /// Applies a transform to a single die wherever it lives.
@@ -67,9 +59,6 @@ struct Loadout: Hashable {
             transform(&weapon.dice[index])
         } else if let index = armor.dice.firstIndex(where: { $0.id == dieID }) {
             transform(&armor.dice[index])
-        } else if var piece = item, let index = piece.dice.firstIndex(where: { $0.id == dieID }) {
-            transform(&piece.dice[index])
-            item = piece
         }
     }
 

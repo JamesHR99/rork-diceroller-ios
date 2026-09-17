@@ -81,7 +81,7 @@ struct RewardView: View {
                  : (game.isShrine
                     ? "Choose one favour from the altar."
                     : (game.statusMessage ?? (deity == nil
-                        ? "One relic may join the voyage."
+                        ? "One of the river's own spoils may join the voyage."
                         : "One blessing may join the voyage."))))
                 .font(.paper(10.5))
                 .italic()
@@ -94,7 +94,11 @@ struct RewardView: View {
                 Spacer(minLength: 0)
             }
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            HStack(spacing: 6) {
+                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+                Spacer(minLength: 0)
+                PauseButton()
+            }
 
             // Chisels of Ptah carried this run, struck in his copper.
             if !game.ownedChisels.isEmpty {
