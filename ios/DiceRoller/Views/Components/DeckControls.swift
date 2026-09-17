@@ -11,6 +11,14 @@ struct RollLeverButton: View {
     @State private var pulled = false
     @State private var glow = false
 
+    /// A housing too short for the full lever — knob, glyph and word stacked
+    /// at full size need about 118pt.
+    private var compact: Bool { height < 118 }
+
+    private var glyphSize: CGFloat {
+        compact ? max(18, min(30, height - 46)) : 34
+    }
+
     var body: some View {
         Button {
             Haptics.medium()
@@ -24,20 +32,28 @@ struct RollLeverButton: View {
             ZStack {
                 housing
 
-                VStack(spacing: 5) {
-                    knob
-                    DuatIcon(name: DuatArt.interactionRoll, size: 34)
+                // The lever is cut to the housing it is given. On a short
+                // landscape screen the knob is dropped and the glyph shrinks
+                // rather than letting the stack spill out over the tray
+                // heading and the stamina rail below it.
+                VStack(spacing: compact ? 2 : 5) {
+                    if !compact { knob }
+                    DuatIcon(name: DuatArt.interactionRoll, size: glyphSize)
                         .shadow(color: Theme.ember.opacity(0.7), radius: glow ? 12 : 5)
                     Text("ROLL")
-                        .font(.fantasy(17, weight: .black))
-                        .kerning(2)
+                        .font(.fantasy(compact ? 14 : 17, weight: .black))
+                        .kerning(compact ? 1.2 : 2)
                         .foregroundStyle(
                             LinearGradient(colors: [Theme.parchment, Theme.gold],
                                            startPoint: .top, endPoint: .bottom)
                         )
                         .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, compact ? 4 : 8)
+                .frame(width: 104, height: height)
+                .clipped()
             }
             .frame(width: 104, height: height)
         }

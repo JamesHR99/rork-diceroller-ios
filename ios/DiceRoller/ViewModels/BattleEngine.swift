@@ -1364,13 +1364,6 @@ final class BattleEngine {
 
     var stamina: Int { max(0, turnStamina - planStaminaCost) }
 
-    /// True while the fight is still being fought — planning or resolving.
-    /// The hour strip stays up across both so the round plays out along the
-    /// same line it was planned on.
-    var isFightLive: Bool {
-        phase == .player || phase == .resolving || phase == .enemyActing
-    }
-
     /// This round's own allowance: 3, then 4, then 5 from the third round on.
     /// The rail is drawn against this rather than a class maximum, so anything
     /// above it reads as overcharge a named power actually earned.

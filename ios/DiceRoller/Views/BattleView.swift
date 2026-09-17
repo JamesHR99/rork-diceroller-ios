@@ -59,19 +59,11 @@ private struct BattleContentView: View {
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
 
-                        // The hour strip sits between the health bars and the
-                        // dice: your plan and every foe's blow on one line, in
-                        // the order they resolve. This is where intent is read
-                        // now — a blow you cannot place in time is not
-                        // information you can use. It stays up through
-                        // resolution so the round plays out along the same
-                        // line you planned it on.
-                        if engine.isFightLive {
-                            TimelineStripView(engine: engine, height: 58)
-                                .padding(.horizontal, 12)
-                                .padding(.top, 3)
-                                .transition(.opacity)
-                        }
+                        // No separate hour band: the turn plan already reads
+                        // the order and the beat of your own actions, and each
+                        // foe's blow carries its beat under its health bar.
+                        // That hands the whole lower half of the screen back
+                        // to the dice and the plan.
                     }
                     // The deck is measured against what this strip leaves
                     // behind, so it can sit directly under the health bars.
@@ -188,10 +180,12 @@ private struct BattleContentView: View {
         // The dice and the plan are grown until they very nearly fill the room
         // under the health rail. Leaving them short is what opened the band of
         // empty river between the rail and the deck — that space belongs to the
-        // dice, so it is spent on them instead of left blank.
+        // dice, so it is spent on them instead of left blank. Retiring the hour
+        // band handed this measure a whole strip of screen back, and it goes
+        // to the two things you actually touch: the roll and the plan.
         return (
-            reel: min(132, max(70, free * 0.54)),
-            body: min(110, max(60, free * 0.44))
+            reel: min(150, max(76, free * 0.56)),
+            body: min(122, max(62, free * 0.42))
         )
     }
 
@@ -475,90 +469,6 @@ private struct BattleContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 3)
-    }
-
-    /// One intent capsule per living foe — in packs you read the whole ambush
-    /// at once; solo it is the same single capsule as always.
-    private var intentRow: some View {
-        HStack(spacing: 6) {
-            ForEach(engine.livingFoes) { foe in
-                intentChip(foe: foe, compact: engine.isPack)
-            }
-        }
-    }
-
-    private func intentChip(foe: EnemyState, compact: Bool) -> some View {
-        let heat = engine.heatDamage(for: foe)
-        // The real numbers, hour depth and heat included — what you read here
-        // is exactly what the blow will do.
-        let strike = engine.projectedStrike(for: foe)
-        let move = foe.intent
-        return HStack(spacing: 6) {
-            DuatIcon(name: DuatArt.Status.marked, size: 15)
-                .opacity(0.8)
-
-            if !compact {
-                Text("Intent:")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.parchmentDim)
-            } else {
-                Text(foe.displayName.uppercased())
-                    .font(.system(size: 9, weight: .black))
-                    .kerning(0.8)
-                    .foregroundStyle(Theme.parchmentDim)
-                    .lineLimit(1)
-            }
-
-            ForEach(Array(move.faces.enumerated()), id: \.offset) { _, face in
-                DuatSymbol(art: face.artName, fallback: face.symbol, size: 19, tint: face.tint)
-                    .frame(width: 23, height: 23)
-                    .background(Theme.bg.opacity(0.7), in: .rect(cornerRadius: 5))
-            }
-
-            Text(move.comboName ?? move.name)
-                .font(.fantasy(12.5, weight: .bold))
-                .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            if strike.damage > 0 {
-                outcomeBadge(DuatArt.Status.piercing, "burst.fill", "\(strike.damage)", Theme.blood)
-            }
-            if strike.heal > 0 {
-                outcomeBadge(DuatArt.Status.health, "heart.fill", "+\(strike.heal)", Theme.forest)
-            }
-            if strike.block > 0 {
-                outcomeBadge(DuatArt.Status.shield, "shield.fill", "+\(strike.block)", Theme.steel)
-            }
-            if move.bleedAmount > 0, move.bleedTurns > 0 {
-                outcomeBadge(DuatArt.Status.bleed, "drop.fill",
-                             "\(move.bleedAmount)×\(move.bleedTurns)", Theme.blood.opacity(0.85))
-            }
-            if foe.stagger > 0 {
-                outcomeBadge(DuatArt.Status.frost, "snowflake", "weakened", Theme.frost)
-            }
-            if heat > 0 {
-                outcomeBadge(DuatArt.Status.burn, "thermometer.high", "+\(heat)", Theme.ember)
-            }
-        }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 6)
-        .background {
-            // The painted intent plate: what is about to hit you, on a slab.
-            DuatImage(name: DuatArt.enemyIntent, fit: .stretch)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-        }
-    }
-
-    /// One icon-and-number pair reading what the telegraphed move will do.
-    private func outcomeBadge(_ art: String, _ fallback: String, _ value: String, _ tint: Color) -> some View {
-        HStack(spacing: 2) {
-            DuatSymbol(art: art, fallback: fallback, size: 14, tint: tint)
-            Text(value)
-                .font(.system(size: 11.5, weight: .black).monospacedDigit())
-                .foregroundStyle(tint)
-        }
     }
 
     /// Announces a serpent-lord re-coiling into a new stage, on the painted

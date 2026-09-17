@@ -142,11 +142,16 @@ struct FighterView: View {
         )
     }
 
-    /// What this foe will throw when the deck goes down, under its health.
+    /// What this foe will throw when the deck goes down, under its health —
+    /// and, ahead of it, the beat it lands on. The separate hour band is gone,
+    /// so this line carries the whole read: when the blow comes, what it is,
+    /// and what it will cost you.
     private func intentLine(_ foe: EnemyState) -> some View {
         let strike = engine.projectedStrike(for: foe)
         let move = foe.intent
         return HStack(spacing: 4) {
+            beatCartouche(engine.duration(for: foe))
+
             ForEach(Array(move.faces.prefix(3).enumerated()), id: \.offset) { _, face in
                 DuatSymbol(art: face.artName, fallback: face.symbol, size: 15, tint: face.tint)
                     .frame(width: 18, height: 18)
@@ -177,6 +182,24 @@ struct FighterView: View {
                 }
             }
         }
+    }
+
+    /// The beat this blow lands on, inked in a cartouche tick in the same
+    /// numerals the turn plan's own chips use, so the two read against each
+    /// other at a glance.
+    private func beatCartouche(_ beat: Int) -> some View {
+        HStack(spacing: 1.5) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 7, weight: .black))
+            Text("\(beat)")
+                .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                .contentTransition(.numericText())
+        }
+        .foregroundStyle(Theme.bg)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 1)
+        .background(Theme.blood, in: .capsule)
+        .accessibilityLabel("Lands on beat \(beat)")
     }
 
     // MARK: - Overlays
