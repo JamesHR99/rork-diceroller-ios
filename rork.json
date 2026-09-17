@@ -2,11 +2,11 @@
   "$schema": "https://rork.com/schema/rork.json",
   "apps": [
     {
-      "name": "DiceRoller",
+      "name": "Pharaoh’s Wager",
       "path": "ios",
       "framework": "swift",
       "settings": {
-        "displayName": "Duat "
+        "displayName": "Pharaoh’s Wager"
       }
     }
   ]
