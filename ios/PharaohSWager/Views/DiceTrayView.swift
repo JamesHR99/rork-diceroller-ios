@@ -281,6 +281,9 @@ private struct DiceTrayReelView: View {
     /// Spark burst thrown off a critical as it slams home.
     @State private var sparkBurst: Double = 0
     @State private var flash: Double = 0
+    /// Adjustable Nock: which way the face last shifted, so the arrow visibly
+    /// travels up or down rather than silently becoming another tier.
+    @State private var nockNudge: CGFloat = 0
 
     private var freezeArmed: Bool { engine.freezeArmed }
     private var isFrozen: Bool { engine.isFrozen(slotID: slot.id) }
@@ -465,6 +468,11 @@ private struct DiceTrayReelView: View {
                            size: iconSize * 1.2,
                            tint: iconTint(face))
                     .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isFrozen))
+                    // The shifted arrow slides into its new tier, so the
+                    // change is something you watch happen.
+                    .offset(y: nockNudge)
+                    .id(face.matchFace)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
                 // The face that actually landed always keeps its name — a crit
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
@@ -509,6 +517,13 @@ private struct DiceTrayReelView: View {
                 }
             }
             .overlay(alignment: .top) { critBadge(face) }
+            .overlay(alignment: .bottom) {
+                VStack(spacing: 2) {
+                    heldBoonTag(face)
+                    nockTag(face)
+                }
+                .offset(y: 7)
+            }
             .overlay(alignment: .bottomTrailing) { nockControls(face) }
             .overlay { slamFlash(face) }
             .overlay { shockRing(face) }
@@ -573,7 +588,12 @@ private struct DiceTrayReelView: View {
 
     private func nockButton(_ faceID: UUID, up: Bool) -> some View {
         Button {
+            // Kick the glyph the way it is travelling, then let it settle on
+            // the new tier: the die itself reports the shift.
+            withAnimation(.easeOut(duration: 0.12)) { nockNudge = up ? -9 : 9 }
             engine.nockShift(faceID: faceID, up: up)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) { nockNudge = 0 }
+            Audio.shared.play(.uiTap)
         } label: {
             PharaohSWagerImage(name: PharaohSWagerArt.utilityForward, width: 12, fit: .fit)
                 .colorMultiply(Theme.ptahCopper)
@@ -592,6 +612,32 @@ private struct DiceTrayReelView: View {
             .opacity(flash * (face.isCrit ? 0.75 : 0.4))
             .blendMode(.plusLighter)
             .allowsHitTesting(false)
+    }
+
+    /// A held die wearing the god who is watching it. Holding a face is only
+    /// worth it because some blessing answers held faces, so the die says
+    /// which god and what they will add rather than leaving you to guess
+    /// whether the bonus arrived.
+    @ViewBuilder
+    private func heldBoonTag(_ face: RolledFace) -> some View {
+        if let held = engine.heldBoon(forFace: face.id) {
+            HStack(spacing: 2) {
+                PharaohSWagerSymbol(art: held.god.artName, fallback: held.god.symbol,
+                                    size: max(9, width * 0.1), tint: held.god.tint)
+                Text(held.effect.uppercased())
+                    .font(.system(size: max(7, width * 0.082), weight: .black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .foregroundStyle(held.god.tint)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1.5)
+            .background(Theme.bg.opacity(0.9), in: .capsule)
+            .overlay(Capsule().strokeBorder(held.god.tint.opacity(0.85), lineWidth: 0.9))
+            .shadow(color: held.god.tint.opacity(0.7), radius: 5)
+            .allowsHitTesting(false)
+            .transition(.scale(scale: 0.6).combined(with: .opacity))
+        }
     }
 
     /// Gold badge that says CRIT without stealing the face's name.
@@ -702,6 +748,23 @@ private struct DiceTrayReelView: View {
     /// which is the true face unless a Chisel substituted a tier.
     private func reelLabel(_ face: RolledFace) -> String {
         face.matchFace.shortLabel
+    }
+
+    /// A shifted arrow says so plainly, in Ptah's copper, with the tier it
+    /// came from — so the substitution is never something you have to infer.
+    @ViewBuilder
+    private func nockTag(_ face: RolledFace) -> some View {
+        if face.effectiveFace != nil {
+            Text("NOCK \(face.face.shortLabel) → \(face.matchFace.shortLabel)")
+                .font(.system(size: 7.5, weight: .black))
+                .foregroundStyle(Theme.ptahCopper)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1.5)
+                .background(Theme.bg.opacity(0.9), in: .capsule)
+                .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.8), lineWidth: 0.8))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
     }
 
     private func iconTint(_ face: RolledFace) -> Color {

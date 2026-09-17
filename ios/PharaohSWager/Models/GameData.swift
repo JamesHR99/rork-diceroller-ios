@@ -88,6 +88,10 @@ enum GameData {
     /// allowance. Anything above this is lost rather than banked.
     static let staminaBudgetCap = 6
 
+    /// The longest recipe in the game, which is also the widest weld the
+    /// planner will ever offer.
+    static let maxComboFaces = 5
+
     /// What a step costs: one stamina per face it consumes. The old
     /// large-combo discounts are gone — a big recipe pays for every ingredient,
     /// and pays again in agility: the more dice it spends, the later it lands.
@@ -123,13 +127,13 @@ enum GameData {
     static let evadeCeiling = 0.8
 
     /// The most Judgement a fighter may have stored on the scales at once.
-    /// It falls against health all at once when the scales finally tip.
+    /// Nothing tips it on a timer: only a primary attack combo of
+    /// `judgementReleaseIngredients` dice or more releases it.
     static let judgementCap = 30
 
-    /// How many of your turns a verdict sits on the scales before it falls.
-    /// Anubis is a slow god: the pile is worth building because you get time
-    /// to keep feeding it.
-    static let judgementFuseTurns = 3
+    /// How many dice an attack combo must consume before it can release a
+    /// stored verdict. Anubis rewards building, not waiting.
+    static let judgementReleaseIngredients = 3
 
     /// A heavy verdict lands harder than a light one. Every whole step of
     /// stored Judgement past the first adds a share of itself again, so
@@ -155,6 +159,33 @@ enum GameData {
 
     /// The most a single burn tick may ever take.
     static let burnTickCap = 12
+
+    // MARK: - Status ceilings
+
+    /// Burn stacks up and halves after it bites, so it is fast pressure that
+    /// fades rather than a slow drip.
+    static let burnStackCap = 12
+
+    /// Bleed never adds: the strongest wound on the target stands.
+    static let bleedStackCap = 10
+
+    /// Poison stacks and then grows by one on its own every round, so it
+    /// strangles slowly instead of expiring.
+    static let poisonStackCap = 8
+    static let poisonGrowth = 1
+
+    /// Weaken can never take more than half an attack away.
+    static let weakenCeiling = 0.5
+
+    /// Burn halves at the natural round-end tick, rounding down.
+    static func burnAfterTick(_ amount: Int) -> Int {
+        amount / 2
+    }
+
+    /// Poison grows after it bites, up to its ceiling.
+    static func poisonAfterTick(_ amount: Int) -> Int {
+        min(poisonStackCap, amount + poisonGrowth)
+    }
 
     /// How much harder enemies are at reading your chains now that solo
     /// attacks hit for two thirds and recipes no longer multiply by length.

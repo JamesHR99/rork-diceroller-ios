@@ -50,9 +50,6 @@ struct ComboDef: Identifiable, Hashable {
     let shield: Int
     /// Evade chance this chain adds, in percentage points.
     let evadePercent: Int
-    /// Stamina banked for next turn when the chain is three faces or more —
-    /// the only stamina a recipe pays back.
-    let staminaNext: Int
 
     let bleedAmount: Int
     let bleedTurns: Int
@@ -66,9 +63,15 @@ struct ComboDef: Identifiable, Hashable {
     /// Fraction of the enemy's defences this attack ignores (0–1).
     let pierce: Double
     /// Fraction the enemy's next attack is weakened by (0–1).
-    let stagger: Double
+    let weaken: Double
+    /// How much harder the next attack on the target lands, in percentage
+    /// points. Additive on the hit, never multiplied over it.
+    let markPercent: Int
     /// Fraction of damage your shield absorbs thrown back at the attacker.
     let reflect: Double
+    /// A recipe whose defence lands immediately and whose strike waits until
+    /// later in the round, so the guard is up before the enemy's blow.
+    let staged: Bool
 
     let lifesteal: Bool
     /// Damage grows with the enemy's bleed stacks (Hemorrhage).
@@ -95,7 +98,6 @@ struct ComboDef: Identifiable, Hashable {
         heal: Int = 0,
         shield: Int = 0,
         evadePercent: Int = 0,
-        staminaNext: Int = 0,
         bleedAmount: Int = 0,
         bleedTurns: Int = 0,
         poisonAmount: Int = 0,
@@ -105,8 +107,10 @@ struct ComboDef: Identifiable, Hashable {
         regenAmount: Int = 0,
         regenTurns: Int = 0,
         pierce: Double = 0,
-        stagger: Double = 0,
+        weaken: Double = 0,
+        markPercent: Int = 0,
         reflect: Double = 0,
+        staged: Bool = false,
         lifesteal: Bool = false,
         scalesWithBleed: Bool = false,
         scalesWithWounds: Bool = false,
@@ -125,7 +129,6 @@ struct ComboDef: Identifiable, Hashable {
         self.heal = heal
         self.shield = shield
         self.evadePercent = evadePercent
-        self.staminaNext = staminaNext
         self.bleedAmount = bleedAmount
         self.bleedTurns = bleedTurns
         self.poisonAmount = poisonAmount
@@ -135,8 +138,10 @@ struct ComboDef: Identifiable, Hashable {
         self.regenAmount = regenAmount
         self.regenTurns = regenTurns
         self.pierce = pierce
-        self.stagger = stagger
+        self.weaken = weaken
+        self.markPercent = markPercent
         self.reflect = reflect
+        self.staged = staged
         self.lifesteal = lifesteal
         self.scalesWithBleed = scalesWithBleed
         self.scalesWithWounds = scalesWithWounds
@@ -156,6 +161,13 @@ struct ComboDef: Identifiable, Hashable {
     /// This recipe's own agility: its size in dice, before the actor's base
     /// agility and any Haste are counted.
     var agilitySize: Int { faceCount }
+
+    /// The two beats a staged recipe resolves on, named for the card and the
+    /// timeline. A single-impact recipe has none.
+    var stagedBeats: (guardFirst: String, strikeLater: String)? {
+        guard staged else { return nil }
+        return ("Guard up now", "Strike later this round")
+    }
 
     /// What this action *is*, which decides which god powers answer it.
     var roles: ActionRole {
@@ -235,7 +247,8 @@ struct ComboDef: Identifiable, Hashable {
         if scalesWithWounds { parts.append("+dmg vs wounded") }
         if scalesWithBurn { parts.append("+3 dmg per burn stack") }
         if pierce > 0 { parts.append("ignores \(Int(pierce * 100))% defences") }
-        if stagger > 0 { parts.append("staggers \(Int(stagger * 100))%") }
+        if weaken > 0 { parts.append("weaken \(Int(weaken * 100))%") }
+        if markPercent > 0 { parts.append("mark +\(markPercent)%") }
         if reflect > 0 { parts.append("reflects \(Int(reflect * 100))% of blocked hits") }
         if bleedAmount > 0 { parts.append("bleed \(bleedAmount)×\(bleedTurns)") }
         if poisonAmount > 0 { parts.append("poison \(poisonAmount)×\(poisonTurns)") }

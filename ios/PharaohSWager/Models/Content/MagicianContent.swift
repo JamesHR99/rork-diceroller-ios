@@ -50,20 +50,20 @@ enum MagicianContent {
                  burnAmount: 4, burnTurns: 2,
                  flavor: "Two flame runes fold into one roaring sphere."),
         ComboDef(id: "mag_iceBlast", name: "Ice Blast", owner: "magician", source: .weapon,
-                 required: [ComboIngredient(.exact(.runeFrost), 2)], damage: 22, stagger: 0.45,
+                 required: [ComboIngredient(.exact(.runeFrost), 2)], damage: 22, weaken: 0.45,
                  flavor: "The air cracks. Their next swing comes slow."),
         ComboDef(id: "mag_arcaneBarrage", name: "Arcane Barrage", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeArcane), 2)], damage: 28, pierce: 0.4,
                  flavor: "Raw structure, thrown. Armour is only a suggestion."),
         ComboDef(id: "mag_chainSpark", name: "Chain Spark", owner: "magician", source: .weapon,
-                 required: [ComboIngredient(.exact(.wandZap), 2)], damage: 24, stagger: 0.2,
+                 required: [ComboIngredient(.exact(.wandZap), 2)], damage: 24, weaken: 0.2,
                  flavor: "It jumps twice before it decides where to stop."),
         ComboDef(id: "mag_mendingBloom", name: "Mending Bloom", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeLife), 2)], heal: 22,
                  regenAmount: 4, regenTurns: 2,
                  flavor: "Green light in the shape of a closing wound."),
         ComboDef(id: "mag_deepChannel", name: "Deep Channel", owner: "magician", source: .armor,
-                 required: [ComboIngredient(.exact(.channel), 2)], shield: 10, staminaNext: 2,
+                 required: [ComboIngredient(.exact(.channel), 2)], shield: 18,
                  flavor: "Hands still, breath long, the whole night listening."),
 
         // MARK: Fire hybrids
@@ -86,14 +86,14 @@ enum MagicianContent {
                  flavor: "A spark thrown into dry tinder."),
         ComboDef(id: "mag_stokeTheFlame", name: "Stoke the Flame", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.channel))],
-                 damage: 18, staminaNext: 1, burnAmount: 4, burnTurns: 2,
+                 damage: 22, burnAmount: 5, burnTurns: 2,
                  flavor: "Feed it slowly and it feeds you back."),
 
         // MARK: Frost hybrids
 
         ComboDef(id: "mag_rimePlate", name: "Rime Plate", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFrost)), ComboIngredient(.exact(.runeArcane))],
-                 shield: 20, stagger: 0.2,
+                 shield: 20, weaken: 0.2,
                  flavor: "Ice grown along the lines of a diagram."),
         ComboDef(id: "mag_chillWard", name: "Chill Ward", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFrost)), ComboIngredient(.exact(.runeLife))],
@@ -101,11 +101,11 @@ enum MagicianContent {
                  flavor: "A rime of ice that mends as it holds."),
         ComboDef(id: "mag_staticChill", name: "Static Chill", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFrost)), ComboIngredient(.exact(.wandZap))],
-                 damage: 22, stagger: 0.35,
+                 damage: 22, weaken: 0.35,
                  flavor: "Cold enough to slow the arm, sharp enough to find it."),
         ComboDef(id: "mag_frostgather", name: "Frostgather", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFrost)), ComboIngredient(.exact(.channel))],
-                 shield: 14, staminaNext: 1,
+                 shield: 20,
                  flavor: "Draw the heat out of the air and keep it."),
 
         // MARK: Life and arcane hybrids
@@ -116,7 +116,7 @@ enum MagicianContent {
                  flavor: "What leaves them arrives in you."),
         ComboDef(id: "mag_quickening", name: "Quickening", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeLife)), ComboIngredient(.exact(.wandZap))],
-                 heal: 14, staminaNext: 1,
+                 heal: 20,
                  flavor: "A jolt through the heart to remind it of the job."),
         ComboDef(id: "mag_wellspring", name: "Wellspring", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeLife)), ComboIngredient(.exact(.channel))],
@@ -132,7 +132,7 @@ enum MagicianContent {
                  flavor: "A half-step sideways out of the world."),
         ComboDef(id: "mag_capacitor", name: "Capacitor", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.wandZap)), ComboIngredient(.exact(.channel))],
-                 damage: 16, staminaNext: 2,
+                 damage: 26,
                  flavor: "Hold the charge until the wand complains, then let go."),
 
         // MARK: Three-rune spells
@@ -143,7 +143,7 @@ enum MagicianContent {
                  flavor: "Something enormous is falling, and it is on fire."),
         ComboDef(id: "mag_glacier", name: "Glacier", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFrost), 2), ComboIngredient(.exact(.runeArcane))],
-                 damage: 46, stagger: 0.5,
+                 damage: 46, weaken: 0.5,
                  flavor: "A wall of ice arrives, and keeps arriving."),
         ComboDef(id: "mag_phoenixRite", name: "Phoenix Rite", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFire), 2), ComboIngredient(.exact(.runeLife))],
@@ -152,7 +152,7 @@ enum MagicianContent {
         ComboDef(id: "mag_stormcall", name: "Stormcall", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFrost)), ComboIngredient(.exact(.runeArcane)),
                             ComboIngredient(.exact(.wandZap))],
-                 damage: 48, pierce: 0.3, stagger: 0.4,
+                 damage: 48, pierce: 0.3, weaken: 0.4,
                  flavor: "The whole sky, briefly, is your idea."),
         ComboDef(id: "mag_sanctuary", name: "Sanctuary", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeLife), 2), ComboIngredient(.exact(.runeArcane))],
@@ -169,7 +169,7 @@ enum MagicianContent {
                  flavor: "Write the wall, then stand behind the writing."),
         ComboDef(id: "mag_arcaneStorm", name: "Arcane Storm", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.anyRune, 3)], distinct: true,
-                 damage: 44, burnAmount: 4, burnTurns: 2, stagger: 0.3,
+                 damage: 44, burnAmount: 4, burnTurns: 2, weaken: 0.3,
                  flavor: "Three runes, three elements, one storm."),
 
         // MARK: The full word
@@ -179,6 +179,35 @@ enum MagicianContent {
                             ComboIngredient(.exact(.runeLife)), ComboIngredient(.exact(.runeArcane))],
                  damage: 64, heal: 18, shield: 18, burnAmount: 5, burnTurns: 3,
                  flavor: "Every rune the wand knows, spoken at once."),
+
+        // MARK: Four- and five-rune workings
+        //
+        // The Magician's long spells are the widest: a ward and a spell in one
+        // breath. Two of them hold the ward up first and let the spell land
+        // later in the round.
+
+        ComboDef(id: "mag_wardedFireball", name: "Warded Fireball", owner: "magician", source: .weapon,
+                 required: [ComboIngredient(.exact(.runeArcane)), ComboIngredient(.exact(.channel)),
+                            ComboIngredient(.exact(.runeFire), 2)],
+                 damage: 58, shield: 20, burnAmount: 6, reflect: 0.3,
+                 flavor: "Write the shell, then light the thing inside it."),
+        ComboDef(id: "mag_glacialPassage", name: "Glacial Passage", owner: "magician", source: .armor,
+                 required: [ComboIngredient(.exact(.runeFrost), 2), ComboIngredient(.exact(.channel)),
+                            ComboIngredient(.exact(.runeArcane))],
+                 damage: 44, shield: 26, evadePercent: 20, weaken: 0.45, staged: true,
+                 flavor: "Walk the ice out ahead of you and let them come to it."),
+        ComboDef(id: "mag_solarAegis", name: "Solar Aegis", owner: "magician", source: .armor,
+                 required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.runeLife)),
+                            ComboIngredient(.exact(.runeArcane)), ComboIngredient(.exact(.channel)),
+                            ComboIngredient(.exact(.runeFrost))],
+                 damage: 56, heal: 24, shield: 34, evadePercent: 15,
+                 burnAmount: 5, reflect: 0.5, staged: true,
+                 flavor: "Five runes bent into a standing sun. Stand under it."),
+        ComboDef(id: "mag_astralReversal", name: "Astral Reversal", owner: "magician", source: .weapon,
+                 required: [ComboIngredient(.exact(.runeArcane), 2), ComboIngredient(.exact(.runeLife)),
+                            ComboIngredient(.exact(.wandZap)), ComboIngredient(.exact(.channel))],
+                 damage: 78, heal: 26, pierce: 0.5, markPercent: 25, lifesteal: true,
+                 flavor: "Turn the working inside out: what it costs them, it pays you."),
     ]
 
     // MARK: - Offer pools

@@ -82,7 +82,7 @@ enum RogueContent {
                  flavor: "Bracer up, and be somewhere else."),
         ComboDef(id: "rog_readTheRoom", name: "Read the Room", owner: "rogue", source: .armor,
                  required: [ComboIngredient(.exact(.focus)), ComboIngredient(.exact(.evade))],
-                 evadePercent: 20, staminaNext: 1,
+                 evadePercent: 25,
                  flavor: "Watch the feet. The blade always tells the feet first."),
 
         // Signatures
@@ -100,6 +100,32 @@ enum RogueContent {
                             ComboIngredient(.exact(.swiftSlash))],
                  damage: 38, bleedAmount: 6, bleedTurns: 3, poisonAmount: 10, poisonTurns: 3,
                  flavor: "Venom, a thrown blade, and a cut to let it in."),
+
+        // MARK: Four- and five-die mixed work
+        //
+        // The Rogue trades raw damage for statuses and cover: the long recipes
+        // pay less on the swing and far more on what is left behind.
+
+        ComboDef(id: "rog_veiledAssault", name: "Veiled Assault", owner: "rogue", source: .armor,
+                 required: [ComboIngredient(.exact(.evade)), ComboIngredient(.exact(.block)),
+                            ComboIngredient(.anyStrike, 2)],
+                 damage: 40, shield: 14, evadePercent: 30, bleedAmount: 7,
+                 flavor: "Be gone before the answer, and bleeding them when you return."),
+        ComboDef(id: "rog_fangAndFeint", name: "Fang and Feint", owner: "rogue", source: .weapon,
+                 required: [ComboIngredient(.exact(.poison)), ComboIngredient(.exact(.evade)),
+                            ComboIngredient(.anyStrike, 2)],
+                 damage: 38, evadePercent: 25, poisonAmount: 5, markPercent: 25,
+                 flavor: "Show them the left hand. The right one is already wet."),
+        ComboDef(id: "rog_nightfallAmbush", name: "Nightfall Ambush", owner: "rogue", source: .weapon,
+                 required: [ComboIngredient(.exact(.evade)), ComboIngredient(.exact(.poison)),
+                            ComboIngredient(.exact(.daggerThrow)), ComboIngredient(.exact(.swiftSlash), 2)],
+                 damage: 66, evadePercent: 30, bleedAmount: 9, poisonAmount: 6, markPercent: 25,
+                 flavor: "Everything at once, out of a doorway, and then nothing at all."),
+        ComboDef(id: "rog_serpentsDance", name: "Serpent's Dance", owner: "rogue", source: .armor,
+                 required: [ComboIngredient(.exact(.evade), 2), ComboIngredient(.exact(.poison)),
+                            ComboIngredient(.anyStrike, 2)],
+                 damage: 44, shield: 16, evadePercent: 35, poisonAmount: 8, staged: true,
+                 flavor: "Coil, let it strike air, and let the venom do the arithmetic."),
     ]
 
     // MARK: - Offer pools

@@ -200,6 +200,7 @@ enum BoonScalingField: Hashable {
     case pierce
     case burn
     case bleed
+    case poison
     case judgement
     case shield
     case heal
@@ -217,10 +218,18 @@ struct BoonPayload: Hashable {
     var pierce = 0
     var burn = 0
     var bleed = 0
+    var poison = 0
     var judgement = 0
     var shield = 0
     var heal = 0
     var evadePoints = 0
+    /// How much the target's next attack is softened by, in percentage points.
+    var weakenPercent = 0
+    /// How much harder your next attack on the target lands, in percentage
+    /// points. Additive on the hit, never multiplied over it.
+    var markPercent = 0
+    /// Clears your own Burn, Bleed and Poison.
+    var cleansesSelf = false
     /// Stamina banked for the following round.
     var staminaNext = 0
     /// Beats of Haste handed to the qualifying action.
@@ -237,6 +246,8 @@ struct BoonPayload: Hashable {
     var bonusEvadePoints = 0
     var bonusJudgement = 0
     var bonusHeal = 0
+    /// Extra Burn added when the card's condition holds.
+    var burnBonus = 0
 }
 
 /// One card in the catalogue. The text is the contract: `effect` is printed
@@ -308,6 +319,7 @@ struct GodBoonDef: Identifiable, Hashable {
         case .pierce: result.pierce = live
         case .burn: result.burn = live
         case .bleed: result.bleed = live
+        case .poison: result.poison = live
         case .judgement: result.judgement = live
         case .shield: result.shield = live
         case .heal: result.heal = live

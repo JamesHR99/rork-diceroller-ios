@@ -18,7 +18,7 @@ struct DivineFaceEffect: Hashable {
     var regenAmount: Int = 0
     var regenTurns: Int = 0
     var pierce: Double = 0
-    var stagger: Double = 0
+    var weaken: Double = 0
     /// Fraction of damage taken this turn thrown back at the attacker (guards).
     var reflect: Double = 0
     var mark: Double = 1
@@ -33,7 +33,7 @@ struct DivineFaceEffect: Hashable {
     var alwaysCrit: Bool = false
     var scalesWithWounds: Bool = false
     var scalesWithBurn: Bool = false
-    var scalesWithStagger: Bool = false
+    var scalesWithWeaken: Bool = false
 
     /// The number shown as the face's headline value.
     var headlineValue: Int {
@@ -69,7 +69,7 @@ struct DivineFaceEffect: Hashable {
         if damage > 0 { list.append("\(damage) damage") }
         if scalesWithWounds { list.append("+damage the more wounded they are") }
         if scalesWithBurn { list.append("+3 damage per burn stack") }
-        if scalesWithStagger { list.append("+12 damage if they are staggered") }
+        if scalesWithWeaken { list.append("+12 dmg vs weakened") }
         if alwaysCrit { list.append("always crits") }
         if pierce > 0 { list.append("ignores \(Int(pierce * 100))% block") }
         if lifesteal { list.append("heals for the damage dealt") }
@@ -82,7 +82,7 @@ struct DivineFaceEffect: Hashable {
         if carryBlock { list.append("block carries over") }
         if cleanse { list.append("clears bleed") }
         if dodgeGain > 0 { list.append("\(dodgeGain) evade") }
-        if stagger > 0 { list.append("staggers \(Int(stagger * 100))%") }
+        if weaken > 0 { list.append("weaken \(Int(weaken * 100))%") }
         if reflect > 0 { list.append("scorches back \(Int(reflect * 100))%") }
         if mark > 1 { list.append("marks +\(Int((mark - 1) * 100))%") }
         if critBoost > 0 { list.append("+\(Int(critBoost * 100))% crit for the fight") }

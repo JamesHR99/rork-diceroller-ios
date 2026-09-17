@@ -46,7 +46,7 @@ enum ArcherContent {
                  flavor: "Straight through the shield and out the back."),
         ComboDef(id: "arc_pointBlank", name: "Point-Blank", owner: "archer", source: .weapon,
                  required: [ComboIngredient(.exact(.bowSmack)), ComboIngredient(.anyArrow)],
-                 damage: 26, stagger: 0.2,
+                 damage: 26, weaken: 0.2,
                  flavor: "Riser to the jaw, then the arrow."),
 
         // Armour — light armour
@@ -69,8 +69,35 @@ enum ArcherContent {
                  damage: 58, pierce: 0.4, guaranteedCrit: true,
                  flavor: "Three draws, one breath, one perfect release."),
         ComboDef(id: "arc_stormOfShafts", name: "Storm of Shafts", owner: "archer", source: .weapon,
-                 required: [ComboIngredient(.anyArrow, 4)], damage: 56, stagger: 0.4,
+                 required: [ComboIngredient(.anyArrow, 4)], damage: 56, weaken: 0.4,
                  flavor: "Four in the air and the riser across the jaw."),
+
+        // MARK: Four- and five-die mixed draws
+        //
+        // The long recipes buy their power with time on the clock rather than
+        // a discount. Two of them are staged: the bracer goes up first and the
+        // release comes later in the round, so the guard is standing before
+        // the answer arrives.
+
+        ComboDef(id: "arc_coveringVolley", name: "Covering Volley", owner: "archer", source: .armor,
+                 required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade)),
+                            ComboIngredient(.anyArrow, 2)],
+                 damage: 42, shield: 18, evadePercent: 15, staged: true,
+                 flavor: "Bracer up, feet set, and only then the shafts."),
+        ComboDef(id: "arc_falconsReversal", name: "Falcon's Reversal", owner: "archer", source: .weapon,
+                 required: [ComboIngredient(.exact(.bowSmack)), ComboIngredient(.exact(.evade)),
+                            ComboIngredient(.anyArrow, 2)],
+                 damage: 50, evadePercent: 20, weaken: 0.3, markPercent: 25,
+                 flavor: "Give them the riser, take the angle, mark the throat."),
+        ComboDef(id: "arc_sunwardBarrage", name: "Sunward Barrage", owner: "archer", source: .weapon,
+                 required: [ComboIngredient(.exact(.focus)), ComboIngredient(.anyArrow, 4)],
+                 damage: 82, pierce: 0.45, markPercent: 25,
+                 flavor: "Four shafts into the sun, and the sun does the rest."),
+        ComboDef(id: "arc_heronsPassage", name: "Heron's Passage", owner: "archer", source: .armor,
+                 required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade)),
+                            ComboIngredient(.exact(.heal)), ComboIngredient(.anyArrow, 2)],
+                 damage: 58, heal: 20, shield: 22, evadePercent: 25, staged: true,
+                 flavor: "Wade slow, stand still, and strike once the water settles."),
     ]
 
     // MARK: - Offer pools

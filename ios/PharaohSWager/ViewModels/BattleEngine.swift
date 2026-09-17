@@ -142,7 +142,7 @@ struct PlanStep: Identifiable {
         if damage > 0 { return true }
         if let combo {
             return combo.bleedAmount > 0 || combo.poisonAmount > 0
-                || combo.burnAmount > 0 || combo.stagger > 0
+                || combo.burnAmount > 0 || combo.weaken > 0 || combo.markPercent > 0
         }
         guard let face = faces.first else { return false }
         return face.face.soloKind == .poison || face.face == .runeFrost
@@ -186,16 +186,17 @@ struct PlanStep: Identifiable {
             let scale = comboScale
             func scaled(_ value: Int) -> Int { GameData.scaleUp(value, by: scale) }
             var parts: [String] = []
-            if combo.bleedAmount > 0 { parts.append("Bleed \(scaled(combo.bleedAmount))×\(combo.bleedTurns)") }
-            if combo.poisonAmount > 0 { parts.append("Poison \(scaled(combo.poisonAmount))×\(combo.poisonTurns)") }
-            if combo.burnAmount > 0 { parts.append("Burn \(scaled(combo.burnAmount))×\(combo.burnTurns)") }
+            if combo.bleedAmount > 0 { parts.append("Bleed \(scaled(combo.bleedAmount))") }
+            if combo.poisonAmount > 0 { parts.append("Poison \(scaled(combo.poisonAmount))") }
+            if combo.burnAmount > 0 { parts.append("Burn \(scaled(combo.burnAmount))") }
             if combo.heal > 0 { parts.append("+\(scaled(combo.heal)) HP") }
             if combo.regenAmount > 0 { parts.append("Regen \(scaled(combo.regenAmount))×\(combo.regenTurns)") }
             if combo.lifesteal { parts.append("Lifesteal") }
             if combo.shield > 0 { parts.append("+\(scaled(combo.shield)) Shield") }
             if combo.evadePercent > 0 { parts.append("+\(combo.evadePercent)% Evade") }
             if combo.pierce > 0 { parts.append("Pierce \(Int(combo.pierce * 100))%") }
-            if combo.stagger > 0 { parts.append("Stagger \(Int(combo.stagger * 100))%") }
+            if combo.weaken > 0 { parts.append("Weaken \(Int(combo.weaken * 100))%") }
+            if combo.markPercent > 0 { parts.append("Mark +\(combo.markPercent)%") }
             if combo.reflect > 0 { parts.append("Reflect \(Int(combo.reflect * 100))%") }
             return parts
         }
@@ -421,14 +422,22 @@ struct EnemyState: Identifiable {
     /// and what is left stands until something breaks it — exactly like your
     /// own shield.
     var armour: Int
+    /// Bleed never adds: the strongest wound stands. It bites just before this
+    /// creature attacks, so aggression costs it blood.
     var bleedAmount = 0
     var bleedTurns = 0
+    /// Poison stacks and grows by one every round end. It never expires.
     var poisonAmount = 0
     var poisonTurns = 0
+    /// Burn stacks up and halves after each round-end bite: fast pressure
+    /// that fades on its own.
     var burnAmount = 0
     var burnTurns = 0
-    var stagger = 0.0
-    var mark = 1.0
+    /// How much the creature's next attack is softened by, 0–0.5.
+    var weaken = 0.0
+    /// How much harder the next attack on this creature lands, as a bonus
+    /// fraction added to the hit rather than multiplied over it.
+    var markBonus = 0.0
     var pose: FighterPose = .idle
     /// Everything this creature has told you it is going to do this round, in
     /// the order it will do it. A creature spends a stamina allowance like you
@@ -444,9 +453,6 @@ struct EnemyState: Identifiable {
     /// further additions join it and do not restart the count.
     var judgementAmount = 0
     var judgementPending = false
-    /// Your turns left before the scales tip. Set when the first weight lands
-    /// and counted down at the end of each of your turns.
-    var judgementFuse = 0
 
     init(def: EnemyDef) {
         self.def = def
@@ -657,6 +663,11 @@ final class BattleEngine {
     private(set) var freezesUsed = 0
     var freezeArmed = false
     private(set) var playOrder: [UUID] = []
+    /// Dice you have explicitly welded together, each entry the face ids of one
+    /// combined action in plan order. Nothing fuses on its own any more: a
+    /// recipe only becomes a combo because you chose to combine it, and
+    /// Separate gives the dice straight back.
+    private(set) var weldedGroups: [[UUID]] = []
     private(set) var phase: Phase = .player
     private(set) var turnNumber = 1
     private(set) var committedPlan: [PlanStep] = []
@@ -865,7 +876,7 @@ final class BattleEngine {
 
     /// What one of this foe's telegraphed moves will actually do if it
     /// resolves right now — hour depth, heat, a held wind-up and any pending
-    /// stagger already applied.
+    /// Weaken already applied.
     func projectedStrike(
         for foe: EnemyState,
         move: EnemyMove,
@@ -877,8 +888,8 @@ final class BattleEngine {
             if spendingCharge, foe.chargeBonus > 0 {
                 damage = Int(Double(damage) * foe.chargeBonus)
             }
-            if foe.stagger > 0 {
-                damage = Int(Double(damage) * (1 - foe.stagger))
+            if foe.weaken > 0 {
+                damage = Int(Double(damage) * (1 - foe.weaken))
             }
             damage = max(0, damage)
         }
@@ -1391,6 +1402,51 @@ final class BattleEngine {
         rolled[index].effectiveFace = tiers[shifted]
         nockShiftedFaceID = faceID
         Haptics.light()
+    }
+
+    // MARK: - What a held die is worth
+
+    /// The god power waiting on this held face, if one is. A held die is only
+    /// worth holding because some blessing answers it, so the die itself says
+    /// which god is watching and what they will add — no more holding a Guard
+    /// and hoping the extra shield actually arrives.
+    ///
+    /// Read in planning, so it tests role and shape only; the per-round
+    /// counters are applied when the plan resolves.
+    func heldBoon(forFace faceID: UUID) -> (god: Deity, name: String, effect: String)? {
+        guard phase == .player,
+              let face = rolled.first(where: { $0.id == faceID }), face.wasHeld else { return nil }
+
+        // Judge the die as the action it would be on its own, which is what a
+        // held-face blessing keys off.
+        let step = PlanStep(faces: [face], combo: nil)
+        let roles = roles(for: step)
+        guard !roles.isEmpty else { return nil }
+
+        for boon in boons {
+            guard let def = boon.def else { continue }
+            let answers: Bool
+            switch def.trigger {
+            case .firstFrozenAttack: answers = roles.contains(.attack)
+            case .firstFrozenGuard: answers = roles.contains(.guardian)
+            case .firstFrozenAction: answers = true
+            default: answers = false
+            }
+            guard answers, def.kind != .duo || duoActive(def) else { continue }
+            return (def.god, def.name, summary(of: boon.payload))
+        }
+        return nil
+    }
+
+    /// True when any equipped blessing answers held faces at all — used to
+    /// decide whether the freeze bar is worth annotating.
+    var hasHeldFaceBoon: Bool {
+        boons.contains { boon in
+            switch boon.def?.trigger {
+            case .firstFrozenAttack, .firstFrozenGuard, .firstFrozenAction: true
+            default: false
+            }
+        }
     }
 
     var hasEchoPending: Bool { pendingEcho != nil }
@@ -1906,8 +1962,206 @@ final class BattleEngine {
     func returnToTray(faceID: UUID) {
         guard phase == .player, playOrder.contains(faceID) else { return }
         playOrder.removeAll { $0 == faceID }
+        // A die leaving the plan takes its weld with it: the rest of that
+        // combined action goes back to being separate dice rather than
+        // silently re-forming into something smaller.
+        weldedGroups.removeAll { $0.contains(faceID) }
+        pruneWelds()
         Haptics.light()
         Audio.shared.play(.diceTake)
+    }
+
+    // MARK: - Combining, by choice
+
+    /// A run of adjacent dice in the plan that would make a real recipe, and
+    /// what it would make. Offered as a seam you may tap — never applied for
+    /// you, and never ranked or auto-highlighted as "the best" one.
+    struct WeldCandidate: Identifiable {
+        let faceIDs: [UUID]
+        let combo: ComboDef
+        /// Where the run starts in the plan, for drawing the seam.
+        let position: Int
+
+        var id: String { combo.id + "@" + faceIDs.map(\.uuidString).joined() }
+    }
+
+    /// Every seam currently on offer: maximal adjacent runs of un-welded dice
+    /// that complete a recipe. Longer runs are listed first so a five-die
+    /// working is visible, but nothing is chosen for you.
+    var weldCandidates: [WeldCandidate] {
+        guard phase == .player else { return [] }
+        let faces = playedFaces
+        let welded = Set(weldedGroups.flatMap { $0 })
+        var found: [WeldCandidate] = []
+
+        // Walk every adjacent window, largest first, and keep the ones that
+        // make something. A die already welded into another action is not
+        // available, so seams never overlap an existing combined card.
+        var length = min(faces.count, GameData.maxComboFaces)
+        while length >= 2 {
+            for start in 0...(max(0, faces.count - length)) where start + length <= faces.count {
+                let window = Array(faces[start..<(start + length)])
+                guard !window.contains(where: { welded.contains($0.id) }) else { continue }
+                guard !found.contains(where: { candidate in
+                    window.contains { candidate.faceIDs.contains($0.id) }
+                }) else { continue }
+                guard let resolved = resolveWeld(window) else { continue }
+                found.append(WeldCandidate(faceIDs: window.map(\.id),
+                                           combo: resolved.combo,
+                                           position: start))
+            }
+            length -= 1
+        }
+        return found
+    }
+
+    /// The seam covering this die, if one is on offer.
+    func weldCandidate(forFace faceID: UUID) -> WeldCandidate? {
+        weldCandidates.first { $0.faceIDs.contains(faceID) }
+    }
+
+    /// True when this die is part of an action you welded yourself.
+    func isWelded(faceID: UUID) -> Bool {
+        weldedGroups.contains { $0.contains(faceID) }
+    }
+
+    /// Weld a run together into one action. Costs nothing on its own — the
+    /// stamina is the same dice either way — and can be undone with Separate
+    /// right up until you commit the turn.
+    @discardableResult
+    func combine(_ candidate: WeldCandidate) -> Bool {
+        guard phase == .player else { return false }
+        let welded = Set(weldedGroups.flatMap { $0 })
+        guard !candidate.faceIDs.contains(where: { welded.contains($0) }) else { return false }
+        guard candidate.faceIDs.allSatisfy({ playOrder.contains($0) }) else { return false }
+
+        weldedGroups.append(candidate.faceIDs)
+        // A recipe you have never landed names itself the moment you assemble
+        // it, so nobody has to commit blind to find out what they built.
+        if !knownChainIDs.contains(candidate.combo.id) {
+            _ = ComboLore.discover(candidate.combo.id)
+            knownChainIDs.insert(candidate.combo.id)
+            lastAction = "\(candidate.combo.name) — \(candidate.combo.flavor)"
+        } else {
+            lastAction = "\(candidate.combo.name) assembled."
+        }
+        Haptics.chain(length: candidate.faceIDs.count, crit: false)
+        Audio.shared.play(.diceFreeze)
+        return true
+    }
+
+    /// Pull a combined action back apart. The dice return to the plan in the
+    /// order they went in, and nothing has been spent.
+    @discardableResult
+    func separate(faceID: UUID) -> Bool {
+        guard phase == .player,
+              let index = weldedGroups.firstIndex(where: { $0.contains(faceID) }) else { return false }
+        weldedGroups.remove(at: index)
+        lastAction = "Separated — the dice are yours again."
+        Haptics.light()
+        Audio.shared.play(.diceTake)
+        return true
+    }
+
+    /// A bigger recipe that this combined action could become by swallowing an
+    /// adjacent die. Offered explicitly, never applied quietly.
+    func transformOffer(faceID: UUID) -> WeldCandidate? {
+        guard phase == .player,
+              let group = weldedGroups.first(where: { $0.contains(faceID) }) else { return nil }
+        let faces = playedFaces
+        guard let start = faces.firstIndex(where: { $0.id == group.first }) else { return nil }
+        let end = start + group.count
+        let welded = Set(weldedGroups.flatMap { $0 }).subtracting(group)
+
+        // Only the dice immediately either side can join, and only if they are
+        // not already part of another combined action.
+        var windows: [(start: Int, end: Int)] = []
+        if start > 0, !welded.contains(faces[start - 1].id) {
+            windows.append((start - 1, end))
+        }
+        if end < faces.count, !welded.contains(faces[end].id) {
+            windows.append((start, end + 1))
+        }
+        if start > 0, end < faces.count,
+           !welded.contains(faces[start - 1].id), !welded.contains(faces[end].id) {
+            windows.append((start - 1, end + 1))
+        }
+
+        for window in windows.sorted(by: { ($0.end - $0.start) > ($1.end - $1.start) }) {
+            let candidateFaces = Array(faces[window.start..<window.end])
+            guard candidateFaces.count <= GameData.maxComboFaces,
+                  let resolved = resolveWeld(candidateFaces),
+                  resolved.combo.faceCount > group.count else { continue }
+            return WeldCandidate(faceIDs: candidateFaces.map(\.id),
+                                 combo: resolved.combo,
+                                 position: window.start)
+        }
+        return nil
+    }
+
+    /// Swap a combined action for the bigger recipe it could become.
+    @discardableResult
+    func transform(into candidate: WeldCandidate) -> Bool {
+        guard phase == .player else { return false }
+        weldedGroups.removeAll { group in
+            group.contains { candidate.faceIDs.contains($0) }
+        }
+        return combine(candidate)
+    }
+
+    /// Drops any weld whose dice have left the plan or no longer make a
+    /// recipe, so a stale weld can never hold a combo together invisibly.
+    private func pruneWelds() {
+        let faces = playedFaces
+        weldedGroups.removeAll { group in
+            let members = group.compactMap { id in faces.first { $0.id == id } }
+            return members.count != group.count || resolveWeld(members) == nil
+        }
+    }
+
+    /// What a combined action would do against what the same dice would do
+    /// played separately — the whole point of the preview card. Uses the real
+    /// battle rules and never touches live state.
+    struct WeldPreview {
+        let combo: ComboDef
+        let ingredients: [RolledFace]
+        let staminaCost: Int
+        let combined: PlanStep
+        /// The same dice as individual actions, for the "or leave them apart"
+        /// column.
+        let separateSteps: [PlanStep]
+        /// God powers that would answer the combined action.
+        let qualifyingGods: [Deity]
+
+        var separateDamage: Int { separateSteps.reduce(0) { $0 + $1.damage } }
+        var separateStamina: Int { separateSteps.reduce(0) { $0 + $1.staminaCost } }
+    }
+
+    /// Builds the preview for a seam, using the same PlanStep maths the fight
+    /// itself uses so the numbers cannot drift from reality.
+    func preview(for candidate: WeldCandidate) -> WeldPreview? {
+        let faces = playedFaces
+        let members = candidate.faceIDs.compactMap { id in faces.first { $0.id == id } }
+        guard members.count == candidate.faceIDs.count,
+              let resolved = resolveWeld(members) else { return nil }
+
+        let combined = PlanStep(faces: resolved.members, combo: resolved.combo)
+        let separate = members.map { PlanStep(faces: [$0], combo: nil) }
+        let gods = boons.compactMap { held -> Deity? in
+            guard let def = held.def else { return nil }
+            return qualifies(step: combined, for: def) ? def.god : nil
+        }
+        var seen: [Deity] = []
+        for god in gods where !seen.contains(god) { seen.append(god) }
+
+        return WeldPreview(
+            combo: resolved.combo,
+            ingredients: resolved.members,
+            staminaCost: combined.staminaCost,
+            combined: combined,
+            separateSteps: separate,
+            qualifyingGods: seen
+        )
     }
 
     /// Anubis's Preserved Moment: one extra hold, once per encounter. It is
@@ -2003,6 +2257,9 @@ final class BattleEngine {
             + (echoArmedComboID.map { planIDs.contains($0) ? GameData.echoStaminaCost : 0 } ?? 0)
         turnStamina = max(0, turnStamina - steps.reduce(0) { $0 + $1.staminaCost } - armedExtras)
         playOrder = []
+        // The welds belonged to those dice; the dice are spent, so the welds go
+        // with them rather than lingering into the next round.
+        weldedGroups = []
 
         // One action of yours, resolved at the beat it was scheduled for.
         // Returns true when the fight ended inside it.
@@ -2157,7 +2414,6 @@ final class BattleEngine {
         activeStepIndex = nil
         currentBeat = 0
         try? await Task.sleep(for: .milliseconds(BattleBeat.turnSettle))
-        detonateJudgements()
         boilingNileTick()
         // Anubis's Sentence: stored by a trial champion, it falls against
         // health at the end of your next turn.
@@ -2297,11 +2553,52 @@ final class BattleEngine {
             momentumCarry += GameData.scaleUp(combo.momentumNext, by: multiplier)
         }
 
+        // A staged recipe puts its guard up *before* it swings, which is the
+        // whole reason to build one: the shield is standing when the creature
+        // answers rather than arriving after the blow has already landed.
+        var defenceApplied = false
+        func applyDefence() {
+            guard !defenceApplied else { return }
+            defenceApplied = true
+            if combo.heal > 0 {
+                healPlayer(GameData.scaleUp(combo.heal, by: multiplier))
+            }
+            if combo.regenAmount > 0 {
+                regenAmount = max(regenAmount, GameData.scaleUp(combo.regenAmount, by: multiplier))
+                regenTurns = max(regenTurns, combo.regenTurns)
+                addFloat("Regen", color: Theme.forest, onEnemy: false)
+            }
+            if combo.shield > 0 {
+                gainShield(GameData.scaleUp(combo.shield, by: multiplier))
+            }
+            if combo.evadePercent > 0 {
+                gainEvade(Double(combo.evadePercent) / 100.0)
+            }
+            if combo.reflect > 0 {
+                reflectFraction = max(reflectFraction, combo.reflect)
+                addFloat("Reflecting", color: Theme.gold, onEnemy: false)
+            }
+        }
+        if combo.staged {
+            addFloat("GUARD UP", color: Theme.steel, onEnemy: false, big: true)
+            applyDefence()
+        }
+
         if combo.damage > 0 {
             var raw = GameData.scaleUp(combo.damage, by: multiplier) + step.momentumBonus + step.focusBonus
+            // Armed Chisels ride the action they were spent on. This has to
+            // happen here as well as in the forecast, or an overdrawn arrow
+            // reads as +40% in the plan and lands for its plain value.
+            let armedScale = armedDamageMultiplier(for: step)
+            if armedScale != 1.0 {
+                raw = GameData.scaleUp(raw, by: armedScale)
+            }
             raw = applyDamageBonuses(raw, step: step, scalesWithBleed: combo.scalesWithBleed,
                                      scalesWithWounds: combo.scalesWithWounds, scalesWithBurn: combo.scalesWithBurn,
                                      targetIndex: target)
+            if siegeApplies(step) {
+                addFloat("SIEGE DRAW", color: Theme.ptahCopper, onEnemy: false, big: true)
+            }
 
             // Counterweight: spend held shield for damage before the blow lands.
             if counterweightArmed.contains(combo.id) {
@@ -2321,7 +2618,7 @@ final class BattleEngine {
                step.faces.count >= 3,
                step.faces.contains(where: { $0.patron == .ra && $0.face.isAttack }),
                let target, enemies.indices.contains(target),
-               enemies[target].burnTurns > 0, enemies[target].burnAmount > 0 {
+               enemies[target].burnAmount > 0 {
                 capstoneUsedThisTurn = true
                 let stacks = enemies[target].burnAmount
                 addFloat("SOLAR FLARE", color: Deity.ra.tint, onEnemy: false, big: true)
@@ -2359,39 +2656,33 @@ final class BattleEngine {
             if combo.lifesteal, totalDealt > 0 {
                 healPlayer(totalDealt, label: "Lifesteal")
             }
+            // The scales fall last: a 3+ die attack combo pays its own damage
+            // first, then releases whatever verdict was already stored. Any
+            // Judgement this combo applies is added afterwards, so a combo can
+            // never detonate the weight it just put on.
+            if canReleaseJudgement(step) {
+                releaseJudgement(targetIndex: target)
+            }
         } else {
             // Defensive chains still feed Sobek's capstone and held-face
             // rewards only through faces; no damage path here.
         }
         if combo.bleedAmount > 0 {
-            applyBleed(GameData.scaleUp(combo.bleedAmount, by: multiplier),
-                       turns: crit ? combo.bleedTurns + 1 : combo.bleedTurns, targetIndex: target)
+            applyBleed(GameData.scaleUp(combo.bleedAmount, by: multiplier), targetIndex: target)
         }
         if combo.poisonAmount > 0 {
-            applyPoison(GameData.scaleUp(combo.poisonAmount, by: multiplier),
-                        turns: crit ? combo.poisonTurns + 1 : combo.poisonTurns, targetIndex: target)
+            applyPoison(GameData.scaleUp(combo.poisonAmount, by: multiplier), targetIndex: target)
         }
         if combo.burnAmount > 0 {
-            applyBurn(GameData.scaleUp(combo.burnAmount, by: multiplier),
-                      turns: crit ? combo.burnTurns + 1 : combo.burnTurns, targetIndex: target)
+            applyBurn(GameData.scaleUp(combo.burnAmount, by: multiplier), targetIndex: target)
         }
-        if combo.heal > 0 {
-            healPlayer(GameData.scaleUp(combo.heal, by: multiplier))
+        // A single-impact recipe applies everything together, here.
+        applyDefence()
+        if combo.weaken > 0, let target, enemies.indices.contains(target), enemies[target].isAlive {
+            applyWeaken(combo.weaken * (crit ? 1.3 : 1.0), targetIndex: target)
         }
-        if combo.regenAmount > 0 {
-            regenAmount = max(regenAmount, GameData.scaleUp(combo.regenAmount, by: multiplier))
-            regenTurns = max(regenTurns, combo.regenTurns)
-            addFloat("Regen", color: Theme.forest, onEnemy: false)
-        }
-        if combo.shield > 0 {
-            gainShield(GameData.scaleUp(combo.shield, by: multiplier))
-        }
-        if combo.evadePercent > 0 {
-            gainEvade(Double(combo.evadePercent) / 100.0)
-        }
-        if combo.stagger > 0, let target, enemies.indices.contains(target), enemies[target].isAlive {
-            enemies[target].stagger = max(enemies[target].stagger, min(0.85, combo.stagger * (crit ? 1.3 : 1.0)))
-            addFloat("Staggered", color: Theme.frost, onEnemy: true, foe: foeID)
+        if combo.markPercent > 0, let target, enemies.indices.contains(target), enemies[target].isAlive {
+            applyMark(Double(combo.markPercent) / 100.0, targetIndex: target)
         }
 
         // Ice Blast, Glacier and Earthshaker shove a creature's pending action
@@ -2399,10 +2690,6 @@ final class BattleEngine {
         // back after the round has already been telegraphed.
         if Timing.delayGranting.contains(combo.id) {
             delayFoe(targetIndex: target)
-        }
-        if combo.reflect > 0 {
-            reflectFraction = max(reflectFraction, combo.reflect)
-            addFloat("Reflecting", color: Theme.gold, onEnemy: false)
         }
 
         // Echoing Staff: half of this spell repeats at the start of your next
@@ -2459,8 +2746,7 @@ final class BattleEngine {
                 ? "\(face.displayName) crits for \(dealt)!"
                 : "\(face.displayName) hits for \(dealt)."
             if face.face == .runeFrost, let target, enemies.indices.contains(target), enemies[target].isAlive {
-                enemies[target].stagger = max(enemies[target].stagger, 0.2)
-                addFloat("Slowed", color: Theme.frost, onEnemy: true, foe: foeID)
+                applyWeaken(0.2, targetIndex: target)
             }
             return true
         }
@@ -2536,7 +2822,7 @@ final class BattleEngine {
         if scalesWithBurn { damage += foe.burnAmount * 3 }
 
         // Upgrade damage riders.
-        if hasUpgrade("sob_bloodScent"), foe.bleedTurns > 0 { percentPoints += 20 }
+        if hasUpgrade("sob_bloodScent"), foe.bleedAmount > 0 { percentPoints += 20 }
         if hasUpgrade("ba_pounce"), step.combo != nil, step.faces.count == 2 { damage += 6 }
         if hasUpgrade("ra_solarWind"),
            step.faces.contains(where: { $0.wasHeld && $0.patron == .ra && $0.face.isAttack }) {
@@ -2592,7 +2878,7 @@ final class BattleEngine {
             return 1.0
         }
 
-        if hasUpgrade("ra_sunEdge"), foe.burnTurns > 0 { pierce += 0.25 }
+        if hasUpgrade("ra_sunEdge"), foe.burnAmount > 0 { pierce += 0.25 }
         if hasUpgrade("sob_riptide"), foe.hpFraction < 0.5 { pierce += 0.3 }
         return min(pierce, 1.0)
     }
@@ -2642,7 +2928,7 @@ final class BattleEngine {
               step.faces.contains(where: { $0.patron == .sobek }),
               step.faces.contains(where: { $0.face.isAttack }),
               let target, enemies.indices.contains(target),
-              enemies[target].bleedTurns > 0, enemies[target].bleedAmount > 0 else { return }
+              enemies[target].bleedAmount > 0 else { return }
         let foe = enemies[target]
         capstoneUsedThisTurn = true
         let paid = min(foe.bleedAmount, 8)
@@ -2732,8 +3018,8 @@ final class BattleEngine {
     ) -> Bool {
         let foe = target.flatMap { enemies.indices.contains($0) ? enemies[$0] : nil }
         switch condition {
-        case .targetBurning: return (foe?.burnTurns ?? 0) > 0
-        case .targetBleeding: return (foe?.bleedTurns ?? 0) > 0
+        case .targetBurning: return (foe?.burnAmount ?? 0) > 0
+        case .targetBleeding: return (foe?.bleedAmount ?? 0) > 0
         case .targetJudged: return foe?.judgementPending == true
         case .hadEightShield: return playerShield >= 8
         case .hasCritIngredient: return step?.faces.contains { $0.isCrit } ?? false
@@ -2811,10 +3097,12 @@ final class BattleEngine {
             payload.evadePoints += payload.bonusEvadePoints
             payload.judgement += payload.bonusJudgement
             payload.heal += payload.bonusHeal
+            payload.burn += payload.burnBonus
         }
 
         let touchesFoe = payload.flatDamage > 0 || payload.burn > 0
-            || payload.bleed > 0 || payload.judgement > 0
+            || payload.bleed > 0 || payload.poison > 0 || payload.judgement > 0
+            || payload.weakenPercent > 0 || payload.markPercent > 0
         let foeID = target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
         addFloat(def.name.uppercased(), color: def.god.tint, onEnemy: touchesFoe, foe: foeID)
 
@@ -2832,9 +3120,17 @@ final class BattleEngine {
 
         if payload.shield > 0 { gainShield(payload.shield) }
         if payload.heal > 0 { healPlayer(min(payload.heal, 8), label: def.god.name) }
-        if payload.burn > 0 { applyBurn(payload.burn, turns: 2, targetIndex: target) }
-        if payload.bleed > 0 { applyBleed(payload.bleed, turns: 2, targetIndex: target) }
+        if payload.burn > 0 { applyBurn(payload.burn, targetIndex: target) }
+        if payload.bleed > 0 { applyBleed(payload.bleed, targetIndex: target) }
+        if payload.poison > 0 { applyPoison(payload.poison, targetIndex: target) }
         if payload.judgement > 0 { applyJudgement(payload.judgement, targetIndex: target) }
+        if payload.weakenPercent > 0 {
+            applyWeaken(Double(payload.weakenPercent) / 100.0, targetIndex: target)
+        }
+        if payload.markPercent > 0 {
+            applyMark(Double(payload.markPercent) / 100.0, targetIndex: target)
+        }
+        if payload.cleansesSelf { cleanseSelf(label: def.god.name) }
         if payload.evadePoints > 0 { gainEvade(Double(payload.evadePoints) / 100.0) }
         if payload.staminaNext > 0 {
             nextTurnStamina += payload.staminaNext
@@ -2844,7 +3140,8 @@ final class BattleEngine {
         // Reactions armed by a Guard or Evade wait for the hit or the dodge.
         switch def.trigger {
         case .firstGuard, .firstFrozenGuard, .everyGuard:
-            if payload.burn > 0 || payload.bleed > 0 || payload.judgement > 0 {
+            if payload.burn > 0 || payload.bleed > 0 || payload.poison > 0
+                || payload.judgement > 0 {
                 armedOnShieldAbsorb.append(def.id)
             }
         case .firstEvade:
@@ -2866,7 +3163,11 @@ final class BattleEngine {
         if payload.heal > 0 { parts.append("+\(min(payload.heal, 8)) health") }
         if payload.burn > 0 { parts.append("burn \(payload.burn)") }
         if payload.bleed > 0 { parts.append("bleed \(payload.bleed)") }
+        if payload.poison > 0 { parts.append("poison \(payload.poison)") }
         if payload.judgement > 0 { parts.append("judge \(payload.judgement)") }
+        if payload.weakenPercent > 0 { parts.append("weaken \(payload.weakenPercent)%") }
+        if payload.markPercent > 0 { parts.append("mark +\(payload.markPercent)%") }
+        if payload.cleansesSelf { parts.append("cleansed") }
         if payload.evadePoints > 0 { parts.append("+\(payload.evadePoints)% evade") }
         if payload.staminaNext > 0 { parts.append("+\(payload.staminaNext) stamina next") }
         if payload.haste > 0 { parts.append("haste \(payload.haste)") }
@@ -3089,7 +3390,7 @@ final class BattleEngine {
     /// Pays one burn tick immediately, without shortening the burn.
     private func earlyBurnTick(targetIndex target: Int?) {
         guard let target, enemies.indices.contains(target),
-              enemies[target].burnTurns > 0, enemies[target].burnAmount > 0 else { return }
+              enemies[target].burnAmount > 0 else { return }
         damageEnemyDirect(enemies[target].id, enemies[target].burnAmount, label: "Burn")
     }
 
@@ -3126,11 +3427,10 @@ final class BattleEngine {
         }
     }
 
-    /// Anubis stores damage against a foe. The scales hold it for
-    /// `judgementFuseTurns` of your turns before tipping, so a pile is worth
-    /// feeding rather than spending. Additions join an existing pile at once —
-    /// doubled for the Second Reading — and never restart the count, so
-    /// stacking cannot be used to keep a verdict from ever falling.
+    /// Anubis stores damage against a foe. Nothing tips the scales on a clock:
+    /// the pile sits there until one of your own attack combos of
+    /// `judgementReleaseIngredients` dice or more releases it, so feeding the
+    /// scales is a choice rather than a wait.
     private func applyJudgement(_ amount: Int, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
         var value = amount
@@ -3138,63 +3438,55 @@ final class BattleEngine {
             value *= 2
             addFloat("Second Reading", color: Deity.anubis.tint, onEnemy: false)
         }
-        let wasPending = enemies[target].judgementPending
         enemies[target].judgementAmount = min(GameData.judgementCap, enemies[target].judgementAmount + value)
         enemies[target].judgementPending = true
-        if !wasPending {
-            enemies[target].judgementFuse = GameData.judgementFuseTurns
-        }
-        let stored = enemies[target].judgementAmount
-        let turns = max(1, enemies[target].judgementFuse)
-        addFloat("Judgement \(stored) · \(turns)", color: Deity.anubis.tint,
+        addFloat("Judgement \(enemies[target].judgementAmount)", color: Deity.anubis.tint,
                  onEnemy: true, foe: enemies[target].id)
     }
 
-    /// The end of your turn: every pending verdict loses a turn off its fuse,
-    /// and the ones that run out fall against health directly, whatever armour
-    /// or shield stands in the way. A heavy pile lands harder than a light one.
-    private func detonateJudgements() {
-        for index in enemies.indices where enemies[index].isAlive && enemies[index].judgementPending {
-            enemies[index].judgementFuse -= 1
-            guard enemies[index].judgementFuse <= 0 else {
-                // Still on the scales — say how long it has left so the wait
-                // is legible rather than mysterious.
-                let left = enemies[index].judgementFuse
-                addFloat("Scales \(enemies[index].judgementAmount) · \(left)",
-                         color: Deity.anubis.tint, onEnemy: true, foe: enemies[index].id)
-                continue
-            }
+    /// True when this action is a primary attack combo big enough to pull the
+    /// scales down.
+    private func canReleaseJudgement(_ step: PlanStep) -> Bool {
+        guard let combo = step.combo, combo.roles.contains(.attack) else { return false }
+        return step.faces.count >= GameData.judgementReleaseIngredients
+    }
 
-            let foe = enemies[index]
-            let stored = foe.judgementAmount
-            // Heavy scales tip harder: every full step past the first adds a
-            // share of the pile again.
-            var amount = GameData.judgementVerdict(stored: stored)
-            let scaleBonus = GameData.judgementBonus(stored: stored)
-            // Pairing: Funeral Pyre — detonations burn brighter with burn stacks.
-            if pairing?.id == "pair_ra_anubis" {
-                amount += foe.burnAmount * 2
-            }
-            // Capstone: Final Verdict.
-            if capstoneID == "an_finalVerdict" {
-                if foe.def.isBoss {
-                    amount = Int(Double(amount) * 1.5)
-                } else if foe.hpFraction < 0.25 {
-                    amount *= 2
-                }
-            }
-            // Pairing: The Crossing — a detonation against a bleeding foe heals 5.
-            if pairing?.id == "pair_sobek_anubis", foe.bleedTurns > 0, !pairingFiredThisTurn {
-                pairingFiredThisTurn = true
-                healPlayer(5, label: "The Crossing")
-            }
-            enemies[index].judgementAmount = 0
-            enemies[index].judgementPending = false
-            enemies[index].judgementFuse = 0
-            announceVerdict(foe: foe, stored: stored, total: amount, scaleBonus: scaleBonus)
-            damageEnemyDirect(foe.id, amount, label: "Judgement")
-            withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.9 }
+    /// A big attack combo pulls the scales down. Called *after* the combo's own
+    /// damage has landed, so the verdict is the finish rather than the opener,
+    /// and before the combo applies any Judgement of its own — a combo can
+    /// never detonate weight it just added.
+    private func releaseJudgement(targetIndex target: Int?) {
+        guard let index = resolveTarget(target), enemies[index].isAlive,
+              enemies[index].judgementPending, enemies[index].judgementAmount > 0 else { return }
+
+        let foe = enemies[index]
+        let stored = foe.judgementAmount
+        // Heavy scales tip harder: every full step past the first adds a
+        // share of the pile again.
+        var amount = GameData.judgementVerdict(stored: stored)
+        let scaleBonus = GameData.judgementBonus(stored: stored)
+        // Pairing: Funeral Pyre — verdicts burn brighter with burn stacks.
+        if pairing?.id == "pair_ra_anubis" {
+            amount += foe.burnAmount * 2
         }
+        // Capstone: Final Verdict.
+        if capstoneID == "an_finalVerdict" {
+            if foe.def.isBoss {
+                amount = Int(Double(amount) * 1.5)
+            } else if foe.hpFraction < 0.25 {
+                amount *= 2
+            }
+        }
+        // Pairing: The Crossing — a verdict on a bleeding foe heals 5.
+        if pairing?.id == "pair_sobek_anubis", foe.bleedAmount > 0, !pairingFiredThisTurn {
+            pairingFiredThisTurn = true
+            healPlayer(5, label: "The Crossing")
+        }
+        enemies[index].judgementAmount = 0
+        enemies[index].judgementPending = false
+        announceVerdict(foe: foe, stored: stored, total: amount, scaleBonus: scaleBonus)
+        damageEnemyDirect(foe.id, amount, label: "Judgement")
+        withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.9 }
     }
 
     /// The scales tipping, made unmistakable: Anubis's own banner across the
@@ -3235,7 +3527,7 @@ final class BattleEngine {
     /// for its burn again at the end of your turn.
     private func boilingNileTick() {
         guard pairing?.id == "pair_ra_sobek", !pairingFiredThisTurn else { return }
-        for foe in enemies where foe.isAlive && foe.burnTurns > 0 && foe.bleedTurns > 0 {
+        for foe in enemies where foe.isAlive && foe.burnAmount > 0 && foe.bleedAmount > 0 {
             pairingFiredThisTurn = true
             addFloat("BOILING NILE", color: Deity.ra.tint, onEnemy: false, big: true)
             damageEnemyDirect(foe.id, foe.burnAmount, label: "Burn")
@@ -3245,11 +3537,16 @@ final class BattleEngine {
 
     // MARK: - Statuses
 
-    private func applyBurn(_ amount: Int, turns: Int, targetIndex target: Int?) {
+    /// Burn stacks up to its ceiling. It is fast pressure that fades: the
+    /// round-end tick halves it rather than counting rounds down.
+    private func applyBurn(_ amount: Int, turns: Int = 0, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
-        enemies[target].burnAmount = min(GameData.burnTickCap, max(enemies[target].burnAmount, amount))
-        enemies[target].burnTurns = max(enemies[target].burnTurns, turns)
-        addFloat("Burning!", color: Theme.ember, onEnemy: true, foe: enemies[target].id)
+        let before = enemies[target].burnAmount
+        enemies[target].burnAmount = min(GameData.burnStackCap, before + amount)
+        enemies[target].burnTurns = 1
+        let gained = enemies[target].burnAmount - before
+        addFloat(gained > 0 ? "Burn +\(gained)" : "Burn at max",
+                 color: Theme.ember, onEnemy: true, foe: enemies[target].id)
     }
 
     /// Pushes one foe's telegraphed action a beat later, capped per round so a
@@ -3263,18 +3560,65 @@ final class BattleEngine {
         addFloat("Delayed", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
-    private func applyPoison(_ amount: Int, turns: Int, targetIndex target: Int?) {
+    /// Poison stacks and then grows on its own every round. It never expires,
+    /// so it is the slow strangle rather than a timed drip.
+    private func applyPoison(_ amount: Int, turns: Int = 0, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
-        enemies[target].poisonAmount = max(enemies[target].poisonAmount, amount)
-        enemies[target].poisonTurns = max(enemies[target].poisonTurns, turns)
-        addFloat("Poisoned!", color: Theme.venom, onEnemy: true, foe: enemies[target].id)
+        let before = enemies[target].poisonAmount
+        enemies[target].poisonAmount = min(GameData.poisonStackCap, before + amount)
+        enemies[target].poisonTurns = 1
+        let gained = enemies[target].poisonAmount - before
+        addFloat(gained > 0 ? "Poison +\(gained)" : "Poison at max",
+                 color: Theme.venom, onEnemy: true, foe: enemies[target].id)
     }
 
-    private func applyBleed(_ amount: Int, turns: Int, targetIndex target: Int?) {
+    /// Bleed never adds: the strongest wound on the target stands. It has no
+    /// round count because it bites when the creature attacks, not on a clock.
+    private func applyBleed(_ amount: Int, turns: Int = 0, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
-        enemies[target].bleedAmount = max(enemies[target].bleedAmount, amount)
-        enemies[target].bleedTurns = max(enemies[target].bleedTurns, turns)
-        addFloat("Bleeding!", color: Theme.blood, onEnemy: true, foe: enemies[target].id)
+        let capped = min(GameData.bleedStackCap, amount)
+        guard capped > enemies[target].bleedAmount else {
+            addFloat("Bleed holds at \(enemies[target].bleedAmount)",
+                     color: Theme.blood, onEnemy: true, foe: enemies[target].id)
+            return
+        }
+        enemies[target].bleedAmount = capped
+        enemies[target].bleedTurns = 1
+        addFloat("Bleed \(capped)", color: Theme.blood, onEnemy: true, foe: enemies[target].id)
+    }
+
+    /// Anubis's Burial Cloth: a held guard washes your own wounds away.
+    private func cleanseSelf(label: String) {
+        let carried = playerBleedTurns > 0 || playerBurnTurns > 0
+        playerBleedAmount = 0
+        playerBleedTurns = 0
+        playerBurnAmount = 0
+        playerBurnTurns = 0
+        if carried {
+            addFloat("Cleansed", color: Deity.anubis.tint, onEnemy: false)
+        }
+        _ = label
+    }
+
+    /// Weaken softens the creature's next attack. Only the strongest counts,
+    /// and it can never take more than half the blow away.
+    private func applyWeaken(_ fraction: Double, targetIndex target: Int?) {
+        guard fraction > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        let value = min(GameData.weakenCeiling, fraction)
+        guard value > enemies[target].weaken else { return }
+        enemies[target].weaken = value
+        addFloat("Weaken \(Int(value * 100))%", color: Theme.frost,
+                 onEnemy: true, foe: enemies[target].id)
+    }
+
+    /// Marks a creature so your next attack on it lands harder. A mark cannot
+    /// be cashed in by the same action that applied it.
+    private func applyMark(_ fraction: Double, targetIndex target: Int?) {
+        guard fraction > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        guard fraction > enemies[target].markBonus else { return }
+        enemies[target].markBonus = fraction
+        addFloat("Marked +\(Int(fraction * 100))%", color: Theme.venom,
+                 onEnemy: true, foe: enemies[target].id)
     }
 
     /// Sobek's Deep Water: his blessing's bleed ticks for 2 more.
@@ -3288,8 +3632,15 @@ final class BattleEngine {
         var foe = enemies[index]
         defer { enemies[index] = foe }
 
-        var damage = Int(Double(raw) * foe.mark)
-        if foe.mark > 1 { foe.mark = 1.0 }
+        // Marked is additive on the hit, never multiplied over it, and it is
+        // spent by the attack that cashes it in.
+        var damage = raw
+        if foe.markBonus > 0 {
+            let bonus = Int((Double(raw) * foe.markBonus).rounded())
+            damage += bonus
+            addFloat("Marked +\(bonus)", color: Theme.venom, onEnemy: true, foe: foe.id)
+            foe.markBonus = 0
+        }
         // One pool to chew through, whether the foe was born wearing it or
         // raised it on the spot. Pierce is measured against the mark, so
         // punching through deep plate is worth the same as it ever was.
@@ -3355,10 +3706,11 @@ final class BattleEngine {
             gainShield(8)
         }
         // Upgrade: Ashes to Ashes — a burning enemy's fire spreads on death.
-        if hasUpgrade("ra_ashes"), foe.burnTurns > 0,
+        if hasUpgrade("ra_ashes"), foe.burnAmount > 0,
            let index = enemies.firstIndex(where: { $0.isAlive && $0.id != foe.id }) {
-            enemies[index].burnAmount = max(enemies[index].burnAmount, foe.burnAmount)
-            enemies[index].burnTurns = max(enemies[index].burnTurns, foe.burnTurns)
+            enemies[index].burnAmount = min(GameData.burnStackCap,
+                                            max(enemies[index].burnAmount, foe.burnAmount))
+            enemies[index].burnTurns = 1
             addFloat("Ashes to Ashes", color: Deity.ra.tint, onEnemy: true, foe: enemies[index].id)
         }
     }
@@ -3521,7 +3873,7 @@ final class BattleEngine {
             // Boiling Nile: the foe burning and bleeding at once, with the
             // most burn, is scalded for its burn again.
             if def.id == "DU-01" {
-                let candidates = enemies.filter { $0.isAlive && $0.burnTurns > 0 && $0.bleedTurns > 0 }
+                let candidates = enemies.filter { $0.isAlive && $0.burnAmount > 0 && $0.bleedAmount > 0 }
                 guard let foe = candidates.max(by: { $0.burnAmount < $1.burnAmount }) else { continue }
                 addFloat("BOILING NILE", color: Deity.ra.tint, onEnemy: true, big: true, foe: foe.id)
                 damageEnemyDirect(foe.id, min(6, foe.burnAmount), label: "Burn")
@@ -3693,6 +4045,19 @@ final class BattleEngine {
         let attackFaces = max(1, move.faces.filter(\.isAttack).count)
         var landedAnyHit = false
         if move.damage > 0 {
+            // Bleed punishes aggression: the wound opens as the creature
+            // commits to the swing, once for the whole action however many
+            // hits it holds, and whether or not the blow ever lands. If it
+            // bleeds out here the attack never happens at all.
+            if foe.bleedAmount > 0 {
+                enemies[index] = foe
+                let survived = payBleedBeforeAttack(foeID: foe.id)
+                guard survived, let refreshed = enemies.first(where: { $0.id == foe.id }) else {
+                    resetPoses()
+                    return false
+                }
+                foe = refreshed
+            }
             var total = scaledDamage(move.damage, heat: heat)
             if heat > 0 {
                 addFloat("+\(heat) Heat", color: Theme.ember, onEnemy: true, foe: foe.id)
@@ -3703,10 +4068,10 @@ final class BattleEngine {
                 addFloat("UNLEASHED!", color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
                 foe.chargeBonus = 0
             }
-            if foe.stagger > 0 {
-                total = Int(Double(total) * (1 - foe.stagger))
-                addFloat("Staggered!", color: Theme.frost, onEnemy: true, foe: foe.id)
-                foe.stagger = 0
+            if foe.weaken > 0 {
+                total = Int(Double(total) * (1 - foe.weaken))
+                addFloat("Weakened!", color: Theme.frost, onEnemy: true, foe: foe.id)
+                foe.weaken = 0
             }
             let perHit = total / attackFaces
             var remainder = total - perHit * attackFaces
@@ -3851,21 +4216,36 @@ final class BattleEngine {
         let color: Color
     }
 
+    /// Round end, for one creature. Bleed is absent on purpose: it bites when
+    /// the creature attacks, not on the clock. Burn pays and then halves;
+    /// poison pays and then grows.
     private func statusTicks(index: Int) -> [StatusTick] {
         var ticks: [StatusTick] = []
-        if enemies[index].bleedTurns > 0 {
-            ticks.append(StatusTick(amount: enemies[index].bleedAmount, label: "Bleed", color: Theme.blood))
-            enemies[index].bleedTurns -= 1
+        if enemies[index].poisonAmount > 0 {
+            let amount = enemies[index].poisonAmount
+            ticks.append(StatusTick(amount: amount, label: "Poison", color: Theme.venom))
+            enemies[index].poisonAmount = GameData.poisonAfterTick(amount)
+            enemies[index].poisonTurns = 1
         }
-        if enemies[index].poisonTurns > 0 {
-            ticks.append(StatusTick(amount: enemies[index].poisonAmount, label: "Poison", color: Theme.venom))
-            enemies[index].poisonTurns -= 1
-        }
-        if enemies[index].burnTurns > 0 {
-            ticks.append(StatusTick(amount: enemies[index].burnAmount, label: "Burn", color: Theme.ember))
-            enemies[index].burnTurns -= 1
+        if enemies[index].burnAmount > 0 {
+            let amount = enemies[index].burnAmount
+            ticks.append(StatusTick(amount: amount, label: "Burn", color: Theme.ember))
+            let left = GameData.burnAfterTick(amount)
+            enemies[index].burnAmount = left
+            enemies[index].burnTurns = left > 0 ? 1 : 0
         }
         return ticks
+    }
+
+    /// Bleed bites just before this creature swings, whether or not the blow
+    /// it was about to throw ever lands. Returns false when the wound killed
+    /// it, so the caller drops the attack entirely.
+    private func payBleedBeforeAttack(foeID: UUID) -> Bool {
+        guard let index = enemies.firstIndex(where: { $0.id == foeID }),
+              enemies[index].isAlive, enemies[index].bleedAmount > 0 else { return true }
+        let amount = enemies[index].bleedAmount
+        damageEnemyDirect(foeID, amount, label: "Bleed")
+        return enemies.first(where: { $0.id == foeID })?.isAlive ?? false
     }
 
     private func startPlayerTurn() {
@@ -3933,6 +4313,7 @@ final class BattleEngine {
         }
         nextTurnStamina = 0
         playOrder = []
+        weldedGroups = []
         committedPlan = []
         activeStepIndex = nil
         capstoneUsedThisTurn = false
@@ -4064,52 +4445,47 @@ final class BattleEngine {
         return nil
     }
 
-    /// Groups played faces into steps by *arrangement*.
+    /// Which recipe a welded run of dice actually makes, with any
+    /// Chisel substitution already written onto the copy of the face that
+    /// rides the combo. Returns nil when the run no longer makes anything,
+    /// which is how a weld quietly dissolves if its dice change.
     ///
-    /// Chains are no longer found for you and fused wherever they happen to
-    /// sit: a recipe only forms out of dice standing next to each other, read
-    /// left to right in the order you laid them down. Two Fire runes at either
-    /// end of the plan are two lone runes; put them side by side and they are
-    /// a Fireball. That is the discovery game — where a die goes is now a real
-    /// decision rather than a formality.
-    ///
-    /// Within one run of adjacent dice order still does not matter, so a
-    /// recipe is never a memory test about which die you tapped first.
+    /// Order inside the run never matters, so a weld is not a memory test
+    /// about which die you tapped first.
+    func resolveWeld(_ members: [RolledFace]) -> (combo: ComboDef, members: [RolledFace])? {
+        let kinds = members.map(\.matchFace)
+        for combo in comboPool where combo.faceCount == members.count {
+            if combo.match(from: kinds) != nil {
+                return (combo, members)
+            }
+            if let assisted = chiselAssistedMatch(combo, kinds: kinds) {
+                var window = members
+                let substitution = assisted.substitution
+                if window.indices.contains(substitution.index) {
+                    window[substitution.index].effectiveFace = substitution.kind
+                }
+                return (combo, window)
+            }
+        }
+        return nil
+    }
+
+    /// Groups played faces into steps. Combos come only from welds you made
+    /// yourself; everything else resolves as the single die it is.
     func buildPlan(from faces: [RolledFace]) -> [PlanStep] {
         var groups: [(position: Int, combo: ComboDef, members: [RolledFace])] = []
         var consumed = Set<UUID>()
-        var substitutions = 0
 
-        // Walk the plan from the left. At each die take the largest recipe
-        // that fits the run starting there; the pass is deterministic because
-        // comboPool is already ordered biggest and most specific first.
-        var cursor = 0
-        while cursor < faces.count {
-            var matched = false
-            for combo in comboPool {
-                let end = cursor + combo.faceCount
-                guard end <= faces.count else { continue }
-                var window = Array(faces[cursor..<end])
-                let kinds = window.map(\.matchFace)
-                var isMatch = combo.match(from: kinds) != nil
-                var substituted: (index: Int, kind: FaceKind)? = nil
-                if !isMatch, substitutions < 1,
-                   let assisted = chiselAssistedMatch(combo, kinds: kinds) {
-                    isMatch = true
-                    substituted = assisted.substitution
-                }
-                guard isMatch else { continue }
-                if let substituted, window.indices.contains(substituted.index) {
-                    substitutions += 1
-                    window[substituted.index].effectiveFace = substituted.kind
-                }
-                groups.append((cursor, combo, window))
-                for member in window { consumed.insert(member.id) }
-                cursor = end
-                matched = true
-                break
-            }
-            if !matched { cursor += 1 }
+        // Only the runs you actually welded become combos. A finished recipe
+        // sitting in the plan untouched stays a row of separate dice until you
+        // tap Combine, so nothing fuses behind your back.
+        for group in weldedGroups {
+            let members = group.compactMap { id in faces.first { $0.id == id } }
+            guard members.count == group.count,
+                  let position = faces.firstIndex(where: { $0.id == group.first }),
+                  let resolved = resolveWeld(members) else { continue }
+            groups.append((position, resolved.combo, resolved.members))
+            for member in resolved.members { consumed.insert(member.id) }
         }
 
         var steps: [PlanStep] = []
@@ -4196,7 +4572,7 @@ final class BattleEngine {
     /// Sends whatever in this action actually leaves the fighter's hand across
     /// the deck. Faces swung where the fighter stands — an axe, a guard, a
     /// heal — have no flight and are simply skipped. Several shots in one
-    /// action stagger so a volley reads as a volley.
+    /// action cadence so a volley reads as a volley.
     private func launchShots(
         faces: [FaceKind],
         fromPlayer: Bool,

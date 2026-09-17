@@ -41,14 +41,14 @@ enum WarriorContent {
                  required: [ComboIngredient(.exact(.overhead), 2)], damage: 30,
                  flavor: "Both hands, all your weight, straight down."),
         ComboDef(id: "war_wideSweep", name: "Wide Sweep", owner: "warrior", source: .weapon,
-                 required: [ComboIngredient(.exact(.sideSwing), 2)], damage: 24, stagger: 0.25,
+                 required: [ComboIngredient(.exact(.sideSwing), 2)], damage: 24, weaken: 0.25,
                  flavor: "A hip-high arc that clears the whole line."),
         ComboDef(id: "war_earthshaker", name: "Earthshaker", owner: "warrior", source: .weapon,
-                 required: [ComboIngredient(.exact(.overhead), 3)], damage: 46, stagger: 0.4,
+                 required: [ComboIngredient(.exact(.overhead), 3)], damage: 46, weaken: 0.4,
                  flavor: "Three hammer-falls. The ground remembers."),
         ComboDef(id: "war_shieldBash", name: "Shield Bash", owner: "warrior", source: .weapon,
                  required: [ComboIngredient(.exact(.block)), ComboIngredient(.anySwing)],
-                 damage: 22, shield: 10, stagger: 0.2,
+                 damage: 22, shield: 10, weaken: 0.2,
                  flavor: "Rim to the teeth, then the sword."),
         ComboDef(id: "war_executioner", name: "Executioner", owner: "warrior", source: .weapon,
                  required: [ComboIngredient(.anySwing, 2), ComboIngredient(.anyStrike)],
@@ -68,20 +68,46 @@ enum WarriorContent {
                  flavor: "Strap it, brace it, keep moving."),
         ComboDef(id: "war_setTheLine", name: "Set the Line", owner: "warrior", source: .armor,
                  required: [ComboIngredient(.exact(.focus)), ComboIngredient(.exact(.block))],
-                 shield: 16, staminaNext: 1,
+                 shield: 16,
                  flavor: "Heels down, shield up, breathe."),
         ComboDef(id: "war_gatherWeight", name: "Gather Weight", owner: "warrior", source: .armor,
-                 required: [ComboIngredient(.exact(.focus), 2)], staminaNext: 2, momentumNext: 10,
+                 required: [ComboIngredient(.exact(.focus), 2)], momentumNext: 14,
                  flavor: "Wind the whole body up and wait for the opening."),
 
         // Signatures
         ComboDef(id: "war_warlordsAnswer", name: "Warlord's Answer", owner: "warrior", source: .armor,
                  required: [ComboIngredient(.anySwing, 3), ComboIngredient(.exact(.block))],
-                 damage: 58, shield: 14, stagger: 0.35,
+                 damage: 58, shield: 14, weaken: 0.35,
                  flavor: "Call them in, eat the blow, and take the whole line apart."),
         ComboDef(id: "war_bloodTide", name: "Blood Tide", owner: "warrior", source: .weapon,
                  required: [ComboIngredient(.anySwing, 4)], damage: 68, lifesteal: true,
                  flavor: "Four falls of steel. The floor turns red."),
+
+        // MARK: Four- and five-die mixed lines
+        //
+        // The Warrior's long recipes are the clearest case for staging: the
+        // wall goes in first, the blow comes after, and the shield is standing
+        // when the creature answers.
+
+        ComboDef(id: "war_shieldbreakerCharge", name: "Shieldbreaker Charge", owner: "warrior", source: .weapon,
+                 required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.overhead)),
+                            ComboIngredient(.anySwing, 2)],
+                 damage: 64, shield: 12, pierce: 0.5, weaken: 0.3,
+                 flavor: "Rim first, then everything behind it."),
+        ComboDef(id: "war_turningCleave", name: "Turning Cleave", owner: "warrior", source: .armor,
+                 required: [ComboIngredient(.exact(.block), 2), ComboIngredient(.anySwing, 2)],
+                 damage: 46, shield: 24, weaken: 0.25, reflect: 0.4, staged: true,
+                 flavor: "Catch it on the boards, turn on the heel, and open them up."),
+        ComboDef(id: "war_bastionBreaker", name: "Bastion Breaker", owner: "warrior", source: .armor,
+                 required: [ComboIngredient(.exact(.block), 2), ComboIngredient(.exact(.overhead)),
+                            ComboIngredient(.anySwing, 2)],
+                 damage: 74, shield: 28, pierce: 0.4, weaken: 0.4, staged: true,
+                 flavor: "Plant the wall. Then walk through theirs."),
+        ComboDef(id: "war_kingsReprisal", name: "King's Reprisal", owner: "warrior", source: .weapon,
+                 required: [ComboIngredient(.exact(.focus)), ComboIngredient(.exact(.block)),
+                            ComboIngredient(.anySwing, 3)],
+                 damage: 88, shield: 16, weaken: 0.5, markPercent: 25,
+                 flavor: "Let them spend the round. Answer for all of it at once."),
     ]
 
     // MARK: - Offer pools

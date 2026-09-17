@@ -139,15 +139,15 @@ struct OfferCardView: View {
                     .minimumScaleFactor(0.6)
 
                 // What the thing actually does — the line that decides the
-                // choice. The gold hint capsule that used to sit along the
-                // bottom is gone and its room came here, so a long Chisel
-                // reads at full size instead of being clipped to a whisper.
+                // choice. A Chisel's detail is the longest text any card
+                // carries, so it is allowed to shrink a long way rather than
+                // push the card off the bottom of the screen.
                 Text(offer.detail)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 12.5, weight: .medium))
                     .foregroundStyle(Theme.parchment.opacity(0.92))
                     .multilineTextAlignment(.center)
-                    .lineSpacing(2)
-                    .minimumScaleFactor(0.85)
+                    .lineSpacing(1.5)
+                    .minimumScaleFactor(0.55)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxHeight: .infinity, alignment: .top)
 

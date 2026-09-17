@@ -8,7 +8,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
     case bleed
     case poison
     case judgement
-    case stagger
+    case weaken
     case mark
     case evade
     case regeneration
@@ -24,7 +24,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .bleed: "Bleed"
         case .poison: "Poison"
         case .judgement: "Judgement"
-        case .stagger: "Stagger"
+        case .weaken: "Weaken"
         case .mark: "Mark"
         case .evade: "Evade"
         case .regeneration: "Regeneration"
@@ -41,7 +41,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .bleed: PharaohSWagerArt.Status.bleed
         case .poison: PharaohSWagerArt.Status.poison
         case .judgement: PharaohSWagerArt.Status.judgement
-        case .stagger: PharaohSWagerArt.Status.frost
+        case .weaken: PharaohSWagerArt.Status.frost
         case .mark: PharaohSWagerArt.Status.marked
         case .evade: PharaohSWagerArt.Status.evade
         case .regeneration: PharaohSWagerArt.Status.regeneration
@@ -57,7 +57,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .bleed: "drop.fill"
         case .poison: "drop.triangle.fill"
         case .judgement: "scalemass.fill"
-        case .stagger: "snowflake"
+        case .weaken: "arrow.down.right.circle.fill"
         case .mark: "scope"
         case .evade: "wind"
         case .regeneration: "leaf.fill"
@@ -73,7 +73,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .bleed: Theme.blood
         case .poison: Theme.venom
         case .judgement: Deity.anubis.tint
-        case .stagger: Theme.frost
+        case .weaken: Theme.frost
         case .mark: Theme.venom
         case .evade: Theme.steel
         case .regeneration: Theme.forest
@@ -95,54 +95,55 @@ enum StatusKind: String, CaseIterable, Identifiable {
         }
     }
 
-    /// What it does, in one plain sentence, written from the point of view of
-    /// whoever is wearing it.
+    /// What it does, in one short line, from the point of view of whoever is
+    /// wearing it. Every status keeps a distinct job so two never read alike.
     func summary(onSelf: Bool) -> String {
         let you = onSelf ? "you" : "it"
-        let your = onSelf ? "your" : "its"
         switch self {
         case .burn:
-            return "Fire eating away at \(you). It bites once at the end of every round and ignores guard entirely."
+            return "Fast fire. Bites at round end, then halves."
         case .bleed:
-            return "An open wound. It bites once at the end of every round and ignores guard entirely."
+            return "Bites just before \(you) attack\(onSelf ? "" : "s"). Aggression costs blood."
         case .poison:
-            return "Venom in the blood. It bites once at the end of every round and ignores guard entirely."
+            return "Bites at round end, then grows by 1. Never fades."
         case .judgement:
-            return "Stored damage waiting on the scales. It sits there for \(GameData.judgementFuseTurns) of your turns while you keep adding to it, then falls against \(your) health all at once — and guard does not stop it. A heavier pile tips harder: every \(GameData.judgementScaleStep) stored past the first adds a share of itself again."
-        case .stagger:
-            return "A blow that landed badly. \(onSelf ? "Your" : "Its") very next attack lands weaker, and then the effect is spent."
+            return "Stored damage. A 3+ die attack combo releases it, past guard."
+        case .weaken:
+            return "\(onSelf ? "Your" : "Its") next attack lands softer."
         case .mark:
-            return "A marked target. The next hit that lands on \(you) is multiplied, then the mark is gone."
+            return "The next attack on \(you) hits harder, then it is spent."
         case .evade:
-            return "Footwork. Every single blow aimed at \(you) is rolled against this chance separately — a success means the blow misses completely."
+            return "Rolled per blow. A success misses completely."
         case .regeneration:
-            return "Mending. It restores health once at the end of every round."
+            return "Restores health at round end."
         case .shield:
-            return "A raised guard. Direct blows eat through this before they touch health, and it is not spent by burn, bleed or poison."
+            return "Eaten by direct blows before health. Statuses seep under it."
         case .armour:
-            return "Bronze plate worn over health. Direct blows chip through the plate first; once it is gone the health underneath is bare."
+            return "Plate over health. Direct blows chip it first."
         case .champion:
-            return "A god's chosen. This creature carries that god's own power for the whole fight — the encounter is otherwise ordinary."
+            return "Carries its god's own power all fight."
         }
     }
 
     /// Exactly when it fires.
     var timing: String {
         switch self {
-        case .burn, .bleed, .poison, .regeneration:
-            "End of every round, one tick at a time."
+        case .burn, .poison, .regeneration:
+            "Round end."
+        case .bleed:
+            "Just before the wearer attacks."
         case .judgement:
-            "All at once, \(GameData.judgementFuseTurns) of your turns after the first weight lands."
-        case .stagger:
-            "On the very next attack, then gone."
+            "When a 3+ die attack combo releases it."
+        case .weaken:
+            "Next attack, then gone."
         case .mark:
-            "On the next hit that lands, then gone."
+            "Next attack on the wearer, then gone."
         case .evade:
-            "Rolled separately for every incoming blow."
+            "Per incoming blow."
         case .shield, .armour:
-            "Whenever a direct blow arrives."
+            "On every direct blow."
         case .champion:
-            "For the whole fight."
+            "All fight."
         }
     }
 
@@ -150,25 +151,27 @@ enum StatusKind: String, CaseIterable, Identifiable {
     var stacking: String {
         switch self {
         case .bleed:
-            "Refreshes rather than stacks — a new wound takes the stronger value and the longer count, it does not add to the old one."
-        case .burn, .poison:
-            "A fresh application takes whichever value and duration is stronger."
+            "Strongest wins — never adds."
+        case .burn:
+            "Stacks up."
+        case .poison:
+            "Stacks up, and grows on its own."
         case .judgement:
-            "Stacks up, and keeps stacking until the scales tip. Adding more never resets the count — and a heavier pile is worth more than the sum of its parts."
-        case .stagger:
-            "Only the strongest stagger on the target counts."
+            "Stacks until something releases it."
+        case .weaken:
+            "Strongest wins."
         case .mark:
-            "Only one mark at a time."
+            "One at a time."
         case .evade:
-            "Several sources add together, up to the ceiling."
+            "Adds up to the ceiling."
         case .regeneration:
-            "A fresh mend takes the stronger value."
+            "Strongest wins."
         case .shield:
-            "Adds up freely — every guard face deepens the same pool."
+            "Adds up freely."
         case .armour:
-            "Set when the creature rises; nothing deepens it mid-fight."
+            "Set when the creature rises."
         case .champion:
-            "One champion per Trial."
+            "One per Trial."
         }
     }
 
@@ -183,9 +186,12 @@ enum StatusKind: String, CaseIterable, Identifiable {
     /// Its ceiling, where it has one.
     var cap: String? {
         switch self {
-        case .burn: "Never more than \(GameData.burnTickCap) a tick."
-        case .judgement: "Never more than \(GameData.judgementCap) stored."
-        case .evade: "Never higher than \(Int(GameData.evadeCeiling * 100))% — nothing makes you untouchable."
+        case .burn: "Max \(GameData.burnStackCap)."
+        case .bleed: "Max \(GameData.bleedStackCap)."
+        case .poison: "Max \(GameData.poisonStackCap)."
+        case .judgement: "Max \(GameData.judgementCap) stored."
+        case .weaken: "Max \(Int(GameData.weakenCeiling * 100))%."
+        case .evade: "Max \(Int(GameData.evadeCeiling * 100))%."
         default: nil
         }
     }
@@ -212,7 +218,7 @@ struct LiveStatus: Identifiable {
     let ticksLeft: Int?
     /// A flat stored total, for Judgement and guard pools.
     let total: Int?
-    /// A percentage reading, for Evade, Stagger and Mark.
+    /// A percentage reading, for Evade, Weaken and Mark.
     let percent: Int?
     /// Turns left before a stored effect fires — Judgement's fuse on the
     /// scales. Distinct from `ticksLeft`, which counts repeating bites.
@@ -238,10 +244,11 @@ struct LiveStatus: Identifiable {
         self.turnsLeft = turnsLeft
     }
 
-    /// The badge's own short label, e.g. "6×3", "40%", or "12·2" for a pile
-    /// on the scales with two turns left before it tips.
+    /// The badge's own short label: "6" for a stack, "40%" for a chance,
+    /// "6×3" only where a status still counts rounds.
     var badgeText: String {
         if let perTick, let ticksLeft { return "\(perTick)×\(ticksLeft)" }
+        if let perTick { return "\(perTick)" }
         if let percent { return "\(percent)%" }
         if let total, let turnsLeft { return "\(total)·\(turnsLeft)" }
         if let total { return "\(total)" }
@@ -254,8 +261,13 @@ struct LiveStatus: Identifiable {
         if let perTick, let ticksLeft {
             lines.append((kind == .regeneration ? "Restores" : "Takes", "\(perTick) per round"))
             lines.append(("Rounds left", "\(ticksLeft)"))
-            let owed = perTick * ticksLeft
-            lines.append((kind == .regeneration ? "Left to restore" : "Total still owed", "\(owed)"))
+        } else if let perTick {
+            switch kind {
+            case .burn: lines.append(("Takes", "\(perTick), then halves"))
+            case .poison: lines.append(("Takes", "\(perTick), then grows to \(min(GameData.poisonStackCap, perTick + 1))"))
+            case .bleed: lines.append(("Takes", "\(perTick) on its next attack"))
+            default: lines.append(("Takes", "\(perTick)"))
+            }
         }
         if let total, perTick == nil {
             lines.append((kind == .judgement ? "Stored" : "Depth", "\(total)"))
@@ -263,22 +275,16 @@ struct LiveStatus: Identifiable {
         // Judgement is the one status you can watch coming, so the bubble
         // spells out both the wait and what the pile is currently worth.
         if kind == .judgement, let total {
-            if let turnsLeft {
-                lines.append(("Tips in", turnsLeft == 1 ? "1 more turn of yours" : "\(turnsLeft) more turns of yours"))
-            }
             let verdict = GameData.judgementVerdict(stored: total)
             let bonus = GameData.judgementBonus(stored: total)
-            lines.append(("Falls for", bonus > 0 ? "\(verdict) (\(total) +\(bonus) heavy scales)" : "\(verdict)"))
-            let toNext = GameData.judgementScaleStep - (total % GameData.judgementScaleStep)
-            if total + toNext <= GameData.judgementCap {
-                lines.append(("Next step at", "\(total + toNext) stored"))
-            }
+            lines.append(("Releases for", bonus > 0 ? "\(verdict) (\(total) +\(bonus) heavy)" : "\(verdict)"))
+            lines.append(("Released by", "Your 3+ die attack combo"))
         }
         if let percent {
             switch kind {
             case .evade: lines.append(("Chance per blow", "\(percent)%"))
-            case .stagger: lines.append(("Next attack weakened by", "\(percent)%"))
-            case .mark: lines.append(("Next hit multiplied by", "\(percent)%"))
+            case .weaken: lines.append(("Next attack weaker by", "\(percent)%"))
+            case .mark: lines.append(("Next attack harder by", "+\(percent)%"))
             default: lines.append(("Strength", "\(percent)%"))
             }
         }

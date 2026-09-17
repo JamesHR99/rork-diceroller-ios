@@ -406,8 +406,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "order",
-                title: "The order is the game",
-                body: "Tap these faces into the plan and watch what happens. Dice standing next to each other work together; dice with a gap between them do not.\n\nThat is the whole game. Put the right two side by side and see for yourself.",
+                title: "Combining is the game",
+                body: "Tap these faces into the plan. Dice standing side by side can be combined; dice with a gap cannot.\n\nWhen they make something, a seam appears. Tap it to see exactly what you would get, then choose Combine. Nothing ever fuses on its own, and Separate undoes it.",
                 art: PharaohSWagerArt.chainConnector,
                 fallbackSymbol: "arrow.left.arrow.right",
                 tint: Theme.ember,
@@ -425,7 +425,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "agility",
                 title: "Who moves first",
-                body: "Every action carries an agility number, and the lower number goes first. It is your base agility plus the number of dice the action spends — one die counts 1, a three-die chain counts 3.\n\nSo a big chain is a slow chain. That is the trade you are making every single turn: hit harder, or hit sooner.",
+                body: "Every action carries an agility number, and the lower number goes first. It is your base agility plus the dice the action spends.\n\nSo a big combo is a slow combo. That is the trade every turn: hit harder, or hit sooner.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
@@ -433,8 +433,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "chains",
-                title: "Chains are yours to find",
-                body: "Nothing in this game will ever suggest a chain to you. There is no list, no hint, no recipe book.\n\nThey name themselves the moment they land, and then they are written into your codex for good — across every run, and across every death.",
+                title: "Recipes are yours to find",
+                body: "Nothing here suggests a recipe. No list, no hint, no book.\n\nAssemble one and it names itself on the spot, tells you what it does, and is written into your codex for good — across every run, and every death.",
                 art: PharaohSWagerArt.Status.critical,
                 fallbackSymbol: "sparkles",
                 tint: Theme.gold,

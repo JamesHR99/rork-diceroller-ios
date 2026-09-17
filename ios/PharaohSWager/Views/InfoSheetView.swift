@@ -706,14 +706,16 @@ struct InfoSheetView: View {
     private var rulesTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             ruleCard(
-                icon: "link", tint: Theme.ember, title: "CHAINS ARE THE FIGHT",
+                icon: "link", tint: Theme.ember, title: "COMBINING IS THE FIGHT",
                 lines: [
-                    "A face played on its own is worth about \(Int(GameData.soloAttackScale * 100))% of its printed value. One arrow will not win you anything.",
-                    "A chain forms out of dice standing next to each other, read left to right in the order you laid them down. Two Fire runes at either end of the plan are two lone runes; put them side by side and they are something else entirely.",
-                    "Recipes print their own value — chains no longer multiply by length. What lifts a chain is its critical dice: each one adds +\(Int(GameData.critComboWeight * 100))% to the whole step.",
-                    "A step costs one stamina per face it uses — there is no bulk discount. A big recipe buys its power with time instead: the more dice it spends, the later it lands.",
-                    "Nothing tells you what to build. No letters, no suggestions, no list of what is in reach — you arrange the dice, commit, and each chain names itself as it lands. Every one you land is written into the codex for good.",
-                    "A chain only claims the dice its recipe asks for — anything left over still plays as its own step in the same turn.",
+                    "A lone face is worth \(Int(GameData.soloAttackScale * 100))% of its printed value.",
+                    "Put dice side by side. If they make a recipe, a seam appears — tap it.",
+                    "The card shows everything before you agree: dice, cost, damage, statuses, timing, gods.",
+                    "Nothing combines on its own. Combine is always your tap.",
+                    "Separate takes it apart again. Nothing is spent until you commit.",
+                    "Assembling a new recipe names it and writes it into the codex.",
+                    "Each crit die adds +\(Int(GameData.critComboWeight * 100))% to the whole action.",
+                    "1 stamina per die, no discounts. Bigger recipes land later instead.",
                 ]
             )
 
@@ -734,7 +736,7 @@ struct InfoSheetView: View {
                 lines: [
                     "Every round hands you a fresh allowance: \(GameData.staminaAllowance(round: 1)) on the first round, \(GameData.staminaAllowance(round: 2)) on the second, \(GameData.staminaAllowance(round: 3)) from the third on. The curve resets at every fight.",
                     "Nothing carries over. Whatever you do not spend is gone at the end of the round — hoarding buys you nothing.",
-                    "Each face costs 1: a solo face 1, a pair 2, a triple 3, a four-face combo 4. There are no bulk discounts.",
+                    "1 stamina per die: a pair 2, a triple 3, five dice 5. No discounts.",
                     "Only named powers bank stamina for the next round, and the whole budget is capped at \(GameData.staminaBudgetCap) however much lands on it.",
                     "Focus costs 1, primes +8 damage on your next attack and banks +1 for next round. Place it before the attack it should strengthen.",
                 ]

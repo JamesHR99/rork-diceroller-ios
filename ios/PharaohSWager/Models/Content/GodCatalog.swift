@@ -54,14 +54,15 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "RA-A2", god: .ra, slot: .attack, name: "Scorching Sequence",
-            effect: "Your first Attack each round adds %V Burn. If your second Attack that round targets the same living foe, it pays one early Burn tick after its status applications.",
-            function: "Multiple moves; order", kind: .regular, trigger: .firstAttack,
-            payload: BoonPayload(bonusCondition: .sameTargetAsLast), scales: .burn, values: [3, 4, 5]
+            effect: "First Attack: +%V Burn. Second Attack on the same foe: +2 Burn again.",
+            function: "Stacking Burn", kind: .regular, trigger: .firstAttack,
+            payload: BoonPayload(bonusCondition: .sameTargetAsLast, burnBonus: 2),
+            scales: .burn, values: [3, 4, 5]
         ),
         GodBoonDef(
-            id: "RA-A3", god: .ra, slot: .attack, name: "Sun's Judgement",
-            effect: "Your first frozen Attack each round gains %V direct damage and adds 3 Burn.",
-            function: "Freezes; prepared attacks", kind: .regular, trigger: .firstFrozenAttack,
+            id: "RA-A3", god: .ra, slot: .attack, name: "Sun's Wrath",
+            effect: "First held Attack: +%V damage, +3 Burn.",
+            function: "Held attacks", kind: .regular, trigger: .firstFrozenAttack,
             payload: BoonPayload(burn: 3), scales: .flatDamage, values: [8, 10, 12]
         ),
         GodBoonDef(
@@ -128,9 +129,9 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "SO-A3", god: .sobek, slot: .attack, name: "Death Grip",
-            effect: "Your first frozen Attack each round gains %V direct damage and applies Bleed 5.",
-            function: "Frozen attacks", kind: .regular, trigger: .firstFrozenAttack,
-            payload: BoonPayload(bleed: 5), scales: .flatDamage, values: [6, 8, 10]
+            effect: "First held Attack: +%V damage, +3 Poison.",
+            function: "Held attacks", kind: .regular, trigger: .firstFrozenAttack,
+            payload: BoonPayload(poison: 3), scales: .flatDamage, values: [6, 8, 10]
         ),
         GodBoonDef(
             id: "SO-A4", god: .sobek, slot: .attack, name: "Feeding Frenzy",
@@ -140,13 +141,14 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "SO-A5", god: .sobek, slot: .attack, name: "Jaws of the Nile",
-            effect: "Your first large attack combo each round applies Bleed %V, then pays one early Bleed tick and heals for HP actually lost to that tick, up to 4.",
+            effect: "First large attack combo: Bleed %V. Heal 4 if the target already bled.",
             function: "Large combos; sustain", kind: .regular, trigger: .firstLargeCombo,
-            payload: BoonPayload(heal: 4), scales: .bleed, values: [4, 5, 6]
+            payload: BoonPayload(bonusCondition: .targetBleeding, bonusHeal: 4),
+            scales: .bleed, values: [4, 5, 6]
         ),
         GodBoonDef(
             id: "SO-D1", god: .sobek, slot: .defence, name: "Crocodile Armour",
-            effect: "Your first Guard action each round grants %V extra shield and arms the first hit shield absorbs that round to apply Bleed 3 to its attacker.",
+            effect: "First Guard: +%V shield. First hit it absorbs gives the attacker Bleed 3.",
             function: "Block; reactive wounds", kind: .regular, trigger: .firstGuard,
             payload: BoonPayload(bleed: 3), scales: .shield, values: [4, 5, 6]
         ),
@@ -200,8 +202,8 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "AN-A4", god: .anubis, slot: .attack, name: "Final Sentence",
-            effect: "Your first large attack combo each round gains 20 percentage points of pierce and adds %V Judgement.",
-            function: "Large combo; delayed payoff", kind: .regular, trigger: .firstLargeCombo,
+            effect: "First large attack combo: +20% pierce, +%V Judgement. A 3+ die combo releases the pile.",
+            function: "Large combo; releases verdicts", kind: .regular, trigger: .firstLargeCombo,
             payload: BoonPayload(pierce: 20), scales: .judgement, values: [10, 12, 14]
         ),
         GodBoonDef(
@@ -224,9 +226,9 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "AN-D3", god: .anubis, slot: .defence, name: "Burial Cloth",
-            effect: "Your first frozen Guard action each round grants %V extra shield and removes one player damage-over-time status, chosen in planning.",
-            function: "Frozen defence; cleanse", kind: .regular, trigger: .firstFrozenGuard,
-            scales: .shield, values: [6, 8, 10]
+            effect: "First held Guard: +%V shield, and clears your Burn, Bleed and Poison.",
+            function: "Held defence; cleanse", kind: .regular, trigger: .firstFrozenGuard,
+            payload: BoonPayload(cleansesSelf: true), scales: .shield, values: [6, 8, 10]
         ),
         GodBoonDef(
             id: "AN-U1", god: .anubis, slot: .utility, name: "Last Measure",
@@ -266,9 +268,9 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "BE-A4", god: .bes, slot: .attack, name: "Stalwart Advance",
-            effect: "Your first two-face attack combo each round gains %V direct damage and grants 6 shield.",
-            function: "Small combo; protection", kind: .regular, trigger: .firstTwoFaceCombo,
-            payload: BoonPayload(shield: 6), scales: .flatDamage, values: [4, 6, 8]
+            effect: "First two-die attack combo: +%V damage, Weaken 25%.",
+            function: "Small combo; blunt the answer", kind: .regular, trigger: .firstTwoFaceCombo,
+            payload: BoonPayload(weakenPercent: 25), scales: .flatDamage, values: [4, 6, 8]
         ),
         GodBoonDef(
             id: "BE-A5", god: .bes, slot: .attack, name: "Unbroken Rhythm",
@@ -332,9 +334,10 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "HO-A4", god: .horus, slot: .attack, name: "Watchful Strike",
-            effect: "Once per round, your next Attack after a separate Guard or Support action gains %V% direct damage and 30 percentage points of pierce. Prime expires after the next round.",
-            function: "Action order; Focus", kind: .regular, trigger: .firstAttack,
-            payload: BoonPayload(pierce: 30), scales: .percentDamage, values: [20, 25, 30]
+            effect: "First Attack after a separate Guard or Support: +%V% damage, +30% pierce, Mark +25%.",
+            function: "Action order; Mark", kind: .regular, trigger: .firstAttack,
+            payload: BoonPayload(pierce: 30, markPercent: 25),
+            scales: .percentDamage, values: [20, 25, 30]
         ),
         GodBoonDef(
             id: "HO-A5", god: .horus, slot: .attack, name: "High Flight",
@@ -393,9 +396,9 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "BA-A3", god: .bastet, slot: .attack, name: "Silent Approach",
-            effect: "Your first frozen Attack each round gains %V direct damage and grants +15 percentage points of evade chance.",
-            function: "Frozen offence", kind: .regular, trigger: .firstFrozenAttack,
-            payload: BoonPayload(evadePoints: 15), scales: .flatDamage, values: [6, 8, 10]
+            effect: "First held Attack: +%V damage, Mark +25%.",
+            function: "Held offence; Mark", kind: .regular, trigger: .firstFrozenAttack,
+            payload: BoonPayload(markPercent: 25), scales: .flatDamage, values: [6, 8, 10]
         ),
         GodBoonDef(
             id: "BA-A4", god: .bastet, slot: .attack, name: "Dancing Blades",
@@ -447,14 +450,14 @@ enum GodCatalog {
     static let duos: [GodBoonDef] = [
         GodBoonDef(
             id: "DU-01", god: .ra, slot: .attack, name: "Boiling Nile",
-            effect: "At end of the round, the living foe with both Burn and Bleed and the greatest Burn takes extra direct HP damage equal to its Burn, capped at 6. Once per round; does not consume or decay either status. Ties use visible enemy order.",
+            effect: "Round end: the burning, bleeding foe takes its Burn again, up to 6. Once per round.",
             function: "Ra + Sobek", kind: .duo, trigger: .roundEnd,
             sources: [.raBurn, .sobekBleed]
         ),
         GodBoonDef(
             id: "DU-02", god: .ra, slot: .attack, name: "Funeral Pyre",
-            effect: "The first scheduled Judgement verdict against a burning foe each round deals extra HP damage equal to twice that foe's current Burn, capped at 12.",
-            function: "Ra + Anubis", kind: .duo, trigger: .roundEnd,
+            effect: "A released verdict on a burning foe deals twice its Burn again, up to 12.",
+            function: "Ra + Anubis", kind: .duo, trigger: .everyAttack,
             sources: [.raBurn, .anubisJudgement]
         ),
         GodBoonDef(
@@ -465,9 +468,11 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-04", god: .ra, slot: .attack, name: "Sunstrike",
-            effect: "Your first frozen Attack each round gains 6 direct damage. If its target was already burning, pay one early Burn tick after status applications, capped at 6 HP damage.",
+            effect: "First held Attack: +6 damage. Against a burning foe, +4 Burn.",
             function: "Ra + Horus", kind: .duo, trigger: .firstFrozenAttack,
-            payload: BoonPayload(flatDamage: 6), sources: [.raBurn, .horusFrozen]
+            payload: BoonPayload(flatDamage: 6, bonusCondition: .targetBurning, burnBonus: 4),
+
+            sources: [.raBurn, .horusFrozen]
         ),
         GodBoonDef(
             id: "DU-05", god: .ra, slot: .defence, name: "Dancing Flame",
@@ -477,8 +482,8 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-06", god: .sobek, slot: .utility, name: "The Crossing",
-            effect: "Your first scheduled Judgement verdict against a bleeding foe each round heals 3 and banks +1 stamina for the next round. Check Bleed immediately before the verdict, even if the verdict kills.",
-            function: "Sobek + Anubis", kind: .duo, trigger: .roundEnd,
+            effect: "A released verdict on a bleeding foe heals 3 and banks +1 stamina.",
+            function: "Sobek + Anubis", kind: .duo, trigger: .everyAttack,
             payload: BoonPayload(heal: 3, staminaNext: 1), sources: [.sobekBleed, .anubisJudgement]
         ),
         GodBoonDef(
@@ -495,9 +500,9 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-09", god: .sobek, slot: .defence, name: "Death Roll",
-            effect: "Your first successful dodge against a bleeding attacker each round pays one early Bleed tick against it and heals 2.",
+            effect: "First dodge of a bleeding attacker: Bleed 3 on it, heal 2.",
             function: "Sobek + Bastet", kind: .duo, trigger: .onDodge,
-            payload: BoonPayload(heal: 2), sources: [.sobekBleed, .bastetEvade]
+            payload: BoonPayload(bleed: 3, heal: 2), sources: [.sobekBleed, .bastetEvade]
         ),
         GodBoonDef(
             id: "DU-10", god: .anubis, slot: .defence, name: "Guardian of the Tomb",
@@ -507,7 +512,7 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-11", god: .anubis, slot: .attack, name: "The Weighing Eye",
-            effect: "Your first frozen Attack each round adds 8 Judgement. If a verdict was already pending on that foe before the action, gain 4 shield as well.",
+            effect: "First held Attack: +8 Judgement. If the foe was already judged, +4 shield.",
             function: "Anubis + Horus", kind: .duo, trigger: .firstFrozenAttack,
             payload: BoonPayload(judgement: 8, bonusCondition: .targetJudged, bonusShield: 4),
             sources: [.anubisJudgement, .horusFrozen]
@@ -548,41 +553,41 @@ enum GodCatalog {
     static let legendaries: [GodBoonDef] = [
         GodBoonDef(
             id: "LG-RA", god: .ra, slot: .legendary, name: "Crown of Noon",
-            effect: "Your first large attack combo each round gains %V direct damage. If its primary target survives the native hit, consume that target's pre-action Burn for twice that potency as direct HP damage, capped at 20; then, if it still survives, add 6 Burn.",
+            effect: "First large attack combo: +%V damage, spends the target's Burn for twice its value (max 20), then +6 Burn.",
             function: "Evolves Solar Flare", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(burn: 6), scales: .flatDamage, values: [10, 12, 14],
             evolves: "RA-A1"
         ),
         GodBoonDef(
             id: "LG-SO", god: .sobek, slot: .legendary, name: "Lord of the Bloodied Nile",
-            effect: "Your first large attack combo each round applies Bleed %V, pays one early Bleed tick, and heals for HP actually lost to that tick up to 6. If the target was already below half HP before the action, the native attack also gains +20% direct damage.",
+            effect: "First large attack combo: Bleed %V. Against a bleeding foe, +20% damage and heal 6.",
             function: "Evolves Jaws of the Nile", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(heal: 6, bonusCondition: .targetBleeding, bonusPercentDamage: 20),
             scales: .bleed, values: [6, 7, 8], evolves: "SO-A5"
         ),
         GodBoonDef(
             id: "LG-AN", god: .anubis, slot: .legendary, name: "Final Verdict",
-            effect: "Your first large attack combo each round gains 20 percentage points of pierce, adds %V Judgement and advances that target's entire pending ledger to the end of the current round. Further additions this turn join it. It still resolves only once for that target at the scheduled phase.",
+            effect: "First large attack combo: +20% pierce, +%V Judgement. Released verdicts hit bosses for half again, and double a foe under a quarter health.",
             function: "Evolves Final Sentence", kind: .legendary, trigger: .firstLargeCombo,
             payload: BoonPayload(pierce: 20), scales: .judgement, values: [14, 16, 18],
             evolves: "AN-A4"
         ),
         GodBoonDef(
             id: "LG-BE", god: .bes, slot: .legendary, name: "Unbroken House",
-            effect: "Retain Sheltering Blow at its current level. At round-end settlement, retaliate for half the shield absorbed during that round, rounded down and capped at 15 direct HP damage, against the living enemy whose hits consumed most shield. If no shield-damaging attacker survives, no retaliation occurs.",
+            effect: "Keeps Sheltering Blow. Round end: strike back for half the shield spent that round, up to 15.",
             function: "Evolves Sheltering Blow", kind: .legendary, trigger: .roundEnd,
             payload: BoonPayload(perIngredient: true, perIngredientCap: 8), evolves: "BE-A1"
         ),
         GodBoonDef(
             id: "LG-HO", god: .horus, slot: .legendary, name: "Eye of the Falcon",
-            effect: "Your first frozen Attack each round gains %V% direct damage and ignores all block and armour. It is still a single once-per-round activation, even with several frozen ingredients.",
+            effect: "First held Attack: +%V% damage, ignores all guard and plate.",
             function: "Evolves Falcon's Eye", kind: .legendary, trigger: .firstFrozenAttack,
             payload: BoonPayload(pierce: 100, haste: 2), scales: .percentDamage, values: [35, 40, 45],
             evolves: "HO-A1"
         ),
         GodBoonDef(
             id: "LG-BA", god: .bastet, slot: .legendary, name: "Nine Lives Unbound",
-            effect: "Retain Hunting Step at its current level. Once per encounter, a lethal hit or damage-over-time event leaves you at 1 HP instead. Set evade chance to its normal 60% cap through the end of the current round; later hits or damage-over-time can still kill you.",
+            effect: "Keeps Hunting Step. Once a fight, a killing blow leaves you at 1 HP and maxes your evade for the round.",
             function: "Evolves Hunting Step", kind: .legendary, trigger: .firstEvade,
             payload: BoonPayload(bonusCondition: .isTwoFaceCombo, bonusEvadePoints: 5),
             scales: .evadePoints, values: [10, 15, 20], evolves: "BA-D1"

@@ -683,31 +683,29 @@ struct FighterView: View {
                 list.append(LiveStatus(kind: .evade, onSelf: false, total: foe.evadeCharges))
             }
             if foe.judgementPending {
-                // The badge carries the count as well as the pile, so the wait
-                // before the scales tip is never a mystery.
+                // The pile shows its weight; nothing counts down any more,
+                // because only your own big combo releases it.
                 list.append(LiveStatus(kind: .judgement, onSelf: false,
-                                       total: foe.judgementAmount,
-                                       turnsLeft: max(1, foe.judgementFuse)))
+                                       total: foe.judgementAmount))
             }
-            if foe.bleedTurns > 0 {
-                list.append(LiveStatus(kind: .bleed, onSelf: false,
-                                       perTick: foe.bleedAmount, ticksLeft: foe.bleedTurns))
+            // Bleed and poison no longer count rounds: the stack itself is the
+            // whole story, so the badge shows one number.
+            if foe.bleedAmount > 0 {
+                list.append(LiveStatus(kind: .bleed, onSelf: false, perTick: foe.bleedAmount))
             }
-            if foe.poisonTurns > 0 {
-                list.append(LiveStatus(kind: .poison, onSelf: false,
-                                       perTick: foe.poisonAmount, ticksLeft: foe.poisonTurns))
+            if foe.poisonAmount > 0 {
+                list.append(LiveStatus(kind: .poison, onSelf: false, perTick: foe.poisonAmount))
             }
-            if foe.burnTurns > 0 {
-                list.append(LiveStatus(kind: .burn, onSelf: false,
-                                       perTick: foe.burnAmount, ticksLeft: foe.burnTurns))
+            if foe.burnAmount > 0 {
+                list.append(LiveStatus(kind: .burn, onSelf: false, perTick: foe.burnAmount))
             }
-            if foe.stagger > 0 {
-                list.append(LiveStatus(kind: .stagger, onSelf: false,
-                                       percent: Int(foe.stagger * 100)))
+            if foe.weaken > 0 {
+                list.append(LiveStatus(kind: .weaken, onSelf: false,
+                                       percent: Int(foe.weaken * 100)))
             }
-            if foe.mark > 1 {
+            if foe.markBonus > 0 {
                 list.append(LiveStatus(kind: .mark, onSelf: false,
-                                       percent: Int(foe.mark * 100)))
+                                       percent: Int(foe.markBonus * 100)))
             }
         }
         return list

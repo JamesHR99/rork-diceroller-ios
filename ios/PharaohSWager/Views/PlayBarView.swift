@@ -12,6 +12,13 @@ import SwiftUI
 struct PlayBarView: View {
     let engine: BattleEngine
 
+    /// The seam the player tapped, showing its preview card.
+    @State private var previewing: BattleEngine.WeldCandidate?
+    /// A transform offer the player asked to see.
+    @State private var transforming: BattleEngine.WeldCandidate?
+    /// Drives the short pull-together when a weld lands.
+    @State private var weldPulse = 0
+
     /// How tall the plan cards run. Everything in the bar is sized off this, and
     /// the deck measures the screen it has to fit into before handing it down —
     /// on a short landscape iPhone the whole plan stays on screen instead of
@@ -40,6 +47,22 @@ struct PlayBarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, compact ? 2 : 4)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
+        .sheet(item: $previewing) { candidate in
+            CombinePreviewView(engine: engine, candidate: candidate) {
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) {
+                    engine.combine(candidate)
+                    weldPulse += 1
+                }
+            }
+        }
+        .sheet(item: $transforming) { candidate in
+            CombinePreviewView(engine: engine, candidate: candidate) {
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) {
+                    engine.transform(into: candidate)
+                    weldPulse += 1
+                }
+            }
+        }
     }
 
     // MARK: - Stamina rail
@@ -197,14 +220,19 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: planFaces.count)
     }
 
-    /// The plan: one tile per die, in the order they will resolve. No numbers,
-    /// no connectors, no grouping — the row says what you will play and in what
-    /// order, and nothing about what it will add up to.
+    /// The plan, in the order it will resolve. Loose dice draw as single tiles;
+    /// anything you chose to combine draws as one card carrying its ingredient
+    /// dice. A run that *could* be combined wears a quiet seam you may tap —
+    /// it is an offer, never something applied for you.
     private var planRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
-                ForEach(planFaces) { face in
-                    planDieCard(face)
+                ForEach(engine.displayedPlan) { step in
+                    if step.isCombo {
+                        combinedCard(step)
+                    } else if let face = step.faces.first {
+                        planDieCard(face)
+                    }
                 }
 
                 // Nothing stands in for stamina you have not spent — an empty
@@ -215,6 +243,145 @@ struct PlayBarView: View {
         }
         .frame(height: bodyHeight)
         .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
+        .animation(.spring(response: 0.34, dampingFraction: 0.62), value: engine.weldedGroups.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: weldPulse)
+    }
+
+    /// An action you welded together: its name, its ingredient dice, its cost,
+    /// and the controls to pull it apart or grow it. Tapping the body opens the
+    /// same card you combined from, so you can re-read what it does.
+    private func combinedCard(_ step: PlanStep) -> some View {
+        let combo = step.combo
+        let tint = combo?.tint ?? Theme.gold
+        let known = engine.isChainKnown(step)
+        let transform = step.faces.first.flatMap { engine.transformOffer(faceID: $0.id) }
+        return VStack(spacing: 2) {
+            HStack(spacing: 4) {
+                Text(engine.planTitle(for: step).uppercased())
+                    .font(.fantasy(compact ? 11 : 12.5, weight: .black))
+                    .kerning(0.6)
+                    .foregroundStyle(known ? tint : Theme.parchmentDim)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                Spacer(minLength: 0)
+                Text("\(step.staminaCost)")
+                    .font(.system(size: 10, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.gold)
+            }
+
+            // The real dice that went in, so what you spent stays visible.
+            HStack(spacing: 2) {
+                ForEach(step.faces) { face in
+                    PharaohSWagerSymbol(art: face.face.artName,
+                                        fallback: face.face.symbol,
+                                        size: compact ? 17 : 20,
+                                        tint: face.isCrit ? Theme.gold : face.face.tint)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let staged = combo?.stagedBeats {
+                Text("\(staged.guardFirst.uppercased()) → \(staged.strikeLater.uppercased())")
+                    .font(.system(size: 7.5, weight: .black))
+                    .foregroundStyle(Theme.steel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+
+            if let line = engine.chiselLine(for: step) {
+                Text(line)
+                    .font(.system(size: 7.5, weight: .black))
+                    .foregroundStyle(Theme.ptahCopper)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+
+            // A held die inside this action carries its god's upgrade, so the
+            // card repeats what the die already promised — the bonus is
+            // visible on both the die and the action it ends up in.
+            if let held = heldUpgrade(in: step) {
+                HStack(spacing: 2) {
+                    PharaohSWagerSymbol(art: held.god.artName, fallback: held.god.symbol,
+                                        size: 10, tint: held.god.tint)
+                    Text(held.effect.uppercased())
+                        .font(.system(size: 7.5, weight: .black))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
+                .foregroundStyle(held.god.tint)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 3) {
+                smallControl("SEPARATE", tint: Theme.parchmentDim) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
+                        if let face = step.faces.first { engine.separate(faceID: face.id) }
+                    }
+                }
+                if let transform {
+                    smallControl("GROW", tint: Theme.gold) {
+                        transforming = transform
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, compact ? 5 : 7)
+        .frame(width: cardWidth(for: step.faces.count), height: bodyHeight)
+        .background {
+            PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.75, shade: 0.3)
+                .clipShape(.rect(cornerRadius: 12))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(tint.opacity(0.85), lineWidth: 2)
+        )
+        .shadow(color: tint.opacity(0.35), radius: 8)
+        .contentShape(.rect)
+        .onTapGesture {
+            guard engine.phase == .player, let combo else { return }
+            previewing = BattleEngine.WeldCandidate(
+                faceIDs: step.faces.map(\.id), combo: combo, position: 0
+            )
+        }
+        .transition(.scale(scale: 0.8).combined(with: .opacity))
+    }
+
+    /// The god upgrade riding a held die inside this action, if any.
+    private func heldUpgrade(in step: PlanStep) -> (god: Deity, name: String, effect: String)? {
+        for face in step.faces where face.wasHeld {
+            if let held = engine.heldBoon(forFace: face.id) { return held }
+        }
+        return nil
+    }
+
+    /// A combined card grows with the number of dice it swallowed, so a
+    /// five-die working reads as the big thing it is.
+    private func cardWidth(for dice: Int) -> CGFloat {
+        let base: CGFloat = compact ? 84 : 94
+        return base + CGFloat(max(0, dice - 2)) * (compact ? 12 : 14)
+    }
+
+    private func smallControl(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.light()
+            Audio.shared.play(.uiTap)
+            action()
+        } label: {
+            Text(title)
+                .font(.system(size: 7.5, weight: .black))
+                .kerning(0.5)
+                .foregroundStyle(tint)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2.5)
+                .background {
+                    Capsule().fill(Theme.bg.opacity(0.55))
+                }
+                .overlay(Capsule().strokeBorder(tint.opacity(0.5), lineWidth: 0.8))
+        }
+        .buttonStyle(PressableButtonStyle())
+        .disabled(engine.phase != .player)
     }
 
     /// One die in the plan: its face and what that face does on its own. Its
