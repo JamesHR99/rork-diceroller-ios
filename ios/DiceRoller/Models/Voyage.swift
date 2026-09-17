@@ -122,14 +122,22 @@ struct Voyage: Hashable {
             let inHour = stage % stagesPerHour
             let isBoss = hour % 4 == 0 && inHour == stagesPerHour - 1
 
+            // One herald to a gate, at the close of its second hour. Sealing
+            // every single hour with one made the whole night read as a
+            // corridor of mini-bosses; now a gate builds to one herald and
+            // then to its serpent-lord.
+            let isHerald = hour % 4 == 2 && inHour == stagesPerHour - 1
+
             let kinds: [StageKind]
             if isBoss {
                 // The serpent-lord stands alone at the end of the gate.
                 kinds = [.boss]
-            } else if inHour == stagesPerHour - 1 {
-                // Every hour is sealed by a herald of Apep — a lone, forced
-                // mini-boss standing between you and the next hour.
+            } else if isHerald {
+                // A lone, forced mini-boss standing mid-gate.
                 kinds = [.herald]
+            } else if inHour == stagesPerHour - 1 {
+                // Every other hour closes on a forced fight instead.
+                kinds = [.battle]
             } else if inHour == 0 {
                 // The mouth of every hour is a single, forced channel.
                 kinds = [.battle]
@@ -189,7 +197,7 @@ struct Voyage: Hashable {
         while picked.count < count && attempts < 40 {
             attempts += 1
             let candidate: StageKind = preparation
-                ? [StageKind.mooring, .shrine, .ferryman, .battle].randomElement() ?? .battle
+                ? preparationKind()
                 : rolledKind(hour: hour)
             // Lead columns with a fight more often than not.
             let lead: StageKind = picked.isEmpty && !preparation && Bool.random() ? .battle : candidate
@@ -199,16 +207,30 @@ struct Voyage: Hashable {
         return picked.isEmpty ? [.battle] : picked
     }
 
+    /// The last quiet water before a herald or a serpent-lord. Still mostly a
+    /// fight or a god's altar — tying off to rest is the rare option now, not
+    /// the default one.
+    private static func preparationKind() -> StageKind {
+        switch Int.random(in: 0..<100) {
+        case 0..<38: .battle
+        case 38..<66: .shrine
+        case 66..<88: .ferryman
+        default: .mooring
+        }
+    }
+
+    /// What ordinary mid-hour water holds. The river is dangerous: two stops in
+    /// three are something that has to be fought. A shrine is not a stop of its
+    /// own so much as a fight the gods interrupted, so it is the commonest of
+    /// the quiet options; moorings are genuinely scarce.
     private static func rolledKind(hour: Int) -> StageKind {
         switch Int.random(in: 0..<100) {
-        case 0..<50: .battle
-        case 50..<60: .omen
-        case 60..<70: .shrine
-        case 70..<80: .ferryman
-        case 80..<88: .mooring
-        // Heralds are reserved for the close of the hour, so mid-hour water
-        // never spends one early.
-        default: .battle
+        case 0..<66: .battle
+        case 66..<78: .shrine
+        case 78..<86: .ferryman
+        case 86..<94: .omen
+        // Tying off to rest is the rarest water on the river.
+        default: .mooring
         }
     }
 

@@ -15,7 +15,12 @@ struct RewardView: View {
 
     private var deity: Deity? { game.visitingDeity }
 
-    private var accent: Color { deity?.tint ?? Theme.gold }
+    /// Ptah takes the whole bench when he comes: three Chisels, one taken.
+    private var isForge: Bool { game.isPtahForge }
+
+    private var accent: Color {
+        isForge ? Theme.ptahCopper : (deity?.tint ?? Theme.gold)
+    }
 
     /// The altar holds up to four cards — Ptah's Chisel card, when it turns
     /// up, takes its place beside the rest.
@@ -54,24 +59,30 @@ struct RewardView: View {
     private var rail: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
-                DuatSymbol(art: game.isShrine ? StageKind.shrine.artName : deity?.artName,
-                           fallback: game.isShrine ? "building.columns.fill" : "sparkles",
+                DuatSymbol(art: isForge ? DuatArt.upgradeHammer
+                               : (game.isShrine ? StageKind.shrine.artName : deity?.artName),
+                           fallback: isForge ? "hammer.fill"
+                               : (game.isShrine ? "building.columns.fill" : "sparkles"),
                            size: 20,
                            tint: accent)
                     .shadow(color: accent.opacity(0.6), radius: 9)
 
-                CarvedTitle(text: game.isShrine
-                            ? "Shrine on the Bank"
-                            : (deity == nil ? "Spoils on the Bank"
-                              : (hasSeveralGods ? "The Gods Attend" : "A God Attends")),
+                CarvedTitle(text: isForge
+                            ? "Ptah at the Bench"
+                            : (game.isShrine
+                               ? "Shrine on the Bank"
+                               : (deity == nil ? "Spoils on the Bank"
+                                 : (hasSeveralGods ? "The Gods Attend" : "A God Attends"))),
                             size: 14, kerning: 1.8)
             }
 
-            Text(game.isShrine
-                 ? "Choose one favour from the altar."
-                 : (game.statusMessage ?? (deity == nil
-                     ? "One relic may join the voyage."
-                     : "One blessing may join the voyage.")))
+            Text(isForge
+                 ? "The craftsman lays out three Chisels. One reshapes your whole weapon — your gods are untouched."
+                 : (game.isShrine
+                    ? "Choose one favour from the altar."
+                    : (game.statusMessage ?? (deity == nil
+                        ? "One relic may join the voyage."
+                        : "One blessing may join the voyage."))))
                 .font(.paper(10.5))
                 .italic()
                 .foregroundStyle(accent)
@@ -128,8 +139,9 @@ struct RewardView: View {
                 }
             } label: {
                 Text(selectedID == nil
-                     ? "Choose a Favour"
-                     : (deity == nil ? "Claim the Spoils" : "Accept the Blessing"))
+                     ? (isForge ? "Choose a Chisel" : "Choose a Favour")
+                     : (isForge ? "Strike the Chisel"
+                        : (deity == nil ? "Claim the Spoils" : "Accept the Blessing")))
                     .font(.fantasy(17, weight: .bold))
                     .kerning(0.8)
                     .foregroundStyle(

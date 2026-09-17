@@ -8,10 +8,13 @@ struct NightChartView: View {
     @State private var pulse = false
     @State private var showInfo = false
 
-    private let columnWidth: CGFloat = 62
-    private let mapHeight: CGFloat = 244
-    private let topInset: CGFloat = 30
-    private let edgePadding: CGFloat = 20
+    // The chart is read by tapping it, so the markers are drawn at a size you
+    // can actually aim at. That makes a gate wider than the screen — scrolling
+    // the river is the intended way to look ahead.
+    private let columnWidth: CGFloat = 104
+    private let mapHeight: CGFloat = 300
+    private let topInset: CGFloat = 40
+    private let edgePadding: CGFloat = 32
 
     private var gate: Gate { game.gate }
 
@@ -311,7 +314,7 @@ struct NightChartView: View {
         let cleared = game.clearedNodeIDs.contains(node.id)
         let available = game.isNodeAvailable(node)
         let isLast = game.lastClearedNodeID == node.id
-        let size: CGFloat = node.isBoss ? 68 : 52
+        let size: CGFloat = node.isBoss ? 104 : 80
         let tint = node.kind.tint
 
         // Which painted marker this stop wears: the barque's current mooring,
@@ -344,12 +347,12 @@ struct NightChartView: View {
                 // own dark disc so it reads against the painted marker.
                 DuatSymbol(art: node.kind.artName,
                            fallback: node.kind.symbol,
-                           size: node.isBoss ? 40 : 30,
+                           size: node.isBoss ? 58 : 44,
                            tint: available ? Theme.parchment
                                : isLast ? Theme.gold
                                : cleared ? Theme.forest
                                : Theme.parchmentDim.opacity(0.7))
-                    .padding(node.isBoss ? 7 : 5)
+                    .padding(node.isBoss ? 10 : 7)
                     .background {
                         Circle()
                             .fill(Theme.bg.opacity(0.82))
@@ -361,20 +364,24 @@ struct NightChartView: View {
             .frame(width: size + 18, height: size + 18)
             .shadow(color: available ? tint.opacity(pulse ? 0.85 : 0.4) : .clear, radius: pulse ? 14 : 6)
             .overlay(alignment: .bottom) {
-                if node.isBoss {
-                    Text(EnemyContent.enemy(hour: node.hour, isHerald: false).name.uppercased())
-                        .font(.system(size: 7.5, weight: .black))
-                        .kerning(0.8)
-                        .foregroundStyle(Theme.blood)
-                        .lineLimit(1)
-                        .fixedSize()
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(Theme.bg.opacity(0.85), in: .capsule)
-                        .offset(y: 18)
-                }
+                // Every stop says what it is now that there is room for a
+                // label — a serpent-lord by name, everything else by kind.
+                Text(node.isBoss
+                     ? EnemyContent.enemy(hour: node.hour, isHerald: false).name.uppercased()
+                     : node.kind.label.uppercased())
+                    .font(.system(size: node.isBoss ? 9.5 : 8.5, weight: .black))
+                    .kerning(0.8)
+                    .foregroundStyle(node.isBoss ? Theme.blood
+                                     : (available || isLast ? node.kind.tint
+                                        : Theme.parchmentDim.opacity(0.6)))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Theme.bg.opacity(0.85), in: .capsule)
+                    .offset(y: 20)
             }
-            .contentShape(Rectangle().inset(by: -8))
+            .contentShape(Rectangle().inset(by: -10))
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!available)

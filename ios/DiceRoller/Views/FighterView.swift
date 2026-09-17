@@ -70,6 +70,12 @@ struct FighterView: View {
             if side == .enemy, let foe, foe.armourMax > 0 {
                 armourBar(foe)
             }
+            // The guard sits directly over health, the way armour does on a
+            // foe: a steel channel you can read the depth of at a glance,
+            // rather than a small number lost in the status row.
+            if shieldValue > 0 {
+                shieldBar(width: 210, height: 13)
+            }
             healthBar
             sprite
             badgeRow
@@ -108,6 +114,10 @@ struct FighterView: View {
 
                 if side == .enemy, let foe, foe.armourMax > 0 {
                     armourBar(foe, width: tickerWidth - 62)
+                }
+
+                if shieldValue > 0 {
+                    shieldBar(width: tickerWidth - 62, height: 11)
                 }
 
                 healthBar(width: tickerWidth - 62, height: 15)
@@ -417,6 +427,40 @@ struct FighterView: View {
         }
     }
 
+    /// The guard standing on this fighter right now — your shield, or a foe's
+    /// own block.
+    private var shieldValue: Int {
+        side == .player ? engine.playerShield : (foe?.block ?? 0)
+    }
+
+    /// The steel channel worn over health. Shield has no fixed maximum, so the
+    /// channel is drawn against a quarter of the fighter's health: a guard that
+    /// would eat a serious blow reads as a full bar, and the number is always
+    /// printed on it so the exact value is never inferred from the fill.
+    private func shieldBar(width: CGFloat, height: CGFloat) -> some View {
+        let reference = max(Double(maxHP) * 0.25, 20)
+        return DuatBar(
+            kind: .shield,
+            fraction: min(1, Double(shieldValue) / reference),
+            width: width,
+            height: height
+        )
+        .overlay {
+            HStack(spacing: 2.5) {
+                DuatSymbol(art: DuatArt.Status.shield, fallback: "shield.fill",
+                           size: height * 0.85, tint: Theme.parchment)
+                Text("\(shieldValue)")
+                    .font(.system(size: height * 0.78, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.parchment)
+                    .contentTransition(.numericText())
+            }
+            .shadow(color: .black, radius: 2)
+            .allowsHitTesting(false)
+        }
+        .transition(.scale(scale: 0.8).combined(with: .opacity))
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: shieldValue)
+    }
+
     /// The bronze plate worn over health. Direct hits chip it away first;
     /// cracks open as it thins, and once it is gone the health is bare.
     private func armourBar(_ foe: EnemyState, width: CGFloat = 176) -> some View {
@@ -441,12 +485,10 @@ struct FighterView: View {
     }
 
     /// Everything riding this fighter right now, each on its painted mark.
+    /// The guard is no longer among them — it has its own channel over health.
     private var badgeRow: some View {
         HStack(spacing: 4) {
             if side == .player {
-                if engine.playerShield > 0 {
-                    badge(DuatArt.Status.shield, "shield.fill", "\(engine.playerShield)", Theme.steel)
-                }
                 if engine.evadeChance > 0 {
                     badge(DuatArt.Status.evade, "wind", "\(Int(engine.evadeChance * 100))%", Theme.steel)
                 }
@@ -476,9 +518,6 @@ struct FighterView: View {
                 }
                 if foe.armourMax > 0 && foe.armour > 0 {
                     badge(DuatArt.Status.armour, "shield.fill", "\(foe.armour)", Theme.bronze)
-                }
-                if foe.block > 0 {
-                    badge(DuatArt.Status.shield, "shield.lefthalf.filled", "\(foe.block)", Theme.steel)
                 }
                 if foe.judgementPending {
                     badge(DuatArt.Status.judgement, "scalemass.fill",

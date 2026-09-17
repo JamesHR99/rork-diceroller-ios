@@ -37,7 +37,6 @@ final class GameManager {
         case battle
         case reward
         case shop
-        case workshop
         case event
         case rest
         case gameOver(won: Bool)
@@ -51,8 +50,6 @@ final class GameManager {
     private(set) var maxHP = 100
     private(set) var currentHP = 100
     private(set) var critBonus = 0.0
-    /// Permanent turn-capacity gains taken this run, from Breath of Ra cards.
-    private(set) var staminaBonus = 0
     /// The god powers equipped this run, in their slots. This replaces patron
     /// dice, upgrades, capstones and pairings: a power belongs to the
     /// character, not to a die, and several gods may answer one action.
@@ -72,8 +69,9 @@ final class GameManager {
     // MARK: Ptah & the Trials
     /// Chisel ids carried this run — at most two, both active together.
     private(set) var ownedChisels: [String] = []
-    /// The Chisels Ptah's workshop currently lays out.
-    private(set) var workshopOptions: [ChiselDef] = []
+    /// True when the spoils screen is Ptah's forge rather than a god's
+    /// audience: three Chisels laid out, one taken.
+    private(set) var isPtahForge = false
     /// True once this run has fought (and won) a god's Trial — one per run.
     private(set) var trialUsed = false
 
@@ -124,12 +122,9 @@ final class GameManager {
 
     var allDice: [Die] { loadout?.allDice ?? [] }
 
-    /// The turn ceiling as it stands: the class maximum plus every Breath of
-    /// Ra taken this run, capped two points above the class.
-    var effectiveMaxStamina: Int {
-        min((heroClass?.maxStamina ?? 3) + GameData.maxStaminaGrants,
-            (heroClass?.maxStamina ?? 3) + staminaBonus)
-    }
+    /// The turn ceiling: the class maximum. Nothing raises it permanently any
+    /// more — the round allowance is the whole stamina economy.
+    var effectiveMaxStamina: Int { heroClass?.maxStamina ?? 3 }
 
     var diceCount: Int { loadout?.diceCount ?? 0 }
 
@@ -256,7 +251,6 @@ final class GameManager {
         currentHP = hero.maxHP
         gold = 40
         critBonus = 0
-        staminaBonus = 0
         equippedBoons = []
         legendariesTaken = 0
         acquiredUpgrades = []
@@ -266,7 +260,7 @@ final class GameManager {
         totalCombos = 0
         totalCrits = 0
         ownedChisels = []
-        workshopOptions = []
+        isPtahForge = false
         trialUsed = false
         voyage = Voyage.generate()
         clearedNodeIDs = []
@@ -328,13 +322,7 @@ final class GameManager {
         let deity = Deity.allCases.randomElement() ?? .ra
         visitingDeity = deity
         isShrine = true
-        var offers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
-        // Occasionally a shrine offers the Breath of Ra while the run has
-        // room for one.
-        if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 15 {
-            offers.append(makeBreathOffer(priced: false))
-        }
-        rewardOffers = offers
+        rewardOffers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
         statusMessage = deity.greeting
         withAnimation { screen = .reward }
     }
@@ -476,8 +464,23 @@ final class GameManager {
             || (kind == .herald && Int.random(in: 0..<100) < 62)
             || Int.random(in: 0..<100) < 42
 
+        // Ptah is the one craftsman who only ever works at the end of a fight,
+        // and he takes the whole reward when he comes: three Chisels on the
+        // bench instead of a god's three boons. A Trial's own god outranks him.
+        let unownedChisels = ChiselCatalog.chisels(for: classID)
+            .filter { !ownedChisels.contains($0.id) }
+        let ptahAttends = trialGod == nil
+            && ownedChisels.count < GameData.chiselMaxPerRun
+            && !unownedChisels.isEmpty
+            && shouldDropChisel()
+
         var spoils: [Offer]
-        if let trialGod {
+        if ptahAttends {
+            visitingDeity = nil
+            isShrine = false
+            isPtahForge = true
+            spoils = unownedChisels.shuffled().prefix(3).map(makeChiselOffer)
+        } else if let trialGod {
             visitingDeity = trialGod
             isShrine = false
             spoils = makeGodFavourOffers(deity: trialGod, count: 3, progress: progress)
@@ -490,11 +493,6 @@ final class GameManager {
             visitingDeity = nil
             isShrine = false
             spoils = makeMundaneSpoils(count: 3)
-        }
-        // The craftsman's own card, rare among the spoils: claiming it opens
-        // Ptah's workshop.
-        if ownedChisels.count < GameData.chiselMaxPerRun, shouldDropChisel() {
-            spoils.append(makeChiselOffer())
         }
         rewardOffers = spoils
         statusMessage = "+\(earned) gold · \(currentHP)/\(maxHP) health"
@@ -516,26 +514,17 @@ final class GameManager {
         return Double.random(in: 0..<1) < GameData.chiselSecondChance
     }
 
-    private func makeChiselOffer() -> Offer {
+    /// One Chisel on Ptah's bench, read like a god's boon card.
+    private func makeChiselOffer(_ chisel: ChiselDef) -> Offer {
         Offer(
-            name: "Chisel of Ptah",
-            detail: "The craftsman's own tool, struck cold in hammered copper. Claim it and Ptah reshapes your whole weapon at his workshop — never a single die, and your gods are untouched.",
-            symbol: "hammer.fill",
+            name: chisel.name,
+            detail: chisel.detail,
+            symbol: chisel.symbol,
             rarity: .signature,
-            comboHint: "Reshapes your weapon · two per run",
+            comboHint: "e.g. \(chisel.example)",
             price: 0,
-            kind: .chisel
+            kind: .chiselPick(chisel)
         )
-    }
-
-    /// Ptah's workshop: the first visit lays out all three of the class's
-    /// Chisels; a second offers the two not yet owned.
-    func chooseChisel(_ chisel: ChiselDef) {
-        guard ownedChisels.count < GameData.chiselMaxPerRun,
-              workshopOptions.contains(where: { $0.id == chisel.id }) else { return }
-        ownedChisels.append(chisel.id)
-        Haptics.success()
-        leaveEncounter()
     }
 
     /// The river's own spoils: gold in hand, a little health, or — rarely —
@@ -601,7 +590,7 @@ final class GameManager {
         statusMessage = nil
         visitingDeity = nil
         isShrine = false
-        workshopOptions = []
+        isPtahForge = false
     }
 
     func leaveEncounter() {
@@ -715,17 +704,12 @@ final class GameManager {
         case .gold(let amount):
             gold += amount
             statusMessage = "+\(amount) gold"
-        case .breath(let amount):
-            staminaBonus = min(GameData.maxStaminaGrants, staminaBonus + amount)
-            statusMessage = "+\(amount) max stamina — the bar grows."
         case .reforgeDie:
             pendingSelection = .reforgeDie(title: offer.name)
-        case .chisel:
-            let owned = Set(ownedChisels)
-            let pool = ChiselCatalog.chisels(for: classID)
-            let options = ownedChisels.isEmpty ? pool : pool.filter { !owned.contains($0.id) }
-            workshopOptions = options.isEmpty ? pool : options
-            withAnimation { screen = .workshop }
+        case .chiselPick(let chisel):
+            guard !ownedChisels.contains(chisel.id) else { return }
+            ownedChisels.append(chisel.id)
+            statusMessage = "\(chisel.name) struck — Ptah reshapes your weapon."
         }
     }
 
@@ -1225,19 +1209,13 @@ final class GameManager {
         }
 
         // New powers, each rolling and showing its own rarity before the
-        // choice. An immediately useful Attack is guaranteed where one fits,
-        // then a Defence and a Utility where they are legal.
-        var fresh = pool.filter { !owns(boon: $0.id) }
-        var wanted: [BoonSlot] = [.attack, .defence, .utility]
+        // choice. The slots are no longer a template: the god offers whatever
+        // they happen to be holding, so three attacks or three utilities are
+        // both legal hands and the screen keeps its surprise.
+        var fresh = pool.filter { !owns(boon: $0.id) }.shuffled()
         while cards.count < count, !fresh.isEmpty {
-            let slot = wanted.first { slot in
-                fresh.contains { $0.slot == slot }
-            } ?? fresh[0].slot
-            wanted.removeAll { $0 == slot }
-            guard let index = fresh.firstIndex(where: { $0.slot == slot }) else { break }
-            let def = fresh.remove(at: index)
+            let def = fresh.removeFirst()
             cards.append(makeBoonOffer(def, rarity: BoonRarity.roll(progress: progress)))
-            if wanted.isEmpty { wanted = [.attack, .defence, .utility] }
         }
 
         // Never force a no-op duplicate to fill the template — the river's own
@@ -1386,20 +1364,6 @@ final class GameManager {
         )
     }
 
-    /// The Breath of Ra: a rare card that permanently raises the turn bar.
-    private func makeBreathOffer(priced: Bool) -> Offer {
-        let gained = min(1, GameData.maxStaminaGrants - staminaBonus)
-        return Offer(
-            name: "Breath of Ra",
-            detail: "Ra's own breath, drawn deep. Permanently raise your turn capacity by \(gained) — the bar you spend from grows by a point, this turn and every turn after.",
-            symbol: "wind.circle.fill",
-            rarity: .rare,
-            comboHint: "More stamina per turn — more faces played",
-            price: priced ? GameData.price(base: 110, rarity: .rare) : 0,
-            kind: .breath(gained)
-        )
-    }
-
     /// The deep whetstone: reroll every unclaimed face on one die.
     private func makeReforgeDieOffer() -> Offer {
         Offer(
@@ -1439,10 +1403,6 @@ final class GameManager {
         // die's unclaimed faces rolled anew.
         if Int.random(in: 0..<100) < 35 {
             stock.insert(makeReforgeDieOffer(), at: 0)
-        }
-        // And, while the run has room for one, a Breath of Ra at a steep price.
-        if staminaBonus < GameData.maxStaminaGrants, Int.random(in: 0..<100) < 30 {
-            stock.insert(makeBreathOffer(priced: true), at: 0)
         }
         let healAmount = 30 + Int(progress * 30)
         stock.append(Offer(

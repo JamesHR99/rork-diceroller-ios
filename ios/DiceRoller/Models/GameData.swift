@@ -66,10 +66,6 @@ enum GameData {
     /// a different hand every turn.
     static let diceDrawCount = 6
 
-    /// How many Breath of Ra cards a single run may grant. The turn ceiling
-    /// starts at the class maximum and can reach two points above it.
-    static let maxStaminaGrants = 2
-
     // MARK: - Round economy
 
     /// The round's stamina allowance: 3 on the first round, 4 on the second, 5
@@ -117,8 +113,9 @@ enum GameData {
     }
 
     /// Ceiling on evade chance — stacking Evade faces can never make you
-    /// untouchable. Sixty percent is the wall.
-    static let evadeCeiling = 0.6
+    /// untouchable. One face is a coin flip, so the wall sits above it to
+    /// leave a second face something to buy, but well short of certainty.
+    static let evadeCeiling = 0.8
 
     /// Chance a successful evade fires a "first evade this turn" reward.
     /// (Not a chance — a marker: the first roll that actually saves you.)
@@ -290,17 +287,19 @@ enum GameData {
     static let chiselMaxPerRun = 2
 
     /// A first Chisel is guaranteed somewhere inside this in-game hour window.
+    /// Ptah only ever works at the end of a fight, and when he comes he takes
+    /// the whole reward, so these are odds per won encounter.
     static let chiselFirstGuaranteeHour = 4
 
-    /// Per-spoils odds of the first Chisel inside the guarantee window, before
-    /// the window's back half makes it certain.
+    /// Odds of the first Chisel inside the guarantee window, before the
+    /// window's back half makes it certain.
     static let chiselEarlyChance = 0.14
 
-    /// Per-spoils odds of the first Chisel after the window has closed.
+    /// Odds of the first Chisel after the window has closed.
     static let chiselLateChance = 0.05
 
-    /// Per-spoils odds of a second Chisel once one is carried — a small share
-    /// of runs ever see one.
+    /// Odds of a second Chisel once one is carried — a small share of runs
+    /// ever see one.
     static let chiselSecondChance = 0.07
 
     /// Twin Bowstring: each of the two hits, as a fraction of the combo.

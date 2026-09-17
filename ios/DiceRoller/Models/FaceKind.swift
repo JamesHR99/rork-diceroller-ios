@@ -178,8 +178,12 @@ enum FaceKind: String, CaseIterable, Hashable {
     /// Evade chance one face adds while it is played this turn, before any
     /// god's answer stacks on top. Faces of the same kind share the same
     /// slice, so an Evade face means the same thing on every die.
+    ///
+    /// A coin flip. Block is a known quantity — it eats a fixed bite of the
+    /// next blow and never surprises you. Evade has to be worth gambling a
+    /// slot on, so it either eats the whole blow or none of it.
     var evadeChance: Double {
-        self == .evade ? 0.15 : 0
+        self == .evade ? 0.5 : 0
     }
 
     /// What this face is worth played on its own, after the solo cut. A lone
@@ -244,14 +248,14 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .runeFrost: return "Deal \(soloValue) damage and slow the next attack"
         case .bomb: return "Deal \(soloValue) damage and burn 4 for 2 turns"
         case .poison: return "Poison \(soloValue) for 2 turns"
-        case .evade: return "Gain 15% chance to evade each hit this turn"
+        case .evade: return "Gain 50% chance to evade each hit this turn"
         case .focus: return "+1 stamina next turn, next attack this turn +5"
         default:
             switch soloKind {
             case .damage: return "Deal \(soloValue) damage"
             case .block: return "Gain \(soloValue) shield"
             case .heal: return "Restore \(soloValue) health"
-            case .evade: return "Gain 15% chance to evade each hit"
+            case .evade: return "Gain 50% chance to evade each hit"
             case .stamina: return "+1 stamina next turn"
             case .poison: return "Poison \(soloValue) for 2 turns"
             case .focus: return "+1 stamina next turn"
@@ -265,7 +269,7 @@ enum FaceKind: String, CaseIterable, Hashable {
         case .damage: return "\(soloValue) dmg"
         case .block: return "+\(soloValue) shield"
         case .heal: return "+\(soloValue) hp"
-        case .evade: return "15% evade"
+        case .evade: return "50% evade"
         case .poison: return "\(soloValue) psn"
         case .stamina: return "+1 stam"
         case .focus: return "focus"

@@ -55,15 +55,10 @@ struct OfferCardView: View {
             }
         case .item(let item):
             faceDigest(FaceProfile(item.faces), diceCount: 2)
-        case .breath:
+        case .chiselPick(let chisel):
             HStack(spacing: 5) {
-                sealBadge(DuatArt.Status.stamina, "wind.circle.fill", tint: Theme.gold)
-                footnote("permanent · once per offer")
-            }
-        case .chisel:
-            HStack(spacing: 5) {
-                sealBadge(DuatArt.upgradeHammer, "hammer.fill", tint: Theme.ptahCopper)
-                footnote("opens Ptah's workshop")
+                sealBadge(chisel.artName, "hammer.fill", tint: Theme.ptahCopper)
+                footnote(chisel.isOptional ? "armed per action" : "always at work")
             }
         default:
             EmptyView()

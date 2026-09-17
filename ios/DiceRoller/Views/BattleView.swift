@@ -36,7 +36,7 @@ private struct BattleContentView: View {
     /// away the moment you commit — that is what hands the whole screen back to
     /// the fighters and the hull they are standing on.
     private var deckUp: Bool {
-        engine.phase == .player && !engine.isAllocating
+        engine.phase == .player
     }
 
     var body: some View {
@@ -108,6 +108,16 @@ private struct BattleContentView: View {
             }
         }
         .overlay {
+            // Before the blow lands, the gods are named: which power answered
+            // this action and exactly what it was worth.
+            if let flash = engine.divineFlash {
+                DivineFlashView(flash: flash)
+                    .id(flash.id)
+                    .zIndex(5)
+                    .transition(.opacity)
+            }
+        }
+        .overlay {
             if let announcement = engine.stageAnnouncement {
                 stageBanner(announcement)
             }
@@ -123,15 +133,6 @@ private struct BattleContentView: View {
             }
         }
         .overlay {
-            // The targeting step: with several foes standing, committing lists
-            // every attack so each can be sent at a chosen foe.
-            if engine.isAllocating {
-                AllocationOverlayView(engine: engine)
-                    .zIndex(6)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .overlay {
             // A god's Trial: the sigil rises before the fight truly opens.
             if engine.trialPromptVisible {
                 TrialPromptView(engine: engine)
@@ -139,7 +140,6 @@ private struct BattleContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 1.03)))
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: engine.isAllocating)
         .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
@@ -365,7 +365,7 @@ private struct BattleContentView: View {
                     foe: foe,
                     packScale: scale,
                     isTargeted: engine.isTargeted(foeID: foe.id),
-                    onTap: engine.isAllocating ? { engine.assignSelected(to: foe.id) } : nil,
+                    onTap: engine.canTarget ? { engine.assignSelected(to: foe.id) } : nil,
                     stageHeight: fighterHeight(room)
                 )
                 .overlay(alignment: .bottom) { allocationTotal(for: foe) }
@@ -377,7 +377,7 @@ private struct BattleContentView: View {
     /// allocated — it builds up beside each fighter as blows are assigned.
     @ViewBuilder
     private func allocationTotal(for foe: EnemyState) -> some View {
-        if engine.isAllocating {
+        if engine.canTarget {
             let total = engine.allocatedDamage(for: foe.id)
             if total > 0 {
                 HStack(spacing: 4) {

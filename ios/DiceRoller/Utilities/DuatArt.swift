@@ -786,10 +786,8 @@ extension Offer {
             return DuatArt.resolve("duat_relic_canopicHeart")
         case .gold:
             return DuatArt.resolve(DuatArt.currency)
-        case .breath:
-            return DuatArt.resolve(DuatArt.Status.stamina)
-        case .chisel:
-            return DuatArt.resolve(DuatArt.upgradeHammer)
+        case .chiselPick(let chisel):
+            return DuatArt.resolve(DuatArt.chisel(chisel.id) ?? DuatArt.upgradeHammer)
         }
     }
 }

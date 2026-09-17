@@ -42,8 +42,8 @@ struct PlayBarView: View {
     private var staminaRail: some View {
         VStack(spacing: 4) {
             Text("STM")
-                .font(.system(size: 9.5, weight: .black))
-                .kerning(1)
+                .font(.system(size: 8, weight: .black))
+                .kerning(0.8)
                 .foregroundStyle(Theme.gold.opacity(0.8))
 
             staminaPips
@@ -52,10 +52,10 @@ struct PlayBarView: View {
 
             VStack(spacing: 0) {
                 Text("NEXT")
-                    .font(.system(size: 8, weight: .black))
+                    .font(.system(size: 7, weight: .black))
                     .foregroundStyle(Theme.parchmentDim.opacity(0.7))
                 Text("\(engine.projectedNextTurnStamina)")
-                    .font(.system(size: 15, weight: .black).monospacedDigit())
+                    .font(.system(size: 12.5, weight: .black).monospacedDigit())
                     .foregroundStyle(engine.projectedNextTurnStamina > engine.roundAllowance
                                      ? Theme.sunGold : Theme.parchmentDim)
             }
@@ -78,18 +78,21 @@ struct PlayBarView: View {
         // The round's own allowance sets the rail; anything above it is
         // overcharge a named power earned, and wears the reserve mark.
         let total = max(engine.roundAllowance, engine.stamina)
-        let columns = total > 5 ? 2 : 1
+        // Four to a column, so a five or six point round wraps instead of
+        // running the pips off the bottom of the rail.
+        let columns = total > 4 ? 2 : 1
         let perColumn = Int(ceil(Double(total) / Double(columns)))
-        return HStack(alignment: .top, spacing: 4) {
+        let size = pipSize(perColumn: perColumn, columns: columns)
+        return HStack(alignment: .top, spacing: 3) {
             ForEach(0..<columns, id: \.self) { column in
-                VStack(spacing: 2.5) {
+                VStack(spacing: 2) {
                     ForEach(0..<perColumn, id: \.self) { row in
                         let index = column * perColumn + row
                         if index < total {
                             DuatStaminaPip(
                                 isFilled: index < engine.stamina,
                                 isReserve: index >= engine.roundAllowance,
-                                size: 17
+                                size: size
                             )
                         }
                     }
@@ -97,6 +100,18 @@ struct PlayBarView: View {
             }
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.stamina)
+    }
+
+    /// Pips cut to the room the rail actually has. A five or six point round was
+    /// drawing its pips at the same size as a three point one and spilling out
+    /// of the rail, so the column measures both axes and takes the smaller fit.
+    private func pipSize(perColumn: Int, columns: Int) -> CGFloat {
+        // The rail's inner width, shared by however many columns are up.
+        let byWidth = (44 - CGFloat(columns - 1) * 3) / CGFloat(columns)
+        // What is left between the STM heading and the NEXT readout.
+        let free = columnHeight - 8 - 44
+        let byHeight = free / CGFloat(max(perColumn, 1)) - 2
+        return max(9, min(17, min(byWidth, byHeight)))
     }
 
     // MARK: - Turn plan
@@ -271,6 +286,8 @@ struct PlayBarView: View {
 
                 Spacer(minLength: 2)
 
+                targetChip(step)
+
                 beatChip(step)
 
                 Text("\(step.faces.count)-CHAIN")
@@ -353,6 +370,8 @@ struct PlayBarView: View {
                 beatChip(step)
             }
 
+            targetChip(step)
+
             DuatSymbol(art: step.faces.first?.face.artName,
                        fallback: step.faces.first?.face.symbol ?? "questionmark",
                        size: compact ? 28 : 34,
@@ -410,6 +429,43 @@ struct PlayBarView: View {
         }
     }
 
+    /// Who this attack is pointed at, on the card itself. The old targeting
+    /// popup is gone: the foe is chosen by tapping the fighter on the deck, and
+    /// this chip is both the read of where the blow is going and the control
+    /// that says which attack the next tap will point. Only drawn when there is
+    /// more than one foe standing — a single foe needs no aiming.
+    @ViewBuilder
+    private func targetChip(_ step: PlanStep) -> some View {
+        if engine.canTarget, step.targetsEnemy {
+            let isPointing = engine.activeTargetingStep?.id == step.id
+            let foe = engine.enemies.first { $0.id == engine.allocatedFoeID(for: step) }
+            Button {
+                engine.selectTargeting(step.id)
+            } label: {
+                HStack(spacing: 2) {
+                    DuatSymbol(art: DuatArt.Status.marked, fallback: "target",
+                               size: 9, tint: isPointing ? Theme.bg : Theme.parchmentDim)
+                    Text(foe?.displayName.uppercased() ?? "—")
+                        .font(.system(size: 8, weight: .black))
+                        .kerning(0.3)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                .foregroundStyle(isPointing ? Theme.bg : Theme.parchmentDim)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1.5)
+                .frame(maxWidth: 92)
+                .background(isPointing ? Theme.gold : Theme.bg.opacity(0.7), in: .capsule)
+                .overlay(
+                    Capsule().strokeBorder(Theme.gold.opacity(isPointing ? 1 : 0.35),
+                                           lineWidth: isPointing ? 1.4 : 0.8)
+                )
+            }
+            .buttonStyle(PressableButtonStyle())
+            .disabled(engine.phase != .player)
+        }
+    }
+
     /// The crit read-out under a chain: how many crit dice fed it and what the
     /// chain jumps to if its own roll lands.
     @ViewBuilder
@@ -435,6 +491,9 @@ struct PlayBarView: View {
         if engine.playedFaces.isEmpty {
             if !engine.hasRolled { return "Roll your dice first" }
             return engine.stamina == 0 ? "No stamina left" : "Tap dice in — fused chains cost less"
+        }
+        if engine.canTarget {
+            return "Tap a foe to aim the lit attack · order matters"
         }
         return "Tap a step to take it back · order matters"
     }

@@ -35,10 +35,9 @@ enum OfferKind: Hashable {
     case maxHP(Int)
     /// Pure gold, from events.
     case gold(Int)
-    /// A Breath of Ra: permanently raise the turn capacity by this much.
-    case breath(Int)
-    /// A Chisel of Ptah: claiming it opens his workshop to choose one.
-    case chisel
+    /// One of Ptah's Chisels, offered directly the way a god offers a boon:
+    /// three laid out, one taken.
+    case chiselPick(ChiselDef)
 }
 
 /// One card on a shop shelf, loot screen, or event outcome.
@@ -98,7 +97,7 @@ struct Offer: Identifiable, Hashable {
     /// Blessings glow in their god's colour, Ptah's Chisel in his hammered
     /// copper; everything else uses its rarity.
     var tint: Color {
-        if case .chisel = kind { return Theme.copper }
+        if case .chiselPick = kind { return Theme.copper }
         return deity?.tint ?? rarity.tint
     }
 
