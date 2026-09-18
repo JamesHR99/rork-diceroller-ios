@@ -225,13 +225,23 @@ struct PlayBarView: View {
     /// dice. A run that *could* be combined wears a quiet seam you may tap —
     /// it is an offer, never something applied for you.
     private var planRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 5) {
-                ForEach(engine.displayedPlan) { step in
+        let steps = engine.displayedPlan
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                     if step.isCombo {
                         combinedCard(step)
                     } else if let face = step.faces.first {
                         planDieCard(face)
+                    }
+
+                    // Between two loose dice that would make something, the
+                    // seam itself is the offer. Tapping it opens the preview;
+                    // ignoring it leaves the dice exactly as they are.
+                    if let candidate = seam(after: index, in: steps) {
+                        seamButton(candidate)
+                    } else if index < steps.count - 1 {
+                        Spacer().frame(width: 5)
                     }
                 }
 
@@ -247,6 +257,51 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: weldPulse)
     }
 
+    /// The seam sitting between two adjacent loose dice, when the run they
+    /// belong to completes a real recipe. Combined cards never wear one — they
+    /// are already joined, and Separate is how they come apart.
+    ///
+    /// A run of three or more only ever wears ONE seam, at its opening gap, so
+    /// a three-die recipe does not appear to be two separate offers.
+    private func seam(after index: Int, in steps: [PlanStep]) -> BattleEngine.WeldCandidate? {
+        guard engine.phase == .player, index < steps.count - 1 else { return nil }
+        guard !steps[index].isCombo, !steps[index + 1].isCombo else { return nil }
+        guard let left = steps[index].faces.last,
+              let right = steps[index + 1].faces.first else { return nil }
+        return engine.weldCandidates.first {
+            $0.faceIDs.first == left.id && $0.faceIDs.contains(right.id)
+        }
+    }
+
+    /// A quiet copper join between two dice: how many dice it would take, and
+    /// nothing about what it makes. Reading the recipe costs a tap.
+    private func seamButton(_ candidate: BattleEngine.WeldCandidate) -> some View {
+        Button {
+            Haptics.light()
+            Audio.shared.play(.uiTap)
+            previewing = candidate
+        } label: {
+            VStack(spacing: 1) {
+                PharaohSWagerSymbol(art: PharaohSWagerArt.echoMarker,
+                                    fallback: "link",
+                                    size: compact ? 13 : 15,
+                                    tint: Theme.gold)
+                Text("\(candidate.faceIDs.count)")
+                    .font(.system(size: 7.5, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.gold.opacity(0.9))
+            }
+            .frame(width: compact ? 20 : 23, height: bodyHeight * 0.52)
+            .background {
+                Capsule().fill(Theme.bg.opacity(0.65))
+            }
+            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
+            .shadow(color: Theme.gold.opacity(0.3), radius: 5)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .padding(.horizontal, 1.5)
+        .transition(.scale(scale: 0.6).combined(with: .opacity))
+    }
+
     /// An action you welded together: its name, its ingredient dice, its cost,
     /// and the controls to pull it apart or grow it. Tapping the body opens the
     /// same card you combined from, so you can re-read what it does.
@@ -255,26 +310,33 @@ struct PlayBarView: View {
         let tint = combo?.tint ?? Theme.gold
         let known = engine.isChainKnown(step)
         let transform = step.faces.first.flatMap { engine.transformOffer(faceID: $0.id) }
-        return VStack(spacing: 2) {
-            HStack(spacing: 4) {
+        // Every row hangs off the same left edge. Without an explicit leading
+        // alignment the name and the timing lines centre themselves while the
+        // dice row stays left, which is what made a four- or five-die card
+        // read as overlapping text.
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(engine.planTitle(for: step).uppercased())
                     .font(.fantasy(compact ? 11 : 12.5, weight: .black))
                     .kerning(0.6)
                     .foregroundStyle(known ? tint : Theme.parchmentDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-                Spacer(minLength: 0)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Text("\(step.staminaCost)")
                     .font(.system(size: 10, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.gold)
             }
 
-            // The real dice that went in, so what you spent stays visible.
+            // The real dice that went in, so what you spent stays visible. A
+            // wide recipe draws its dice slightly smaller rather than shoving
+            // the rest of the card sideways.
             HStack(spacing: 2) {
                 ForEach(step.faces) { face in
                     PharaohSWagerSymbol(art: face.face.artName,
                                         fallback: face.face.symbol,
-                                        size: compact ? 17 : 20,
+                                        size: iconSize(for: step.faces.count),
                                         tint: face.isCrit ? Theme.gold : face.face.tint)
                 }
                 Spacer(minLength: 0)
@@ -284,8 +346,10 @@ struct PlayBarView: View {
                 Text("\(staged.guardFirst.uppercased()) → \(staged.strikeLater.uppercased())")
                     .font(.system(size: 7.5, weight: .black))
                     .foregroundStyle(Theme.steel)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.5)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if let line = engine.chiselLine(for: step) {
@@ -294,6 +358,7 @@ struct PlayBarView: View {
                     .foregroundStyle(Theme.ptahCopper)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // A held die inside this action carries its god's upgrade, so the
@@ -326,9 +391,9 @@ struct PlayBarView: View {
                 }
             }
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .padding(.vertical, compact ? 5 : 7)
-        .frame(width: cardWidth(for: step.faces.count), height: bodyHeight)
+        .frame(width: cardWidth(for: step.faces.count), height: bodyHeight, alignment: .topLeading)
         .background {
             PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.75, shade: 0.3)
                 .clipShape(.rect(cornerRadius: 12))
@@ -356,11 +421,23 @@ struct PlayBarView: View {
         return nil
     }
 
-    /// A combined card grows with the number of dice it swallowed, so a
-    /// five-die working reads as the big thing it is.
+    /// Ingredient dice shrink a touch past three so five of them still sit on
+    /// one line inside the card.
+    private func iconSize(for dice: Int) -> CGFloat {
+        let base: CGFloat = compact ? 17 : 20
+        guard dice > 3 else { return base }
+        return base - CGFloat(dice - 3) * 2
+    }
+
+    /// A combined card grows with the dice it swallowed, so a five-die working
+    /// reads as the big thing it is — and so its name and timing lines have
+    /// somewhere to sit. Width is whichever is larger: the room the name needs,
+    /// or the room the dice need.
     private func cardWidth(for dice: Int) -> CGFloat {
-        let base: CGFloat = compact ? 84 : 94
-        return base + CGFloat(max(0, dice - 2)) * (compact ? 12 : 14)
+        let base: CGFloat = compact ? 92 : 104
+        let forName = base + CGFloat(max(0, dice - 2)) * (compact ? 16 : 18)
+        let forDice = CGFloat(dice) * (iconSize(for: dice) + 2) + 20
+        return max(forName, forDice)
     }
 
     private func smallControl(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
