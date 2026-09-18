@@ -268,12 +268,12 @@ private struct DiceTrayReelView: View {
     let width: CGFloat
     let height: CGFloat
 
-    @State private var spinIndex = 0
     @State private var settled = false
     @State private var critFlash = false
     @State private var frostPulse = false
-    /// 2 = drum at full speed, 1 = braking, 0 = about to stop.
-    @State private var drumSpeed = 2
+    /// When this reel's drum started, so the spin can be derived from elapsed
+    /// time instead of driven by a per-frame state update.
+    @State private var rollStart = Date()
     /// Set just before this reel's stop, so it tenses before it lands.
     @State private var imminent = false
     /// Shockwave ring thrown off the moment the reel locks.
@@ -303,12 +303,31 @@ private struct DiceTrayReelView: View {
     }
     private var tagSize: CGFloat { max(9.5, width * 0.135) }
 
-    /// Smear on the drum, tied to how fast this particular reel is turning —
-    /// the lazier late reels are read clearly rather than blurred away.
-    private var spinBlur: CGFloat {
-        guard drumSpeed > 0 else { return 0 }
-        let pace = CGFloat(BattleEngine.drumStepBase / max(engine.drumStep(slotID: slot.id), 0.04))
-        return drumSpeed == 2 ? 2.2 * pace : 0.9 * pace
+    /// Faces per second at each stage of the drum's braking.
+    private static let fastRate: Double = 17
+    private static let haulRate: Double = 7
+    private static let crawlRate: Double = 2.2
+
+    /// How far the drum has turned, in faces, at a given instant.
+    ///
+    /// The spin is a pure function of elapsed time rather than a state variable
+    /// ticked by an async loop. That is what makes it fluid: the drum brakes on
+    /// a continuous curve, and no amount of scheduling jitter can stutter it.
+    private func drumPhase(at date: Date) -> Double {
+        let elapsed = max(0, date.timeIntervalSince(rollStart))
+        let total = engine.lockTime(slotID: slot.id)
+        let windows = engine.brakeWindows(slotID: slot.id)
+        let haulStart = max(0, total - windows.haul)
+        let crawlStart = max(haulStart, total - windows.crawl)
+
+        if elapsed <= haulStart { return Self.fastRate * elapsed }
+        let throughFast = Self.fastRate * haulStart
+        if elapsed <= crawlStart {
+            return throughFast + Self.haulRate * (elapsed - haulStart)
+        }
+        return throughFast
+            + Self.haulRate * (crawlStart - haulStart)
+            + Self.crawlRate * (elapsed - crawlStart)
     }
 
     var body: some View {
@@ -367,34 +386,35 @@ private struct DiceTrayReelView: View {
     private var spinningReel: some View {
         let faces = slot.die.faces
         let count = max(faces.count, 1)
-        let face = faces[spinIndex % count]
-        let ghostAbove = faces[(spinIndex + count - 1) % count]
-        let ghostBelow = faces[(spinIndex + 1) % count]
+        let rowHeight = iconSize * 1.05
 
         return VStack(spacing: 4) {
-            ZStack {
-                // Neighbouring faces bleeding past the drum window.
-                PharaohSWagerSymbol(art: ghostAbove.kind.artName, fallback: ghostAbove.kind.symbol,
-                           size: iconSize * 0.88, tint: ghostAbove.kind.tint)
-                    .opacity(0.22)
-                    .offset(y: -iconSize * 0.92)
-                PharaohSWagerSymbol(art: ghostBelow.kind.artName, fallback: ghostBelow.kind.symbol,
-                           size: iconSize * 0.88, tint: ghostBelow.kind.tint)
-                    .opacity(0.22)
-                    .offset(y: iconSize * 0.92)
+            // The drum is drawn from elapsed time on the display's own clock.
+            // The old version rebuilt the face view ~30 times a second with a
+            // transition and a blur filter on each rebuild, for every die at
+            // once — that is what made rolling stutter. This scrolls a strip
+            // instead, which Core Animation can run smoothly.
+            TimelineView(.animation) { timeline in
+                let phase = drumPhase(at: timeline.date)
+                let whole = Int(phase.rounded(.down))
+                let frac = CGFloat(phase - phase.rounded(.down))
 
-                PharaohSWagerSymbol(art: face.kind.artName, fallback: face.kind.symbol,
-                           size: iconSize * 1.12, tint: face.kind.tint)
-                    .opacity(drumSpeed == 0 ? 1 : 0.85)
-                    .id(spinIndex)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .top).combined(with: .opacity),
-                        removal: .move(edge: .bottom).combined(with: .opacity)
-                    ))
+                ZStack {
+                    ForEach(-1...1, id: \.self) { step in
+                        let index = ((whole + step) % count + count) % count
+                        let kind = faces[index].kind
+                        let offset = CGFloat(step) - frac
+                        PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol,
+                                            size: iconSize * 1.12, tint: kind.tint)
+                            .offset(y: offset * rowHeight)
+                            // Fades out towards the lip of the window, so faces
+                            // roll past rather than popping in and out.
+                            .opacity(Double(max(0, 1 - abs(offset) * 1.15)))
+                    }
+                }
+                .frame(height: iconSize * 1.5)
+                .clipped()
             }
-            .frame(height: iconSize * 1.5)
-            .blur(radius: spinBlur)
-            .clipped()
 
             reelName
         }
@@ -419,23 +439,16 @@ private struct DiceTrayReelView: View {
             // animation has to be re-armed each time the drum starts up —
             // otherwise only the first roll of the fight slams home.
             resetLandingAnimation()
-            let base = engine.drumStep(slotID: slot.id)
-            let lockAt = Date().addingTimeInterval(engine.lockTime(slotID: slot.id))
-            while engine.slots.first(where: { $0.id == slot.id })?.state == .rolling {
-                let remaining = lockAt.timeIntervalSinceNow
-                // The drum brakes into its stop instead of cutting dead: full
-                // speed, then a long haul, then one last lazy turn. The brake
-                // stages start earlier and run longer on later reels, so the
-                // row settles slower as it empties left to right.
-                let windows = engine.brakeWindows(slotID: slot.id)
-                let step: Double = remaining < windows.crawl
-                    ? base * 4.0
-                    : (remaining < windows.haul ? base * 2.0 : base)
-                let speed = remaining < windows.crawl ? 0 : (remaining < windows.haul ? 1 : 2)
-                if speed != drumSpeed { drumSpeed = speed }
-                if remaining < windows.ring && !imminent { imminent = true }
-                try? await Task.sleep(for: .seconds(step))
-                withAnimation(.linear(duration: step)) { spinIndex += 1 }
+            rollStart = Date()
+            // The only thing left to schedule is the tension just before the
+            // stop; the spin itself needs no ticking at all.
+            let windows = engine.brakeWindows(slotID: slot.id)
+            let untilRing = engine.lockTime(slotID: slot.id) - windows.ring
+            if untilRing > 0 {
+                try? await Task.sleep(for: .seconds(untilRing))
+            }
+            if engine.slots.first(where: { $0.id == slot.id })?.state == .rolling {
+                imminent = true
             }
         }
     }

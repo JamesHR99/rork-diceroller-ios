@@ -12,12 +12,21 @@ import SwiftUI
 struct PlayBarView: View {
     let engine: BattleEngine
 
-    /// The seam the player tapped, showing its preview card.
-    @State private var previewing: BattleEngine.WeldCandidate?
-    /// A transform offer the player asked to see.
-    @State private var transforming: BattleEngine.WeldCandidate?
+    /// A seam offering more than one recipe, waiting for the player to pick.
+    @State private var picking: SeamChoice?
     /// Drives the short pull-together when a weld lands.
     @State private var weldPulse = 0
+    /// The action that just formed, and how far its impact burst has played.
+    @State private var burstStepID: UUID?
+    @State private var burstProgress: CGFloat = 0
+
+    /// A seam whose dice could make either a smaller or a larger recipe.
+    struct SeamChoice: Identifiable {
+        let options: [BattleEngine.WeldCandidate]
+        /// The die the seam opens on, so the picker pops from that seam.
+        let anchorID: UUID
+        var id: String { options.map(\.id).joined() }
+    }
 
     /// How tall the plan cards run. Everything in the bar is sized off this, and
     /// the deck measures the screen it has to fit into before handing it down —
@@ -47,21 +56,86 @@ struct PlayBarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, compact ? 2 : 4)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
-        .sheet(item: $previewing) { candidate in
-            CombinePreviewView(engine: engine, candidate: candidate) {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) {
-                    engine.combine(candidate)
-                    weldPulse += 1
+    }
+
+    // MARK: - Combining
+
+    /// Welds a run and throws the impact: the dice snap together, the plate
+    /// lands with a shock ring and sparks, and the bar kicks once.
+    private func performCombine(_ candidate: BattleEngine.WeldCandidate, transform: Bool = false) {
+        guard engine.phase == .player else { return }
+        Haptics.heavy()
+        Audio.shared.play(.chain)
+        Audio.shared.play(.diceLock, after: 0.04, volumeScale: 0.7)
+
+        burstStepID = candidate.faceIDs.first
+        burstProgress = 0
+        withAnimation(.spring(response: 0.26, dampingFraction: 0.52)) {
+            if transform {
+                engine.transform(into: candidate)
+            } else {
+                engine.combine(candidate)
+            }
+            weldPulse += 1
+        }
+        withAnimation(.easeOut(duration: 0.55)) { burstProgress = 1 }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(600))
+            burstProgress = 0
+            burstStepID = nil
+        }
+    }
+
+    /// When a seam can make both a small and a large recipe, the player picks
+    /// rather than the game guessing. Known recipes are named; unknown ones
+    /// show only their size, so the discovery is still yours to make.
+    private func seamPicker(_ choice: SeamChoice) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("COMBINE HOW MANY?")
+                .font(.system(size: 9, weight: .black))
+                .kerning(1)
+                .foregroundStyle(Theme.gold.opacity(0.75))
+
+            ForEach(choice.options) { option in
+                Button {
+                    picking = nil
+                    performCombine(option)
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("\(option.faceIDs.count)")
+                            .font(.system(size: 13, weight: .black).monospacedDigit())
+                            .foregroundStyle(Theme.bg)
+                            .frame(width: 22, height: 22)
+                            .background(Circle().fill(option.combo.tint))
+                        Text(engine.knowsCombo(option.combo) ? option.combo.name.uppercased()
+                                                             : "UNKNOWN RECIPE")
+                            .font(.fantasy(13, weight: .black))
+                            .kerning(0.5)
+                            .foregroundStyle(engine.knowsCombo(option.combo)
+                                             ? Theme.parchment : Theme.parchmentDim)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(minWidth: 190, minHeight: 44, alignment: .leading)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Theme.bgCard.opacity(0.8))
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(option.combo.tint.opacity(0.6), lineWidth: 1)
+                    )
+                    .contentShape(.rect)
                 }
+                .buttonStyle(PressableButtonStyle())
             }
         }
-        .sheet(item: $transforming) { candidate in
-            CombinePreviewView(engine: engine, candidate: candidate) {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) {
-                    engine.transform(into: candidate)
-                    weldPulse += 1
-                }
-            }
+        .padding(12)
+        .background {
+            PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.6, shade: 0.45)
+                .ignoresSafeArea()
         }
     }
 
@@ -236,10 +310,10 @@ struct PlayBarView: View {
                     }
 
                     // Between two loose dice that would make something, the
-                    // seam itself is the offer. Tapping it opens the preview;
-                    // ignoring it leaves the dice exactly as they are.
+                    // seam itself is the offer. Tapping it combines them right
+                    // here; ignoring it leaves the dice exactly as they are.
                     if let candidate = seam(after: index, in: steps) {
-                        seamButton(candidate)
+                        seamButton(candidate, steps: steps, at: index)
                     } else if index < steps.count - 1 {
                         Spacer().frame(width: 5)
                     }
@@ -273,33 +347,65 @@ struct PlayBarView: View {
         }
     }
 
-    /// A quiet copper join between two dice: how many dice it would take, and
-    /// nothing about what it makes. Reading the recipe costs a tap.
-    private func seamButton(_ candidate: BattleEngine.WeldCandidate) -> some View {
+    /// A gold join between two dice: tap it and they combine on the spot. It
+    /// prints how many dice it will take so a three- or four-die recipe is not
+    /// a surprise. If the run could make more than one recipe, the tap opens a
+    /// small picker instead of guessing for you.
+    private func seamButton(_ candidate: BattleEngine.WeldCandidate,
+                            steps: [PlanStep], at index: Int) -> some View {
         Button {
-            Haptics.light()
-            Audio.shared.play(.uiTap)
-            previewing = candidate
+            guard let left = steps[index].faces.last,
+                  let right = steps[index + 1].faces.first else { return }
+            let options = engine.weldOptions(openingAt: left.id, including: right.id)
+            if options.count > 1 {
+                Haptics.light()
+                Audio.shared.play(.uiTap)
+                picking = SeamChoice(options: options, anchorID: left.id)
+            } else {
+                performCombine(options.first ?? candidate)
+            }
         } label: {
             VStack(spacing: 1) {
                 PharaohSWagerSymbol(art: PharaohSWagerArt.echoMarker,
                                     fallback: "link",
-                                    size: compact ? 13 : 15,
+                                    size: compact ? 14 : 16,
                                     tint: Theme.gold)
                 Text("\(candidate.faceIDs.count)")
-                    .font(.system(size: 7.5, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.gold.opacity(0.9))
+                    .font(.system(size: 8.5, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.gold.opacity(0.95))
             }
-            .frame(width: compact ? 20 : 23, height: bodyHeight * 0.52)
+            .frame(width: compact ? 26 : 30, height: bodyHeight * 0.56)
             .background {
-                Capsule().fill(Theme.bg.opacity(0.65))
+                Capsule().fill(Theme.bg.opacity(0.7))
             }
-            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
-            .shadow(color: Theme.gold.opacity(0.3), radius: 5)
+            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.75), lineWidth: 1.2))
+            .shadow(color: Theme.gold.opacity(0.45), radius: 6)
+            // The tappable area runs the full height of the row, so a seam
+            // never demands a precise hit on a narrow capsule.
+            .frame(width: compact ? 34 : 38, height: bodyHeight)
+            .contentShape(.rect)
         }
         .buttonStyle(PressableButtonStyle())
-        .padding(.horizontal, 1.5)
+        // The picker belongs to this seam, so it pops from this seam rather
+        // than from the middle of the bar.
+        .popover(isPresented: Binding(
+            get: { picking?.anchorID == steps[index].faces.last?.id },
+            set: { if !$0 { picking = nil } }
+        )) {
+            if let choice = picking {
+                seamPicker(choice)
+                    .presentationCompactAdaptation(.popover)
+            }
+        }
         .transition(.scale(scale: 0.6).combined(with: .opacity))
+    }
+
+    /// Which pending combo a loose die belongs to, so every die a seam would
+    /// swallow can wear the same bracket. Seams never overlap, so a die is in
+    /// at most one of these.
+    private func pendingGroup(for faceID: UUID) -> BattleEngine.WeldCandidate? {
+        guard engine.phase == .player else { return nil }
+        return engine.weldCandidates.first { $0.faceIDs.contains(faceID) }
     }
 
     /// An action you welded together: its name, its ingredient dice, its cost,
@@ -340,6 +446,12 @@ struct PlayBarView: View {
                                         tint: face.isCrit ? Theme.gold : face.face.tint)
                 }
                 Spacer(minLength: 0)
+            }
+
+            // What this action actually does, right on the plate — the whole
+            // reason the preview screen is gone.
+            if let combo {
+                effectChips(combo: combo, step: step)
             }
 
             if let staged = combo?.stagedBeats {
@@ -386,7 +498,7 @@ struct PlayBarView: View {
                 }
                 if let transform {
                     smallControl("GROW", tint: Theme.gold) {
-                        transforming = transform
+                        performCombine(transform, transform: true)
                     }
                 }
             }
@@ -402,15 +514,58 @@ struct PlayBarView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(tint.opacity(0.85), lineWidth: 2)
         )
-        .shadow(color: tint.opacity(0.35), radius: 8)
-        .contentShape(.rect)
-        .onTapGesture {
-            guard engine.phase == .player, let combo else { return }
-            previewing = BattleEngine.WeldCandidate(
-                faceIDs: step.faces.map(\.id), combo: combo, position: 0
-            )
+        .shadow(color: tint.opacity(burstStepID == step.id ? 0.9 : 0.35),
+                radius: burstStepID == step.id ? 16 : 8)
+        // The plate lands: it overshoots, throws a ring and a spray of shards,
+        // then settles. This is the moment the dice became one thing.
+        .scaleEffect(burstStepID == step.id ? 1 + (1 - burstProgress) * 0.16 : 1)
+        .overlay {
+            if burstStepID == step.id {
+                CombineBurst(progress: burstProgress, tint: tint)
+                    .allowsHitTesting(false)
+            }
         }
         .transition(.scale(scale: 0.8).combined(with: .opacity))
+    }
+
+    /// Damage, defence and statuses as tight chips — the numbers the preview
+    /// screen used to carry, now on the plate itself.
+    private func effectChips(combo: ComboDef, step: PlanStep) -> some View {
+        let scale = step.comboScale
+        var chips: [(String, Color)] = []
+        let damage = engine.displayedDamage(for: step)
+        if damage > 0 { chips.append(("\(damage) DMG", Theme.ember)) }
+        if combo.shield > 0 { chips.append(("+\(GameData.scaleUp(combo.shield, by: scale)) SHD", Theme.steel)) }
+        if combo.heal > 0 { chips.append(("+\(GameData.scaleUp(combo.heal, by: scale)) HP", Theme.forest)) }
+        if combo.evadePercent > 0 { chips.append(("\(combo.evadePercent)% EVA", Theme.steel)) }
+        if combo.burnAmount > 0 {
+            chips.append(("BURN \(min(GameData.scaleUp(combo.burnAmount, by: scale), GameData.burnStackCap))", Theme.ember))
+        }
+        if combo.bleedAmount > 0 {
+            chips.append(("BLEED \(min(GameData.scaleUp(combo.bleedAmount, by: scale), GameData.bleedStackCap))", Theme.blood))
+        }
+        if combo.poisonAmount > 0 {
+            chips.append(("PSN \(min(GameData.scaleUp(combo.poisonAmount, by: scale), GameData.poisonStackCap))", Theme.venom))
+        }
+        if combo.weaken > 0 {
+            chips.append(("WEAK \(Int(min(combo.weaken, GameData.weakenCeiling) * 100))%", Theme.frost))
+        }
+        if combo.markPercent > 0 { chips.append(("MARK +\(combo.markPercent)%", Theme.venom)) }
+        if combo.pierce > 0 { chips.append(("PRC \(Int(combo.pierce * 100))%", Theme.gold)) }
+
+        return HStack(spacing: 3) {
+            ForEach(Array(chips.prefix(4).enumerated()), id: \.offset) { _, chip in
+                Text(chip.0)
+                    .font(.system(size: 7.5, weight: .black).monospacedDigit())
+                    .foregroundStyle(chip.1)
+                    .padding(.horizontal, 3.5)
+                    .padding(.vertical, 1)
+                    .background(chip.1.opacity(0.16), in: .rect(cornerRadius: 3))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+            }
+            Spacer(minLength: 0)
+        }
     }
 
     /// The god upgrade riding a held die inside this action, if any.
@@ -450,12 +605,16 @@ struct PlayBarView: View {
                 .font(.system(size: 7.5, weight: .black))
                 .kerning(0.5)
                 .foregroundStyle(tint)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2.5)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3.5)
                 .background {
                     Capsule().fill(Theme.bg.opacity(0.55))
                 }
                 .overlay(Capsule().strokeBorder(tint.opacity(0.5), lineWidth: 0.8))
+                // A pill this small needs a bigger hit area than it draws, or
+                // it reads as an unresponsive button.
+                .frame(minHeight: 30)
+                .contentShape(.rect)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(engine.phase != .player)
@@ -470,6 +629,10 @@ struct PlayBarView: View {
         // mark, so a Chisel can still be spent without giving the chain away.
         let armable = engine.armableChisel(forFace: face.id) != nil
         let armed = engine.isChiselArmed(onFace: face.id)
+        // Every die the neighbouring seam would swallow wears the same gold
+        // bracket, so a three- or four-die recipe shows its full reach before
+        // you commit to it.
+        let group = pendingGroup(for: face.id)
         return Button {
             guard engine.phase == .player else { return }
             if engine.armHeldChisel(ontoFace: face.id) { return }
@@ -529,6 +692,28 @@ struct PlayBarView: View {
                         .allowsHitTesting(false)
                 }
             }
+            .overlay {
+                if let group {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Theme.gold.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                        .shadow(color: Theme.gold.opacity(0.5), radius: 7)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                // Its place in the pending recipe, so "2 of 3" is explicit.
+                if let group, let slot = group.faceIDs.firstIndex(of: face.id) {
+                    Text("\(slot + 1)/\(group.faceIDs.count)")
+                        .font(.system(size: 7.5, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.bg)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Theme.gold, in: .capsule)
+                        .padding(4)
+                        .allowsHitTesting(false)
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 if armed {
                     PharaohSWagerIcon(name: PharaohSWagerArt.upgradeHammer, size: 16)
@@ -544,6 +729,9 @@ struct PlayBarView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(engine.phase != .player)
+        // Dragging is a deliberate press-and-hold. Without this a quick tap is
+        // often swallowed by the drag recogniser, which is what made dice in
+        // the plan feel unresponsive.
         .draggable(face.id.uuidString)
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first,

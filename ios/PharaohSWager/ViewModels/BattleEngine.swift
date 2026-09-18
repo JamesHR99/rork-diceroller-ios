@@ -1725,6 +1725,11 @@ final class BattleEngine {
         return knownChainIDs.contains(combo.id)
     }
 
+    /// True when this recipe has been landed before and may be named openly.
+    func knowsCombo(_ combo: ComboDef) -> Bool {
+        knownChainIDs.contains(combo.id)
+    }
+
     /// What a step calls itself in the plan. A chain you know is named; one you
     /// have never landed reads as a sealed thing you built but cannot yet
     /// identify — it will name itself when it lands.
@@ -1905,8 +1910,10 @@ final class BattleEngine {
         slamPulse += 1
         lastReelLocked = isLast
 
-        let kick: CGFloat = outcome.isCrit ? 0.85 : (isLast ? 0.62 : 0.36)
-        withAnimation(.linear(duration: 0.16)) { shakeTrigger += kick }
+        // A die landing should be felt. The last reel and any critical hit
+        // the tray noticeably harder than the ones in between.
+        let kick: CGFloat = outcome.isCrit ? 1.25 : (isLast ? 0.95 : 0.55)
+        withAnimation(.linear(duration: 0.14)) { shakeTrigger += kick }
         if outcome.isCrit {
             critsLanded += 1
             Haptics.heavy()
@@ -2018,6 +2025,30 @@ final class BattleEngine {
     /// The seam covering this die, if one is on offer.
     func weldCandidate(forFace faceID: UUID) -> WeldCandidate? {
         weldCandidates.first { $0.faceIDs.contains(faceID) }
+    }
+
+    /// Every recipe a seam could make, smallest first. A run of four dice may
+    /// hide a two-die recipe and a four-die one; both are real choices, so the
+    /// seam offers them rather than silently taking the biggest.
+    func weldOptions(openingAt faceID: UUID, including secondID: UUID) -> [WeldCandidate] {
+        guard phase == .player else { return [] }
+        let faces = playedFaces
+        let welded = Set(weldedGroups.flatMap { $0 })
+        guard let start = faces.firstIndex(where: { $0.id == faceID }) else { return [] }
+
+        var options: [WeldCandidate] = []
+        var length = 2
+        while length <= min(GameData.maxComboFaces, faces.count - start) {
+            let window = Array(faces[start..<(start + length)])
+            defer { length += 1 }
+            guard window.contains(where: { $0.id == secondID }) else { continue }
+            guard !window.contains(where: { welded.contains($0.id) }) else { continue }
+            guard let resolved = resolveWeld(window) else { continue }
+            options.append(WeldCandidate(faceIDs: window.map(\.id),
+                                         combo: resolved.combo,
+                                         position: start))
+        }
+        return options
     }
 
     /// True when this die is part of an action you welded yourself.

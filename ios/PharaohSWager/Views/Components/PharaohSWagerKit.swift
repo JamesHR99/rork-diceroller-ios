@@ -263,9 +263,46 @@ struct PaintedButtonLabel<Content: View>: View {
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            // Without this the button is only hittable where its label actually
+            // paints, so transparent padding, Spacers and gaps between glyphs
+            // swallow taps and the control reads as unresponsive.
+            .contentShape(.rect)
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .brightness(configuration.isPressed ? -0.05 : 0)
             .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+/// The shockwave a freshly combined action throws: a ring pushing outward and
+/// a spray of shards, thrown once as the dice snap into one plate.
+struct CombineBurst: View {
+    let progress: CGFloat
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(tint, lineWidth: 3)
+                .scaleEffect(1 + progress * 0.4)
+                .opacity(Double(1 - progress) * 0.9)
+
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Theme.parchment)
+                .opacity(Double(max(0, 0.55 - progress)) * 0.9)
+                .blendMode(.plusLighter)
+
+            ForEach(0..<12, id: \.self) { index in
+                let angle = Double(index) / 12 * 2 * .pi
+                Capsule()
+                    .fill(index.isMultiple(of: 2) ? tint : Theme.gold)
+                    .frame(width: 2.6, height: 11)
+                    .offset(y: -26 - progress * 30)
+                    .rotationEffect(.radians(angle))
+                    .scaleEffect(0.4 + progress * 1.1)
+                    .opacity(Double(1 - progress) * 0.95)
+            }
+        }
+        .blur(radius: 0.5)
     }
 }
 
