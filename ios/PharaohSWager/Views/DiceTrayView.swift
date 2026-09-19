@@ -182,7 +182,7 @@ struct DiceTrayView: View {
             Spacer(minLength: 6)
 
             Text(selectingReroll
-                 ? "\(engine.rerollSelection.count) SELECTED"
+                 ? "TAP A DIE"
                  : "\(engine.rerollsRemaining) REROLL\(engine.rerollsRemaining == 1 ? "" : "S")")
                 .font(.system(size: 9, weight: .black))
                 .foregroundStyle(Theme.gold)
@@ -234,9 +234,8 @@ struct DiceTrayView: View {
 
     private var leadingControl: some View {
         RollLeverButton(height: reelHeight, width: leverWidth,
-                        isEnabled: engine.canRoll || engine.canReroll, isRolling: engine.isRolling) {
-            if engine.hasRolled { engine.rerollSelected(reduceMotion: reduceMotion) }
-            else { engine.rollAll(reduceMotion: reduceMotion) }
+                        isEnabled: engine.canRoll, isRolling: engine.isRolling) {
+            engine.rollAll(reduceMotion: reduceMotion)
         }
     }
 }
@@ -272,7 +271,9 @@ private struct DiceTrayReelView: View {
     /// The face drawing is the whole point of a die, so it is drawn as large
     /// as the window allows — a small plate scaled up reads grainy, a large
     /// one reads painted.
-    private var iconSize: CGFloat { max(16, min(width * 0.40, (height - 40) / 1.2)) }
+    /// The painted frame's open window is narrower than half the reel. Keeping
+    /// the symbol inside that opening prevents wide glyphs touching its rim.
+    private var iconSize: CGFloat { max(15, min(width * 0.36, (height - 38) * 0.62)) }
     private var labelSize: CGFloat { max(10, width * 0.135) }
     /// A claimed die's face carries its name in bigger type — the god's
     /// blessing is part of the read that decides a turn.
@@ -342,10 +343,10 @@ private struct DiceTrayReelView: View {
                 rollID: engine.rollID,
                 startedAt: engine.rollStartedAt,
                 duration: engine.lockTime(slotID: slot.id),
-                symbolSize: iconSize * 1.2,
+                symbolSize: iconSize,
                 reduceMotion: reduceMotion
             )
-            .frame(width: iconSize * 1.2, height: iconSize * 1.2)
+            .frame(width: iconSize, height: iconSize)
             .accessibilityHidden(true)
 
             Text("ROLLING")
@@ -388,7 +389,7 @@ private struct DiceTrayReelView: View {
     private func settledReel(_ face: RolledFace) -> some View {
         Button {
             if selectingReroll {
-                engine.toggleReroll(slotID: slot.id)
+                engine.reroll(slotID: slot.id, reduceMotion: reduceMotion)
             } else {
                 engine.placeInPlayBar(faceID: face.id)
             }
@@ -396,7 +397,7 @@ private struct DiceTrayReelView: View {
             VStack(spacing: 2) {
                 PharaohSWagerSymbol(art: face.matchFace.artName,
                            fallback: face.matchFace.symbol,
-                           size: iconSize * 1.2,
+                           size: iconSize,
                            tint: iconTint(face))
                     .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isSelectedForReroll))
                     // The shifted arrow slides into its new tier, so the

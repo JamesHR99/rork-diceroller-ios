@@ -13,7 +13,6 @@ struct PlayBarView: View {
     let engine: BattleEngine
 
     /// A seam offering more than one recipe, waiting for the player to pick.
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingOrder = false
     @State private var picking: SeamChoice?
     /// Drives the short pull-together when a weld lands.
@@ -260,30 +259,42 @@ struct PlayBarView: View {
     /// it is an offer, never something applied for you.
     private var planRow: some View {
         let steps = engine.displayedPlan
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                    if step.isCombo {
-                        combinedCard(step)
-                    } else if let face = step.faces.first {
-                        planDieCard(face)
-                    }
+        return GeometryReader { geometry in
+            let dividers = max(0, steps.count - 1)
+            let seamCount = steps.indices.dropLast().filter { seam(after: $0, in: steps) != nil }.count
+            let gapCount = max(0, dividers - seamCount)
+            let seamWidth: CGFloat = compact ? 28 : 32
+            let reserved = CGFloat(seamCount) * seamWidth + CGFloat(gapCount) * 5
+            let diceCount = max(1, steps.reduce(0) { $0 + $1.faces.count })
+            // Each die owns an equal share of the bar. A combo receives all of
+            // its ingredients' shares, so a four-die action is visibly larger
+            // than a single while every arrangement fills the available row.
+            let share = max(compact ? 34 : 38,
+                            (geometry.size.width - reserved) / CGFloat(diceCount))
 
-                    // Between two loose dice that would make something, the
-                    // seam itself is the offer. Tapping it combines them right
-                    // here; ignoring it leaves the dice exactly as they are.
-                    if let candidate = seam(after: index, in: steps) {
-                        seamButton(candidate, steps: steps, at: index)
-                    } else if index < steps.count - 1 {
-                        Spacer().frame(width: 5)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                        let width = share * CGFloat(max(1, step.faces.count))
+                        if step.isCombo {
+                            combinedCard(step, width: width)
+                        } else if let face = step.faces.first {
+                            planDieCard(face, width: width)
+                        }
+
+                        // Between two loose dice that would make something,
+                        // the seam remains a full-height target without
+                        // stealing a whole card's share of the plan.
+                        if let candidate = seam(after: index, in: steps) {
+                            seamButton(candidate, steps: steps, at: index, width: seamWidth)
+                        } else if index < steps.count - 1 {
+                            Spacer().frame(width: 5)
+                        }
                     }
                 }
-
-                // Nothing stands in for stamina you have not spent — an empty
-                // plan just reads as empty.
+                .padding(.horizontal, 1)
+                .frame(minWidth: geometry.size.width, minHeight: bodyHeight, alignment: .leading)
             }
-            .padding(.horizontal, 1)
-            .frame(minHeight: bodyHeight, alignment: .leading)
         }
         .frame(height: bodyHeight)
         .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
@@ -312,7 +323,7 @@ struct PlayBarView: View {
     /// a surprise. If the run could make more than one recipe, the tap opens a
     /// small picker instead of guessing for you.
     private func seamButton(_ candidate: BattleEngine.WeldCandidate,
-                            steps: [PlanStep], at index: Int) -> some View {
+                            steps: [PlanStep], at index: Int, width: CGFloat) -> some View {
         Button {
             guard let left = steps[index].faces.last,
                   let right = steps[index + 1].faces.first else { return }
@@ -334,7 +345,7 @@ struct PlayBarView: View {
                     .font(.system(size: 8.5, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.gold.opacity(0.95))
             }
-            .frame(width: compact ? 26 : 30, height: bodyHeight * 0.56)
+            .frame(width: max(20, width - 6), height: bodyHeight * 0.56)
             .background {
                 Capsule().fill(Theme.bg.opacity(0.7))
             }
@@ -342,7 +353,7 @@ struct PlayBarView: View {
             .shadow(color: Theme.gold.opacity(0.45), radius: 6)
             // The tappable area runs the full height of the row, so a seam
             // never demands a precise hit on a narrow capsule.
-            .frame(width: compact ? 34 : 38, height: bodyHeight)
+            .frame(width: width, height: bodyHeight)
             .contentShape(.rect)
         }
         .buttonStyle(PressableButtonStyle())
@@ -371,7 +382,7 @@ struct PlayBarView: View {
     /// An action you welded together: its name, its ingredient dice, its cost,
     /// and the controls to pull it apart or grow it. Tapping the body opens the
     /// same card you combined from, so you can re-read what it does.
-    private func combinedCard(_ step: PlanStep) -> some View {
+    private func combinedCard(_ step: PlanStep, width: CGFloat) -> some View {
         let combo = step.combo
         let tint = combo?.tint ?? Theme.gold
         let known = engine.isChainKnown(step)
@@ -402,7 +413,7 @@ struct PlayBarView: View {
                 ForEach(step.faces) { face in
                     PharaohSWagerSymbol(art: face.face.artName,
                                         fallback: face.face.symbol,
-                                        size: iconSize(for: step.faces.count),
+                                        size: comboIconSize(for: step.faces.count, width: width),
                                         tint: face.isCrit ? Theme.gold : face.face.tint)
                 }
                 Spacer(minLength: 0)
@@ -470,7 +481,7 @@ struct PlayBarView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, compact ? 5 : 7)
-        .frame(width: cardWidth(for: step.faces.count), height: bodyHeight, alignment: .topLeading)
+        .frame(width: width, height: bodyHeight, alignment: .topLeading)
         .background {
             PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.75, shade: 0.3)
                 .clipShape(.rect(cornerRadius: 12))
@@ -549,15 +560,9 @@ struct PlayBarView: View {
         return base - CGFloat(dice - 3) * 2
     }
 
-    /// A combined card grows with the dice it swallowed, so a five-die working
-    /// reads as the big thing it is — and so its name and timing lines have
-    /// somewhere to sit. Width is whichever is larger: the room the name needs,
-    /// or the room the dice need.
-    private func cardWidth(for dice: Int) -> CGFloat {
-        let base: CGFloat = compact ? 92 : 104
-        let forName = base + CGFloat(max(0, dice - 2)) * (compact ? 16 : 18)
-        let forDice = CGFloat(dice) * (iconSize(for: dice) + 2) + 20
-        return max(forName, forDice)
+    private func comboIconSize(for dice: Int, width: CGFloat) -> CGFloat {
+        let available = max(12, (width - 16 - CGFloat(max(0, dice - 1)) * 2) / CGFloat(max(1, dice)))
+        return min(iconSize(for: dice), available)
     }
 
     private func smallControl(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
@@ -587,7 +592,7 @@ struct PlayBarView: View {
 
     /// One die in the plan: its face and what that face does on its own. Its
     /// place in the row is its order. Tapping takes it back; dragging reorders.
-    private func planDieCard(_ face: RolledFace) -> some View {
+    private func planDieCard(_ face: RolledFace, width: CGFloat) -> some View {
         let tint = face.isCrit ? Theme.gold : (face.patron?.tint ?? face.face.tint)
         // A held copper mark lights the dice whose hidden chain could carry it.
         // The plan never names that chain — the die simply glows and takes the
@@ -612,7 +617,7 @@ struct PlayBarView: View {
             VStack(spacing: compact ? 3 : 5) {
                 PharaohSWagerSymbol(art: face.face.artName,
                            fallback: face.face.symbol,
-                           size: compact ? 30 : 36,
+                           size: min(compact ? 30 : 36, max(18, width * 0.46)),
                            tint: tint)
                     .modifier(FaceWash(tint: Theme.gold, active: face.isCrit))
 
@@ -638,7 +643,7 @@ struct PlayBarView: View {
             }
             .padding(.horizontal, 5)
             .padding(.vertical, compact ? 5 : 7)
-            .frame(width: compact ? 76 : 84, height: bodyHeight)
+            .frame(width: width, height: bodyHeight)
             .background {
                 PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.7, shade: 0.34)
                     .clipShape(.rect(cornerRadius: 12))
@@ -728,12 +733,11 @@ struct PlayBarView: View {
 
     private var rerollButton: some View {
         Button {
-            if engine.canReroll { engine.rerollSelected(reduceMotion: reduceMotion) }
-            else { engine.selectingReroll.toggle() }
+            engine.selectingReroll.toggle()
             Haptics.light()
         } label: {
             VStack(spacing: 2) {
-                Label(engine.canReroll ? "REROLL" : (engine.selectingReroll ? "CANCEL" : "REROLL"),
+                Label(engine.selectingReroll ? "CANCEL" : "REROLL",
                       systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
                 Text("\(engine.rerollsRemaining) reroll left")

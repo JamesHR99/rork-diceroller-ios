@@ -78,19 +78,19 @@ struct BattleLoopTests {
         #expect(engine.rerollsRemaining == 1)
     }
 
-    @Test func selectiveRerollPreservesKeptResultsAndCannotRerollPlannedDice() async throws {
+    @Test func armedDieRerollsImmediatelyAndPreservesOtherResults() async throws {
         let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
         let before = engine.rolled
         let played = try #require(before.first { $0.face == .block })
         engine.placeInPlayBar(faceID: played.id)
         let plannedSlot = try #require(engine.slots.first { $0.die.id == played.dieID })
-        engine.toggleReroll(slotID: plannedSlot.id)
+        engine.selectingReroll = true
+        engine.reroll(slotID: plannedSlot.id, reduceMotion: true)
         #expect(engine.rerollSelection.isEmpty)
         let selected = try #require(engine.slots.first { $0.die.id != played.dieID })
         let selectedFace = try #require(before.first { $0.dieID == selected.die.id })
-        engine.toggleReroll(slotID: selected.id)
-        engine.rerollSelected(reduceMotion: true)
+        engine.reroll(slotID: selected.id, reduceMotion: true)
         #expect(!engine.canCommit)
         #expect(!engine.canReroll)
         try await settled(engine)

@@ -55,13 +55,15 @@ private struct BattleContentView: View {
                                 .padding(.horizontal, 12)
                                 .padding(.top, 2)
                                 .transition(.move(edge: .top).combined(with: .opacity))
+
+                            enemyOrderStrip
+                                .padding(.horizontal, 14)
+                                .padding(.top, 3)
                         }
 
-                        // No separate hour band: the turn plan already reads
-                        // the order and the beat of your own actions, and each
-                        // foe's blow carries its beat under its health bar.
-                        // That hands the whole lower half of the screen back
-                        // to the dice and the plan.
+                        // Enemy actions have one shared strip above the reels;
+                        // the health cards stay compact and the whole pack's
+                        // order can be read from left to right.
                     }
                     // The deck is measured against what this strip leaves
                     // behind, so it can sit directly under the health bars.
@@ -200,8 +202,8 @@ private struct BattleContentView: View {
         let compact = foes.count > 1
         let spacing: CGFloat = foes.count > 2 ? 4 : 6
         let natural: CGFloat = compact ? 212 : 268
-        // You take a smaller share of a crowded rail, because your own
-        // read is one health channel and theirs carry whole sequences.
+        // You take a smaller share of a crowded rail so all health channels
+        // and portraits remain visible at once.
         let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
         let playerWidth = min(natural, max(120, width * playerShare))
         let foeRoom = width - playerWidth - spacing * CGFloat(foes.count + 1)
@@ -240,6 +242,54 @@ private struct BattleContentView: View {
         }
         .frame(width: width, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// One shared enemy queue above the reels. Health cards stay focused on
+    /// health, while this strip shows exactly which creature acts next when a
+    /// pack has several announced moves.
+    private var enemyOrderStrip: some View {
+        let actions = engine.timeline.filter { !$0.isPlayer }
+        return HStack(spacing: 6) {
+            Text("ENEMY ORDER")
+                .font(.system(size: 8.5, weight: .black))
+                .kerning(0.8)
+                .foregroundStyle(Theme.blood)
+                .fixedSize()
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                        HStack(spacing: 4) {
+                            Text("\(index + 1)")
+                                .font(.system(size: 8, weight: .black).monospacedDigit())
+                                .foregroundStyle(Theme.bg)
+                                .frame(width: 15, height: 15)
+                                .background(Theme.blood, in: .circle)
+                            Text(action.title)
+                                .font(.fantasy(9.5, weight: .bold))
+                                .foregroundStyle(Theme.parchment)
+                            Text(action.detail.uppercased())
+                                .font(.system(size: 7.5, weight: .black).monospacedDigit())
+                                .foregroundStyle(Theme.parchmentDim)
+                        }
+                        .lineLimit(1)
+                        .padding(.horizontal, 6)
+                        .frame(height: 24)
+                        .background(Theme.bgCard.opacity(0.82), in: .capsule)
+                        .overlay(Capsule().strokeBorder(Theme.blood.opacity(0.4), lineWidth: 1))
+
+                        if index < actions.count - 1 {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 7, weight: .black))
+                                .foregroundStyle(Theme.blood.opacity(0.75))
+                        }
+                    }
+                }
+            }
+        }
+        .frame(height: 28)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Enemy action order")
     }
 
     // MARK: - Stage

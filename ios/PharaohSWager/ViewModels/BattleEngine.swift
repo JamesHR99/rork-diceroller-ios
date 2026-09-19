@@ -14,7 +14,7 @@ struct RolledFace: Identifiable, Hashable {
     let isCrit: Bool
     let critChance: Double
     let imbueTiers: Int
-    /// True when this result survived a selective reroll this round.
+    /// True when this result was left in place while another die rerolled.
     var wasKept = false
     /// Chisel substitutions: Adjustable Nock shifts a held arrow a tier,
     /// Prismatic Focus stands an Arcane rune in for another, Concealed Blade
@@ -1691,20 +1691,24 @@ final class BattleEngine {
         playerShield + displayedPlan.filter { $0.isPreparedSupport && $0.faces.first?.matchFace == .block }
             .reduce(0) { $0 + ($1.faces.first?.face.soloValue ?? 0) }
     }
-    var canReroll: Bool { phase == .player && hasRolled && !isRolling && rerollsRemaining > 0 && !rerollSelection.isEmpty }
+    var canReroll: Bool { phase == .player && hasRolled && !isRolling && rerollsRemaining > 0 }
     private var rollingSlotIDs: [UUID] = []
     private var rollableDice: [UUID] { rollingSlotIDs.isEmpty ? slots.map(\.id) : rollingSlotIDs }
 
-    func toggleReroll(slotID: UUID) {
-        guard phase == .player, hasRolled, !isRolling, rerollsRemaining > 0,
+    /// Reroll one armed die immediately. There is no second confirmation: the
+    /// reroll button changes what the next die tap does, and that tap spends
+    /// the reroll and starts its reel at once.
+    func reroll(slotID: UUID, reduceMotion: Bool = false) {
+        guard canReroll, selectingReroll,
               let slot = slots.first(where: { $0.id == slotID }),
               case .rolled(let face) = slot.state, !playOrder.contains(face.id) else { return }
-        if !rerollSelection.insert(slotID).inserted { rerollSelection.remove(slotID) }
+        rerollSelection = [slotID]
         Haptics.light()
+        rerollSelected(reduceMotion: reduceMotion)
     }
 
-    func rerollSelected(reduceMotion: Bool = false) {
-        guard canReroll else { return }
+    private func rerollSelected(reduceMotion: Bool = false) {
+        guard canReroll, !rerollSelection.isEmpty else { return }
         let selected = rerollSelection
         rerollsUsed += 1
         // Only results retained through a real reroll qualify as kept dice.
@@ -1826,7 +1830,7 @@ final class BattleEngine {
                 self.settle(slotID: slotID, isLast: offset == tumbling.count - 1)
             }
             guard let self, self.rollID == currentRoll, self.phase == .player else { return }
-            self.lastAction = "Build attacks, prepare reactions, or reroll selected dice."
+            self.lastAction = "Build attacks, prepare reactions, or arm a die reroll."
         }
     }
 
