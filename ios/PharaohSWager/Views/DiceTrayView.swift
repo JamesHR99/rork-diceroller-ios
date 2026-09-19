@@ -559,7 +559,7 @@ private struct DiceTrayReelView: View {
     /// Gold badge that says CRIT without stealing the face's name.
     @ViewBuilder
     private func critBadge(_ face: RolledFace) -> some View {
-        if face.isCrit && !isSelectedForReroll {
+        if face.isCrit {
             HStack(spacing: 2.5) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.critical, size: max(11, width * 0.13))
                 Text("CRIT")
