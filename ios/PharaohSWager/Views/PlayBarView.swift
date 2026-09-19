@@ -42,10 +42,12 @@ struct PlayBarView: View {
             Haptics.chain(length: formed.count, crit: false)
             Audio.shared.play(.chain, volumeScale: min(1, 0.35 + Float(formed.count) * 0.1))
             if formed.count >= 4 { Audio.shared.play(.diceLock, after: 0.07) }
-            withAnimation(.easeOut(duration: reduceMotion ? 0.18 : 0.35 + Double(formed.count) * 0.07)) {
-                burstProgress = 1
-            }
             impactTask = Task { @MainActor in
+                // Let the initial impact reach the screen before animating it away.
+                do { try await Task.sleep(for: .milliseconds(20)) } catch { return }
+                withAnimation(.easeOut(duration: reduceMotion ? 0.18 : 0.35 + Double(formed.count) * 0.07)) {
+                    burstProgress = 1
+                }
                 do { try await Task.sleep(for: .milliseconds(reduceMotion ? 200 : 900)) } catch { return }
                 burstStepID = nil
             }

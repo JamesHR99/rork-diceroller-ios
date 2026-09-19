@@ -33,6 +33,16 @@ jobs:
         if: always()
         continue-on-error: true
         run: xcrun xcresulttool export attachments --path TestResults.xcresult --output-path TestAttachments
+      - name: Log compact visual previews
+        if: always()
+        run: |
+          python3 - <<'PYCODE'
+          import base64, json, pathlib, subprocess
+          for p in pathlib.Path('TestAttachments').glob('*.png'):
+              target = p.with_suffix('.jpg')
+              subprocess.run(['sips', '-Z', '1200', '-s', 'format', 'jpeg', '-s', 'formatOptions', '65', str(p), '--out', str(target)], check=True, stdout=subprocess.DEVNULL)
+              print('VISUAL_PREVIEW ' + json.dumps({'name': p.name, 'data': base64.b64encode(target.read_bytes()).decode()}))
+          PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:

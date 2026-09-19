@@ -20,3 +20,18 @@ struct TurnOrderPlaque: View {
         .shadow(color: .black.opacity(0.5), radius: 4, y: 3)
     }
 }
+
+/// Shared by the battle result and the end-of-run screen: bright lettering always sits on opaque dark stone.
+struct VerdictBanner: View {
+    let title: String
+    let won: Bool
+    var body: some View {
+        Text(title)
+            .font(.fantasy(28, weight: .black))
+            .foregroundStyle(Theme.parchment)
+            .kerning(3)
+            .lineLimit(1).minimumScaleFactor(0.65)
+            .padding(.horizontal, 30).padding(.vertical, 12)
+            .background { TurnOrderPlaque(accent: won ? Theme.gold : Theme.blood) }
+    }
+}
