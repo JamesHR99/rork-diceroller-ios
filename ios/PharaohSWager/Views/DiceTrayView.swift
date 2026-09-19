@@ -695,7 +695,7 @@ private struct DiceTrayReelView: View {
     /// Quick "what will this do" tag under the face icon — read from the
     /// substituted tier when a Chisel has shifted the face.
     private func bottomTag(_ face: RolledFace) -> String {
-        if selectingReroll { return engine.rerollSelection.contains(slot.id) ? "SELECTED" : "TAP TO SELECT" }
+        if selectingReroll { return "TAP TO REROLL" }
         guard face.isCrit else { return face.matchFace.soloTag }
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {

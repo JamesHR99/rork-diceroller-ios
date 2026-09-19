@@ -111,6 +111,24 @@ struct Voyage: Hashable, Codable {
     static let lordIndex = 7
 
     var nodes: [VoyageNode]
+    var rerolledStages: Set<Int>? = nil
+
+    func canReroll(_ node: VoyageNode) -> Bool {
+        nodes.contains(where: { $0.id == node.id }) && !node.kind.isForced
+            && nodes(inStage: node.stage).count == 2
+            && !(rerolledStages ?? []).contains(node.stage)
+    }
+
+    @discardableResult
+    mutating func rerollDestination(_ id: UUID) -> Bool {
+        guard let index = nodes.firstIndex(where: { $0.id == id }), canReroll(nodes[index]) else { return false }
+        let old = nodes[index]
+        nodes[index] = VoyageNode(id: old.id, kind: Self.rolledKind(), stage: old.stage,
+            hour: old.hour, isRevealed: Double.random(in: 0..<1) < Self.revealChance)
+        if rerolledStages == nil { rerolledStages = [] }
+        rerolledStages?.insert(old.stage)
+        return true
+    }
 
     func node(_ id: UUID) -> VoyageNode? { nodes.first { $0.id == id } }
 
@@ -240,3 +258,4 @@ struct Voyage: Hashable, Codable {
         "The \(ordinal(hour)) Hour · \(Gate.forHour(hour).name)"
     }
 }
+

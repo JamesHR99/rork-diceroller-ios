@@ -10,6 +10,10 @@ import SwiftUI
 /// a menu.
 struct NightChartView: View {
     @Environment(GameManager.self) private var game
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var rollingIDs: Set<UUID> = []
+    @State private var rollFrame = 0
+    @State private var rerollTask: Task<Void, Never>?
     @State private var pulse = false
     @State private var showInfo = false
 
@@ -37,6 +41,10 @@ struct NightChartView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { pulse = true }
         }
+        .task(id: game.nextStage) {
+            if options.count == 2 { await animateDestinations(Set(options.map(\.id))) }
+        }
+        .onDisappear { rerollTask?.cancel() }
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus, drawnDieIDs: [],
@@ -108,17 +116,10 @@ struct NightChartView: View {
 
     private var instruction: String {
         guard let first = options.first else { return gate.region }
-        if options.count == 1 {
-            return first.kind == .boss
-                ? "\(gate.region) · The river ends here. There is no way around it."
-                : "\(gate.region) · The channels close to one. It is waiting for you."
-        }
-        let dark = options.filter { !$0.isRevealed }.count
-        switch dark {
-        case 0: return "\(gate.region) · Two channels, both read clearly."
-        case 1: return "\(gate.region) · Two channels — one of them is dark water."
-        default: return "\(gate.region) · Two channels, both dark. Pick a side."
-        }
+        if options.count == 1 { return "\(first.kind.label) ahead · This encounter cannot be rerolled." }
+        if !rollingIDs.isEmpty { return "The river dice are rolling…" }
+        return game.canRerollDestination ? "Two destinations · Reroll either die once, or choose your route."
+            : "Reroll spent · Choose one die to sail onward."
     }
 
     private var footer: some View {
@@ -221,76 +222,85 @@ struct NightChartView: View {
     private func channelCard(_ node: VoyageNode) -> some View {
         let solo = options.count == 1
         let known = node.isRevealed || node.kind.isForced
+        let rolling = rollingIDs.contains(node.id)
         let tint = known ? node.kind.tint : Theme.duskViolet
-        let marker: PharaohSWagerArt.RouteState = node.isBoss ? .boss : .available
-
-        return Button {
-            game.enter(node)
-        } label: {
-            VStack(spacing: 10) {
-                ZStack {
-                    PharaohSWagerImage(name: PharaohSWagerArt.RouteState.available.rawValue,
-                              height: (solo ? 128 : 108) + 18, fit: .fit)
-                        .colorMultiply(tint)
-                        .scaleEffect(pulse ? 1.08 : 0.96)
-                        .opacity(pulse ? 0.22 : 0.48)
-                        .blur(radius: 3)
-
-                    PharaohSWagerImage(name: marker.rawValue, height: solo ? 128 : 108, fit: .fit)
-                        .modifier(TintWash(tint: tint))
-
-                    PharaohSWagerSymbol(art: known ? node.kind.artName : nil,
-                               fallback: known ? node.kind.symbol : "questionmark",
-                               size: solo ? 62 : 50,
-                               tint: Theme.parchment)
-                        .padding(solo ? 12 : 9)
-                        .background {
-                            Circle()
-                                .fill(Theme.bg.opacity(0.82))
-                                .overlay(Circle().strokeBorder(tint.opacity(0.6), lineWidth: 1))
-                        }
-                        .shadow(color: .black.opacity(0.8), radius: 5)
+        let faces: [StageKind] = [.battle, .ferryman, .omen, .shrine, .battle, .omen]
+        let rollingFace = faces[rollFrame % faces.count]
+        let face = rolling ? rollingFace : node.kind
+        return VStack(spacing: 7) {
+            Button {
+                guard rollingIDs.isEmpty else { return }
+                game.enter(node)
+            } label: {
+                VStack(spacing: 5) {
+                    ZStack {
+                        TurnOrderPlaque(accent: tint)
+                        VStack(spacing: 4) {
+                            PharaohSWagerSymbol(art: rolling || known ? face.artName : PharaohSWagerArt.interactionRoll,
+                                fallback: rolling || known ? face.symbol : "questionmark", size: 47,
+                                tint: rolling ? Theme.gold : tint)
+                            Text(rolling ? "ROLLING" : known ? node.kind.label.uppercased() : "DARK WATER")
+                                .font(.fantasy(14, weight: .black))
+                                .foregroundStyle(Theme.parchment)
+                                .lineLimit(1).minimumScaleFactor(0.7)
+                        }.padding(10)
+                        VStack {
+                            HStack { Circle().frame(width: 4, height: 4); Spacer(); Circle().frame(width: 4, height: 4) }
+                            Spacer()
+                            HStack { Circle().frame(width: 4, height: 4); Spacer(); Circle().frame(width: 4, height: 4) }
+                        }.foregroundStyle(Theme.gold).padding(10)
+                    }
+                    .frame(width: solo ? 112 : 104, height: solo ? 112 : 104)
+                    .rotation3DEffect(.degrees(rolling && !reduceMotion ? Double(rollFrame) * 180 : 0), axis: (x: 1, y: 0.4, z: 0))
+                    .rotationEffect(.degrees(rolling && !reduceMotion ? (rollFrame.isMultiple(of: 2) ? -9 : 9) : 0))
+                    .scaleEffect(rolling && !reduceMotion ? 0.9 : 1)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.11), value: rollFrame)
+                    Text(rolling ? "Reading the river…" : known ? node.kind.blurb : "A hidden destination. Discover it when you arrive.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.parchment)
+                        .multilineTextAlignment(.center).lineLimit(2)
+                        .frame(height: 28)
+                    Text(solo ? "SAIL ONWARD" : "CHOOSE THIS DIE")
+                        .font(.fantasy(12, weight: .bold)).foregroundStyle(Theme.gold)
                 }
-                .shadow(color: tint.opacity(pulse ? 0.7 : 0.3), radius: 14)
-
-                Text(known ? node.kind.label.uppercased() : "DARK WATER")
-                    .font(.fantasy(solo ? 20 : 17, weight: .black))
-                    .kerning(1.4)
-                    .foregroundStyle(node.isBoss ? Theme.blood : tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-
-                Text(known
-                     ? (node.isBoss
-                        ? EnemyContent.enemy(hour: node.hour, isHerald: false).name
-                        : node.kind.title)
-                     : "The water tells you nothing")
-                    .font(.fantasy(13, weight: .bold))
-                    .foregroundStyle(Theme.parchment.opacity(0.9))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-
-                Text(known ? node.kind.blurb : "You will know when you are in it.")
-                    .font(.paper(11.5))
-                    .italic()
-                    .foregroundStyle(Theme.parchmentDim)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(Voyage.fullName(node.hour).uppercased())
-                    .font(.system(size: 8, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(Theme.parchmentDim.opacity(0.65))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                .frame(maxWidth: solo ? 360 : .infinity)
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-            .frame(maxWidth: solo ? 360 : .infinity)
-            .duatPanel(tint: tint, cornerRadius: 20)
+            .buttonStyle(.plain)
+            .disabled(!rollingIDs.isEmpty)
+            .accessibilityLabel(known ? "Choose \(node.kind.label)" : "Choose Dark Water, a hidden destination")
+            if !solo {
+                Button {
+                    guard rollingIDs.isEmpty, game.rerollDestination(node.id) else { return }
+                    rerollTask = Task { await animateDestinations([node.id]) }
+                } label: {
+                    Label(game.canRerollDestination ? "REROLL THIS DIE" : "REROLL SPENT", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundStyle(game.canRerollDestination ? Theme.gold : Theme.parchmentDim)
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                        .background { TurnOrderPlaque(accent: Theme.gold) }
+                }
+                .buttonStyle(.plain)
+                .disabled(!game.canRerollDestination || !rollingIDs.isEmpty)
+                .accessibilityLabel("Reroll \(known ? node.kind.label : "Dark Water") destination")
+            }
         }
-        .buttonStyle(PressableButtonStyle())
+        .frame(maxWidth: .infinity)
+    }
+
+    @MainActor
+    private func animateDestinations(_ ids: Set<UUID>) async {
+        rollingIDs = ids
+        defer { rollingIDs = [] }
+        Audio.shared.play(.diceRoll)
+        for frame in 0..<(reduceMotion ? 2 : 8) {
+            rollFrame = frame
+            do { try await Task.sleep(for: .milliseconds(reduceMotion ? 70 : 95)) } catch { return }
+        }
+        Haptics.medium()
+        Audio.shared.play(.diceLock)
     }
 }
+
 

@@ -301,6 +301,7 @@ struct PressableButtonStyle: ButtonStyle {
 struct CombineBurst: View {
     let progress: CGFloat
     let tint: Color
+    var size: Int = 2
 
     var body: some View {
         ZStack {
@@ -314,12 +315,12 @@ struct CombineBurst: View {
                 .opacity(Double(max(0, 0.55 - progress)) * 0.9)
                 .blendMode(.plusLighter)
 
-            ForEach(0..<12, id: \.self) { index in
-                let angle = Double(index) / 12 * 2 * .pi
+            ForEach(0..<(size * 5), id: \.self) { index in
+                let angle = Double(index) / Double(size * 5) * 2 * .pi
                 Capsule()
                     .fill(index.isMultiple(of: 2) ? tint : Theme.gold)
                     .frame(width: 2.6, height: 11)
-                    .offset(y: -26 - progress * 30)
+                    .offset(y: -20 - progress * CGFloat(20 + size * 7))
                     .rotationEffect(.radians(angle))
                     .scaleEffect(0.4 + progress * 1.1)
                     .opacity(Double(1 - progress) * 0.95)
@@ -515,3 +516,4 @@ struct PharaohSWagerStaminaPip: View {
                     radius: isFilled ? 4 : 0)
     }
 }
+

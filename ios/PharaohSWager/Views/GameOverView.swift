@@ -120,21 +120,7 @@ struct GameOverView: View {
                 .scaleEffect(appeared ? 1 : 0.4)
 
             // The verdict on its painted banner.
-            Text(won ? "DAWN" : "DEVOURED")
-                .font(.fantasy(won ? 38 : 30, weight: .black))
-                .foregroundStyle(
-                    LinearGradient(colors: won ? [Theme.parchment, Theme.sunGold] : [Theme.parchment, Theme.blood],
-                                   startPoint: .top, endPoint: .bottom)
-                )
-                .kerning(8)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 34)
-                .padding(.vertical, 16)
-                .background {
-                    PharaohSWagerImage(name: won ? PharaohSWagerArt.bannerVictory : PharaohSWagerArt.bannerDefeat, fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+            VerdictBanner(title: won ? "DAWN" : "DEVOURED", won: won)
 
             WingedDivider(height: 22, opacity: 0.8)
                 .frame(maxWidth: 240)
@@ -271,4 +257,5 @@ struct GameOverView: View {
         }
     }
 }
+
 

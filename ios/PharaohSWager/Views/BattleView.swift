@@ -763,18 +763,7 @@ private struct BattleContentView: View {
                 .shadow(color: (won ? Theme.gold : Theme.blood).opacity(0.7), radius: 18)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(won ? "THE WAY IS CLEAR" : "THE DISC GOES OUT")
-                    .font(.fantasy(28, weight: .black))
-                    .foregroundStyle(Theme.parchment)
-                    .kerning(3)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical, 12)
-                    .background {
-                        PharaohSWagerImage(name: won ? PharaohSWagerArt.bannerVictory : PharaohSWagerArt.bannerDefeat, fit: .stretch)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
+                VerdictBanner(title: won ? "THE WAY IS CLEAR" : "THE DISC GOES OUT", won: won)
 
                 Text(won
                      ? "\(engine.isPack ? "The pack" : engine.enemyDisplayName) sinks back into the water. \(engine.combosLanded) combos, \(engine.critsLanded) crit dice."
