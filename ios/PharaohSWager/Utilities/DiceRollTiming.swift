@@ -3,9 +3,11 @@ import Foundation
 /// One bounded roll schedule, shared by the engine and the reel renderer.
 /// Stops use absolute deadlines so a busy frame cannot lengthen every later gap.
 enum DiceRollTiming {
-    static let firstStop: TimeInterval = 0.58
-    static let stopSpacing: TimeInterval = 0.075
-    static let maximumStagger: TimeInterval = 0.60
+    /// Give the drum time to establish its speed before the first reel lands.
+    /// The following reels then lock with a clear left-to-right cadence.
+    static let firstStop: TimeInterval = 0.82
+    static let stopSpacing: TimeInterval = 0.16
+    static let maximumStagger: TimeInterval = 0.96
 
     static func stopTime(index: Int, count: Int, reduceMotion: Bool = false) -> TimeInterval {
         let lastIndex = max(0, count - 1)

@@ -375,7 +375,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "rerolls",
                 title: "Six dice. One reroll.",
-                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, select any unplayed dice, then roll them again together. Results you leave alone become Kept for this round. Powers can unlock a second reroll. Every round starts with a fresh draw.",
+                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap one unplayed die. It rerolls immediately. The other results become Kept for this round. Powers can unlock a second single-die reroll. Every round starts with a fresh draw.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -706,4 +706,3 @@ private struct DemoFace: Identifiable {
     let id = UUID()
     let kind: FaceKind
 }
-

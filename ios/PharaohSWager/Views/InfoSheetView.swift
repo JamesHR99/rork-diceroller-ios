@@ -720,8 +720,8 @@ struct InfoSheetView: View {
                 lines: [
                     "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
                     "There is no player stamina. Use all six dice or commit early.",
-                    "One reroll each round: select any unplayed dice and reroll them together. Powers can raise this to two.",
-                    "Results left alone during a reroll become Kept, including their crits. God powers can reward these results.",
+                    "One reroll each round: tap REROLL, then tap one unplayed die to reroll it immediately. Powers can raise this to two.",
+                    "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
                     "No results carry between rounds. The next round draws six fresh dice.",
                     "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming returns it."
                 ]
@@ -1075,4 +1075,3 @@ struct InfoSheetView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 }
-

@@ -238,7 +238,7 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "AN-U2", god: .anubis, slot: .utility, name: "Preserved Moment",
-            effect: "Gain one additional selective reroll every round, up to 2 total. Unused rerolls expire. Fixed.",
+            effect: "Gain one additional single-die reroll every round, up to 2 total. Unused rerolls expire. Fixed.",
             function: "Additional reroll", kind: .regular, trigger: .roundStart,
             payload: BoonPayload(rerollsNext: 1)
         ),
@@ -597,4 +597,3 @@ enum GodCatalog {
         ),
     ]
 }
-

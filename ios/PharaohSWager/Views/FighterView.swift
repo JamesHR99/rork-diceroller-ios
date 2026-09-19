@@ -162,10 +162,6 @@ struct FighterView: View {
                 }
 
                 healthBar(width: tickerBarWidth, height: 15)
-
-                if side == .enemy, let foe {
-                    intentLine(foe)
-                }
             }
             .frame(maxWidth: .infinity, alignment: side == .player ? .leading : .trailing)
 
@@ -196,123 +192,6 @@ struct FighterView: View {
     private var showsTickerPortrait: Bool { tickerWidth >= 190 }
     private var tickerBarWidth: CGFloat {
         max(0, tickerWidth - 18 - (showsTickerPortrait ? (tickerCompact ? 53 : 61) : 0))
-    }
-
-    /// Everything this foe is going to do when the deck goes down, in order,
-    /// each carrying its own agility. A creature spends a stamina allowance
-    /// like you do, so a round can be a guard and two quick cuts rather than
-    /// one blow — and all of it is on the board before you commit, which is
-    /// what makes blocking, striking and blocking again worth planning.
-    @ViewBuilder
-    private func intentLine(_ foe: EnemyState) -> some View {
-        let round = engine.projectedRound(for: foe)
-        if round.count > 1 {
-            VStack(alignment: .trailing, spacing: 2) {
-                ForEach(Array(round.enumerated()), id: \.offset) { index, entry in
-                    intentStep(entry.move,
-                               cost: index + 1,
-                               strike: entry.strike,
-                               step: index + 1, of: round.count)
-                }
-            }
-        } else if let entry = round.first {
-            intentStep(entry.move,
-                       cost: 1,
-                       strike: entry.strike, step: 1, of: 1)
-        }
-    }
-
-    /// One of the foe's telegraphed actions: its agility, what it is, and what
-    /// it will cost you.
-    private func intentStep(
-        _ move: EnemyMove,
-        cost: Int,
-        strike: (damage: Int, heal: Int, block: Int),
-        step: Int,
-        of total: Int
-    ) -> some View {
-        let tight = tickerWidth < 200
-        return HStack(spacing: 3) {
-            actionCartouche(cost)
-
-            if total > 1 {
-                Text("\(step)")
-                    .font(.system(size: 8, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.parchmentDim)
-                    .frame(width: 10)
-            }
-
-            ForEach(Array(move.faces.prefix(tight ? 1 : 3).enumerated()), id: \.offset) { _, face in
-                PharaohSWagerSymbol(art: face.artName, fallback: face.symbol,
-                           size: tight ? 13 : 15, tint: face.tint)
-                    .frame(width: tight ? 15 : 18, height: tight ? 15 : 18)
-            }
-
-            if !tight {
-                Text(move.comboName ?? move.name)
-                    .font(.fantasy(11, weight: .bold))
-                    .foregroundStyle(move.comboName != nil ? Theme.ember : Theme.parchmentDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-            }
-
-            // A wind-up is the read that matters most: nothing lands now and
-            // the next blow is a great deal worse.
-            if move.charge > 0 {
-                HStack(spacing: 2) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.critical, fallback: "bolt.trianglebadge.exclamationmark.fill",
-                               size: 11, tint: Theme.ember)
-                    Text("×\(String(format: "%.1f", move.charge))")
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.ember)
-                }
-            }
-            if strike.damage > 0 {
-                HStack(spacing: 2) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.piercing, fallback: "burst.fill",
-                               size: 12, tint: Theme.blood)
-                    Text("\(strike.damage)")
-                        .font(.system(size: 11, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.blood)
-                }
-            }
-            if strike.block > 0 {
-                HStack(spacing: 2) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.armour, fallback: "shield.fill",
-                               size: 11, tint: Theme.bronze)
-                    Text("\(strike.block)")
-                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.bronze)
-                }
-            }
-            if strike.heal > 0 {
-                HStack(spacing: 2) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.regeneration, fallback: "heart.fill",
-                               size: 11, tint: Theme.forest)
-                    Text("\(strike.heal)")
-                        .font(.system(size: 10.5, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.forest)
-                }
-            }
-        }
-    }
-
-    /// This blow's own agility: the creature's base plus the size of the move.
-    /// The same number your own actions carry, so the two sides can be read
-    /// against each other and the order of the round worked out by hand.
-    private func actionCartouche(_ cost: Int) -> some View {
-        HStack(spacing: 1.5) {
-            Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 7, weight: .black))
-            Text("\(cost)")
-                .font(.system(size: 9.5, weight: .black).monospacedDigit())
-                .contentTransition(.numericText())
-        }
-        .foregroundStyle(Theme.bg)
-        .padding(.horizontal, 4)
-        .padding(.vertical, 1)
-        .background(Theme.blood, in: .capsule)
-        .accessibilityLabel("Action \(cost)")
     }
 
     // MARK: - Overlays
@@ -738,4 +617,3 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
-

@@ -7,13 +7,13 @@ struct DicePresentationTests {
     @Test(arguments: [1, 2, 4, 5, 6, 8, 12])
     func rollStopsStayOrderedAndBounded(count: Int) {
         let stops = (0..<count).map { DiceRollTiming.stopTime(index: $0, count: count) }
-        #expect(stops.first == 0.58)
-        #expect((stops.last ?? 0) <= 1.18 + 0.000001)
+        #expect(stops.first == 0.82)
+        #expect((stops.last ?? 0) <= 1.78 + 0.000001)
         for (previous, next) in zip(stops, stops.dropFirst()) {
             #expect(next > previous)
-            #expect(next - previous <= 0.075 + 0.000001)
+            #expect(next - previous <= 0.16 + 0.000001)
         }
-        if count <= 6 { #expect((stops.last ?? 0) < 1) }
+        if count <= 6 { #expect((stops.last ?? 0) <= 1.62 + 0.000001) }
     }
 
     @Test(arguments: [1, 4, 6, 12])
