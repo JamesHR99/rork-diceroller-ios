@@ -101,6 +101,7 @@ struct InfoSheetView: View {
                 dismiss()
             } label: {
                 PharaohSWagerIcon(name: PharaohSWagerArt.utilityClose, size: 24)
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -1150,3 +1151,4 @@ struct InfoSheetView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 }
+

@@ -328,7 +328,7 @@ struct ActionSpotlight: Identifiable, Equatable {
 /// scattered sleeps.
 enum BattleBeat {
     /// Pause before a planned step steps into the light.
-    static let stepLeadIn = 300
+    static let stepLeadIn = 160
     /// A single face resolving on its own: long enough to play its clip out.
     static let soloStep = 1050
     /// A chain landing — the floor, before its length and crit bonus.
@@ -338,11 +338,11 @@ enum BattleBeat {
     /// Added when the chain crits, so the flash has room.
     static let comboCrit = 520
     /// After the last step, before statuses tick.
-    static let turnSettle = 620
+    static let turnSettle = 320
     /// Either side of a poison, burn or bleed tick.
-    static let statusTick = 520
+    static let statusTick = 300
     /// Pause before a foe takes its turn.
-    static let foeLeadIn = 300
+    static let foeLeadIn = 160
     /// A foe raising its guard or licking its wounds.
     static let foeSupport = 900
     /// The tell before a blow — matches the drawn wind-up.
@@ -354,17 +354,17 @@ enum BattleBeat {
     /// Either side of the champion's Sentence.
     static let sentence = 720
     /// The breath between the last foe acting and the drums spinning again.
-    static let handover = 900
+    static let handover = 350
 
     /// How long the card that names an action is held before the action
     /// resolves. This is the beat that makes a fight readable: the name of
     /// the blow, what it is worth, the faces that fed it and every god power
     /// riding it are all on screen together, and they stay long enough to
     /// actually be read.
-    static let spotlight = 1150
+    static let spotlight = 850
     /// Added per god power named on the card, so a heavily blessed action
     /// holds longer than a plain one.
-    static let spotlightPerGod = 300
+    static let spotlightPerGod = 220
     /// Added the first time a chain ever lands. Finding a recipe is the one
     /// moment in a fight worth stopping the board for.
     static let spotlightDiscovery = 900
@@ -658,6 +658,11 @@ final class BattleEngine {
     private(set) var drawnDieIDs: Set<UUID> = []
     private(set) var rolled: [RolledFace] = []
     private(set) var hasRolled = false
+    private(set) var rollID = UUID()
+    private(set) var rollStartedAt: TimeInterval = 0
+    private(set) var rollUsesReducedMotion = false
+    @ObservationIgnored private var rollTask: Task<Void, Never>?
+    private var pendingRolls: [UUID: RolledFace] = [:]
     private(set) var frozenSlotIDs: Set<UUID> = []
     private var pendingCarry: [DieSlot] = []
     private(set) var freezesUsed = 0
@@ -1751,30 +1756,13 @@ final class BattleEngine {
         slots.filter { if case .rolled = $0.state { return true } else { return false } }.count
     }
 
-    private static let firstLockDelay: Double = 0.85
-
-    static let drumStepBase: Double = 0.032
-
-    private func lockGaps(count: Int) -> [Double] {
-        let scale: Double = count > 7 ? 0.72 : (count > 5 ? 0.84 : 1)
-        return (0..<count).map { min(0.46 + 0.1 * Double($0), 1.0) * scale }
-    }
-
-    private func reelIndex(slotID: UUID) -> Int {
-        rollableDice.firstIndex(of: slotID) ?? 0
-    }
-
-    func drumStep(slotID: UUID) -> Double { Self.drumStepBase }
-
-    func brakeWindows(slotID: UUID) -> (crawl: Double, haul: Double, ring: Double) {
-        (crawl: 0.16, haul: 0.38, ring: 0.3)
-    }
-
     func lockTime(slotID: UUID) -> Double {
         let order = rollableDice
-        guard let index = order.firstIndex(of: slotID) else { return Self.firstLockDelay }
-        return Self.firstLockDelay + lockGaps(count: order.count).prefix(index).reduce(0, +)
+        return DiceRollTiming.stopTime(index: order.firstIndex(of: slotID) ?? 0,
+                                       count: order.count, reduceMotion: rollUsesReducedMotion)
     }
+
+    func landingFace(slotID: UUID) -> FaceKind? { pendingRolls[slotID]?.face }
 
     var canRoll: Bool { phase == .player && !hasRolled && rollableDice.isEmpty == false }
 
@@ -1853,11 +1841,24 @@ final class BattleEngine {
 
     // MARK: - Player actions
 
-    func rollAll() {
+    func rollAll(reduceMotion: Bool = false) {
         guard canRoll else { return }
+        Audio.shared.prepareDiceRoll()
+        rollTask?.cancel()
         hasRolled = true
         shuffleRow()
         let tumbling = rollableDice
+        // Sample each die exactly once. The strip scrolls onto this same result;
+        // it cannot show one face at the stop and then swap to another.
+        pendingRolls = Dictionary(uniqueKeysWithValues: slots.filter { !$0.isCarried }.map { slot in
+            (slot.id, rollResult(for: slot.die))
+        })
+        rollID = UUID()
+        rollUsesReducedMotion = reduceMotion
+        rollStartedAt = ProcessInfo.processInfo.systemUptime
+        let currentRoll = rollID
+        let clock = ContinuousClock()
+        let start = clock.now
         for index in slots.indices where !slots[index].isCarried {
             slots[index].state = .rolling
         }
@@ -1865,18 +1866,19 @@ final class BattleEngine {
         lastReelLocked = false
         Haptics.medium()
         Audio.shared.play(.diceRoll)
-        let gaps = lockGaps(count: tumbling.count)
-        Task {
-            try? await Task.sleep(for: .seconds(Self.firstLockDelay))
+        rollTask = Task { [weak self] in
             for (offset, slotID) in tumbling.enumerated() {
-                guard phase == .player else { return }
-                settle(slotID: slotID, isLast: offset == tumbling.count - 1)
-                guard offset < tumbling.count - 1 else { break }
-                try? await Task.sleep(for: .seconds(gaps[offset]))
+                let deadline = DiceRollTiming.stopTime(index: offset, count: tumbling.count,
+                                                       reduceMotion: reduceMotion)
+                do {
+                    try await clock.sleep(until: start.advanced(by: .seconds(deadline)))
+                } catch { return }
+                guard let self, self.rollID == currentRoll, self.phase == .player else { return }
+                self.settle(slotID: slotID, isLast: offset == tumbling.count - 1)
             }
-            guard phase == .player else { return }
-            let crits = rolled.filter(\.isCrit).count
-            lastAction = crits > 0
+            guard let self, self.rollID == currentRoll, self.phase == .player else { return }
+            let crits = self.rolled.filter(\.isCrit).count
+            self.lastAction = crits > 0
                 ? "\(crits) CRITICAL\(crits > 1 ? "S" : "")! Feed them into a chain."
                 : "Lay dice side by side — alone they barely scratch. See what forms."
         }
@@ -1888,14 +1890,11 @@ final class BattleEngine {
         slots = carried + rolling
     }
 
-    private func settle(slotID: UUID, isLast: Bool = false) {
-        guard let index = slots.firstIndex(where: { $0.id == slotID }),
-              slots[index].state == .rolling else { return }
-        let die = slots[index].die
+    private func rollResult(for die: Die) -> RolledFace {
         var extra = 0.0
         if die.patron == .horus, hasUpgrade("ho_windRead") { extra += 0.08 }
         let outcome = die.roll(critBonus: critBonus + extra)
-        let result = RolledFace(
+        return RolledFace(
             id: UUID(),
             dieID: die.id,
             dieName: die.name,
@@ -1905,16 +1904,23 @@ final class BattleEngine {
             critChance: outcome.chance,
             imbueTiers: outcome.face.imbueTiers
         )
+    }
+
+    private func settle(slotID: UUID, isLast: Bool = false) {
+        guard let index = slots.firstIndex(where: { $0.id == slotID }),
+              slots[index].state == .rolling,
+              let result = pendingRolls.removeValue(forKey: slotID) else { return }
         slots[index].state = .rolled(result)
         rolled.append(result)
         slamPulse += 1
         lastReelLocked = isLast
+        if isLast { Audio.shared.stopDiceRoll() }
 
         // A die landing should be felt. The last reel and any critical hit
         // the tray noticeably harder than the ones in between.
-        let kick: CGFloat = outcome.isCrit ? 1.25 : (isLast ? 0.95 : 0.55)
-        withAnimation(.linear(duration: 0.14)) { shakeTrigger += kick }
-        if outcome.isCrit {
+        // The reel supplies its own impact. Reserve camera shake for combat;
+        // six overlapping whole-screen shakes make the roll read as dropped frames.
+        if result.isCrit {
             critsLanded += 1
             Haptics.heavy()
             Audio.shared.play(.diceLock)

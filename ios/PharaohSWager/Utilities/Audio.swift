@@ -177,6 +177,27 @@ final class Audio {
     /// Decoded effect data, cached on first use so a repeat cue does not go
     /// back to disk in the middle of a fight.
     private var effectData: [SoundCue: Data] = [:]
+    private var preparedDicePlayers: [SoundCue: [AVAudioPlayer]] = [:]
+
+    /// Warm the short roll/lock cues while the battle is arriving, before a
+    /// reel needs them. Locking a reel should not open a decoder on the UI thread.
+    func prepareDiceRoll() {
+        guard effectsVolume > 0.001, preparedDicePlayers.isEmpty else { return }
+        prepareSession()
+        for (cue, count) in [(SoundCue.diceRoll, 1), (.diceLock, 6), (.crit, 2)] {
+            guard let data = data(for: cue) else { continue }
+            preparedDicePlayers[cue] = (0..<count).compactMap { _ in
+                guard let player = try? AVAudioPlayer(data: data) else { return nil }
+                player.enableRate = cue.variesPitch
+                player.prepareToPlay()
+                return player
+            }
+        }
+    }
+
+    func stopDiceRoll() {
+        preparedDicePlayers[.diceRoll]?.forEach { $0.stop() }
+    }
 
     private var sessionReady = false
 
@@ -311,7 +332,9 @@ final class Audio {
         guard effectPlayers.count < Self.maxConcurrentEffects else { return }
 
         do {
-            let player = try AVAudioPlayer(data: data)
+            let player = try preparedDicePlayers[cue]?.first(where: { !$0.isPlaying })
+                ?? AVAudioPlayer(data: data)
+            player.currentTime = 0
             player.volume = min(1, effectsVolume * cue.mix * volumeScale)
             if cue.variesPitch {
                 player.enableRate = true

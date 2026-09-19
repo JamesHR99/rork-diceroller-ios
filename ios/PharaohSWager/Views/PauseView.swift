@@ -19,7 +19,15 @@ struct PauseView: View {
                 .ignoresSafeArea()
                 .onTapGesture { resume() }
 
-            panel
+            GeometryReader { proxy in
+                ScrollView(.vertical) {
+                    panel
+                        .padding(12)
+                        .frame(minHeight: proxy.size.height)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            }
+            .frame(maxWidth: 424)
         }
         .sheet(isPresented: $showCodex) {
             if let loadout = game.loadout {
@@ -51,7 +59,7 @@ struct PauseView: View {
             }
         }
         .padding(18)
-        .frame(width: 400)
+        .frame(maxWidth: 400)
         .background {
             PapyrusSurface(ground: .panel, tint: Theme.bgCard, strength: 0.7, shade: 0.4)
                 .clipShape(.rect(cornerRadius: 20))

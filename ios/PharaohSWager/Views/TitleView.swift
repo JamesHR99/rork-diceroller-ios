@@ -24,23 +24,24 @@ struct TitleView: View {
             }
             .allowsHitTesting(false)
 
-            HStack(spacing: 0) {
-                titleColumn
-                    .padding(.horizontal, 20)
-                    .frame(width: 288)
+            GeometryReader { proxy in
+                HStack(spacing: 0) {
+                    FittingScrollColumn { titleColumn.padding(.horizontal, 14) }
+                        .frame(width: min(260, max(200, proxy.size.width * 0.31)))
 
-                TabView(selection: $selectedIndex) {
-                    ForEach(Array(GameData.classes.enumerated()), id: \.element.id) { index, entry in
-                        ClassCardView(hero: entry)
-                            .padding(.horizontal, 14)
-                            .padding(.top, 10)
-                            .padding(.bottom, 28)
-                            .tag(index)
+                    TabView(selection: $selectedIndex) {
+                        ForEach(Array(GameData.classes.enumerated()), id: \.element.id) { index, entry in
+                            ClassCardView(hero: entry)
+                                .padding(.horizontal, 14)
+                                .padding(.top, 10)
+                                .padding(.bottom, 28)
+                                .tag(index)
+                        }
                     }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .always))
-                .onChange(of: selectedIndex) { _, _ in
-                    Haptics.light()
+                    .tabViewStyle(.page(indexDisplayMode: .always))
+                    .onChange(of: selectedIndex) { _, _ in
+                        Haptics.light()
+                    }
                 }
             }
         }
@@ -294,3 +295,4 @@ struct TitleView: View {
     }
     .environment(GameManager())
 }
+

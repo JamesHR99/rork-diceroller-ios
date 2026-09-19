@@ -40,12 +40,13 @@ struct PlayBarView: View {
 
     /// The plan panel's full height. The freeze and commit slabs beside it are
     /// cut from the same measure so the row reads as one shelf.
-    private var columnHeight: CGFloat { bodyHeight + (compact ? 22 : 28) }
-    private var freezeHeight: CGFloat { min(42, columnHeight * 0.3) }
-    private var commitHeight: CGFloat { max(46, columnHeight - freezeHeight - 6) }
+    private var columnHeight: CGFloat { max(94, bodyHeight + (compact ? 22 : 28)) }
+    private var freezeHeight: CGFloat { 44 }
+    private var commitHeight: CGFloat { columnHeight - freezeHeight - 6 }
+    private var controlWidth: CGFloat { compact ? 108 : 120 }
 
     var body: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 7) {
             staminaRail
             planSection
             VStack(spacing: 6) {
@@ -53,7 +54,7 @@ struct PlayBarView: View {
                 commitButton
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 6)
         .padding(.vertical, compact ? 2 : 4)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
     }
@@ -163,7 +164,7 @@ struct PlayBarView: View {
                                      ? Theme.sunGold : Theme.parchmentDim)
             }
         }
-        .frame(width: 48, height: columnHeight - 8)
+        .frame(width: 42, height: columnHeight - 8)
         .padding(.vertical, 4)
         .background {
             PapyrusSurface(ground: .card, tint: Theme.bg, strength: 0.6, shade: 0.45)
@@ -766,7 +767,7 @@ struct PlayBarView: View {
             }
             .foregroundStyle(engine.freezeArmed ? Theme.bg : Theme.frost)
             .shadow(color: engine.freezeArmed ? .clear : .black.opacity(0.7), radius: 2, y: 1)
-            .frame(width: 128, height: freezeHeight)
+            .frame(width: controlWidth, height: freezeHeight)
             .background {
                 DeckButtonSurface(
                     tone: .secondary,
@@ -779,6 +780,7 @@ struct PlayBarView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!canFreeze)
+        .accessibilityIdentifier("battle.freeze")
         .opacity(canFreeze ? 1 : 0.45)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.freezeArmed)
     }
@@ -823,12 +825,14 @@ struct PlayBarView: View {
 
     private var commitButton: some View {
         let armed = engine.canCommit && !engine.playedFaces.isEmpty
+        let layout = commitHeight < 56 ? AnyLayout(HStackLayout(spacing: 4))
+                                       : AnyLayout(VStackLayout(spacing: 2))
         return Button {
             engine.beginCommit()
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            VStack(spacing: 2) {
+            layout {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.burn, size: compact ? 21 : 26)
                     .shadow(color: Theme.ember.opacity(armed ? 0.8 : 0), radius: 8)
                 Text(engine.playedFaces.isEmpty ? "END TURN" : "FIGHT!")
@@ -845,7 +849,7 @@ struct PlayBarView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .frame(width: 128, height: commitHeight)
+            .frame(width: controlWidth, height: commitHeight)
             .background {
                 DeckButtonSurface(
                     tone: .primary,
@@ -859,6 +863,7 @@ struct PlayBarView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!engine.canCommit)
+        .accessibilityIdentifier("battle.commit")
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }

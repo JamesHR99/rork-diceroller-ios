@@ -7,9 +7,12 @@ struct EventView: View {
 
     var body: some View {
         if let event = game.currentEvent {
-            HStack(spacing: 20) {
-                storyColumn(event)
-                choiceColumn(event)
+            GeometryReader { proxy in
+                HStack(spacing: 16) {
+                    FittingScrollColumn { storyColumn(event) }
+                        .frame(width: min(330, proxy.size.width * 0.45))
+                    FittingScrollColumn { choiceColumn(event) }
+                }
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
@@ -48,7 +51,7 @@ struct EventView: View {
             }
 
             GoldRule(height: 6, opacity: 0.75)
-                .frame(width: 300)
+                .frame(maxWidth: 300)
 
             Text(event.body)
                 .font(.paper(13.5))
@@ -66,7 +69,7 @@ struct EventView: View {
                 }
             }
         }
-        .frame(width: 330, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func choiceColumn(_ event: RunEvent) -> some View {
@@ -91,7 +94,8 @@ struct EventView: View {
                                                startPoint: .top, endPoint: .bottom)
                             )
                             .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
-                            .frame(width: 240, height: 52)
+                            .frame(maxWidth: 240)
+                            .frame(height: 52)
                             .background {
                                 DeckButtonSurface(tone: .primary, state: .normal, rim: Theme.gold,
                                                   cornerRadius: 14, emphasis: 0.6)
@@ -144,3 +148,4 @@ struct EventView: View {
         .disabled(!affordable)
     }
 }
+

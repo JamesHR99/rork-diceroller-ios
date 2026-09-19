@@ -12,7 +12,8 @@ struct ShopView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            rail
+            FittingScrollColumn { rail }
+                .frame(width: 200)
             shelf
         }
         .padding(.horizontal, 16)
@@ -112,7 +113,7 @@ struct ShopView: View {
             }
             .buttonStyle(PressableButtonStyle())
         }
-        .frame(width: 212, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxHeight: .infinity)
     }
 
@@ -147,7 +148,7 @@ struct ShopView: View {
                 }
                 .frame(maxHeight: .infinity)
             }
-            .scrollClipDisabled()
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             .frame(maxWidth: .infinity, maxHeight: 340)
             .frame(maxHeight: .infinity, alignment: .center)
         }
@@ -181,3 +182,4 @@ struct ShopView: View {
         .allowsHitTesting(false)
     }
 }
+

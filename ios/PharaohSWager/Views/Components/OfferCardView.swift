@@ -139,17 +139,19 @@ struct OfferCardView: View {
                     .minimumScaleFactor(0.6)
 
                 // What the thing actually does — the line that decides the
-                // choice. A Chisel's detail is the longest text any card
-                // carries, so it is allowed to shrink a long way rather than
-                // push the card off the bottom of the screen.
-                Text(offer.detail)
-                    .font(.system(size: 12.5, weight: .medium))
-                    .foregroundStyle(Theme.parchment.opacity(0.92))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(1.5)
-                    .minimumScaleFactor(0.55)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxHeight: .infinity, alignment: .top)
+                // choice. Long Chisel text scrolls within the card at a
+                // readable size while its name and selection remain visible.
+                ScrollView(.vertical) {
+                    Text(offer.detail)
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(Theme.parchment.opacity(0.92))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(1.5)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+                .frame(maxHeight: .infinity)
 
                 kindDigest
             }
@@ -169,7 +171,6 @@ struct OfferCardView: View {
             )
             .goldCorners(size: 16, inset: 1, opacity: isSelected ? 0.9 : 0.45)
             .shadow(color: isSelected ? Theme.gold.opacity(0.35) : .clear, radius: 10)
-            .scaleEffect(isSelected ? 1.03 : 1)
             .opacity(affordable ? 1 : 0.5)
         }
         .buttonStyle(PressableButtonStyle())

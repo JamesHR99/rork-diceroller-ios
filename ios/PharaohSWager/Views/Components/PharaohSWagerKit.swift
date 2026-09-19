@@ -26,6 +26,21 @@ struct PharaohSWagerImage: View {
     var opacity: Double = 1
 
     var body: some View {
+        if width == nil && height == nil {
+            // Background plates take the control's proposed size. Previously
+            // an unsized .stretch plate resolved to 0 x 0 before the outer
+            // frame expanded, leaving the painted button/panel invisible.
+            GeometryReader { proxy in
+                PharaohSWagerImage(name: name, width: proxy.size.width,
+                                   height: proxy.size.height, fit: fit, opacity: opacity).plate
+            }
+        } else {
+            plate
+        }
+    }
+
+    @ViewBuilder
+    private var plate: some View {
         if PharaohSWagerArt.exists(name) {
             let box = PharaohSWagerArt.crop(name)
             let draw = drawSize(box)
@@ -78,13 +93,21 @@ struct PharaohSWagerImage: View {
 
 /// A square painted icon — the everyday replacement for `Image(systemName:)`.
 struct PharaohSWagerIcon: View {
+    @Environment(\.displayScale) private var displayScale
     let name: String
     var size: CGFloat
     var opacity: Double = 1
 
     var body: some View {
-        PharaohSWagerImage(name: name, width: size, height: size, fit: .fit, opacity: opacity)
-            .frame(width: size, height: size)
+        Group {
+            if let image = PharaohSWagerArt.icon(name, pixels: Int(ceil(size * displayScale))) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(width: size, height: size)
+        .opacity(opacity)
     }
 }
 

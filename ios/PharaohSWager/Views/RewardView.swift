@@ -33,7 +33,11 @@ struct RewardView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            rail
+            VStack(spacing: 8) {
+                FittingScrollColumn { rail }
+                actions
+            }
+            .frame(width: 200)
             altar
         }
         .padding(.horizontal, 16)
@@ -129,9 +133,8 @@ struct RewardView: View {
 
             Spacer(minLength: 6)
 
-            actions
         }
-        .frame(width: 212, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxHeight: .infinity)
     }
 
@@ -198,29 +201,29 @@ struct RewardView: View {
 
     // MARK: - The altar
 
-    /// Three cards side by side, sharing the right side evenly.
+    /// Keep cards readable; smaller screens scroll the altar horizontally.
     private var altar: some View {
-        HStack(alignment: .top, spacing: 10) {
-            ForEach(Array(offers.enumerated()), id: \.element.id) { index, offer in
-                OfferCardView(
-                    offer: offer,
-                    isSelected: selectedID == offer.id,
-                    affordable: true,
-                    width: nil
-                ) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedID = offer.id
+        GeometryReader { proxy in
+            let count = max(offers.count, 1)
+            let width = max(180, min(230, (proxy.size.width - 8 - CGFloat(count - 1) * 10) / CGFloat(count)))
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(Array(offers.enumerated()), id: \.element.id) { index, offer in
+                        OfferCardView(offer: offer, isSelected: selectedID == offer.id,
+                                      affordable: true, width: width) {
+                            withAnimation(.snappy(duration: 0.18)) { selectedID = offer.id }
+                            Haptics.medium()
+                        }
+                        .frame(height: max(240, min(334, proxy.size.height - 8)))
+                        .opacity(risen ? 1 : 0)
+                        .offset(y: risen ? 0 : 12)
+                        .animation(.easeOut(duration: 0.22).delay(Double(index) * 0.045), value: risen)
                     }
-                    Haptics.medium()
                 }
-                .opacity(risen ? 1 : 0)
-                .offset(y: risen ? 0 : 26)
-                .animation(.spring(response: 0.5, dampingFraction: 0.8)
-                    .delay(0.28 + Double(index) * 0.08), value: risen)
+                .padding(4)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
-        .frame(maxWidth: .infinity, maxHeight: 340)
-        .frame(maxHeight: .infinity, alignment: .center)
     }
 
     // MARK: - The god
