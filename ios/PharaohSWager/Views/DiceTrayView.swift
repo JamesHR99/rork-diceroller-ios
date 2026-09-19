@@ -252,7 +252,6 @@ private struct DiceTrayReelView: View {
 
     @State private var settled = false
     @State private var critFlash = false
-    @State private var frostPulse = false
     /// Shockwave ring thrown off the moment the reel locks.
     @State private var shock: CGFloat = 0
     /// Spark burst thrown off a critical as it slams home.
@@ -628,9 +627,9 @@ private struct DiceTrayReelView: View {
     private var armedHalo: some View {
         if selectingReroll {
             RoundedRectangle(cornerRadius: corner)
-                .strokeBorder(Theme.frost.opacity(frostPulse ? 0.95 : 0.4),
-                              style: StrokeStyle(lineWidth: 2.4, dash: [4.5, 4]))
-                .shadow(color: Theme.frost.opacity(frostPulse ? 0.6 : 0.2), radius: 8)
+                .strokeBorder(Theme.frost.opacity(0.58),
+                              style: StrokeStyle(lineWidth: 2, dash: [4.5, 4]))
+                .shadow(color: Theme.frost.opacity(0.24), radius: 6)
                 .allowsHitTesting(false)
         }
     }
@@ -713,7 +712,7 @@ private struct DiceTrayReelView: View {
     }
 
     private var reelName: some View {
-        Text(isHeld ? "Kept · \(slot.die.name)" : slot.die.name)
+        Text(slot.die.name)
             .font(.system(size: max(8.5, width * 0.105), weight: .semibold))
             .foregroundStyle(Theme.parchmentDim)
             .lineLimit(1)
