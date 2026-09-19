@@ -179,19 +179,11 @@ struct DiceTrayView: View {
                 .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
             }
 
-            // Freeze mode is a live instruction, not narration, so it is the
-            // one line that stays beside the title.
-            if selectingReroll {
-                Text(rerollHint)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.frost)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-
             Spacer(minLength: 6)
 
-            Text("\(engine.rerollsRemaining) REROLL\(engine.rerollsRemaining == 1 ? "" : "S") · \(engine.rerollSelection.count) SELECTED")
+            Text(selectingReroll
+                 ? "\(engine.rerollSelection.count) SELECTED"
+                 : "\(engine.rerollsRemaining) REROLL\(engine.rerollsRemaining == 1 ? "" : "S")")
                 .font(.system(size: 9, weight: .black))
                 .foregroundStyle(Theme.gold)
 
@@ -230,13 +222,11 @@ struct DiceTrayView: View {
     }
 
     private var headerTitle: String {
-        if selectingReroll { return "SELECT DICE TO REROLL" }
+        if selectingReroll { return "SELECT DICE" }
         if engine.canRoll { return "YOUR DICE" }
         if engine.isRolling { return "LOCKING \(engine.lockedReelCount)/\(engine.slots.count)" }
         return "YOUR ROLL"
     }
-
-    private var rerollHint: String { "Tap dice, then pull the lever" }
 
     // MARK: - Combo panel
 
