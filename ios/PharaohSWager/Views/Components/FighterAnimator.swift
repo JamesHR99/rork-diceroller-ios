@@ -21,6 +21,49 @@ enum WeaponSignature {
     }
 }
 
+/// One source of truth for the length and contact point of combat animation.
+/// The engine uses these values to apply damage on the exact beat the art
+/// lands, while the clip player uses the same duration so nothing is cut off.
+enum BattleAnimationTiming {
+    /// Enough time for the longest eight-frame recoil/guard clip to finish.
+    static let reactionHold = 0.94
+
+    static func playerDuration(classID: String, power: Int) -> Double {
+        let level = Double(max(1, min(power, 5)) - 1)
+        switch classID {
+        case "archer": return 0.82 + level * 0.18
+        case "warrior": return 0.92 + level * 0.23
+        case "rogue": return 0.72 + level * 0.17
+        case "magician": return 0.90 + level * 0.24
+        default: return 0.78 + level * 0.16
+        }
+    }
+
+    static func foeDuration(power: Int) -> Double {
+        0.72 + Double(max(1, min(power, 5)) - 1) * 0.12
+    }
+
+    static func releaseDelay(classID: String, power: Int) -> Double {
+        let total = playerDuration(classID: classID, power: power)
+        switch classID {
+        case "archer": return total * 0.42
+        case "warrior": return total * 0.36
+        case "rogue": return total * 0.25
+        case "magician": return total * 0.44
+        default: return total * 0.32
+        }
+    }
+
+    /// Time between a release and the last projectile or melee contact.
+    static func contactDelay(faces: [FaceKind]) -> Double {
+        let contacts = faces.prefix(4).enumerated().map { index, face in
+            Double(index) * (face.projectile == nil ? 0.10 : 0.12)
+                + (face.projectile?.flight ?? 0.22)
+        }
+        return contacts.max() ?? 0.22
+    }
+}
+
 /// One drawing held for a beat, plus the code-driven motion riding on top of
 /// it. The drawings give the pose; these values give the weight — the coil of
 /// an anticipation, the snap of an impact, the settle of a recovery.
@@ -57,10 +100,10 @@ enum FrameTimeline {
         }
     }
 
-    static func beats(for pose: FighterPose, weapon: WeaponSignature) -> [FrameBeat] {
+    static func beats(for pose: FighterPose, weapon: WeaponSignature, power: Int = 1) -> [FrameBeat] {
         switch pose {
-        case .attack: attack(weapon)
-        case .block: guardUp()
+        case .attack: amplified(attack(weapon), power: power)
+        case .block: amplified(guardUp(), power: power)
         case .hurt: hurt()
         case .dodge: dodge()
         case .heal: heal()
@@ -69,6 +112,23 @@ enum FrameTimeline {
         case .telegraph: telegraph()
         case .idle: [FrameBeat(key: .idle, hold: 0.18)]
         }
+    }
+
+    /// Larger actions keep their class silhouette but add readable follow-up
+    /// beats and stronger travel, instead of merely scaling the same attack.
+    private static func amplified(_ beats: [FrameBeat], power: Int) -> [FrameBeat] {
+        let level = max(1, min(power, 5))
+        guard level > 1, let impact = beats.first(where: { $0.key == .strike }) else { return beats }
+        var result = beats
+        for echo in 1..<level {
+            var returnBeat = impact
+            returnBeat.hold = max(0.055, impact.hold * 0.82)
+            returnBeat.lunge *= 0.72 + CGFloat(echo) * 0.06
+            returnBeat.rotation *= echo.isMultiple(of: 2) ? -0.55 : 0.7
+            returnBeat.smear = min(1, impact.smear + 0.12)
+            result.insert(returnBeat, at: max(1, result.count - 1))
+        }
+        return result
     }
 
     /// The tell a foe shows before it commits: it rears back and holds, so the
@@ -191,6 +251,10 @@ struct AnimatedFighterSprite: View {
     /// Which painted enemy sheet this creature animates from, when it owns
     /// one. Set on the foe side only.
     var foeSheetID: String? = nil
+    /// Changes for every action, even consecutive actions with the same pose.
+    var actionID: Int = 0
+    /// Number of dice/faces feeding the action, clamped to five.
+    var actionPower: Int = 1
 
     @State private var beat = FrameBeat(key: .idle)
     @State private var breathing = false
@@ -200,10 +264,12 @@ struct AnimatedFighterSprite: View {
     /// The hand-drawn clip for this action, if the character owns one.
     private var clip: SpriteClip? {
         if let foeSheetID {
-            return SpriteClipLibrary.foeClip(sheetID: foeSheetID, pose: pose)
+            return SpriteClipLibrary.foeClip(sheetID: foeSheetID, pose: pose, intensity: actionPower)
         }
-        return SpriteClipLibrary.clip(for: characterID, pose: pose)
+        return SpriteClipLibrary.clip(for: characterID, pose: pose, intensity: actionPower)
     }
+
+    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)" }
 
     var body: some View {
         currentFigure
@@ -212,8 +278,8 @@ struct AnimatedFighterSprite: View {
             .scaleEffect(x: beat.scaleX, y: beat.scaleY, anchor: .bottom)
             .rotationEffect(.degrees(beat.rotation * facing), anchor: .bottom)
             .offset(x: beat.lunge * facing, y: beat.rise + breathDrift)
-            .task(id: pose) { await play() }
-            .task(id: pose) { await playClip() }
+            .task(id: playbackID) { await play() }
+            .task(id: playbackID) { await playClip() }
             .onAppear {
                 withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                     breathing = true
@@ -292,12 +358,12 @@ struct AnimatedFighterSprite: View {
         // dialled back to a nudge — the art should not be dragged across the
         // deck on top of its own animation.
         let hasClip = clip != nil
-        let score = FrameTimeline.beats(for: pose, weapon: weapon)
+        let score = FrameTimeline.beats(for: pose, weapon: weapon, power: actionPower)
             .map { hasClip ? $0.softened() : $0 }
         for step in score {
             let motion: Animation = step.snap
-                ? .interpolatingSpring(stiffness: 620, damping: 16)
-                : .spring(response: 0.22, dampingFraction: 0.7)
+                ? .interpolatingSpring(stiffness: 420, damping: 29)
+                : .easeInOut(duration: min(0.18, max(0.08, step.hold * 0.72)))
             withAnimation(motion) { beat = step }
             try? await Task.sleep(for: .seconds(step.hold))
             if Task.isCancelled { return }
@@ -316,7 +382,9 @@ struct AnimatedFighterSprite: View {
         clipFrame = 0
         var index = 0
         while true {
-            clipFrame = index
+            withAnimation(.linear(duration: min(0.055, clip.frameDuration * 0.45))) {
+                clipFrame = index
+            }
             try? await Task.sleep(for: .seconds(clip.frameDuration))
             if Task.isCancelled { return }
             index += 1

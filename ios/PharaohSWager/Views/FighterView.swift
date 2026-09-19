@@ -85,7 +85,11 @@ struct FighterView: View {
             }
             healthBar
             sprite
-            badgeRow
+                .overlay(alignment: .bottom) {
+                    badgeRow
+                        .offset(y: 7)
+                }
+                .padding(.bottom, 7)
         }
         .frame(width: stageWidth)
         .overlay(alignment: .top) { floaters }
@@ -309,6 +313,14 @@ struct FighterView: View {
         side == .player ? engine.playerPose : (foe?.pose ?? .idle)
     }
 
+    private var actionID: Int {
+        side == .player ? engine.playerAnimationID : (foe?.animationID ?? 0)
+    }
+
+    private var actionPower: Int {
+        side == .player ? engine.playerActionPower : (foe?.actionPower ?? 1)
+    }
+
     private var facing: CGFloat { side == .player ? 1 : -1 }
 
     /// A blessed strike burns in its god's colour instead of plain ember.
@@ -350,7 +362,9 @@ struct FighterView: View {
                 fallbackSymbol: side == .player ? heroSymbol : (foe?.def.symbol ?? "questionmark"),
                 mirrorFallback: side == .enemy,
                 characterID: side == .player ? heroClassID : nil,
-                foeSheetID: foeSheetID
+                foeSheetID: foeSheetID,
+                actionID: actionID,
+                actionPower: actionPower
             )
             .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 14 : 30)
             .opacity(pose == .defeat ? 0.42 : 1)

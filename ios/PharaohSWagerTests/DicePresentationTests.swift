@@ -74,4 +74,30 @@ struct DicePresentationTests {
             #expect(metrics.reelHeight >= 60)
         }
     }
+
+    @Test(arguments: ["archer", "warrior", "rogue", "magician"])
+    func largerCombosOwnLongerClassPerformances(classID: String) {
+        let durations = (1...5).map { BattleAnimationTiming.playerDuration(classID: classID, power: $0) }
+        for (small, large) in zip(durations, durations.dropFirst()) {
+            #expect(large > small)
+        }
+        #expect(durations.last! - durations.first! >= 0.65)
+    }
+
+    @Test func contactTimingIncludesProjectileFlightAndVolleyCadence() {
+        let solo = BattleAnimationTiming.contactDelay(faces: [.runeFire])
+        let volley = BattleAnimationTiming.contactDelay(faces: [.arrow1, .arrow2, .arrow3])
+        #expect(solo >= FaceKind.runeFire.projectile!.flight)
+        #expect(volley >= FaceKind.arrow3.projectile!.flight + 0.24)
+        #expect(BattleAnimationTiming.contactDelay(faces: [.overhead]) == 0.22)
+    }
+
+    @Test func repeatedFoePoseStillRestartsAnimation() {
+        var foe = EnemyState(def: EnemyContent.enemy(hour: 1, isHerald: false))
+        foe.animate(.attack, power: 2)
+        let first = foe.animationID
+        foe.animate(.attack, power: 4)
+        #expect(foe.animationID == first + 1)
+        #expect(foe.actionPower == 4)
+    }
 }

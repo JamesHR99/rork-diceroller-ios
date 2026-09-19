@@ -42,11 +42,12 @@ struct SpriteClip {
 enum SpriteClipLibrary {
     /// The clip to play for one character's pose, or `nil` when that action was
     /// never drawn as a sheet.
-    static func clip(for characterID: String?, pose: FighterPose) -> SpriteClip? {
+    static func clip(for characterID: String?, pose: FighterPose, intensity: Int = 1) -> SpriteClip? {
         guard let characterID, !characterID.isEmpty else { return nil }
-        let key = "\(characterID).\(poseKey(pose))"
+        let level = max(1, min(intensity, 5))
+        let key = "\(characterID).\(poseKey(pose)).\(level)"
         if let cached = cache[key] { return cached }
-        let built = build(characterID, pose: pose)
+        let built = build(characterID, pose: pose, intensity: level)
         cache[key] = built
         return built
     }
@@ -54,11 +55,12 @@ enum SpriteClipLibrary {
     /// The clip for a creature out of the river, keyed by the sheet its
     /// current stage uses. Returns `nil` for anything with no sheet, so the
     /// fighter falls back to its single-drawing pose set.
-    static func foeClip(sheetID: String?, pose: FighterPose) -> SpriteClip? {
+    static func foeClip(sheetID: String?, pose: FighterPose, intensity: Int = 1) -> SpriteClip? {
         guard let sheetID, !sheetID.isEmpty else { return nil }
-        let key = "foe.\(sheetID).\(poseKey(pose))"
+        let level = max(1, min(intensity, 5))
+        let key = "foe.\(sheetID).\(poseKey(pose)).\(level)"
         if let cached = cache[key] { return cached }
-        let built = buildFoe(sheetID, pose: pose)
+        let built = buildFoe(sheetID, pose: pose, intensity: level)
         cache[key] = built
         return built
     }
@@ -115,15 +117,20 @@ enum SpriteClipLibrary {
     /// drawn one: the wind-up frames stand in for a telegraph, the guard's slip
     /// becomes the dodge, the guard's flourish becomes a victory, and the
     /// recoil's doubled-over frames hold as the collapse.
-    private static func build(_ hero: String, pose: FighterPose) -> SpriteClip? {
+    private static func build(_ hero: String, pose: FighterPose, intensity: Int) -> SpriteClip? {
         guard let tempo = tempos[hero] else { return nil }
         switch pose {
         case .idle:
             return clip(hero, "idle", breath, hold: tempo.idle, loops: true)
         case .attack:
-            return clip(hero, "attack", Array(0...7), hold: tempo.attack)
+            let order = heroAttackOrder(hero, intensity: intensity)
+            let duration = BattleAnimationTiming.playerDuration(classID: hero, power: intensity)
+            return clip(hero, "attack", order, hold: duration / Double(order.count))
         case .block:
-            return clip(hero, "block", Array(0...7), hold: tempo.block)
+            let repeats = Array(repeating: [2, 3, 4], count: max(0, intensity - 1)).flatMap { $0 }
+            let order = [0, 1, 2, 3, 4] + repeats + [5, 6, 7]
+            return clip(hero, "block", order,
+                        hold: BattleAnimationTiming.playerDuration(classID: hero, power: intensity) / Double(order.count))
         case .hurt:
             return clip(hero, "hurt", Array(0...7), hold: tempo.hurt)
         case .dodge:
@@ -134,13 +141,34 @@ enum SpriteClipLibrary {
             return clip(hero, "attack", [1, 2, 3], hold: tempo.attack * 1.9)
         case .heal:
             // A breath drawn in and let out over the mending.
-            return clip(hero, "idle", [0, 1, 2, 3, 2, 1], hold: tempo.idle * 0.9)
+            let order = [0, 1] + Array(repeating: [2, 3, 2], count: max(1, intensity)).flatMap { $0 } + [1, 0]
+            return clip(hero, "idle", order,
+                        hold: BattleAnimationTiming.playerDuration(classID: hero, power: intensity) / Double(order.count))
         case .victory:
             // The back half of the guard sheet: the closest thing to a flourish
             // the sheets drew.
             return clip(hero, "block", [3, 4, 5, 6, 7], hold: tempo.block * 1.7)
         case .defeat:
             return clip(hero, "hurt", [1, 2, 3], hold: tempo.hurt * 2.2)
+        }
+    }
+
+    /// Each class escalates differently as more dice feed the combo: arrows
+    /// loose in a volley, the axe adds heavy hit-stops, blades flurry, and the
+    /// magician gathers several pulses before the final cast.
+    private static func heroAttackOrder(_ hero: String, intensity: Int) -> [Int] {
+        let level = max(1, min(intensity, 5))
+        switch hero {
+        case "archer":
+            return [0, 1, 2, 3] + Array(repeating: [4, 5, 6], count: level).flatMap { $0 } + [7]
+        case "warrior":
+            return [0, 1, 2, 3] + Array(repeating: [4, 4, 5], count: level).flatMap { $0 } + [6, 7]
+        case "rogue":
+            return [0, 1] + Array(repeating: [2, 3, 4, 5], count: level).flatMap { $0 } + [6, 7]
+        case "magician":
+            return [0, 1] + Array(repeating: [2, 3, 2, 4], count: level).flatMap { $0 } + [5, 6, 7]
+        default:
+            return Array(0...7)
         }
     }
 
@@ -163,12 +191,14 @@ enum SpriteClipLibrary {
     /// Rows top to bottom: standing, striking, flinching from a hit, and a
     /// guard raised and held. The game's `block` pose is the guard, and its
     /// `hurt` pose is the flinch — the sheets name them the other way round.
-    private static func buildFoe(_ id: String, pose: FighterPose) -> SpriteClip? {
+    private static func buildFoe(_ id: String, pose: FighterPose, intensity: Int) -> SpriteClip? {
         switch pose {
         case .idle:
             return foe(id, "idle", foeBreath, hold: FoeTempo.idle, loops: true)
         case .attack:
-            return foe(id, "attack", [0, 1, 2, 3], hold: FoeTempo.attack)
+            let order = [0, 1] + Array(repeating: [2, 3], count: max(1, intensity)).flatMap { $0 }
+            return foe(id, "attack", order,
+                       hold: BattleAnimationTiming.foeDuration(power: intensity) / Double(order.count))
         case .hurt:
             return foe(id, "block", [0, 1, 2, 3], hold: FoeTempo.flinch)
         case .block:
@@ -177,7 +207,7 @@ enum SpriteClipLibrary {
             return foe(id, "defend", [0, 1, 2, 2], hold: FoeTempo.guardUp, restIndex: 2)
         case .telegraph:
             // The wind-up alone, stretched into a readable tell.
-            return foe(id, "attack", [0, 0, 1], hold: FoeTempo.attack * 1.5)
+            return foe(id, "attack", [0, 0, 1], hold: 0.10)
         case .dodge:
             // The guard's first slip, taken quickly and held low.
             return foe(id, "defend", [0, 1, 1], hold: FoeTempo.guardUp * 0.8)

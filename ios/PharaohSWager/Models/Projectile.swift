@@ -123,6 +123,8 @@ enum ImpactForm: Equatable {
     case blunt
     /// A scorch that licks with flame.
     case scorch
+    /// A full fireball detonation: expanding ring, core and thrown embers.
+    case fireExplosion
     /// An ice crust that cracks apart.
     case frostCrust
     /// A hexagonal lattice that shatters outward.
@@ -131,6 +133,10 @@ enum ImpactForm: Equatable {
     case bloom
     /// A sickly green wash where venom landed.
     case venom
+    /// Persistent damage has its own unmistakable language.
+    case bleedTick
+    case poisonTick
+    case burnTick
 }
 
 /// A mark drawn over a fighter and fading out, so every blow can be read on
@@ -153,6 +159,8 @@ struct ImpactMark: Identifiable, Equatable {
         switch form {
         case .puncture: 0.9
         case .scorch, .frostCrust: 0.8
+        case .fireExplosion: 1.05
+        case .bleedTick, .poisonTick, .burnTick: 0.95
         default: 0.65
         }
     }
@@ -173,7 +181,7 @@ extension FaceKind {
         case .poison:
             return .venom
         case .runeFire:
-            return .scorch
+            return .fireExplosion
         case .runeFrost:
             return .frostCrust
         case .runeArcane, .wandZap:

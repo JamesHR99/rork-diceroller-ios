@@ -219,10 +219,14 @@ private struct ImpactMarkView: View {
             case .puncture: puncture
             case .blunt: blunt
             case .scorch: scorch
+            case .fireExplosion: fireExplosion
             case .frostCrust: frostCrust
             case .lattice: lattice
             case .bloom: bloom
             case .venom: venom
+            case .bleedTick: bleedTick
+            case .poisonTick: poisonTick
+            case .burnTick: burnTick
             }
         }
         .frame(width: span, height: span)
@@ -323,6 +327,33 @@ private struct ImpactMarkView: View {
         }
     }
 
+    /// A magician's fire rune lands as an explosion, not a small scorch: the
+    /// white-hot core collapses while a shock ring and embers throw outward.
+    private var fireExplosion: some View {
+        ZStack {
+            Circle()
+                .fill(RadialGradient(colors: [Theme.parchment, Theme.sunGold, Theme.ember, .clear],
+                                     center: .center, startRadius: 0, endRadius: span * 0.34))
+                .frame(width: span * 0.72, height: span * 0.72)
+                .blur(radius: shown ? 1 : 7)
+
+            Circle()
+                .strokeBorder(Theme.sunGold.opacity(0.9), lineWidth: max(2, span * 0.025))
+                .frame(width: span * (shown ? 0.9 : 0.18), height: span * (shown ? 0.9 : 0.18))
+                .opacity(shown ? 0.25 : 1)
+
+            ForEach(0..<12, id: \.self) { index in
+                Capsule()
+                    .fill(LinearGradient(colors: [Theme.parchment, Theme.ember, .clear],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: span * (shown ? 0.38 : 0.12), height: max(2, span * 0.028))
+                    .offset(x: span * (shown ? 0.28 : 0.08))
+                    .rotationEffect(.degrees(Double(index) * 30))
+            }
+        }
+        .shadow(color: Theme.ember.opacity(0.9), radius: span * 0.12)
+    }
+
     /// Ice crusting over the body and cracking apart.
     private var frostCrust: some View {
         ZStack {
@@ -388,6 +419,46 @@ private struct ImpactMarkView: View {
             )
             .frame(width: span * 0.56, height: span * 0.56)
             .blur(radius: span * 0.02)
+    }
+
+    private var bleedTick: some View {
+        ZStack {
+            gashes(3)
+            ForEach(0..<4, id: \.self) { index in
+                Capsule()
+                    .fill(Theme.blood)
+                    .frame(width: span * 0.035, height: span * (shown ? 0.25 : 0.06))
+                    .offset(x: span * (CGFloat(index) * 0.1 - 0.15), y: span * 0.23)
+            }
+        }
+    }
+
+    private var poisonTick: some View {
+        ZStack {
+            venom
+            ForEach(0..<7, id: \.self) { index in
+                Circle()
+                    .strokeBorder(Theme.venom.opacity(0.9), lineWidth: max(1.5, span * 0.015))
+                    .frame(width: span * (0.05 + CGFloat(index % 3) * 0.025),
+                           height: span * (0.05 + CGFloat(index % 3) * 0.025))
+                    .offset(x: span * (CGFloat(index % 4) * 0.12 - 0.18),
+                            y: span * (shown ? -0.34 : 0.15) + CGFloat(index / 4) * 10)
+            }
+        }
+    }
+
+    private var burnTick: some View {
+        ZStack {
+            scorch
+            ForEach(0..<7, id: \.self) { index in
+                Ellipse()
+                    .fill(LinearGradient(colors: [Theme.parchment, Theme.sunGold, Theme.ember, .clear],
+                                         startPoint: .bottom, endPoint: .top))
+                    .frame(width: span * 0.1, height: span * (shown ? 0.42 : 0.12))
+                    .offset(x: span * (CGFloat(index) * 0.075 - 0.225), y: -span * 0.12)
+                    .rotationEffect(.degrees(Double(index - 3) * 5))
+            }
+        }
     }
 }
 
