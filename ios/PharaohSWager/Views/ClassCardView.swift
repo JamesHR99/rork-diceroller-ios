@@ -16,12 +16,19 @@ struct ClassCardView: View {
     }
 
     var body: some View {
-        HStack(spacing: 14) {
-            identityColumn
-            detailColumn
+        GeometryReader { proxy in
+            let stacked = proxy.size.width < 440
+            let layout = stacked ? AnyLayout(VStackLayout(spacing: 12))
+                                 : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+            FittingScrollColumn {
+                layout {
+                    identityColumn.frame(width: stacked ? nil : 170)
+                    detailColumn
+                }
+                .padding(14)
+                .padding(.top, 4)
+            }
         }
-        .padding(14)
-        .padding(.top, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .duatPanel(tint: hero.accent, cornerRadius: 22)
         .goldCorners(size: 26, inset: 3, opacity: 0.7)
@@ -78,7 +85,7 @@ struct ClassCardView: View {
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(width: 208)
+        .frame(maxWidth: .infinity)
     }
 
     private var detailColumn: some View {
@@ -159,3 +166,4 @@ struct ClassCardView: View {
         .background(Theme.bg.opacity(0.6), in: .rect(cornerRadius: 9))
     }
 }
+

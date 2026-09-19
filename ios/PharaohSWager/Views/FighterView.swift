@@ -140,7 +140,7 @@ struct FighterView: View {
     /// the blow they are winding up, all on one painted slab.
     private var tickerBody: some View {
         HStack(spacing: 9) {
-            if side == .player { tickerPortrait }
+            if side == .player && showsTickerPortrait { tickerPortrait }
 
             VStack(alignment: side == .player ? .leading : .trailing, spacing: 3) {
                 HStack(spacing: 5) {
@@ -169,7 +169,7 @@ struct FighterView: View {
             }
             .frame(maxWidth: .infinity, alignment: side == .player ? .leading : .trailing)
 
-            if side == .enemy { tickerPortrait }
+            if side == .enemy && showsTickerPortrait { tickerPortrait }
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
@@ -193,7 +193,10 @@ struct FighterView: View {
         )
     }
 
-    private var tickerBarWidth: CGFloat { max(72, tickerWidth - 62) }
+    private var showsTickerPortrait: Bool { tickerWidth >= 190 }
+    private var tickerBarWidth: CGFloat {
+        max(0, tickerWidth - 18 - (showsTickerPortrait ? (tickerCompact ? 53 : 61) : 0))
+    }
 
     /// Everything this foe is going to do when the deck goes down, in order,
     /// each carrying its own agility. A creature spends a stamina allowance
@@ -744,3 +747,4 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
+

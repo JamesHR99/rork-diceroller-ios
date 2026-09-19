@@ -29,7 +29,7 @@ struct SelectionOverlayView: View {
 
                 switch selection {
                 case .reforge, .reforgeDie, .imbue:
-                    facePicker
+                    FittingScrollColumn { facePicker }
                 case .patron:
                     patronPicker
                 case .replaceBoon(let def, let rarity):
@@ -37,7 +37,7 @@ struct SelectionOverlayView: View {
                 case .swapDie(let die):
                     dieSwapPicker(incoming: die)
                 default:
-                    facePicker
+                    FittingScrollColumn { facePicker }
                 }
 
                 footer
@@ -221,7 +221,10 @@ struct SelectionOverlayView: View {
                     .font(.fantasy(17, weight: .bold))
                     .foregroundStyle(Theme.parchment.opacity(0.75))
                     .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
-                    .frame(width: 200, height: 52)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .frame(maxWidth: 200)
+                    .frame(height: 52)
                     .background {
                         DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.parchmentDim)
                     }
@@ -242,7 +245,10 @@ struct SelectionOverlayView: View {
                                              startPoint: .top, endPoint: .bottom)
                     )
                     .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
-                    .frame(width: 300, height: 52)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .frame(maxWidth: 300)
+                    .frame(height: 52)
                     .background {
                         DeckButtonSurface(tone: .primary,
                                           state: canConfirm ? .highlighted : .disabled,
@@ -315,21 +321,23 @@ struct SelectionOverlayView: View {
     /// is read in full before it is made — including the investment lost.
     private func boonReplacePicker(incoming: GodBoonDef, rarity: BoonRarity) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            VStack(spacing: 8) {
-                Text("OFFERED")
-                    .font(.system(size: 9, weight: .black))
-                    .kerning(1.2)
-                    .foregroundStyle(rarity.tint)
-                boonCard(
-                    name: incoming.name,
-                    god: incoming.god,
-                    text: incoming.text(rarity: rarity, level: 1),
-                    footnote: "\(rarity.label) · level 1",
-                    tint: rarity.tint,
-                    highlighted: true
-                )
+            FittingScrollColumn {
+                VStack(spacing: 8) {
+                    Text("OFFERED")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(1.2)
+                        .foregroundStyle(rarity.tint)
+                    boonCard(
+                        name: incoming.name,
+                        god: incoming.god,
+                        text: incoming.text(rarity: rarity, level: 1),
+                        footnote: "\(rarity.label) · level 1",
+                        tint: rarity.tint,
+                        highlighted: true
+                    )
+                }
             }
-            .frame(width: 240)
+            .frame(width: 220)
 
             Divider().overlay(Theme.parchmentDim.opacity(0.2))
 
@@ -557,12 +565,14 @@ struct SelectionOverlayView: View {
 
     private func dieSwapPicker(incoming: Die) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            VStack(spacing: 8) {
-                Text("INCOMING")
-                    .font(.system(size: 9, weight: .black))
-                    .kerning(1.2)
-                    .foregroundStyle(Theme.gold)
-                dieCard(incoming, highlighted: true, tint: incoming.rarity.tint)
+            FittingScrollColumn {
+                VStack(spacing: 8) {
+                    Text("INCOMING")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(1.2)
+                        .foregroundStyle(Theme.gold)
+                    dieCard(incoming, highlighted: true, tint: incoming.rarity.tint)
+                }
             }
             .frame(width: 190)
 
@@ -618,3 +628,4 @@ struct SelectionOverlayView: View {
     }
 
 }
+

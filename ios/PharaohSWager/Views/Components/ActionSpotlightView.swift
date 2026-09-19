@@ -57,14 +57,17 @@ struct ActionSpotlightView: View {
             if !card.entries.isEmpty {
                 GoldRule(height: 4, opacity: 0.6).frame(width: 210)
                 godsHeading
-                ForEach(card.entries) { entry in
-                    entryRow(entry)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading),
+                                         count: card.entries.count > 2 ? 2 : 1), spacing: 6) {
+                    ForEach(card.entries) { entry in
+                        entryRow(entry)
+                    }
                 }
             }
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 16)
-        .frame(maxWidth: 380)
+        .frame(maxWidth: card.entries.count > 2 ? 620 : 380)
         .background {
             PapyrusSurface(ground: .panel, tint: Theme.bgElevated, strength: 0.6, shade: 0.42)
                 .clipShape(.rect(cornerRadius: 18))
@@ -230,3 +233,4 @@ struct ActionSpotlightView: View {
         )
     }
 }
+

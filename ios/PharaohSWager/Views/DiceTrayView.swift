@@ -6,6 +6,7 @@ import SwiftUI
 /// turn is committed so the fighters have the stage to themselves.
 struct DiceTrayView: View {
     let engine: BattleEngine
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The tallest a reel may run. The deck measures the screen it has to fit
     /// into and hands this down, so a short landscape iPhone keeps the whole
     /// deck — dice and turn plan both — above the bottom edge.
@@ -14,6 +15,7 @@ struct DiceTrayView: View {
     /// from this, so the row never pushes the lever or the last die off the
     /// side of the screen.
     var maxRowWidth: CGFloat = 690
+    var compact = false
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
@@ -31,41 +33,46 @@ struct DiceTrayView: View {
         // The lever's lane is reserved whether or not ROLL is showing, so the
         // dice keep one size for the whole turn instead of jumping wider the
         // moment the lever is pulled.
-        let leverLane: CGFloat = 112
+        let leverLane = leverWidth + 8
         let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
-        return max(46, min(ideal, free / CGFloat(count)))
+        return max(52, min(ideal, free / CGFloat(count)))
     }
 
-    private var reelGap: CGFloat { engine.slots.count > 7 ? 6 : 8 }
+    private var leverWidth: CGFloat { maxRowWidth < 620 ? 72 : 88 }
+    private var reelGap: CGFloat { 6 }
 
     private var reelHeight: CGFloat { min(maxReelHeight, reelWidth * 1.3) }
 
     var body: some View {
-        VStack(spacing: 5) {
-            header
+        VStack(spacing: compact ? 0 : 5) {
+            if !compact { header }
 
             HStack(spacing: 8) {
                 leadingControl
 
-                HStack(spacing: reelGap) {
-                    ForEach(engine.slots) { slot in
-                        DiceTrayReelView(
-                            slot: slot,
-                            engine: engine,
-                            width: reelWidth,
-                            height: reelHeight
-                        )
+                ScrollView(.horizontal) {
+                    HStack(spacing: reelGap) {
+                        ForEach(engine.slots) { slot in
+                            DiceTrayReelView(
+                                slot: slot,
+                                engine: engine,
+                                width: reelWidth,
+                                height: reelHeight
+                            )
+                        }
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .frame(height: reelHeight + 12)
                 .background { reelBed }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.top, 6)
+        .padding(.top, compact ? 2 : 6)
         .padding(.bottom, 2)
         // The tray takes its height from its content but never more width than
         // the deck gives it — sizing itself horizontally is what used to drag
@@ -73,14 +80,18 @@ struct DiceTrayView: View {
         // the FIGHT slab off both edges.
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
-        .scaleEffect(1 + slamKick)
+        .offset(y: reduceMotion ? 0 : slamKick)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
         .onChange(of: engine.slamPulse) { _, _ in
             let heavy = engine.lastReelLocked
-            slamKick = heavy ? 0.03 : 0.016
-            slamFlare = heavy ? 1 : 0.55
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.45)) { slamKick = 0 }
-            withAnimation(.easeOut(duration: heavy ? 0.55 : 0.32)) { slamFlare = 0 }
+            slamKick = heavy ? 1.5 : 0
+            slamFlare = heavy ? 0.65 : 0.2
+            withAnimation(.spring(response: 0.18, dampingFraction: 0.8)) { slamKick = 0 }
+            withAnimation(.easeOut(duration: 0.18)) { slamFlare = 0 }
+        }
+        .onAppear {
+            ReelSymbolCache.prepare(engine.slots.map(\.die))
+            Audio.shared.prepareDiceRoll()
         }
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first, let faceID = UUID(uuidString: idString) else { return false }
@@ -150,6 +161,8 @@ struct DiceTrayView: View {
                 .font(.fantasy(13, weight: .black))
                 .kerning(1.6)
                 .foregroundStyle(freezeArmed ? Theme.frost : Theme.gold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
 
             // Chisels of Ptah, struck in his copper beside the title. A
             // Chisel's rule is otherwise only legible on the card it came
@@ -182,7 +195,7 @@ struct DiceTrayView: View {
                 HStack(spacing: 3) {
                     PharaohSWagerSymbol(art: PharaohSWagerArt.interactionHeld, fallback: "snowflake",
                                size: 12, tint: Theme.frost)
-                    Text("\(engine.frozenCount) CARRIES OVER · DIE STILL ROLLS")
+                    Text("\(engine.frozenCount) HELD FOR NEXT TURN")
                         .font(.system(size: 9, weight: .black))
                 }
                 .foregroundStyle(Theme.frost)
@@ -194,7 +207,7 @@ struct DiceTrayView: View {
                 HStack(spacing: 3) {
                     PharaohSWagerSymbol(art: PharaohSWagerArt.interactionHeld, fallback: "snowflake",
                                size: 12, tint: Theme.frost.opacity(0.8))
-                    Text("\(engine.carriedCount) HELD FACE\(engine.carriedCount > 1 ? "S" : "") IN HAND")
+                    Text("\(engine.carriedCount) CARRIED")
                         .font(.system(size: 9, weight: .black))
                 }
                 .foregroundStyle(Theme.frost.opacity(0.8))
@@ -204,6 +217,9 @@ struct DiceTrayView: View {
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
+        .frame(height: 16)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.frozenCount)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
     }
@@ -243,18 +259,17 @@ struct DiceTrayView: View {
 
     private var freezeHint: String {
         let left = engine.freezesRemaining
-        return "Hold a face · \(left) freeze\(left == 1 ? "" : "s") left · the die still rolls next turn"
+        return "Tap a face to hold · \(left) left"
     }
 
     // MARK: - Combo panel
 
     // MARK: - Roll control
 
-    @ViewBuilder
     private var leadingControl: some View {
-        if engine.canRoll {
-            RollLeverButton(height: reelHeight + 18) { engine.rollAll() }
-                .transition(.scale(scale: 0.8).combined(with: .opacity))
+        RollLeverButton(height: reelHeight, width: leverWidth,
+                        isEnabled: engine.canRoll, isRolling: engine.isRolling) {
+            engine.rollAll(reduceMotion: reduceMotion)
         }
     }
 }
@@ -267,15 +282,11 @@ private struct DiceTrayReelView: View {
     let engine: BattleEngine
     let width: CGFloat
     let height: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var settled = false
     @State private var critFlash = false
     @State private var frostPulse = false
-    /// When this reel's drum started, so the spin can be derived from elapsed
-    /// time instead of driven by a per-frame state update.
-    @State private var rollStart = Date()
-    /// Set just before this reel's stop, so it tenses before it lands.
-    @State private var imminent = false
     /// Shockwave ring thrown off the moment the reel locks.
     @State private var shock: CGFloat = 0
     /// Spark burst thrown off a critical as it slams home.
@@ -294,41 +305,14 @@ private struct DiceTrayReelView: View {
     /// The face drawing is the whole point of a die, so it is drawn as large
     /// as the window allows — a small plate scaled up reads grainy, a large
     /// one reads painted.
-    private var iconSize: CGFloat { width * 0.40 }
+    private var iconSize: CGFloat { max(16, min(width * 0.40, (height - 40) / 1.2)) }
     private var labelSize: CGFloat { max(10, width * 0.135) }
     /// A claimed die's face carries its name in bigger type — the god's
     /// blessing is part of the read that decides a turn.
     private func labelSize(for face: RolledFace) -> CGFloat {
-        face.patron == nil ? labelSize : max(12.5, width * 0.175)
+        face.patron == nil || height < 76 ? labelSize : max(12.5, width * 0.175)
     }
     private var tagSize: CGFloat { max(9.5, width * 0.135) }
-
-    /// Faces per second at each stage of the drum's braking.
-    private static let fastRate: Double = 17
-    private static let haulRate: Double = 7
-    private static let crawlRate: Double = 2.2
-
-    /// How far the drum has turned, in faces, at a given instant.
-    ///
-    /// The spin is a pure function of elapsed time rather than a state variable
-    /// ticked by an async loop. That is what makes it fluid: the drum brakes on
-    /// a continuous curve, and no amount of scheduling jitter can stutter it.
-    private func drumPhase(at date: Date) -> Double {
-        let elapsed = max(0, date.timeIntervalSince(rollStart))
-        let total = engine.lockTime(slotID: slot.id)
-        let windows = engine.brakeWindows(slotID: slot.id)
-        let haulStart = max(0, total - windows.haul)
-        let crawlStart = max(haulStart, total - windows.crawl)
-
-        if elapsed <= haulStart { return Self.fastRate * elapsed }
-        let throughFast = Self.fastRate * haulStart
-        if elapsed <= crawlStart {
-            return throughFast + Self.haulRate * (elapsed - haulStart)
-        }
-        return throughFast
-            + Self.haulRate * (crawlStart - haulStart)
-            + Self.crawlRate * (elapsed - crawlStart)
-    }
 
     var body: some View {
         Group {
@@ -384,73 +368,41 @@ private struct DiceTrayReelView: View {
     }
 
     private var spinningReel: some View {
-        let faces = slot.die.faces
-        let count = max(faces.count, 1)
-        let rowHeight = iconSize * 1.05
+        VStack(spacing: 2) {
+            SlotReelView(
+                faces: slot.die.faces.map(\.kind),
+                landing: engine.landingFace(slotID: slot.id) ?? .block,
+                rollID: engine.rollID,
+                startedAt: engine.rollStartedAt,
+                duration: engine.lockTime(slotID: slot.id),
+                symbolSize: iconSize * 1.2,
+                reduceMotion: reduceMotion
+            )
+            .frame(width: iconSize * 1.2, height: iconSize * 1.2)
+            .accessibilityHidden(true)
 
-        return VStack(spacing: 4) {
-            // The drum is drawn from elapsed time on the display's own clock.
-            // The old version rebuilt the face view ~30 times a second with a
-            // transition and a blur filter on each rebuild, for every die at
-            // once — that is what made rolling stutter. This scrolls a strip
-            // instead, which Core Animation can run smoothly.
-            TimelineView(.animation) { timeline in
-                let phase = drumPhase(at: timeline.date)
-                let whole = Int(phase.rounded(.down))
-                let frac = CGFloat(phase - phase.rounded(.down))
-
-                ZStack {
-                    ForEach(-1...1, id: \.self) { step in
-                        let index = ((whole + step) % count + count) % count
-                        let kind = faces[index].kind
-                        let offset = CGFloat(step) - frac
-                        PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol,
-                                            size: iconSize * 1.12, tint: kind.tint)
-                            .offset(y: offset * rowHeight)
-                            // Fades out towards the lip of the window, so faces
-                            // roll past rather than popping in and out.
-                            .opacity(Double(max(0, 1 - abs(offset) * 1.15)))
-                    }
-                }
-                .frame(height: iconSize * 1.5)
-                .clipped()
-            }
-
-            reelName
+            Text("ROLLING")
+                .font(.system(size: labelSize, weight: .heavy))
+                .foregroundStyle(Theme.gold.opacity(0.8))
+            Text("···")
+                .font(.system(size: tagSize, weight: .black))
+                .foregroundStyle(Theme.parchmentDim)
         }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { reelGround(opacity: 0.75) }
         .overlay {
-            // Curved-glass shading so the reel reads as a spinning drum.
             LinearGradient(
-                colors: [Color.black.opacity(0.55), .clear, .clear, Color.black.opacity(0.55)],
-                startPoint: .top,
-                endPoint: .bottom
+                colors: [Color.black.opacity(0.45), .clear, .clear, Color.black.opacity(0.4)],
+                startPoint: .top, endPoint: .bottom
             )
             .allowsHitTesting(false)
         }
         .clipShape(.rect(cornerRadius: corner))
-        .dieFrame(.rolling, tint: imminent ? Theme.gold : nil)
-        .shadow(color: Theme.gold.opacity(imminent ? 0.55 : 0), radius: 12)
-        .scaleEffect(imminent ? 1.05 : 1)
-        .animation(.spring(response: 0.18, dampingFraction: 0.6), value: imminent)
-        .task {
-            // Reels keep their identity from turn to turn, so the landing
-            // animation has to be re-armed each time the drum starts up —
-            // otherwise only the first roll of the fight slams home.
-            resetLandingAnimation()
-            rollStart = Date()
-            // The only thing left to schedule is the tension just before the
-            // stop; the spin itself needs no ticking at all.
-            let windows = engine.brakeWindows(slotID: slot.id)
-            let untilRing = engine.lockTime(slotID: slot.id) - windows.ring
-            if untilRing > 0 {
-                try? await Task.sleep(for: .seconds(untilRing))
-            }
-            if engine.slots.first(where: { $0.id == slot.id })?.state == .rolling {
-                imminent = true
-            }
-        }
+        .dieFrame(.rolling)
+        .onAppear { resetLandingAnimation() }
+        .accessibilityLabel("Rolling \(slot.die.name)")
     }
 
     /// Clears every one-shot landing effect so the next lock plays in full.
@@ -462,7 +414,6 @@ private struct DiceTrayReelView: View {
         shock = 0
         flash = 0
         sparkBurst = 0
-        imminent = false
     }
 
     // MARK: - Settled die
@@ -539,30 +490,30 @@ private struct DiceTrayReelView: View {
             }
             .overlay(alignment: .bottomTrailing) { nockControls(face) }
             .overlay { slamFlash(face) }
-            .overlay { shockRing(face) }
-            .overlay { critSparks(face) }
+            .overlay { if !reduceMotion { shockRing(face) } }
+            .overlay { if !reduceMotion { critSparks(face) } }
             .shadow(color: glowTint(face).opacity(isFrozen ? 0.7 : (face.isCrit ? 0.8 : 0.35)),
                     radius: (face.isCrit && critFlash) || (isFrozen && frostPulse) ? 14 : 7)
-            .scaleEffect(settled ? 1 : (face.isCrit ? 1.9 : 1.72))
-            .offset(y: settled ? 0 : -height * 0.34)
-            .rotation3DEffect(.degrees(settled ? 0 : (face.isCrit ? 26 : 18)), axis: (x: 1, y: 0, z: 0))
-            .blur(radius: settled ? 0 : 5)
+            .scaleEffect(reduceMotion || settled ? 1 : 1.045)
+            .offset(y: reduceMotion || settled ? 0 : -3)
         }
         .buttonStyle(PressableButtonStyle())
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
-            flash = 1
-            withAnimation(.spring(response: face.isCrit ? 0.3 : 0.24, dampingFraction: 0.4)) {
+            flash = reduceMotion ? 0 : 0.55
+            withAnimation(reduceMotion ? nil : .spring(response: 0.18, dampingFraction: 0.76)) {
                 settled = true
             }
             withAnimation(.easeOut(duration: face.isCrit ? 0.5 : 0.34)) { shock = 1 }
             withAnimation(.easeOut(duration: face.isCrit ? 0.42 : 0.26)) { flash = 0 }
-            if face.isCrit {
-                withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) { critFlash = true }
+            if face.isCrit && !reduceMotion {
+                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { critFlash = true }
                 withAnimation(.easeOut(duration: 0.72)) { sparkBurst = 1 }
             }
-            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { frostPulse = true }
+            if isFrozen && !reduceMotion {
+                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { frostPulse = true }
+            }
         }
     }
 

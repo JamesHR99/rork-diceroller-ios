@@ -23,13 +23,15 @@ struct NightChartView: View {
     private var indexInGate: Int { game.nextStage % Voyage.stagesPerGate }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            gateRibbon
-            Spacer(minLength: 0)
-            channels
-            Spacer(minLength: 0)
-            footer
+        FittingScrollColumn {
+            VStack(spacing: 0) {
+                header
+                gateRibbon
+                Spacer(minLength: 0)
+                channels
+                Spacer(minLength: 0)
+                footer
+            }
         }
         .animation(.easeInOut(duration: 0.7), value: gate)
         .onAppear {
@@ -54,7 +56,8 @@ struct NightChartView: View {
                     PharaohSWagerSymbol(art: gate.artName, fallback: gate.symbol, size: 20, tint: gate.accent)
                         .shadow(color: gate.accent.opacity(0.7), radius: 6)
                     CarvedTitle(text: gate.name, size: 18, kerning: 3, showsRule: false)
-                        .fixedSize()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     Text("HOURS \(gate.firstHour)–\(gate.lastHour)")
                         .font(.system(size: 8, weight: .black))
                         .kerning(1.2)
@@ -73,8 +76,8 @@ struct NightChartView: View {
             Spacer(minLength: 0)
 
             VStack(alignment: .trailing, spacing: 5) {
-                RunStatusBar(game: game)
-                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared)
+                RunStatusBar(game: game, compact: true)
+                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
             }
 
             Button {
@@ -291,3 +294,4 @@ struct NightChartView: View {
         .buttonStyle(PressableButtonStyle())
     }
 }
+

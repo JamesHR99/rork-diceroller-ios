@@ -74,6 +74,37 @@ enum PharaohSWagerArt {
 
     private static var existence: [String: Bool] = [:]
 
+    /// Small UI glyphs should not composite a full export-sized texture on
+    /// every frame. Crop and downsample once at the requested display scale.
+    static func icon(_ name: String, pixels: Int) -> UIImage? {
+        guard exists(name) else { return nil }
+        let dimension = min(512, max(32, ((pixels + 31) / 32) * 32))
+        let key = "\(name).\(dimension)" as NSString
+        if let cached = icons.object(forKey: key) { return cached }
+        guard let source = UIImage(named: name), let page = source.cgImage else { return nil }
+        let box = crop(name)
+        let rect = CGRect(x: box.x * CGFloat(page.width), y: box.y * CGFloat(page.height),
+                          width: box.width * CGFloat(page.width), height: box.height * CGFloat(page.height)).integral
+        guard let cut = page.cropping(to: rect) else { return nil }
+        let edge = CGFloat(dimension)
+        let ratio = min(edge / CGFloat(cut.width), edge / CGFloat(cut.height))
+        let size = CGSize(width: CGFloat(cut.width) * ratio, height: CGFloat(cut.height) * ratio)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            UIImage(cgImage: cut).draw(in: CGRect(origin: .zero, size: size))
+        }
+        icons.setObject(image, forKey: key, cost: dimension * dimension * 4)
+        return image
+    }
+
+    private static let icons: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 160
+        cache.totalCostLimit = 16 * 1024 * 1024
+        return cache
+    }()
+
     // MARK: - Stretchable plates
 
     /// The cropped plate, decoded once, ready to be stretched from its middle.

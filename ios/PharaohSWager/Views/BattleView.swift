@@ -18,12 +18,9 @@ struct BattleView: View {
 private struct BattleContentView: View {
     let engine: BattleEngine
     @Environment(GameManager.self) private var game
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showInfo = false
     @State private var arrivalShown = true
-    /// How tall the deck actually draws once its dice and plan are laid out.
-    /// Measured rather than guessed, so a screen it still cannot fit on takes
-    /// the whole shelf down to size instead of letting FIGHT hang off the edge.
-    @State private var deckNaturalHeight: CGFloat = 0
     /// Where the run's heading and the health rail actually end. The deck is
     /// hung off this rather than off the bottom of the screen, so it rises to
     /// meet the health bars instead of leaving a band of empty river between
@@ -54,7 +51,7 @@ private struct BattleContentView: View {
                         // uncovered and the full-size figures are what you
                         // watch.
                         if deckUp {
-                            tickerRail
+                            tickerRail(width: max(0, size.width - 24))
                                 .padding(.horizontal, 12)
                                 .padding(.top, 2)
                                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -77,7 +74,6 @@ private struct BattleContentView: View {
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .opacity(deckUp ? 0.22 : 1)
-                        .blur(radius: deckUp ? 3 : 0)
                         .scaleEffect(deckUp ? 0.94 : 1, anchor: .top)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
@@ -101,7 +97,7 @@ private struct BattleContentView: View {
                 }
                 .zIndex(3)
             }
-            .animation(.spring(response: 0.52, dampingFraction: 0.86), value: deckUp)
+            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9), value: deckUp)
         }
         .overlay {
             // A landing chain takes the whole deck: shockwave, embers, wash
@@ -171,149 +167,80 @@ private struct BattleContentView: View {
 
     // MARK: - Dice deck
 
-    /// The roll tray and the turn plan, welded into one sheet that slides up
-    /// from the bottom of the screen. Tapping FIGHT drops it out of frame and
-    /// the fight plays out on the stage behind it.
-    /// The deck is cut to the screen it has to fit on. `reel` is the tallest a
-    /// die may run and `body` the height of the plan cards; both shrink
-    /// together on a short landscape iPhone so the turn plan and the FIGHT slab
-    /// The room the deck actually has: everything under the run's heading and
-    /// the health rail, less a margin so the FIGHT slab never rides the bottom
-    /// edge. Measured off the heading itself, so the deck rises to meet the
-    /// health bars instead of leaving a band of open river between them.
-    private func deckBox(_ size: CGSize) -> CGFloat {
-        let header = headerHeight > 0 ? headerHeight : 108
-        return max(size.height - header - 8, 170)
-    }
-
-    /// How tall a die and a plan card may run on this screen. Both are cut
-    /// from the room left after the deck's own chrome — the tray heading, the
-    /// channel lips, the plan header and every padding in between — so the
-    /// dice and the turn plan give up height together and the stamina rail and
-    /// the FIGHT slab are never the parts that fall off the bottom.
-    private func deckSizing(_ box: CGFloat) -> (reel: CGFloat, body: CGFloat) {
-        let chrome: CGFloat = 100
-        let free = max(box - chrome, 130)
-        // The dice and the plan are grown until they very nearly fill the room
-        // under the health rail. Leaving them short is what opened the band of
-        // empty river between the rail and the deck — that space belongs to the
-        // dice, so it is spent on them instead of left blank. Retiring the hour
-        // band handed this measure a whole strip of screen back, and it goes
-        // to the two things you actually touch: the roll and the plan.
-        return (
-            reel: min(150, max(76, free * 0.56)),
-            body: min(122, max(62, free * 0.42))
-        )
-    }
-
     private func diceDeck(size: CGSize) -> some View {
-        let box = deckBox(size)
-        let sizing = deckSizing(box)
-        // The deck is drawn at full size, measured, and then taken down as one
-        // piece if it does not fit the screen it landed on. Nothing is guessed:
-        // whatever the dice, the turn plan, the stamina rail and the FIGHT slab
-        // actually need is what gets scaled, so they are always whole and
-        // always inside the screen.
-        let fit: CGFloat = deckNaturalHeight > box ? box / deckNaturalHeight : 1
-        return VStack(spacing: 6) {
-            DiceTrayView(
-                engine: engine,
-                maxReelHeight: sizing.reel,
-                maxRowWidth: size.width - 44
-            )
-            .padding(.horizontal, 8)
-
-            PlayBarView(engine: engine, bodyHeight: sizing.body)
-                .padding(.horizontal, 10)
+        let metrics = BattleDeckMetrics(screenHeight: size.height,
+                                        headerHeight: headerHeight > 0 ? headerHeight : 120)
+        return ScrollView(.vertical) {
+            VStack(spacing: 6) {
+                DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
+                             maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
+                    .padding(.horizontal, 8)
+                PlayBarView(engine: engine, bodyHeight: metrics.planHeight)
+                    .padding(.horizontal, 10)
+            }
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
         }
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity)
-        // Held at its ideal height while it is measured, so the reading cannot
-        // chase the constraint it is used to set.
-        .fixedSize(horizontal: false, vertical: true)
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.height
-        } action: { height in
-            deckNaturalHeight = height
-        }
-        .scaleEffect(fit, anchor: .bottom)
-        .frame(height: deckNaturalHeight > 0 ? min(deckNaturalHeight, box) : nil, alignment: .bottom)
-        .frame(maxWidth: .infinity)
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .frame(height: metrics.height)
         .background {
-            // The deck's own ground: a lip of carved stone that reads as a
-            // shelf sliding over the deck boards rather than a floating card.
             DeckShelfBackground(armed: engine.freezeArmed)
                 .ignoresSafeArea(edges: .bottom)
         }
         .offset(y: deckUp ? 0 : size.height)
+        .opacity(deckUp ? 1 : 0)
         .allowsHitTesting(deckUp)
+        .accessibilityHidden(!deckUp)
     }
-
-    // MARK: - Ticker rail
 
     /// The slim read carried while the deck is up: you on the left, everything
     /// that rose out of the river on the right, each with its health and the
     /// blow it is winding up.
-    private var tickerRail: some View {
-        // The rail is cut to the screen it landed on. A pack used to be drawn
-        // at a fixed width per card, which walked the third foe clean off the
-        // right-hand edge; now the room is measured and shared out. A card
-        // never grows past its natural size though — sharing out a wide rail
-        // between one foe and one demigod would blow both slabs up.
-        GeometryReader { rail in
-            let foes = engine.stagedFoes
-            let compact = foes.count > 1
-            let spacing: CGFloat = foes.count > 2 ? 4 : 6
-            let natural: CGFloat = compact ? 212 : 268
-            // You take a smaller share of a crowded rail, because your own
-            // read is one health channel and theirs carry whole sequences.
-            let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
-            let playerWidth = min(natural, max(120, rail.size.width * playerShare))
-            let foeRoom = rail.size.width - playerWidth - spacing * CGFloat(foes.count)
-            let foeWidth = min(natural, max(96, foeRoom / CGFloat(max(foes.count, 1))))
+    private func tickerRail(width: CGFloat) -> some View {
+        let foes = engine.stagedFoes
+        let compact = foes.count > 1
+        let spacing: CGFloat = foes.count > 2 ? 4 : 6
+        let natural: CGFloat = compact ? 212 : 268
+        // You take a smaller share of a crowded rail, because your own
+        // read is one health channel and theirs carry whole sequences.
+        let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
+        let playerWidth = min(natural, max(120, width * playerShare))
+        let foeRoom = width - playerWidth - spacing * CGFloat(foes.count + 1)
+        let foeWidth = min(natural, max(96, foeRoom / CGFloat(max(foes.count, 1))))
 
-            HStack(alignment: .top, spacing: spacing) {
+        return HStack(alignment: .top, spacing: spacing) {
+            FighterView(
+                engine: engine,
+                side: .player,
+                heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
+                heroName: game.heroClass?.name ?? "Hero",
+                accent: game.heroClass?.accent ?? Theme.gold,
+                heroClassID: game.classID,
+                layout: .ticker,
+                tickerCompact: compact,
+                cardWidth: playerWidth
+            )
+
+            Spacer(minLength: 0)
+
+            ForEach(foes) { foe in
                 FighterView(
                     engine: engine,
-                    side: .player,
-                    heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
-                    heroName: game.heroClass?.name ?? "Hero",
-                    accent: game.heroClass?.accent ?? Theme.gold,
-                    heroClassID: game.classID,
+                    side: .enemy,
+                    heroSymbol: "",
+                    heroName: "",
+                    accent: Theme.blood,
+                    foe: foe,
+                    isTargeted: engine.isTargeted(foeID: foe.id),
                     layout: .ticker,
                     tickerCompact: compact,
-                    cardWidth: playerWidth
+                    cardWidth: foeWidth
                 )
-
-                Spacer(minLength: 0)
-
-                ForEach(foes) { foe in
-                    FighterView(
-                        engine: engine,
-                        side: .enemy,
-                        heroSymbol: "",
-                        heroName: "",
-                        accent: Theme.blood,
-                        foe: foe,
-                        isTargeted: engine.isTargeted(foeID: foe.id),
-                        layout: .ticker,
-                        tickerCompact: compact,
-                        cardWidth: foeWidth
-                    )
-                    .opacity(foe.isAlive ? 1 : 0.4)
-                }
+                .opacity(foe.isAlive ? 1 : 0.4)
             }
-            .frame(width: rail.size.width, alignment: .leading)
         }
-        .frame(height: tickerRailHeight)
-    }
-
-    /// How tall the slim rail runs. A creature that spends its round on three
-    /// actions prints three lines of intent, so the rail is measured off the
-    /// longest sequence on the deck rather than assumed to be one line.
-    private var tickerRailHeight: CGFloat {
-        let longest = engine.enemies.filter(\.isAlive).map(\.intents.count).max() ?? 1
-        return 74 + CGFloat(max(longest - 1, 0)) * 16
+        .frame(width: width, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Stage
@@ -580,7 +507,7 @@ private struct BattleContentView: View {
             // spotlight and the floating text already say what just happened.
             Spacer(minLength: 4)
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared)
+            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
 
             Button {
                 showInfo = true
@@ -593,7 +520,7 @@ private struct BattleContentView: View {
                         .kerning(1)
                         .foregroundStyle(Theme.parchment)
                 }
-                .frame(width: 106, height: 38)
+                .frame(width: 84, height: 44)
                 .background {
                     PharaohSWagerImage(name: PharaohSWagerArt.button(.secondary, .normal), fit: .stretch)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

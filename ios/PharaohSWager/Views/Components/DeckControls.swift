@@ -6,10 +6,14 @@ import SwiftUI
 /// turn starts here.
 struct RollLeverButton: View {
     var height: CGFloat
+    var width: CGFloat = 104
+    var isEnabled = true
+    var isRolling = false
     let action: () -> Void
 
-    @State private var pulled = false
-    @State private var glow = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var pulled: Bool { isRolling && !reduceMotion }
+    private var glow: Bool { isEnabled }
 
     /// A housing too short for the full lever — knob, glyph and word stacked
     /// at full size need about 118pt.
@@ -21,13 +25,7 @@ struct RollLeverButton: View {
 
     var body: some View {
         Button {
-            Haptics.medium()
-            withAnimation(.spring(response: 0.16, dampingFraction: 0.5)) { pulled = true }
             action()
-            Task {
-                try? await Task.sleep(for: .milliseconds(150))
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.55)) { pulled = false }
-            }
         } label: {
             ZStack {
                 housing
@@ -40,7 +38,7 @@ struct RollLeverButton: View {
                     if !compact { knob }
                     PharaohSWagerIcon(name: PharaohSWagerArt.interactionRoll, size: glyphSize)
                         .shadow(color: Theme.ember.opacity(0.7), radius: glow ? 12 : 5)
-                    Text("ROLL")
+                    Text(isEnabled ? "ROLL" : (isRolling ? "SPIN" : "READY"))
                         .font(.fantasy(compact ? 14 : 17, weight: .black))
                         .kerning(compact ? 1.2 : 2)
                         .foregroundStyle(
@@ -52,17 +50,18 @@ struct RollLeverButton: View {
                         .minimumScaleFactor(0.7)
                 }
                 .padding(.vertical, compact ? 4 : 8)
-                .frame(width: 104, height: height)
+                .frame(width: width, height: height)
                 .clipped()
             }
-            .frame(width: 104, height: height)
+            .frame(width: width, height: height)
+            .opacity(isEnabled || isRolling ? 1 : 0.5)
         }
         .buttonStyle(.plain)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
-                glow = true
-            }
-        }
+        .disabled(!isEnabled)
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isRolling)
+        .accessibilityLabel("Roll dice")
+        .accessibilityValue(isRolling ? "Rolling" : (isEnabled ? "Ready to roll" : "Roll complete"))
+        .accessibilityIdentifier("battle.roll")
     }
 
     /// The carved housing: painted paper over basalt, gold collar, lit lip.

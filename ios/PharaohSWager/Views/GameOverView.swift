@@ -16,7 +16,7 @@ struct GameOverView: View {
             endingScene
 
             HStack(spacing: 24) {
-                verdictColumn
+                FittingScrollColumn { verdictColumn }
                     .frame(maxWidth: 320)
 
                 VStack(spacing: 10) {
@@ -27,7 +27,7 @@ struct GameOverView: View {
                             LeaderboardView(records: game.leaderboard, highlightID: game.latestRecordID)
                                 .transition(.opacity.combined(with: .move(edge: .trailing)))
                         } else {
-                            statsPanel
+                            FittingScrollColumn { statsPanel }
                                 .transition(.opacity.combined(with: .move(edge: .leading)))
                         }
                     }
@@ -137,7 +137,7 @@ struct GameOverView: View {
                 }
 
             WingedDivider(height: 22, opacity: 0.8)
-                .frame(width: 240)
+                .frame(maxWidth: 240)
 
             Text(won
                  ? "Apep sinks. The barque clears the twelfth gate and Ra climbs into the morning. The world gets another day because you stood on that deck."
@@ -271,3 +271,4 @@ struct GameOverView: View {
         }
     }
 }
+

@@ -16,100 +16,110 @@ struct TrialPromptView: View {
 
             if let trial {
                 let tint = trial.deity.tint
-                HStack(spacing: 26) {
-                    sigil(trial, tint: tint)
+                GeometryReader { proxy in
+                    FittingScrollColumn {
+                        HStack(spacing: 18) {
+                            if proxy.size.width >= 640 { sigil(trial, tint: tint) }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 7) {
-                            PharaohSWagerSymbol(art: PharaohSWagerArt.Status.champion, fallback: "crown.fill",
-                                       size: 14, tint: tint)
-                            Text("A DIVINE TRIAL")
-                                .font(.system(size: 10, weight: .black))
-                                .kerning(3)
-                                .foregroundStyle(tint)
-                        }
-
-                        Text(trial.name.uppercased())
-                            .font(.fantasy(26, weight: .black))
-                            .kerning(1.5)
-                            .foregroundStyle(
-                                LinearGradient(colors: [Theme.parchment, tint],
-                                               startPoint: .top, endPoint: .bottom)
-                            )
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-
-                        GoldRule(height: 5, opacity: 0.8)
-                            .frame(width: 260)
-
-                        Text(trial.power)
-                            .font(.paper(12))
-                            .foregroundStyle(Theme.parchment.opacity(0.9))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(width: 380, alignment: .leading)
-
-                        Text(trial.boonLine)
-                            .font(.system(size: 10, weight: .semibold))
-                            .italic()
-                            .foregroundStyle(Theme.parchmentDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(width: 380, alignment: .leading)
-
-                        Text("In a pack, the champion is ringed in \(trial.deity.name)'s colour for the whole fight.")
-                            .font(.system(size: 9))
-                            .foregroundStyle(Theme.parchmentDim.opacity(0.8))
-
-                        HStack(spacing: 10) {
-                            Button {
-                                withAnimation(.easeOut(duration: 0.3)) { shown = false }
-                                Haptics.heavy()
-                                Task {
-                                    try? await Task.sleep(for: .milliseconds(280))
-                                    engine.acceptTrial()
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 7) {
+                                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.champion, fallback: "crown.fill",
+                                               size: 14, tint: tint)
+                                    Text("A DIVINE TRIAL")
+                                        .font(.system(size: 10, weight: .black))
+                                        .kerning(3)
+                                        .foregroundStyle(tint)
                                 }
-                            } label: {
-                                Text("Take the Trial")
-                                    .font(.fantasy(17, weight: .bold))
-                                    .kerning(0.8)
+
+                                Text(trial.name.uppercased())
+                                    .font(.fantasy(26, weight: .black))
+                                    .kerning(1.5)
                                     .foregroundStyle(
-                                        LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                        LinearGradient(colors: [Theme.parchment, tint],
                                                        startPoint: .top, endPoint: .bottom)
                                     )
-                                    .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
-                                    .frame(width: 210, height: 52)
-                                    .background {
-                                        DeckButtonSurface(tone: .primary, state: .highlighted,
-                                                          rim: tint, cornerRadius: 14, emphasis: 1)
-                                    }
-                                    .goldCorners(size: 14, inset: 3, opacity: 0.8)
-                            }
-                            .buttonStyle(PressableButtonStyle())
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
 
-                            Button {
-                                withAnimation(.easeOut(duration: 0.3)) { shown = false }
-                                Haptics.light()
-                                Task {
-                                    try? await Task.sleep(for: .milliseconds(280))
-                                    engine.declineTrial()
-                                }
-                            } label: {
-                                Text("Fight On — no penalty")
-                                    .font(.fantasy(15, weight: .bold))
-                                    .foregroundStyle(Theme.parchment.opacity(0.78))
-                                    .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
-                                    .frame(width: 220, height: 52)
-                                    .background {
-                                        DeckButtonSurface(tone: .secondary, state: .normal,
-                                                          rim: Theme.parchmentDim, cornerRadius: 14)
+                                GoldRule(height: 5, opacity: 0.8)
+                                    .frame(maxWidth: 260)
+
+                                Text(trial.power)
+                                    .font(.paper(12))
+                                    .foregroundStyle(Theme.parchment.opacity(0.9))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: 380, alignment: .leading)
+
+                                Text(trial.boonLine)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .italic()
+                                    .foregroundStyle(Theme.parchmentDim)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: 380, alignment: .leading)
+
+                                Text("In a pack, the champion is ringed in \(trial.deity.name)'s colour for the whole fight.")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(Theme.parchmentDim.opacity(0.8))
+
+                                HStack(spacing: 10) {
+                                    Button {
+                                        withAnimation(.easeOut(duration: 0.3)) { shown = false }
+                                        Haptics.heavy()
+                                        Task {
+                                            try? await Task.sleep(for: .milliseconds(280))
+                                            engine.acceptTrial()
+                                        }
+                                    } label: {
+                                        Text("Take the Trial")
+                                            .font(.fantasy(17, weight: .bold))
+                                            .kerning(0.8)
+                                            .foregroundStyle(
+                                                LinearGradient(colors: [Theme.parchment, Theme.gold],
+                                                               startPoint: .top, endPoint: .bottom)
+                                            )
+                                            .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.7)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 52)
+                                            .background {
+                                                DeckButtonSurface(tone: .primary, state: .highlighted,
+                                                                  rim: tint, cornerRadius: 14, emphasis: 1)
+                                            }
+                                            .goldCorners(size: 14, inset: 3, opacity: 0.8)
                                     }
+                                    .buttonStyle(PressableButtonStyle())
+
+                                    Button {
+                                        withAnimation(.easeOut(duration: 0.3)) { shown = false }
+                                        Haptics.light()
+                                        Task {
+                                            try? await Task.sleep(for: .milliseconds(280))
+                                            engine.declineTrial()
+                                        }
+                                    } label: {
+                                        Text("Fight On — no penalty")
+                                            .font(.fantasy(15, weight: .bold))
+                                            .foregroundStyle(Theme.parchment.opacity(0.78))
+                                            .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.7)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 52)
+                                            .background {
+                                                DeckButtonSurface(tone: .secondary, state: .normal,
+                                                                  rim: Theme.parchmentDim, cornerRadius: 14)
+                                            }
+                                    }
+                                    .buttonStyle(PressableButtonStyle())
+                                }
+                                .padding(.top, 4)
                             }
-                            .buttonStyle(PressableButtonStyle())
                         }
-                        .padding(.top, 4)
+                        .padding(20)
                     }
                 }
-                .padding(28)
-                .scaleEffect(shown ? 1 : 0.92)
+                .scaleEffect(shown ? 1 : 0.98)
                 .opacity(shown ? 1 : 0)
             }
         }
@@ -140,3 +150,4 @@ struct TrialPromptView: View {
         .frame(width: 150)
     }
 }
+
