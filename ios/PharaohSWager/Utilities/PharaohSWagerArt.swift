@@ -547,6 +547,7 @@ enum PharaohSWagerArt {
 
     private static let environmentCrops: [String: PharaohSWagerCrop] = [
         "duat_environment_barque": PharaohSWagerCrop(0.0085, 0.0654, 0.9882, 0.8286, 2),
+        "duat_environment_battle_barque": PharaohSWagerCrop(0.002, 0.002, 0.996, 0.996, 3),
         "duat_environment_brazier": PharaohSWagerCrop(0.0494, 0.1063, 0.9020, 0.8027, 1.1369),
         "duat_environment_coil": PharaohSWagerCrop(0.0135, 0.1071, 0.9803, 0.8444, 2),
         "duat_environment_ember": PharaohSWagerCrop(0.4208, 0.1842, 0.1995, 0.5794, 0.9826),

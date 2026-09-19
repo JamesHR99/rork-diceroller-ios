@@ -59,3 +59,35 @@ struct BarqueView: View {
         .animation(.easeInOut(duration: 1.2), value: gate)
     }
 }
+
+/// The broad, slightly top-down barque used only for combat. Its deck is kept
+/// steady under the fighters while the river shadow breathes beneath it, so
+/// feet read as planted rather than floating over a rocking background prop.
+struct BattleBarqueView: View {
+    let gate: Gate
+    var width: CGFloat
+    var discGlow: Double = 1
+
+    private var height: CGFloat { width / 3 }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            let tide = 0.5 + 0.5 * sin(time * 1.1)
+            ZStack(alignment: .bottom) {
+                Ellipse()
+                    .stroke(gate.discColor.opacity(0.18 + tide * 0.12), lineWidth: 2)
+                    .frame(width: width * (0.7 + tide * 0.08), height: height * 0.2)
+                    .blur(radius: 3)
+                    .offset(y: 5)
+
+                PharaohSWagerImage(name: "duat_environment_battle_barque", width: width, fit: .fit)
+                    .shadow(color: Color.black.opacity(0.65), radius: 12, y: 9)
+                    .shadow(color: gate.discColor.opacity(0.26 * discGlow), radius: 24, y: 2)
+            }
+            .frame(width: width, height: height)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}

@@ -309,18 +309,21 @@ private struct BattleContentView: View {
     /// The fight itself, uncovered once the deck goes down: full-size figures
     /// standing on the hull with the water behind them.
     private func battleStage(size: CGSize) -> some View {
-        VStack(spacing: 0) {
+        GeometryReader { stage in
+            let room = stage.size.height
+            let foeCount = engine.stagedFoes.count
+            let boatWidth = min(stage.size.width * 0.99, 920)
+            let deckLift = min(88, max(42, boatWidth / 7.7))
+            let fighterRoom = max(150, room - deckLift)
+            // A crowd takes more of the deck than a single guardian, but the
+            // demigod always keeps a readable share of it.
+            let playerWidth = max(112, stage.size.width * (foeCount >= 3 ? 0.25 : 0.35))
+            let foeWidth = max(92, stage.size.width - 20 - playerWidth)
 
-            // The figures are cut to the room actually left under the heading
-            // and stood in the middle of it, so they hold the centre of the
-            // screen instead of sinking through the bottom edge.
-            GeometryReader { stage in
-                let room = stage.size.height
-                let foeCount = engine.stagedFoes.count
-                // A crowd takes more of the deck than a single guardian, but
-                // the demigod always keeps a readable share of it.
-                let playerWidth = max(120, stage.size.width * (foeCount >= 3 ? 0.26 : 0.36))
-                let foeWidth = max(96, stage.size.width - 20 - playerWidth)
+            ZStack(alignment: .bottom) {
+                BattleBarqueView(gate: gate, width: boatWidth, discGlow: game.discGlow)
+                    .opacity(deckUp ? 0.3 : 0.96)
+
                 HStack(alignment: .bottom, spacing: 8) {
                     FighterView(
                         engine: engine,
@@ -329,17 +332,19 @@ private struct BattleContentView: View {
                         heroName: game.heroClass?.name ?? "Hero",
                         accent: game.heroClass?.accent ?? Theme.gold,
                         heroClassID: game.classID,
-                        stageHeight: fighterHeight(room),
+                        stageHeight: fighterHeight(fighterRoom),
                         cardWidth: foeCount > 1 ? playerWidth : nil
                     )
 
                     Spacer(minLength: 0)
 
-                    enemyGroup(room: room, width: foeWidth)
+                    enemyGroup(room: fighterRoom, width: foeWidth)
                 }
                 .padding(.horizontal, 10)
-                .frame(width: stage.size.width, height: room, alignment: .center)
+                .padding(.bottom, deckLift)
+                .frame(width: stage.size.width, height: room, alignment: .bottom)
             }
+            .frame(width: stage.size.width, height: room)
         }
     }
 
@@ -354,13 +359,6 @@ private struct BattleContentView: View {
                 startRadius: 60,
                 endRadius: 480
             )
-
-            VStack {
-                Spacer()
-                BarqueView(gate: gate, width: size.width * 0.92, discGlow: game.discGlow)
-                    .opacity(deckUp ? 0.3 : 0.72)
-                    .offset(y: deckUp ? 130 : 116)
-            }
 
             LinearGradient(
                 colors: [.clear, Theme.bg.opacity(0.8)],

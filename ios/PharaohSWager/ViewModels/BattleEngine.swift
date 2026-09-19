@@ -341,19 +341,21 @@ enum BattleBeat {
     /// After the last step, before statuses tick.
     static let turnSettle = 150
     /// Either side of a poison, burn or bleed tick.
-    static let statusTick = 160
+    static let statusTick = 180
+    /// The actual recoil/effect hold after health moves.
+    static let statusHold = 760
     /// Pause before a foe takes its turn.
     static let foeLeadIn = 80
     /// A foe raising its guard or licking its wounds.
-    static let foeSupport = 350
+    static let foeSupport = 820
     /// The tell before a blow — matches the drawn wind-up.
     static let telegraph = 300
     /// A blow landing, long enough for the recoil animation to play.
     static let strike = 400
     /// A blow slipped or swallowed whole by the shield.
-    static let deflect = 330
+    static let deflect = 940
     /// Either side of the champion's Sentence.
-    static let sentence = 420
+    static let sentence = 960
     /// The breath between the last foe acting and the drums spinning again.
     static let handover = 200
 
@@ -371,11 +373,11 @@ enum BattleBeat {
     static let spotlightDiscovery = 650
     /// A fallen creature's last moment on the deck before it sinks out of
     /// the fight.
-    static let sink = 380
+    static let sink = 1050
 }
 
 /// Animation pose for a fighter sprite in the arena.
-enum FighterPose: Equatable {
+enum FighterPose: Hashable {
     case idle
     /// A foe winding up: the tell it shows before its blow actually lands.
     case telegraph
@@ -440,6 +442,11 @@ struct EnemyState: Identifiable {
     /// fraction added to the hit rather than multiplied over it.
     var markBonus = 0.0
     var pose: FighterPose = .idle
+    /// A serial separate from the pose. Consecutive attacks or hits must
+    /// restart their clip even when the enum value has not changed.
+    var animationID = 0
+    /// How many faces feed the current performance, clamped for presentation.
+    var actionPower = 1
     /// Everything this creature has told you it is going to do this round, in
 
     /// do, so a round can be one heavy blow or a guard and two quick cuts —
@@ -482,6 +489,12 @@ struct EnemyState: Identifiable {
         guard amount > 0 else { return }
         armour += amount
         armourMax = max(armourMax, armour)
+    }
+
+    mutating func animate(_ newPose: FighterPose, power: Int = 1) {
+        pose = newPose
+        actionPower = max(1, min(power, 5))
+        animationID &+= 1
     }
 
     /// True when this creature is standing behind a guard worth the name —
@@ -734,6 +747,8 @@ final class BattleEngine {
 
     // MARK: Fighter animation
     private(set) var playerPose: FighterPose = .idle
+    private(set) var playerAnimationID = 0
+    private(set) var playerActionPower = 1
     /// The gods whose blessings ride the blow currently being thrown.
     private(set) var strikeGods: [Deity] = []
 
@@ -2238,12 +2253,19 @@ final class BattleEngine {
                 let healthBefore = target.map { enemies[$0].hp } ?? 0
                 if let combo = step.combo {
                     let didCrit = Double.random(in: 0..<1) < step.comboCritChance
-                    playerPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
+                    let power = min(5, max(1, step.faces.count))
+                    let actionPose: FighterPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
+                    animatePlayer(actionPose, power: power)
                     noteStrikeGods(in: step.faces)
                     if combo.damage > 0 {
+                        let release = BattleAnimationTiming.releaseDelay(classID: classID, power: power)
+                        await waitForAnimation(release)
                         launchShots(faces: step.faces.map(\.matchFace),
                                     fromPlayer: true, foeID: activeTargetID,
                                     magnitude: step.faces.count, isCrit: didCrit)
+                        await waitForAnimation(BattleAnimationTiming.contactDelay(
+                            faces: step.faces.map(\.matchFace)
+                        ))
                     }
                     applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
                     // Concealed Blade: the substituted Evade still grants its
@@ -2260,23 +2282,38 @@ final class BattleEngine {
                     resolveBlessings(in: step, targetIndex: target)
                     pairingAfterAction(step: step, dealtDamage: combo.damage > 0, targetIndex: target)
                     attributing = .native
-                    let hang = BattleBeat.comboBase
-                        + min(step.faces.count, 5) * BattleBeat.comboPerFace
-                        + (didCrit ? BattleBeat.comboCrit : 0)
-                    try? await Task.sleep(for: .milliseconds(hang))
+                    let total = BattleAnimationTiming.playerDuration(classID: classID, power: power)
+                    if combo.damage > 0 {
+                        let used = BattleAnimationTiming.releaseDelay(classID: classID, power: power)
+                            + BattleAnimationTiming.contactDelay(faces: step.faces.map(\.matchFace))
+                        await waitForAnimation(max(BattleAnimationTiming.reactionHold, total - used)
+                            + (didCrit ? 0.16 : 0))
+                    } else {
+                        await waitForAnimation(total)
+                    }
                 } else if let face = step.faces.first {
-                    playerPose = pose(for: face.face)
+                    animatePlayer(pose(for: face.face))
                     noteStrikeGods(in: [face])
                     if face.matchFace.isAttack || face.matchFace == .poison {
+                        let release = BattleAnimationTiming.releaseDelay(classID: classID, power: 1)
+                        await waitForAnimation(release)
                         launchShots(faces: [face.matchFace], fromPlayer: true,
                                     foeID: activeTargetID, isCrit: face.isCrit)
+                        await waitForAnimation(BattleAnimationTiming.contactDelay(faces: [face.matchFace]))
                     }
                     let dealt = applyFace(face, bonus: step.momentumBonus + step.focusBonus, targetIndex: target)
                     attributing = .divine
                     resolveBlessings(in: step, targetIndex: target)
                     pairingAfterAction(step: step, dealtDamage: dealt, targetIndex: target)
                     attributing = .native
-                    try? await Task.sleep(for: .milliseconds(BattleBeat.soloStep))
+                    if face.matchFace.isAttack || face.matchFace == .poison {
+                        let used = BattleAnimationTiming.releaseDelay(classID: classID, power: 1)
+                            + BattleAnimationTiming.contactDelay(faces: [face.matchFace])
+                        await waitForAnimation(max(BattleAnimationTiming.reactionHold,
+                            BattleAnimationTiming.playerDuration(classID: classID, power: 1) - used))
+                    } else {
+                        await waitForAnimation(0.52)
+                    }
                 }
                 let dealtHealthDamage = target.map { enemies[$0].hp < healthBefore } ?? false
                 if dealtHealthDamage && pendingHealOnHit > 0 { healPlayer(pendingHealOnHit, label: "Feeding Frenzy") }
@@ -2366,6 +2403,8 @@ final class BattleEngine {
             finishVictory()
             return
         }
+        await settlePlayerStatusTicks()
+        if phase == .lost { return }
         endOfRound()
         if !hasLivingFoes { finishVictory(); return }
         try? await Task.sleep(for: .milliseconds(BattleBeat.handover))
@@ -2378,15 +2417,39 @@ final class BattleEngine {
         for index in enemies.indices where enemies[index].isAlive {
             for tick in statusTicks(index: index) {
                 try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
-                enemies[index].pose = .hurt
+                enemies[index].animate(.hurt)
+                showStatusImpact(tick.label, on: .foe(enemies[index].id), magnitude: tick.amount)
                 enemies[index].hp = max(0, enemies[index].hp - tick.amount)
                 damageDealt += tick.amount
                 addFloat("-\(tick.amount) \(tick.label)", color: tick.color, onEnemy: true,
                          foe: enemies[index].id)
                 lastAction = "\(enemies[index].displayName) takes \(tick.amount) \(tick.label.lowercased()) damage."
-                try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
+                try? await Task.sleep(for: .milliseconds(BattleBeat.statusHold))
                 resetPoses()
                 if !hasLivingFoes { return }
+            }
+        }
+    }
+
+    private func settlePlayerStatusTicks() async {
+        let ticks: [(label: String, amount: Int, color: Color)] = [
+            ("Bleed", playerBleedTurns > 0 ? playerBleedAmount : 0, Theme.blood),
+            ("Burn", playerBurnTurns > 0 ? playerBurnAmount : 0, Theme.ember)
+        ]
+        for tick in ticks where tick.amount > 0 {
+            try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
+            animatePlayer(.hurt)
+            showStatusImpact(tick.label, on: .player, magnitude: tick.amount)
+            playerHP = max(0, playerHP - tick.amount)
+            lostHealthThisRound = true
+            if tick.label == "Bleed" { playerBleedTurns -= 1 }
+            if tick.label == "Burn" { playerBurnTurns -= 1 }
+            addFloat("-\(tick.amount) \(tick.label)", color: tick.color, onEnemy: false)
+            try? await Task.sleep(for: .milliseconds(BattleBeat.statusHold))
+            resetPoses()
+            if playerHP <= 0 {
+                finishDefeat(tick.label == "Bleed" ? "You bleed out..." : "The burning sun consumes you...")
+                return
             }
         }
     }
@@ -2401,12 +2464,23 @@ final class BattleEngine {
         }
     }
 
+    private func animatePlayer(_ pose: FighterPose, power: Int = 1) {
+        playerPose = pose
+        playerActionPower = max(1, min(power, 5))
+        playerAnimationID &+= 1
+    }
+
+    private func waitForAnimation(_ seconds: Double) async {
+        guard seconds > 0 else { return }
+        try? await Task.sleep(for: .seconds(seconds))
+    }
+
     private func resetPoses() {
         if phase != .won && phase != .lost {
-            playerPose = .idle
+            animatePlayer(.idle)
             strikeGods = []
             activeTargetID = nil
-            for index in enemies.indices { enemies[index].pose = .idle }
+            for index in enemies.indices { enemies[index].animate(.idle) }
         }
     }
 
@@ -2418,7 +2492,7 @@ final class BattleEngine {
         guard !fallen.isEmpty, hasLivingFoes else { return }
         for foe in fallen {
             if let index = enemies.firstIndex(where: { $0.id == foe.id }) {
-                enemies[index].pose = .defeat
+                enemies[index].animate(.defeat)
             }
             addFloat("SLAIN", color: Theme.boneWhite, onEnemy: true, big: true, foe: foe.id)
         }
@@ -3665,10 +3739,10 @@ final class BattleEngine {
             if ignored > 0 { addFloat("Pierced!", color: Theme.gold, onEnemy: true, foe: foe.id) }
         }
         guard damage > 0 else {
-            foe.pose = .block
+            foe.animate(.block)
             return 0
         }
-        foe.pose = .hurt
+        foe.animate(.hurt)
         foe.hp = max(0, foe.hp - damage)
         damageDealt += damage
         credit(damage)
@@ -3686,7 +3760,8 @@ final class BattleEngine {
         guard amount > 0,
               let index = enemies.firstIndex(where: { $0.id == foeID && $0.isAlive }) else { return }
         enemies[index].hp = max(0, enemies[index].hp - amount)
-        enemies[index].pose = .hurt
+        enemies[index].animate(.hurt)
+        showStatusImpact(label, on: .foe(foeID), magnitude: amount)
         damageDealt += amount
         // Ticks, verdicts, retaliation and echoes are never a new combo.
         indirectDamage += amount
@@ -4028,7 +4103,7 @@ final class BattleEngine {
         // A wind-up: it spends the round gathering itself and the blow that
         // follows is a great deal worse. That window is the whole point.
         if move.charge > 0 {
-            foe.pose = .telegraph
+            foe.animate(.telegraph)
             foe.chargeBonus = move.charge
             addFloat("WINDING UP ×\(String(format: "%.1f", move.charge))",
                      color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
@@ -4042,9 +4117,9 @@ final class BattleEngine {
         // Anubis's Sentence: every second turn the trial champion forgoes its
         // attack and weighs your heart instead.
         if isChampion(foe), trial?.deity == .anubis, enemyTurnCount % 2 == 0, moveIndex == 0 {
-            foe.pose = .telegraph
+            foe.animate(.telegraph)
             try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
-            foe.pose = .attack
+            foe.animate(.attack, power: 3)
             addFloat("SENTENCE \(GameData.trialSentence)", color: Deity.anubis.tint, onEnemy: true, big: true, foe: foe.id)
             playerJudgementAmount = GameData.trialSentence
             playerJudgementPending = true
@@ -4055,14 +4130,14 @@ final class BattleEngine {
         }
 
         if move.block > 0 {
-            foe.pose = .block
+            foe.animate(.block)
             foe.gainGuard(move.block)
             addFloat("+\(move.block) Guard", color: Theme.bronze, onEnemy: true, foe: foe.id)
             try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
             resetPoses()
         }
         if move.heal > 0 {
-            foe.pose = .heal
+            foe.animate(.heal)
             foe.hp = min(foe.def.maxHP, foe.hp + move.heal)
             addFloat("+\(move.heal)", color: Theme.forest, onEnemy: true, foe: foe.id)
             try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
@@ -4080,7 +4155,7 @@ final class BattleEngine {
             // bleeds out here the attack never happens at all.
             if foe.bleedAmount > 0 {
                 enemies[index] = foe
-                let survived = payBleedBeforeAttack(foeID: foe.id)
+                let survived = await payBleedBeforeAttack(foeID: foe.id)
                 guard survived, let refreshed = enemies.first(where: { $0.id == foe.id }) else {
                     resetPoses()
                     return false
@@ -4106,16 +4181,18 @@ final class BattleEngine {
             var remainder = total - perHit * attackFaces
             for hitIndex in 0..<attackFaces {
                 guard foe.isAlive else { break }
-                foe.pose = .telegraph
+                let actionPower = min(5, max(1, move.faces.count))
+                foe.animate(.telegraph, power: actionPower)
                 try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
-                foe.pose = .attack
+                foe.animate(.attack, power: actionPower)
                 launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id)
+                await waitForAnimation(BattleAnimationTiming.contactDelay(faces: move.faces))
                 var hit = perHit + remainder
                 remainder = 0
 
                 // One reservation cancels one hit; a selected later hit waits.
                 if consumeDodge(foeID: foe.id, moveIndex: moveIndex, hitIndex: hitIndex) {
-                    playerPose = .dodge
+                    animatePlayer(.dodge)
                     addFloat("Evaded!", color: Theme.steel, onEnemy: false)
                     Haptics.light()
                     Audio.shared.play(.evade)
@@ -4140,7 +4217,7 @@ final class BattleEngine {
                     playerShield -= absorbed
                     hit -= absorbed
                     if absorbed > 0 {
-                        playerPose = .block
+                        animatePlayer(.block)
                         addFloat("Shield \(absorbed)", color: Theme.steel, onEnemy: false)
                         shieldAbsorbed(absorbed, attacker: foe)
                         Audio.shared.play(.block)
@@ -4173,7 +4250,7 @@ final class BattleEngine {
                 landedAnyHit = true
                 tookHealthDamageThisEnemyTurn = true
                 lostHealthThisRound = true
-                playerPose = .hurt
+                animatePlayer(.hurt)
                 playerHP = max(0, playerHP - hit)
                 addFloat("-\(hit)", color: Theme.blood, onEnemy: false, big: hit >= 20)
                 withAnimation(.linear(duration: 0.3)) { shakeTrigger += 1 }
@@ -4211,7 +4288,9 @@ final class BattleEngine {
                         return true
                     }
                 }
-                try? await Task.sleep(for: .milliseconds(BattleBeat.strike))
+                let remaining = BattleAnimationTiming.foeDuration(power: actionPower)
+                    - BattleAnimationTiming.contactDelay(faces: move.faces)
+                await waitForAnimation(max(BattleAnimationTiming.reactionHold, remaining))
                 resetPoses()
             }
         }
@@ -4280,12 +4359,15 @@ final class BattleEngine {
     /// Bleed bites just before this creature swings, whether or not the blow
     /// it was about to throw ever lands. Returns false when the wound killed
     /// it, so the caller drops the attack entirely.
-    private func payBleedBeforeAttack(foeID: UUID) -> Bool {
+    private func payBleedBeforeAttack(foeID: UUID) async -> Bool {
         guard let index = enemies.firstIndex(where: { $0.id == foeID }),
               enemies[index].isAlive, enemies[index].bleedAmount > 0 else { return true }
         let amount = enemies[index].bleedAmount
         damageEnemyDirect(foeID, amount, label: "Bleed")
-        return enemies.first(where: { $0.id == foeID })?.isAlive ?? false
+        await waitForAnimation(BattleAnimationTiming.reactionHold)
+        let survived = enemies.first(where: { $0.id == foeID })?.isAlive ?? false
+        if survived { resetPoses() }
+        return survived
     }
 
     private func startPlayerTurn() {
@@ -4332,29 +4414,6 @@ final class BattleEngine {
         if regenTurns > 0 {
             healPlayer(regenAmount, label: "Regen")
             regenTurns -= 1
-        }
-
-        if playerBleedTurns > 0 {
-            playerHP = max(0, playerHP - playerBleedAmount)
-            if playerBleedAmount > 0 { lostHealthThisRound = true }
-            playerBleedTurns -= 1
-            addFloat("-\(playerBleedAmount) Bleed", color: Theme.blood, onEnemy: false)
-            if playerHP <= 0 {
-                finishDefeat("You bleed out...")
-                return
-            }
-        }
-
-        // Ra's trial: the champion's first strike leaves you burning.
-        if playerBurnTurns > 0 {
-            playerHP = max(0, playerHP - playerBurnAmount)
-            if playerBurnAmount > 0 { lostHealthThisRound = true }
-            playerBurnTurns -= 1
-            addFloat("-\(playerBurnAmount) Burn", color: Theme.ember, onEnemy: false)
-            if playerHP <= 0 {
-                finishDefeat("The burning sun consumes you...")
-                return
-            }
         }
 
         rerollsUsed = 0
@@ -4442,8 +4501,8 @@ final class BattleEngine {
 
     private func finishVictory() {
         phase = .won
-        playerPose = .victory
-        for index in enemies.indices { enemies[index].pose = .defeat }
+        animatePlayer(.victory)
+        for index in enemies.indices { enemies[index].animate(.defeat) }
         Haptics.success()
         Audio.shared.play(.death)
         lastAction = isPack
@@ -4453,9 +4512,9 @@ final class BattleEngine {
 
     private func finishDefeat(_ message: String) {
         phase = .lost
-        playerPose = .defeat
+        animatePlayer(.defeat)
         for index in enemies.indices where enemies[index].isAlive {
-            enemies[index].pose = .victory
+            enemies[index].animate(.victory)
         }
         Haptics.failure()
         Audio.shared.play(.death)
@@ -4584,7 +4643,11 @@ final class BattleEngine {
         Haptics.chain(length: length, crit: crit)
         Audio.shared.play(.chain)
         Task {
-            try? await Task.sleep(for: .milliseconds(crit ? 1250 : 1000))
+            // A larger chain earns a longer readable beat, matching its longer
+            // class performance instead of disappearing at the same speed as
+            // a two-die pair.
+            let hold = 760 + min(length, 5) * 140 + (crit ? 260 : 0)
+            try? await Task.sleep(for: .milliseconds(hold))
             guard comboFlash?.id == flash.id else { return }
             withAnimation(.easeOut(duration: 0.25)) { comboFlash = nil }
         }
@@ -4665,6 +4728,33 @@ final class BattleEngine {
         Task {
             try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
             impacts.append(mark)
+            try? await Task.sleep(for: .seconds(mark.lifetime + 0.15))
+            impacts.removeAll { $0.id == mark.id }
+        }
+    }
+
+    /// Status damage is deliberately not disguised as an ordinary weapon hit.
+    /// It blooms over the affected body on the same beat as the health loss.
+    private func showStatusImpact(_ label: String, on target: FighterAnchorID, magnitude: Int) {
+        let lower = label.lowercased()
+        let form: ImpactForm
+        let tint: Color
+        if lower.contains("bleed") {
+            form = .bleedTick
+            tint = Theme.blood
+        } else if lower.contains("poison") || lower.contains("venom") {
+            form = .poisonTick
+            tint = Theme.venom
+        } else if lower.contains("burn") || lower.contains("flare") {
+            form = .burnTick
+            tint = Theme.ember
+        } else {
+            return
+        }
+        let mark = ImpactMark(form: form, tint: tint, target: target, angle: 0,
+                              isCrit: false, magnitude: min(5, max(1, magnitude)))
+        impacts.append(mark)
+        Task {
             try? await Task.sleep(for: .seconds(mark.lifetime + 0.15))
             impacts.removeAll { $0.id == mark.id }
         }
