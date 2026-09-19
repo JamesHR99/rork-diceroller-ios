@@ -10,7 +10,7 @@ enum GameData {
             symbol: "arrowshape.up.circle.fill", accentName: "Ember",
             maxHP: 100,
             weaponName: "Longbow", armorName: "Light Armour",
-            blurb: "Arrow tiers stack into heavy volleys. Line up Arrow I, II and III for the legendary Perfect Shot.",
+            blurb: "Arrow tiers stack into heavy volleys. Match six identical arrows for an apex; split them for earlier shots.",
             playstyle: "Balanced · ranged · precision",
 
             battleIdentity: "Quick enough to answer, patient enough to line up the volley"
@@ -40,8 +40,8 @@ enum GameData {
             symbol: "wand.and.stars", accentName: "Arcane",
             maxHP: 88,
             weaponName: "Magic Wand", armorName: "Robes",
-            blurb: "No shield face, no evade, no bandage — every guard, escape and mend has to be spelled out of runes. Thirty spells live in six syllables.",
-            playstyle: "Fragile · pure spellcraft · everything is a recipe",
+            blurb: "No shield face, no evade, no bandage — every guard, escape and mend has to be spelled out of runes. Six matching ladders turn runes into attacks, wards and recovery.",
+            playstyle: "Fragile · pure spellcraft · six spell families",
 
             battleIdentity: "Weave damage, recovery and defence from the same runes"
         ),
@@ -66,7 +66,7 @@ enum GameData {
 
     /// The longest recipe in the game, which is also the widest weld the
     /// planner will ever offer.
-    static let maxComboFaces = 5
+    static let maxComboFaces = 6
 
     /// Number of physical dice consumed by a recipe.
     static func comboDiceCount(faces: Int) -> Int {
@@ -78,10 +78,10 @@ enum GameData {
     /// How much of a face's printed value survives when it is played alone.
     /// A single attack face is 85% of its printed value — useful on its own and
     /// available for flexible targeting.
-    static let soloAttackScale = 0.85
+    static let soloAttackScale = 1.0
     /// Guards, heals and venom played alone keep almost everything, so a lone
     /// block face is a real play rather than a wasted point.
-    static let soloGuardScale = 0.9
+    static let soloGuardScale = 1.0
 
     /// Weight each critical face adds to the chain it feeds. A crit die is
     /// never wasted in a combo. Chains no longer scale by length — the recipe
@@ -91,8 +91,8 @@ enum GameData {
     /// Total multiplier on a chain's output: the crit dice feeding it, times
     /// the chain's own crit roll if it lands.
     static func comboOutputScale(faces: Int, critDice: Int, crit: Bool) -> Double {
-        let base = 1.0 + Double(critDice) * critComboWeight
-        return crit ? base * comboCritMultiplier : base
+        guard faces > 0 else { return 1 }
+        return 1 + 0.5 * Double(min(faces, max(0, critDice))) / Double(faces)
     }
 
     /// The most Judgement a fighter may have stored on the scales at once.
@@ -113,12 +113,7 @@ enum GameData {
     /// What a stored verdict actually takes when it falls: the pile, plus a
     /// fifth of itself again for every full \(judgementScaleStep) on the
     /// scales beyond the first.
-    static func judgementVerdict(stored: Int) -> Int {
-        guard stored > 0 else { return 0 }
-        let steps = max(0, stored / judgementScaleStep - 1)
-        guard steps > 0 else { return stored }
-        return Int((Double(stored) * (1 + Double(steps) * judgementScalePerStep)).rounded())
-    }
+    static func judgementVerdict(stored: Int) -> Int { min(judgementCap, max(0, stored)) }
 
     /// How much of a verdict is the heavy-scales bonus rather than the pile
     /// itself — printed beside the burst so the scaling is visible.
@@ -158,7 +153,7 @@ enum GameData {
 
     /// How much harder enemies are at reading your chains now that solo
     /// attacks hit for two thirds and recipes no longer multiply by length.
-    static let enemyHealthTune = 1.35
+    static let enemyHealthTune = 1.0
 
     /// Flat damage the depth of the PharaohSWager adds to every enemy hit, offsetting
     /// the sharper player economy. Only ever applied to moves that already
@@ -184,34 +179,16 @@ enum GameData {
     /// Every combo a class can perform: its weapon and armour set plus the
     /// chains every class shares. Gods speak through blessings now, not recipes.
     static func combos(for classID: String) -> [ComboDef] {
-        classCombos(classID) + SharedContent.combos
+        SameFaceCatalog.actions(for: classID).filter { $0.faceCount >= 2 }
     }
 
     /// Is this combo assemblable with the faces you currently carry?
     static func isReachable(_ combo: ComboDef, loadout: Loadout?) -> Bool {
-        guard let loadout else { return false }
-        var owned: [FaceKind] = []
-        for die in loadout.allDice {
-            for face in die.faces { owned.append(face.kind) }
-        }
-        var pool: [FaceKind] = []
-        for line in combo.required {
-            for _ in 0..<line.count {
-                guard let index = owned.firstIndex(where: { line.pattern.matches($0) }) else { return false }
-                pool.append(owned.remove(at: index))
-            }
-        }
-        return combo.matches(pool)
+        guard let loadout, let line = combo.required.first else { return false }
+        return loadout.allDice.filter { die in die.faces.contains { line.pattern.matches($0.kind) } }.count >= combo.faceCount
     }
 
-    static func classCombos(_ classID: String) -> [ComboDef] {
-        switch classID {
-        case "archer": ArcherContent.combos
-        case "warrior": WarriorContent.combos
-        case "rogue": RogueContent.combos
-        default: MagicianContent.combos
-        }
-    }
+    static func classCombos(_ classID: String) -> [ComboDef] { combos(for: classID) }
 
     /// Biggest and most specific recipes are tested first so a five-face
     /// signature always beats the two-face combo hiding inside it.
@@ -236,12 +213,7 @@ enum GameData {
     }
 
     static func faceOffers(_ classID: String, _ rarity: Rarity) -> [(face: FaceKind, hint: String)] {
-        switch classID {
-        case "archer": ArcherContent.faceOffers(rarity)
-        case "warrior": WarriorContent.faceOffers(rarity)
-        case "rogue": RogueContent.faceOffers(rarity)
-        default: MagicianContent.faceOffers(rarity)
-        }
+        SameFaceCatalog.palette(for: classID).map { ($0, "Match 1–6 identical faces; reforge either equipment family") }
     }
 
     static func imbueName(_ classID: String) -> String {
@@ -265,23 +237,15 @@ enum GameData {
     // MARK: - Crit rules
 
     /// Chance a whole combo crits, given how many of its dice landed critical.
-    static func comboCritChance(critDice: Int, totalDice: Int) -> Double {
-        guard critDice > 0, totalDice > 0 else { return 0 }
-        if critDice >= totalDice { return 1.0 }
-        switch critDice {
-        case 1: return 0.35
-        case 2: return 0.70
-        default: return 0.85
-        }
-    }
+    static func comboCritChance(critDice: Int, totalDice: Int) -> Double { 0 }
 
     /// A critical face is worth one and a half times its normal value.
     static let faceCritMultiplier = 1.5
     /// A critical combo doubles the whole chain's output.
-    static let comboCritMultiplier = 2.0
+    static let comboCritMultiplier = 1.0
 
     static func scaleUp(_ value: Int, by multiplier: Double) -> Int {
-        value == 0 ? 0 : Int((Double(value) * multiplier).rounded(.up))
+        value == 0 ? 0 : Int((Double(value) * multiplier).rounded(.down))
     }
 
     // MARK: - Economy
@@ -400,16 +364,16 @@ enum GameData {
     static let chiselSecondChance = 0.07
 
     /// Twin Bowstring: each of the two hits, as a fraction of the combo.
-    static let twinSplitFraction = 0.6
+    static let twinSplitFraction = 0.55
 
     static let siegeRerollCost = 1
-    static let siegeDamageBonus = 0.4
-    static let siegePierce = 0.5
+    static let siegeDamageBonus = 0.25
+    static let siegePierce = 0.30
 
     /// Crescent Edge: the splash a second foe takes, as a fraction.
-    static let crescentFraction = 0.35
+    static let crescentFraction = 0.25
 
-    static let relentlessDamage = 6
+    static let relentlessDamage = 8
 
     /// Counterweight: shield spend ceiling and damage per point spent.
     static let counterweightMaxSpend = 10
@@ -417,11 +381,11 @@ enum GameData {
 
     /// Assassin's Commitment: the evade charge it burns and what it buys.
     static let assassinDodgeCost = 1
-    static let assassinDamageBonus = 0.4
-    static let assassinPierce = 0.5
+    static let assassinDamageBonus = 0.30
+    static let assassinPierce = 0.30
 
     static let echoRerollCost = 1
-    static let echoScale = 0.5
+    static let echoScale = 0.40
 
     // MARK: - Divine Trials
 
@@ -431,4 +395,5 @@ enum GameData {
     /// Anubis's Sentence: the judgement a trial champion stores.
     static let trialSentence = 6
 }
+
 

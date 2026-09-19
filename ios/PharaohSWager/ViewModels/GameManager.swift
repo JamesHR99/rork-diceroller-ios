@@ -367,7 +367,10 @@ final class GameManager {
     /// Picks a saved night back up. A fight that was underway resumes at its
     /// own start: the same creatures, but the dice roll fresh.
     func continueRun() {
-        guard let save = savedRun else { return }
+        guard let save = savedRun, save.version == RunSave.currentVersion else {
+            statusMessage = "This voyage uses the previous combat rules. Cast Off to start the same-face rework; your old save remains until you confirm."
+            return
+        }
         let hero = save.hero
         heroClass = hero
         loadout = save.loadout
@@ -699,13 +702,8 @@ final class GameManager {
     /// Ptah rarely turns up in the spoils. One Chisel is guaranteed somewhere
     /// in the first four hours; a second only reaches a small share of runs.
     private func shouldDropChisel() -> Bool {
-        if ownedChisels.isEmpty {
-            if currentHour <= GameData.chiselFirstGuaranteeHour {
-                return currentHour >= 3 || Double.random(in: 0..<1) < GameData.chiselEarlyChance
-            }
-            return Double.random(in: 0..<1) < GameData.chiselLateChance
-        }
-        return Double.random(in: 0..<1) < GameData.chiselSecondChance
+        if ownedChisels.isEmpty { return currentHour >= 3 }
+        return ownedChisels.count == 1 && currentHour >= 7
     }
 
     /// One Chisel on Ptah's bench, read like a god's boon card. The worked
@@ -927,7 +925,12 @@ final class GameManager {
     // MARK: - Resolving pending selections
 
     func applyReforge(dieID: UUID, faceID: UUID, to kind: FaceKind) {
-        guard var loadout else { return }
+        guard var loadout, SameFaceCatalog.palette(for: classID).contains(kind),
+              let selected = loadout.die(id: dieID),
+              selected.faces.filter({ $0.kind == kind && $0.id != faceID }).count < 3 else {
+            statusMessage = "A die can carry at most three sides of the same face. Choose another die."
+            return
+        }
         loadout.mutate(dieID: dieID) { die in
             if let index = die.faces.firstIndex(where: { $0.id == faceID }) {
                 die.faces[index] = die.faces[index].reforged(to: kind)
@@ -950,7 +953,7 @@ final class GameManager {
             target.faces = target.faces.map { face in
                 guard index < fresh.count else { return face }
                 defer { index += 1 }
-                return fresh[index]
+                return face.reforged(to: fresh[index].kind)
             }
         }
         self.loadout = loadout
@@ -1068,29 +1071,24 @@ final class GameManager {
     /// consumes that copy and hands its rarity and level across; otherwise the
     /// card simply arrives at the rarity it was offered at. One per run.
     func evolve(into legendary: GodBoonDef, rarity: BoonRarity) {
-        guard !owns(boon: legendary.id) else {
-            finishSelection("\(legendary.name) is already yours.")
-            return
-        }
-        var carried = rarity
-        var level = 1
-        var line = "\(legendary.name) takes the Legendary slot — \(rarity.label)."
-        if let sourceID = legendary.evolves,
-           let index = equippedBoons.firstIndex(where: { $0.defID == sourceID }) {
-            let source = equippedBoons[index]
-            carried = source.rarity
-            level = source.level
-            equippedBoons.remove(at: index)
-            line = "\(legendary.name) — \(source.rarity.label) level \(source.level) carried over from \(source.def?.name ?? "its source")."
-        }
-        equippedBoons.append(EquippedBoon(defID: legendary.id, rarity: carried, level: level))
+        guard legendaryOfferable(legendary), let sourceID = legendary.evolves,
+              let index = equippedBoons.firstIndex(where: { $0.defID == sourceID }) else { return }
+        let source = equippedBoons[index]
+        equippedBoons[index] = EquippedBoon(defID: legendary.id, rarity: source.rarity, level: source.level)
         legendariesTaken += 1
-        finishSelection(line)
+        finishSelection("\(legendary.name) evolves \(source.def?.name ?? "its source") in the same slot.")
     }
 
     /// Swap a new power in for one already equipped in that slot.
     func replaceBoon(_ oldID: String, with def: GodBoonDef, rarity: BoonRarity) {
         guard let index = equippedBoons.firstIndex(where: { $0.defID == oldID }) else { return }
+        if def.kind == .duo {
+            let remaining = Set(equippedBoons.filter { $0.defID != oldID }.compactMap { $0.def?.evolves ?? $0.def?.id })
+            guard def.sources.allSatisfy({ !$0.members.isDisjoint(with: remaining) }) else {
+                statusMessage = "Choose a replacement that keeps this duo’s source powers."
+                return
+            }
+        }
         let replaced = equippedBoons[index].def?.name ?? "a power"
         equippedBoons[index] = EquippedBoon(defID: def.id, rarity: rarity, level: 1)
         finishSelection("\(def.name) takes the place of \(replaced).")
@@ -1099,7 +1097,8 @@ final class GameManager {
     /// Can a legendary still turn up? The run allows one, and its slot must
     /// be free. No prerequisite: it is a rare find, not an assembly.
     func legendaryOfferable(_ legendary: GodBoonDef) -> Bool {
-        legendariesTaken == 0 && hasRoom(for: .legendary) && !owns(boon: legendary.id)
+        guard legendariesTaken == 0, let source = legendary.evolves, owns(boon: source), !owns(boon: legendary.id) else { return false }
+        return equippedBoons.contains { $0.defID != source && $0.def?.kind == .regular && $0.def?.god == legendary.god }
     }
 
     /// Commit to a capstone — one per run.
@@ -1371,8 +1370,20 @@ final class GameManager {
     /// Every card this god could put on the table: their regulars, the duos
     /// they helped make, and their legendaries at the guide's rare odds. A
     /// legendary is rolled for once per meeting, so most nights never see one.
+    private func usableBoon(_ def: GodBoonDef) -> Bool {
+        guard let loadout else { return false }
+        let reachable = SameFaceCatalog.actions(for: classID).filter { GameData.isReachable($0, loadout: loadout) && $0.faceCount >= def.minimumDice }
+        switch def.trigger {
+        case .firstEvade, .onDodge, .firstAttackAfterEvade: return reachable.contains { $0.roles.contains(.evade) }
+        case .firstGuard, .everyGuard, .firstKeptGuard, .onShieldAbsorb, .firstAttackAfterGuard: return reachable.contains { $0.roles.contains(.guardian) }
+        case .firstLargeCombo: return reachable.contains { $0.faceCount >= max(3, def.minimumDice) && $0.roles.contains(.attack) }
+        case .firstTwoFaceCombo: return reachable.contains { $0.faceCount == 2 && $0.roles.contains(.attack) }
+        default: return true
+        }
+    }
+
     private func offerablePowers(of deity: Deity) -> [GodBoonDef] {
-        var pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) }
+        var pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) && usableBoon($0) }
         pool += GodCatalog.duos(of: deity).filter { duo in
             !owns(boon: duo.id) && duoOfferable(duo)
         }
@@ -1566,4 +1577,5 @@ final class GameManager {
             .joined(separator: ", ")
     }
 }
+
 

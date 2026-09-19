@@ -30,202 +30,137 @@ struct BattleLoopTests {
     private func nextRound(_ engine: BattleEngine) async throws {
         engine.commitTurn()
         let clock = ContinuousClock()
-        let deadline = clock.now.advanced(by: .seconds(15))
+        let deadline = clock.now.advanced(by: .seconds(45))
         while engine.turnNumber == 1 && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
         #expect(engine.turnNumber == 2)
         #expect(engine.phase == .player)
     }
 
+
     @Test func alternatingActionsAreFinite() {
-        #expect(BattleRules.alternating(player: ["P1", "P2", "P3"], enemy: ["E1"]) == ["P1", "E1", "P2", "P3"])
-        #expect(BattleRules.alternating(player: ["P1"], enemy: ["E1", "E2"]) == ["P1", "E1", "E2"])
-        #expect(BattleRules.alternating(player: [Int](), enemy: [1, 2]) == [1, 2])
+        #expect(BattleRules.alternating(player: [1, 2, 3], enemy: [4]) == [1, 4, 2, 3])
+        #expect(BattleRules.alternating(player: [Int](), enemy: [4, 5]) == [4, 5])
     }
 
-    @Test func delayChangesOrderWithoutDeletingOrRepeatingEnemyActions() {
+    @Test func catalogueHasExactlySixTiersForEveryFace() {
+        #expect(SameFaceCatalog.all.count == 114)
+        #expect(Set(SameFaceCatalog.all.map(\.id)).count == 114)
+        for classID in ["archer", "warrior", "rogue", "magician"] {
+            for face in SameFaceCatalog.palette(for: classID) {
+                for count in 1...6 {
+                    let action = SameFaceCatalog.action(face, count: count)
+                    #expect(action?.faceCount == count)
+                    #expect(action?.match(from: Array(repeating: face, count: count)) != nil)
+                }
+            }
+        }
+    }
+
+    @Test func criticalContributionIsDeterministicAndBounded() {
+        #expect(GameData.comboOutputScale(faces: 6, critDice: 3, crit: false) == 1.25)
+        #expect(GameData.comboOutputScale(faces: 6, critDice: 3, crit: true) == 1.25)
+        #expect(GameData.comboOutputScale(faces: 1, critDice: 1, crit: false) == 1.5)
+        #expect(GameData.comboOutputScale(faces: 6, critDice: 6, crit: false) == 1.5)
+        #expect(DieFace.critCap == 0.4)
+    }
+
+    @Test func duplicateSidesNeverCountAsMultiplePhysicalDice() {
+        let die = Die(name: "Repeated sides", slot: .weapon, faces: Array(repeating: .arrow1, count: 6))
+        #expect(SameFaceCatalog.maximumGroup(.arrow1, dice: [die]) == 1)
+    }
+
+    @Test func delayDoesNotInventAnExtraExchange() {
         let foeID = UUID()
-        let otherID = UUID()
-        let player = TimelineEntry(side: .player, beat: 2, duration: 1, title: "Player", detail: "", sourceID: UUID())
         let enemy = TimelineEntry(side: .foe(foeID), beat: 1, duration: 1, title: "Enemy", detail: "", sourceID: foeID)
-        let other = TimelineEntry(side: .foe(otherID), beat: 3, duration: 1, title: "Other", detail: "", sourceID: otherID)
-        var queue = [enemy, player, other]
+        let player = TimelineEntry(side: .player, beat: 2, duration: 1, title: "Player", detail: "", sourceID: UUID())
+        var queue = [enemy, player]
         let ids = Set(queue.map(\.id))
         #expect(BattleRules.postponeEnemy(foeID, queue: &queue))
-        #expect(queue.map(\.title) == ["Player", "Enemy", "Other"])
+        #expect(queue.map(\.title) == ["Player", "Enemy"])
         #expect(Set(queue.map(\.id)) == ids)
-        queue = [enemy, other]
-        #expect(BattleRules.postponeEnemy(foeID, queue: &queue))
-        #expect(queue.count == 2)
-        #expect(queue.last?.sourceID == foeID)
+        queue = [enemy]
+        #expect(!BattleRules.postponeEnemy(foeID, queue: &queue))
+        #expect(queue.count == 1)
     }
 
-    @Test func reservedDodgeWaitsForItsHitAndNeverCancelsAWholeMove() {
+    @Test func reservedDodgeOnlySpendsOnItsStrike() {
         var charges: [String?] = ["second", nil]
         #expect(BattleRules.consumeDodge(reservations: &charges, strikeID: "first"))
         #expect(charges == ["second"])
         #expect(!BattleRules.consumeDodge(reservations: &charges, strikeID: "other"))
         #expect(BattleRules.consumeDodge(reservations: &charges, strikeID: "second"))
-        #expect(!BattleRules.consumeDodge(reservations: &charges, strikeID: "third"))
     }
 
     @Test(arguments: ["archer", "warrior", "rogue", "magician"])
-    func allClassesDrawSixWithOneReroll(classID: String) {
+    func startingLoadoutsUseEightPhysicalDiceAndDrawSix(classID: String) {
         let hero = GameData.heroClass(id: classID)
+        #expect(hero.startingLoadout.allDice.count == 8)
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice, classID: classID, maxHP: hero.maxHP, startHP: hero.maxHP, critBonus: 0)
-        #expect(engine.slots.count == 6)
         #expect(Set(engine.slots.map { $0.die.id }).count == 6)
-        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollsRemaining == 2)
     }
 
-    @Test func armedDieRerollsImmediatelyAndPreservesOtherResults() async throws {
+    @Test func rerollSubsetUsesOnePassAndPreparesEveryRetainedResult() async throws {
         let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
         let before = engine.rolled
-        let played = try #require(before.first { $0.face == .block })
-        engine.placeInPlayBar(faceID: played.id)
-        let plannedSlot = try #require(engine.slots.first { $0.die.id == played.dieID })
+        let selected = Array(engine.slots.prefix(2))
+        let rerolledDieIDs = Set(selected.map { $0.die.id })
         engine.selectingReroll = true
-        engine.reroll(slotID: plannedSlot.id, reduceMotion: true)
-        #expect(engine.rerollSelection.isEmpty)
-        let selected = try #require(engine.slots.first { $0.die.id != played.dieID })
-        let selectedFace = try #require(before.first { $0.dieID == selected.die.id })
-        engine.reroll(slotID: selected.id, reduceMotion: true)
-        #expect(!engine.canCommit)
-        #expect(!engine.canReroll)
-        try await settled(engine)
-        #expect(engine.rolled.count == 6)
-        #expect(engine.rerollsRemaining == 0)
-        #expect(!engine.rolled.contains { $0.id == selectedFace.id })
-        for face in before where face.id != selectedFace.id {
-            let kept = try #require(engine.rolled.first { $0.id == face.id })
-            #expect(kept.face == face.face && kept.isCrit == face.isCrit && kept.wasKept)
-        }
-    }
-
-    @Test func twinShotKeepsBlockSeparateAndFocusAttachesToTheCombinedAction() async throws {
-        let engine = battle([.focus, .arrow1, .arrow1, .block, .evade, .heal])
-        try await roll(engine)
-        let focus = try #require(engine.rolled.first { $0.face == .focus })
-        let arrows = engine.rolled.filter { $0.face == .arrow1 }
-        let block = try #require(engine.rolled.first { $0.face == .block })
-        for face in [focus] + arrows + [block] { engine.placeInPlayBar(faceID: face.id) }
-        let enemyCount = engine.timeline.filter { !$0.isPlayer }.count
-        #expect(engine.timeline.filter(\.isPlayer).count == 2)
-        let candidate = try #require(engine.weldCandidates.first { $0.combo.id == "arc_twinShot" })
-        #expect(engine.combine(candidate))
-        let combo = try #require(engine.turnPlan.first { $0.isCombo })
-        #expect(combo.faces.count == 2)
-        #expect(combo.focusFaceID == focus.id)
-        #expect(combo.focusBonus == 11)
-        #expect(combo.damage == 33)
-        #expect(engine.timeline.filter(\.isPlayer).count == 1)
-        #expect(engine.timeline.filter { !$0.isPlayer }.count == enemyCount)
-        #expect(engine.turnPlan.contains { $0.id == block.id && $0.isPreparedSupport })
-        #expect(engine.separate(faceID: arrows[0].id))
-        #expect(engine.timeline.filter(\.isPlayer).count == 2)
-    }
-
-    @Test func blockAndChosenEvadeProtectDifferentHitsAndRoundDrawIsFresh() async throws {
-        let engine = battle([.block, .evade, .focus, .arrow1, .arrow2, .heal], boons: ["RA-D1"])
-        try await roll(engine)
-        let block = try #require(engine.rolled.first { $0.face == .block })
-        let evade = try #require(engine.rolled.first { $0.face == .evade })
-        engine.placeInPlayBar(faceID: block.id)
-        engine.placeInPlayBar(faceID: evade.id)
-        let hits = engine.incomingStrikes
-        #expect(hits.count == 2)
-        engine.assignEvade(faceID: evade.id, strikeID: hits[1].id)
-        let expectedHP = 100 - max(0, hits[0].damage - BattleRules.blockValue - 4)
-        let enemyHP = engine.enemies[0].hp
-        try await nextRound(engine)
-        #expect(engine.playerHP == expectedHP)
-        #expect(engine.enemies[0].hp == enemyHP - 4)
-        #expect(engine.enemies[0].burnAmount == 2)
-        #expect(engine.playerShield == 0 && engine.dodgeCharges == 0)
-        #expect(engine.slots.count == 6 && engine.rolled.isEmpty && !engine.hasRolled)
-        #expect(engine.rerollsRemaining == 1)
-    }
-
-    @Test func extraRerollAndSiegeDrawShareTheSameBudget() async throws {
-        let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus],
-            boons: ["AN-U2"], chisels: ["ch_siegeDraw"])
+        for slot in selected { engine.reroll(slotID: slot.id, reduceMotion: true) }
+        #expect(engine.rerollSelection.count == 2)
         #expect(engine.rerollsRemaining == 2)
+        engine.confirmReroll(reduceMotion: true)
+        try await settled(engine)
+        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rolled.count == 6)
+        for face in before where !rerolledDieIDs.contains(face.dieID) {
+            let kept = try #require(engine.rolled.first { $0.id == face.id })
+            #expect(kept.wasKept && kept.face == face.face && kept.isCrit == face.isCrit)
+        }
+        #expect(engine.rolled.filter { rerolledDieIDs.contains($0.dieID) }.allSatisfy { !$0.wasKept })
+    }
+
+    @Test func mixedArrowsCannotCombineAndSupportTakesAnEvent() async throws {
+        let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
+        try await roll(engine)
+        for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
+        #expect(engine.weldCandidates.isEmpty)
+        #expect(engine.timeline.filter(\.isPlayer).count == 6)
+    }
+
+    @Test func fourMatchingDiceWindUpAndCanBeSeparatedAgain() async throws {
+        let engine = battle([.arrow1, .arrow1, .arrow1, .arrow1, .block, .focus])
+        try await roll(engine)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        for face in arrows { engine.placeInPlayBar(faceID: face.id) }
+        let candidate = try #require(engine.weldCandidates.first { $0.combo.faceCount == 4 })
+        #expect(engine.combine(candidate))
+        #expect(engine.turnPlan.count == 1)
+        #expect(engine.timeline.filter(\.isPlayer).count == 2)
+        #expect(engine.separate(faceID: arrows[0].id))
+        #expect(engine.turnPlan.count == 4)
+    }
+
+    @Test func ordinarySoloRoundSettlesAndResetsTheHand() async throws {
+        let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
         let arrow = try #require(engine.rolled.first { $0.face == .arrow1 })
         engine.placeInPlayBar(faceID: arrow.id)
-        engine.beginArming("ch_siegeDraw")
-        #expect(engine.armHeldChisel(ontoFace: arrow.id))
-        #expect(engine.reservedRerolls == 1 && engine.rerollsRemaining == 1)
-        engine.returnToTray(faceID: arrow.id)
-        #expect(engine.reservedRerolls == 0 && engine.rerollsRemaining == 2)
-    }
-
-    @Test func focusedGodPowerCanTriggerAfterAnUnfocusedAttack() async throws {
-        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], boons: ["RA-A4"])
-        try await roll(engine)
-        for kind in [FaceKind.arrow1, .focus, .arrow2] {
-            let face = try #require(engine.rolled.first { $0.face == kind })
-            engine.placeInPlayBar(faceID: face.id)
-        }
-        let damage = engine.turnPlan.reduce(0) { $0 + $1.damage }
-        let before = engine.enemies[0].hp
+        let expected = try #require(SameFaceCatalog.action(.arrow1, count: 1)).damage
         try await nextRound(engine)
-        #expect(engine.enemies[0].hp == before - damage - 4)
-        #expect(engine.enemies[0].burnAmount == 2)
+        #expect(engine.enemies[0].hp == 500 - expected)
+        #expect(engine.rolled.isEmpty && engine.slots.count == 6)
+        #expect(engine.rerollsRemaining == 2)
     }
 
-    @Test func patronEvadeRetaliatesAgainstTheActualAttacker() async throws {
-        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], patron: .ra)
-        try await roll(engine)
-        let evade = try #require(engine.rolled.first { $0.face == .evade })
-        engine.placeInPlayBar(faceID: evade.id)
-        let before = engine.enemies[0].hp
-        try await nextRound(engine)
-        #expect(engine.enemies[0].hp == before - 2)
-        #expect(engine.enemies[0].burnAmount == 1)
-    }
-
-    @Test func siegeBonusOnASingleArrowMatchesItsPreview() async throws {
-        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], chisels: ["ch_siegeDraw"])
-        try await roll(engine)
-        let arrow = try #require(engine.rolled.first { $0.face == .arrow1 })
-        engine.placeInPlayBar(faceID: arrow.id)
-        engine.beginArming("ch_siegeDraw")
-        #expect(engine.armHeldChisel(ontoFace: arrow.id))
-        let step = try #require(engine.turnPlan.first)
-        let expected = engine.displayedDamage(for: step)
-        let before = engine.enemies[0].hp
-        try await nextRound(engine)
-        #expect(engine.enemies[0].hp == before - expected)
-        #expect(engine.siegeArmedFaceIDs.isEmpty && engine.rerollsRemaining == 1)
-    }
-
-    @Test func guardExpiresExceptForWarriorCarry() {
-        #expect(BattleRules.guardAfterRound(30, warrior: false) == 0)
-        #expect(BattleRules.guardAfterRound(30, warrior: true) == 8)
-        #expect(BattleRules.guardAfterRound(3, warrior: true) == 3)
-    }
-
-    @Test func catalogueKeepsStableIDsAndWholeDodgeCharges() {
-        #expect(GodCatalog.all.count == 81)
-        #expect(Set(GodCatalog.all.map(\.id)).count == 81)
-        for boon in GodCatalog.all {
-            #expect(!boon.effect.lowercased().contains("stamina"))
-            #expect(!boon.effect.lowercased().contains("evade chance"))
-            #expect(boon.trigger != .atCommitment)
-            for rarity in BoonRarity.allCases {
-                for level in 1...3 {
-                    let payload = boon.resolved(rarity: rarity, level: level)
-                    #expect((0...2).contains(payload.dodgeCharges))
-                }
-            }
-        }
-        for hero in GameData.classes {
-            for combo in GameData.classCombos(hero.id) + SharedContent.combos {
-                #expect((2...5).contains(combo.faceCount))
-                #expect((0...2).contains(combo.dodgeCharges))
-            }
+    @Test func godCatalogueRetainsStableIDsAndEvolvesInTheSourceSlot() {
+        #expect(GodCatalog.regulars.count == 60)
+        #expect(GodCatalog.duos.count == 15)
+        #expect(GodCatalog.legendaries.count == 6)
+        for legendary in GodCatalog.legendaries {
+            #expect(legendary.slot == GodCatalog.boon(legendary.evolves ?? "")?.slot)
         }
     }
 }

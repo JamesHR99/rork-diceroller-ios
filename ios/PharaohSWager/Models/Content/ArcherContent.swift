@@ -20,7 +20,7 @@ enum ArcherContent {
     /// Light armour die: 2× Bow Smack, 2× Block, 1× Evade, 1× Heal.
     static func armorDie(rarity: Rarity = .common, name: String = "Light Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.bowSmack, .bowSmack, .block, .block, .evade, .heal])
+            faces: [.arrow1, .bowSmack, .block, .block, .evade, .heal])
     }
 
     static func weapon() -> GearPiece {
@@ -149,4 +149,5 @@ enum ArcherContent {
     static let imbueName = "Fletcher's Whetstone"
     static let imbueSymbol = "arrowshape.up.fill"
 }
+
 

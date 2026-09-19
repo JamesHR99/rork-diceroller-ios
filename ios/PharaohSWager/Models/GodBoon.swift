@@ -286,6 +286,7 @@ struct GodBoonDef: Identifiable, Hashable {
     var sources: [BoonSourceGroup] = []
     /// The regular boon a legendary replaces.
     var evolves: String?
+    var minimumDice: Int = 0
 
     var isFixed: Bool { scales == nil }
 
@@ -307,10 +308,8 @@ struct GodBoonDef: Identifiable, Hashable {
     /// higher ceiling.
     func value(rarity: BoonRarity, level: Int) -> Int {
         guard !values.isEmpty else { return 0 }
-        let clamped = min(max(level, 1), boonMaxLevel)
-        let base = values[min(clamped - 1, values.count - 1)]
-        let step = values.count > 1 ? values[1] - values[0] : 0
-        return base + (step + 1) * rarity.rawValue
+        let base = values[min(max(level, 1), min(boonMaxLevel, values.count)) - 1]
+        return Int(ceil(Double(base) * (1 + 0.25 * Double(rarity.rawValue))))
     }
 
     /// The card's text with its live number written in.
@@ -385,19 +384,19 @@ enum BoonSourceGroup: String, Hashable {
         case .raBurn:
             ["RA-A1", "RA-A2", "RA-A3", "RA-A4", "RA-A5", "RA-D1", "RA-D2", "RA-D3"]
         case .sobekBleed:
-            ["SO-A1", "SO-A2", "SO-A3", "SO-A4", "SO-A5", "SO-D1"]
+            ["SO-A1", "SO-A2", "SO-A4", "SO-A5", "SO-D1"]
         case .sobekHealing:
-            ["SO-A4", "SO-A5", "SO-D2", "SO-D3", "SO-U2"]
+            ["SO-A4", "SO-D2", "SO-D3", "SO-U2"]
         case .anubisJudgement:
             ["AN-A1", "AN-A2", "AN-A3", "AN-A4", "AN-A5", "AN-D1", "AN-D2"]
         case .besShield:
             ["BE-A1", "BE-A2", "BE-A3", "BE-A4", "BE-A5", "BE-D1", "BE-D2", "BE-D3", "BE-U2"]
         case .horusKept:
-            ["HO-A1", "HO-D1", "HO-D2", "HO-D3", "HO-U1", "HO-U2"]
+            ["HO-A1", "HO-D1", "HO-D2", "HO-U1"]
         case .horusPierce:
-            ["HO-A1", "HO-A2", "HO-A3", "HO-A4", "HO-A5"]
+            ["HO-A1", "HO-A2", "HO-A3", "HO-A4", "HO-A5", "HO-U2"]
         case .bastetEvade:
-            ["BA-A1", "BA-A3", "BA-A5", "BA-D1", "BA-D2"]
+            ["BA-A1", "BA-A5", "BA-D1", "BA-D2", "BA-U1"]
         }
     }
 }
@@ -427,4 +426,5 @@ struct EquippedBoon: Identifiable, Hashable, Codable {
         def?.text(rarity: rarity, level: level) ?? ""
     }
 }
+
 

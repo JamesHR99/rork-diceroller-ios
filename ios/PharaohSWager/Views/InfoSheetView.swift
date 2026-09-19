@@ -52,7 +52,7 @@ struct InfoSheetView: View {
 
     /// Every chain this class could ever find, for the found-count heading.
     private var allCombos: [ComboDef] {
-        GameData.classCombos(classID) + SharedContent.combos
+        SameFaceCatalog.actions(for: classID) + SharedContent.combos
     }
 
     var body: some View {
@@ -257,11 +257,11 @@ struct InfoSheetView: View {
 
             comboGroup(
                 title: "\(hero.weaponName.uppercased()) — WEAPON COMBOS",
-                combos: GameData.classCombos(classID).filter { $0.source == .weapon }
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.source == .weapon }
             )
             comboGroup(
                 title: "\(hero.armorName.uppercased()) — ARMOUR COMBOS",
-                combos: GameData.classCombos(classID).filter { $0.source == .armor }
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.source == .armor }
             )
             comboGroup(
                 title: "SHARED CHAINS — EVERY CLASS CAN FIND THESE",
@@ -395,7 +395,7 @@ struct InfoSheetView: View {
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(BoonSlot.allCases) { slot in
+            ForEach(BoonSlot.allCases.filter { $0 != .legendary }) { slot in
                 slotRow(slot)
             }
 
@@ -415,7 +415,7 @@ struct InfoSheetView: View {
             }
 
             sectionTitle("SIX LEGENDARY EVOLUTIONS — ONE PER RUN")
-            Text("A legendary is a very rare find on a god's card, exactly like any other boon — nothing needs assembling first. It lands in its own Legendary slot, so it never costs you an Attack or Defence place. Carrying its source power hands that power's rarity and level across; without it the legendary arrives at the rarity it was offered at.")
+            Text("A legendary requires its source plus another regular boon of that god. It replaces its source in the same slot and retains rarity and level. One evolution per run.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -708,10 +708,10 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "link", tint: Theme.ember, title: "COMBOS AND SINGLES",
                 lines: [
-                    "Every die can be used once. A combo consumes only its ingredients and resolves as one action.",
+                    "Every die can be used once. Combine 1–6 identical faces; Arrow I and Arrow II are separate.",
                     "Place matching dice side by side, tap the seam, then Combine. Separate returns them to individual actions.",
                     "Keep spare dice useful: Twin Shot and a separate Block give you damage and defence in the same round.",
-                    "Each critical ingredient adds +15% to the combo's numeric output. Dodge charges stay whole.",
+                    "Native crit multiplier: 1 + 0.5 × critical dice / group size. No second critical roll.",
                     "New recipes are recorded in your codex when discovered."
                 ]
             )
@@ -720,7 +720,7 @@ struct InfoSheetView: View {
                 lines: [
                     "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
                     "There is no player stamina. Use all six dice or commit early.",
-                    "One reroll each round: tap REROLL, then tap one unplayed die to reroll it immediately. Powers can raise this to two.",
+                    "Two reroll passes each round. Select any unplayed subset, then Roll Selected. Bonuses raise the maximum to three.",
                     "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
                     "No results carry between rounds. The next round draws six fresh dice.",
                     "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming returns it."
@@ -729,11 +729,11 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "shield.fill", tint: Theme.frost, title: "PREPARE YOUR DEFENCE",
                 lines: [
-                    "A standalone Block prepares 8 guard before the first attack. Guard absorbs damage across hits and expires at round end. Warriors carry up to 8 forward.",
-                    "A standalone Evade prepares one guaranteed dodge. Tap its target control to choose a specific announced hit, or leave it on Next strike.",
+                    "Block resolves at its place in the action order. Shield expires at round end; Warriors carry up to 8.",
+                    "Evade grants guaranteed Dodges when it resolves, protecting later strikes. Choose an announced strike or Next strike.",
                     "Evade cancels one hit of a multi-hit attack, never the entire move. Unused dodges expire at round end.",
-                    "Focus, Channel and Energize add 50% damage to the next attack or combo in the plan. One Focus per attack; place it before its target.",
-                    "These standalone support dice do not give enemies an extra action. Mixed combos prepare their defence when that combo acts."
+                    "Focus and Channel prime the next separate Attack, through the end of next round. The strongest prime wins.",
+                    "All actions share the alternating queue. Attacks of 4–6 dice wind up for one player event before release."
                 ]
             )
 
@@ -742,8 +742,8 @@ struct InfoSheetView: View {
                 lines: [
                     "Crits are decided the moment a die lands: the die picks a face, then that face's own crit chance decides if it landed critical.",
                     "A critical die keeps its face name and wears a gold CRIT badge — you always see exactly what you rolled.",
-                    "Base chances are small — most faces sit near 5%, signature faces a touch higher. Imbues raise a single face permanently, up to \(Int(DieFace.critCap * 100))%.",
-                    "A critical face played alone is worth ×\(String(format: "%.1f", GameData.faceCritMultiplier)) — but a crit is worth far more fed into a chain.",
+                    "Every face starts with a 10% critical chance. Imbues raise a single face permanently, up to \(Int(DieFace.critCap * 100))%.",
+                    "A critical face played alone is worth ×\(String(format: "%.1f", GameData.faceCritMultiplier)) — a group scales with the proportion of its critical dice.",
                     critBonus > 0 ? "Your charms add +\(Int(critBonus * 100))% crit to every face." : "Imbued faces are marked with a gold notch on the die.",
                 ]
             )
@@ -757,20 +757,20 @@ struct InfoSheetView: View {
                         .foregroundStyle(Theme.gold)
                         .kerning(1.5)
                 }
-                Text("Every critical face fed into a chain adds +\(Int(GameData.critComboWeight * 100))% to that chain's whole output — no crit is ever wasted in a combo. On top of that it buys a chance the chain itself crits, which multiplies everything by ×\(String(format: "%.1f", GameData.comboCritMultiplier)).")
+                Text("Critical quality scales native output: 1 + 0.5 × critical dice / total dice. Status riders, Dodge charges and gods do not multiply.")
                     .font(.system(size: 12.5))
                     .foregroundStyle(Theme.parchmentDim)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(spacing: 3) {
-                    critRow("No critical dice", "0%")
-                    critRow("One critical die", "35%")
-                    critRow("Two critical dice", "70%")
-                    critRow("Every die critical", "100% — guaranteed")
+                    critRow("No critical dice", "×1.00")
+                    critRow("1 of 2 critical", "×1.25")
+                    critRow("1 of 3 critical", "×1.1667")
+                    critRow("Every die critical", "×1.50")
                 }
                 .padding(.top, 2)
 
-                Text("Perfect Shot and Vanishing Strike always crit, whatever fed them. The play bar shows each step's crit odds and its critical damage before you commit.")
+                Text("Perfect Shot and Vanishing Strike have authored native values. Critical ingredients improve them predictably, like every other action.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.parchmentDim.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
@@ -932,10 +932,10 @@ struct InfoSheetView: View {
 
     private var actionOrderCard: some View {
         ruleCard(icon: "arrow.left.arrow.right", tint: Theme.frost, title: "ACTION ORDER", lines: [
-            "Standalone Block and Evade prepare first. Then your first action lands, then the first enemy action, then your second, and so on.",
+            "Every support action takes a turn-order event. Attacks using four to six dice wind up, then release on a second event. Enemy actions alternate between yours.",
             "Each enemy gets only its announced actions. Playing more singles never gives it extra attacks.",
             "When one side runs out, the remaining announced actions finish. Defeated enemies lose their pending actions.",
-            "Ice Blast, Glacier and Earthshaker move a pending enemy action behind your next action. They never delete attacks.",
+            "Glacier and other delay effects move a pending enemy action behind your next action. They never delete attacks.",
             "Open TURN ORDER to inspect the sequence before committing."
         ])
     }
@@ -1075,3 +1075,4 @@ struct InfoSheetView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 }
+

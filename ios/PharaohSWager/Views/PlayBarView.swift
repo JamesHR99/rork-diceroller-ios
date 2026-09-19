@@ -752,14 +752,16 @@ struct PlayBarView: View {
 
     private var rerollButton: some View {
         Button {
-            engine.selectingReroll.toggle()
+            if engine.selectingReroll && !engine.rerollSelection.isEmpty {
+                engine.confirmReroll()
+            } else { engine.selectingReroll.toggle() }
             Haptics.light()
         } label: {
             VStack(spacing: 2) {
-                Label(engine.selectingReroll ? "CANCEL" : "REROLL",
+                Label(engine.selectingReroll ? (engine.rerollSelection.isEmpty ? "CANCEL" : "ROLL SELECTED") : "REROLL",
                       systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
-                Text("\(engine.rerollsRemaining) reroll left")
+                Text("\(engine.rerollsRemaining) passes left")
                     .font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Theme.gold)
@@ -821,3 +823,4 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }
+

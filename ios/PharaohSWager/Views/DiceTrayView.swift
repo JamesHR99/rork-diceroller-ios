@@ -456,6 +456,17 @@ private struct DiceTrayReelView: View {
             .scaleEffect(reduceMotion || settled ? 1 : 1.045)
             .offset(y: reduceMotion || settled ? 0 : -3)
         }
+        .contextMenu {
+            ForEach(engine.conversionOptions(for: face), id: \.self) { kind in
+                Button("Convert to \(kind.label)") { engine.convert(faceID: face.id, to: kind) }
+            }
+            if engine.canPrepareManually {
+                Button("Anubis: Prepare this die") { engine.prepareManually(faceID: face.id) }
+            }
+            if engine.canMakeCritical && !face.isCrit {
+                Button("Horus: Make critical") { engine.makeCritical(faceID: face.id) }
+            }
+        }
         .buttonStyle(PressableButtonStyle())
         .draggable(face.id.uuidString)
         .onAppear {
@@ -627,7 +638,7 @@ private struct DiceTrayReelView: View {
     private var armedHalo: some View {
         if selectingReroll {
             RoundedRectangle(cornerRadius: corner)
-                .strokeBorder(Theme.frost.opacity(0.58),
+                .strokeBorder(Theme.frost.opacity(engine.rerollSelection.contains(slot.id) ? 1 : 0.28),
                               style: StrokeStyle(lineWidth: 2, dash: [4.5, 4]))
                 .shadow(color: Theme.frost.opacity(0.24), radius: 6)
                 .allowsHitTesting(false)
@@ -684,7 +695,7 @@ private struct DiceTrayReelView: View {
     /// Quick "what will this do" tag under the face icon — read from the
     /// substituted tier when a Chisel has shifted the face.
     private func bottomTag(_ face: RolledFace) -> String {
-        if selectingReroll { return "TAP TO REROLL" }
+        if selectingReroll { return engine.rerollSelection.contains(slot.id) ? "SELECTED" : "TAP TO SELECT" }
         guard face.isCrit else { return face.matchFace.soloTag }
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
@@ -720,3 +731,4 @@ private struct DiceTrayReelView: View {
             .padding(.horizontal, 3)
     }
 }
+

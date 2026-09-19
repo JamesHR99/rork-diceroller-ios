@@ -12,7 +12,7 @@ struct DieFace: Identifiable, Hashable, Codable {
     var bonusCrit: Double
 
     /// Hard ceiling so a single face can never become a guaranteed crit.
-    static let critCap = 0.75
+    static let critCap = 0.40
 
     init(_ kind: FaceKind, imbueTiers: Int = 0, bonusCrit: Double = 0, id: UUID = UUID()) {
         self.id = id
@@ -37,3 +37,4 @@ struct DieFace: Identifiable, Hashable, Codable {
         DieFace(kind, imbueTiers: imbueTiers + 1, bonusCrit: min(DieFace.critCap, bonusCrit + amount), id: id)
     }
 }
+

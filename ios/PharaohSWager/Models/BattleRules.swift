@@ -3,8 +3,8 @@ import Foundation
 /// Shared, deterministic rules used by planning, resolution and tests.
 enum BattleRules {
     static let handSize = 6
-    static let baseRerolls = 1
-    static let maximumRerolls = 2
+    static let baseRerolls = 2
+    static let maximumRerolls = 3
     static let focusPercent = 50
     static let blockValue = 8
     static let maximumDodges = 6
@@ -34,10 +34,10 @@ enum BattleRules {
     /// Move one announced foe action after the next player action. No entry
     /// is added or removed, even if the player has no actions left.
     static func postponeEnemy(_ foeID: UUID, queue: inout [TimelineEntry]) -> Bool {
-        guard let index = queue.firstIndex(where: { $0.sourceID == foeID && !$0.isPlayer }) else { return false }
+        guard let index = queue.firstIndex(where: { $0.sourceID == foeID && !$0.isPlayer }),
+              let nextPlayer = queue.indices.first(where: { $0 > index && queue[$0].isPlayer }) else { return false }
         let delayed = queue.remove(at: index)
-        let nextPlayer = queue.indices.first { $0 >= index && queue[$0].isPlayer }
-        queue.insert(delayed, at: nextPlayer.map { $0 + 1 } ?? queue.count)
+        queue.insert(delayed, at: nextPlayer)
         return true
     }
 
@@ -57,3 +57,4 @@ struct EnemyStrike: Identifiable, Hashable {
 
     var id: String { "\(foeID.uuidString):\(moveIndex):\(hitIndex)" }
 }
+
