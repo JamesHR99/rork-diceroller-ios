@@ -35,7 +35,6 @@ struct PauseView: View {
                     loadout: loadout,
                     classID: game.classID,
                     critBonus: game.critBonus,
-                    maxStamina: game.effectiveMaxStamina,
                     drawnDieIDs: [],
                     hasMetTrial: game.trialUsed,
                     boons: game.equippedBoons

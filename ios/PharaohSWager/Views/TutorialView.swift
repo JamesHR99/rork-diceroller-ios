@@ -121,8 +121,8 @@ struct TutorialView: View {
                     loreCount
                 case .classDice:
                     classDice
-                case .agility:
-                    agilityBlock
+                case .actionOrder:
+                    actionOrderBlock
                 }
             }
             .padding(16)
@@ -141,58 +141,17 @@ struct TutorialView: View {
         .padding(.bottom, 4)
     }
 
-    /// Agility, worked in this demigod's own numbers. Two lines of arithmetic
-    /// beat any amount of explanation: the same die, the same chain, and the
-    /// plain fact that the bigger one arrives later.
-    private var agilityBlock: some View {
+    private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                VStack(spacing: 0) {
-                    Text("\(hero.agility)")
-                        .font(.fantasy(30, weight: .black).monospacedDigit())
-                        .foregroundStyle(Theme.frost)
-                    Text("YOUR BASE")
-                        .font(.system(size: 8.5, weight: .black))
-                        .kerning(1)
-                        .foregroundStyle(Theme.parchmentDim)
-                }
-                .frame(width: 84)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    agilitySum(dice: 1)
-                    agilitySum(dice: 3)
-                }
-            }
-
-            Text("Lower goes first. Everything a creature is about to do carries the same kind of number, printed on the deck before you commit — so you can always count who swings first.")
-                .font(.system(size: 12, weight: .semibold))
-                .italic()
-                .foregroundStyle(Theme.frost.opacity(0.9))
+            Label("Prepare Block and Evade before attacks", systemImage: "shield.fill")
+            Label("Your action → enemy action → your action", systemImage: "arrow.left.arrow.right")
+            Text("A combo is one action. Singles never give enemies extra attacks. When one side runs out, the other finishes its announced actions.")
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(Theme.frost)
         .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 12))
-    }
-
-    private func agilitySum(dice: Int) -> some View {
-        HStack(spacing: 6) {
-            Text(dice == 1 ? "One die" : "\(dice)-die chain")
-                .font(.system(size: 11.5, weight: .black))
-                .foregroundStyle(Theme.parchment)
-                .frame(width: 92, alignment: .leading)
-            Text("\(hero.agility) + \(dice)")
-                .font(.system(size: 11.5, weight: .bold).monospacedDigit())
-                .foregroundStyle(Theme.parchmentDim)
-            Text("= \(hero.agility + dice)")
-                .font(.system(size: 13, weight: .black).monospacedDigit())
-                .foregroundStyle(dice == 1 ? Theme.forest : Theme.ember)
-            Text(dice == 1 ? "sooner" : "later, but far heavier")
-                .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(Theme.parchmentDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
     }
 
     /// How many chains this player has ever found, so the hunt is framed as
@@ -247,7 +206,7 @@ struct TutorialView: View {
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("\(hero.maxStamina) stamina at full stretch · \(hero.timingIdentity.lowercased())")
+                Text("6 dice · 1 reroll each round · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -372,7 +331,7 @@ struct BriefingPage: Identifiable {
         /// The demigod's own dice, face by face.
         case classDice
         /// Agility worked out in this demigod's own numbers.
-        case agility
+        case actionOrder
     }
 
     let id: String
@@ -414,22 +373,22 @@ struct BriefingPage: Identifiable {
                 kind: .orderDemo
             ),
             BriefingPage(
-                id: "stamina",
-                title: "Stamina, and holding a face",
-                body: "Each round gives you an allowance: three points on the first round, four on the second, five from the third on. Every die you play costs one point, so a round is a choice about what to leave on the table.\n\nYou may also hold up to two faces across to the next round. A good face is never wasted — it waits.",
+                id: "rerolls",
+                title: "Six dice. One reroll.",
+                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, select any unplayed dice, then roll them again together. Results you leave alone become Kept for this round. Powers can unlock a second reroll. Every round starts with a fresh draw.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
                 kind: .plain
             ),
             BriefingPage(
-                id: "agility",
+                id: "action-order",
                 title: "Who moves first",
-                body: "Every action carries an agility number, and the lower number goes first. It is your base agility plus the dice the action spends.\n\nSo a big combo is a slow combo. That is the trade every turn: hit harder, or hit sooner.",
+                body: "Prepare Block for 8 guard or Evade to dodge one chosen hit. Put Focus before an attack or combo to add 50% damage. These support dice do not spend an exchange.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
-                kind: .agility
+                kind: .actionOrder
             ),
             BriefingPage(
                 id: "chains",
@@ -530,7 +489,7 @@ private struct OrderDemoView: View {
                     HStack(spacing: 2) {
                         Image(systemName: "hare.fill")
                             .font(.system(size: 8, weight: .black))
-                        Text("\(planAgility)")
+                        Text("\(planActions)")
                             .font(.system(size: 11, weight: .black).monospacedDigit())
                             .contentTransition(.numericText())
                     }
@@ -691,17 +650,10 @@ private struct OrderDemoView: View {
         return total
     }
 
-    /// The agility of the slowest thing in this arrangement: the demigod's
-    /// base plus the size of the biggest step. Welding two dice together makes
-    /// the plan worth more *and* makes it land later — both numbers move at
-    /// once, which is the trade the page is trying to put in the player's hands.
-    private var planAgility: Int {
+    private var planActions: Int {
         let groups = chainGroups
         let grouped = Set(groups.flatMap { $0 })
-        let biggestChain = groups.map(\.count).max() ?? 0
-        let hasLoneDie = plan.indices.contains { !grouped.contains($0) }
-        let biggestStep = max(biggestChain, hasLoneDie ? 1 : 0)
-        return Timing.cost(size: biggestStep, agility: hero.agility)
+        return groups.count + plan.indices.filter { !grouped.contains($0) }.count
     }
 
     private func checkForChain() {
@@ -719,10 +671,10 @@ private struct OrderDemoView: View {
         }
         if chainGroups.isEmpty {
             return plan.count == 1
-                ? "One die on its own barely scratches — but look how early it lands."
+                ? "A single die is a useful action. Try adding a matching face for a combo."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "There. Those two locked together and the plan is worth far more than the two of them apart — and watch the agility number: it went up too. Bigger always means later. What you just made has a name; it will tell you itself when it lands."
+        return "Those dice now land together as one action. Keep another die for Block or Evade, or put Focus before the combo to boost it. Separate gives you two individual actions again."
     }
 
     // MARK: Hand
@@ -754,3 +706,4 @@ private struct DemoFace: Identifiable {
     let id = UUID()
     let kind: FaceKind
 }
+

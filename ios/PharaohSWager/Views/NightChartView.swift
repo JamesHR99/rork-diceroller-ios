@@ -39,8 +39,7 @@ struct NightChartView: View {
         }
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
-                InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
-                              maxStamina: game.effectiveMaxStamina, drawnDieIDs: [],
+                InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus, drawnDieIDs: [],
                               hasMetTrial: game.trialUsed,
                               boons: game.equippedBoons)
             }

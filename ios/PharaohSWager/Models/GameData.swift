@@ -8,53 +8,44 @@ enum GameData {
         HeroClass(
             id: "archer", name: "Archer", title: "Eyes of the Greenwood",
             symbol: "arrowshape.up.circle.fill", accentName: "Ember",
-            maxHP: 100, maxStamina: 4,
+            maxHP: 100,
             weaponName: "Longbow", armorName: "Light Armour",
             blurb: "Arrow tiers stack into heavy volleys. Line up Arrow I, II and III for the legendary Perfect Shot.",
             playstyle: "Balanced · ranged · precision",
-            agility: 2,
-            timingIdentity: "Quick enough to answer, patient enough to line up the volley"
+
+            battleIdentity: "Quick enough to answer, patient enough to line up the volley"
         ),
         HeroClass(
             id: "warrior", name: "Warrior", title: "The Standing Wall",
             symbol: "shield.fill", accentName: "Steel",
-            maxHP: 130, maxStamina: 4,
+            maxHP: 130,
             weaponName: "Longsword", armorName: "Plate Armour",
-            blurb: "Heavy swings behind a shield that stays until it breaks. Stack Block faces and become the wall.",
+            blurb: "Heavy swings build momentum. Carry up to 8 unused guard into the next round.",
             playstyle: "Tanky · heavy hits · momentum",
-            agility: 4,
-            timingIdentity: "Slowest on the clock — armour and weight instead of speed"
+
+            battleIdentity: "Build momentum and carry up to 8 guard between rounds"
         ),
         HeroClass(
             id: "rogue", name: "Rogue", title: "Blade in the Smoke",
             symbol: "bolt.circle.fill", accentName: "Venom",
-            maxHP: 82, maxStamina: 5,
+            maxHP: 82,
             weaponName: "Twin Daggers", armorName: "Leather Armour",
             blurb: "Fast, bleeding cuts with venom on the blades. Stack Evade faces to slip blows outright, then answer from the dark.",
-            playstyle: "Fragile · fastest · bleed and venom",
-            agility: 1,
-            timingIdentity: "First to move almost always — small cuts land before anything answers"
+            playstyle: "Fragile · precise dodges · bleed and venom",
+
+            battleIdentity: "Bleed, venom and chosen dodges keep fragile blades alive"
         ),
         HeroClass(
             id: "magician", name: "Magician", title: "Keeper of Runes",
             symbol: "wand.and.stars", accentName: "Arcane",
-            maxHP: 88, maxStamina: 4,
+            maxHP: 88,
             weaponName: "Magic Wand", armorName: "Robes",
             blurb: "No shield face, no evade, no bandage — every guard, escape and mend has to be spelled out of runes. Thirty spells live in six syllables.",
             playstyle: "Fragile · pure spellcraft · everything is a recipe",
-            agility: 3,
-            timingIdentity: "Slow to speak — a single rune answers quickly, a great spell does not"
+
+            battleIdentity: "Weave damage, recovery and defence from the same runes"
         ),
     ]
-
-    /// Dice you may hold when committing. Freezing is free — the hold is the
-    /// commitment, and it costs you one of next round's six slots. Two every
-    /// round, at every gate; Anubis's Preserved Moment is the only thing that
-    /// lifts it, and only once per encounter.
-    static let freezesPerTurn = 2
-
-    /// What Preserved Moment raises the hold allowance to for one commitment.
-    static let preservedMomentFreezes = 3
 
     /// How many dice the collection holds: five weapon, three armour.
     static let ownedWeaponDice = 5
@@ -73,38 +64,22 @@ enum GameData {
 
     // MARK: - Round economy
 
-    /// The round's stamina allowance: 3 on the first round, 4 on the second, 5
-    /// from the third onward. The curve resets at every encounter, so a long
-    /// fight is not a reason to open the next one rich.
-    static func staminaAllowance(round: Int) -> Int {
-        switch round {
-        case ...1: return 3
-        case 2: return 4
-        default: return 5
-        }
-    }
-
-    /// The most stamina a round may hold once bonuses land on top of the
-    /// allowance. Anything above this is lost rather than banked.
-    static let staminaBudgetCap = 6
-
     /// The longest recipe in the game, which is also the widest weld the
     /// planner will ever offer.
     static let maxComboFaces = 5
 
-    /// What a step costs: one stamina per face it consumes. The old
     /// large-combo discounts are gone — a big recipe pays for every ingredient,
-    /// and pays again in agility: the more dice it spends, the later it lands.
-    static func comboStaminaCost(faces: Int) -> Int {
+
+    static func comboDiceCount(faces: Int) -> Int {
         max(1, faces)
     }
 
     // MARK: - Chain power
 
     /// How much of a face's printed value survives when it is played alone.
-    /// A single attack face is roughly two thirds of itself — workable, never
-    /// the best answer.
-    static let soloAttackScale = 0.65
+    /// A single attack face is 85% of its printed value — useful on its own and
+    /// available for flexible targeting.
+    static let soloAttackScale = 0.85
     /// Guards, heals and venom played alone keep almost everything, so a lone
     /// block face is a real play rather than a wasted point.
     static let soloGuardScale = 0.9
@@ -124,7 +99,6 @@ enum GameData {
     /// Ceiling on evade chance — stacking Evade faces can never make you
     /// untouchable. One face is a coin flip, so the wall sits above it to
     /// leave a second face something to buy, but well short of certainty.
-    static let evadeCeiling = 0.8
 
     /// The most Judgement a fighter may have stored on the scales at once.
     /// Nothing tips it on a timer: only a primary attack combo of
@@ -189,7 +163,7 @@ enum GameData {
 
     /// How much harder enemies are at reading your chains now that solo
     /// attacks hit for two thirds and recipes no longer multiply by length.
-    static let enemyHealthTune = 1.12
+    static let enemyHealthTune = 1.35
 
     /// Flat damage the depth of the PharaohSWager adds to every enemy hit, offsetting
     /// the sharper player economy. Only ever applied to moves that already
@@ -357,7 +331,7 @@ enum GameData {
     static let bossRoundStamina = 5
 
     /// The most separate actions any creature may take in one round, however
-    /// much stamina it is holding.
+
     static let enemyMaxActionsPerRound = 3
 
     /// What each blow in a chained round is worth. A creature that swings
@@ -433,28 +407,25 @@ enum GameData {
     /// Twin Bowstring: each of the two hits, as a fraction of the combo.
     static let twinSplitFraction = 0.6
 
-    /// Siege Draw: the overdraw's stamina cost, damage bonus and pierce.
-    static let siegeStaminaCost = 1
+    static let siegeRerollCost = 1
     static let siegeDamageBonus = 0.4
     static let siegePierce = 0.5
 
     /// Crescent Edge: the splash a second foe takes, as a fraction.
     static let crescentFraction = 0.35
 
-    /// Relentless Advance: stamina shaved off next turn's first weapon combo.
-    static let relentlessDiscount = 1
+    static let relentlessDamage = 6
 
     /// Counterweight: shield spend ceiling and damage per point spent.
     static let counterweightMaxSpend = 10
     static let counterweightDamagePerPoint = 2
 
     /// Assassin's Commitment: the evade charge it burns and what it buys.
-    static let assassinEvadeCost = 0.15
+    static let assassinDodgeCost = 1
     static let assassinDamageBonus = 0.4
     static let assassinPierce = 0.5
 
-    /// Echoing Staff: the extra stamina and the echo's output fraction.
-    static let echoStaminaCost = 1
+    static let echoRerollCost = 1
     static let echoScale = 0.5
 
     // MARK: - Divine Trials
@@ -465,3 +436,4 @@ enum GameData {
     /// Anubis's Sentence: the judgement a trial champion stores.
     static let trialSentence = 6
 }
+

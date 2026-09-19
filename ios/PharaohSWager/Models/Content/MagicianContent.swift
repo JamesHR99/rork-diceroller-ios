@@ -70,7 +70,7 @@ enum MagicianContent {
 
         ComboDef(id: "mag_scaldingMist", name: "Scalding Mist", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.runeFrost))],
-                 damage: 20, evadePercent: 25,
+                 damage: 20, dodgeCharges: 1,
                  flavor: "Fire into ice makes steam, and steam makes you hard to find."),
         ComboDef(id: "mag_emberPoultice", name: "Ember Poultice", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.runeLife))],
@@ -128,7 +128,7 @@ enum MagicianContent {
                  flavor: "A whip of bare structure, cracked at something's guard."),
         ComboDef(id: "mag_blink", name: "Blink", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeArcane)), ComboIngredient(.exact(.channel))],
-                 shield: 10, evadePercent: 30,
+                 shield: 10, dodgeCharges: 1,
                  flavor: "A half-step sideways out of the world."),
         ComboDef(id: "mag_capacitor", name: "Capacitor", owner: "magician", source: .weapon,
                  required: [ComboIngredient(.exact(.wandZap)), ComboIngredient(.exact(.channel))],
@@ -161,7 +161,7 @@ enum MagicianContent {
         ComboDef(id: "mag_prismWard", name: "Prism Ward", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.runeFrost)),
                             ComboIngredient(.exact(.runeLife))],
-                 heal: 14, shield: 24, evadePercent: 20,
+                 heal: 14, shield: 24, dodgeCharges: 1,
                  flavor: "Three elements bent into one shell of light."),
         ComboDef(id: "mag_runicBulwark", name: "Runic Bulwark", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeArcane), 2), ComboIngredient(.exact(.channel))],
@@ -194,13 +194,13 @@ enum MagicianContent {
         ComboDef(id: "mag_glacialPassage", name: "Glacial Passage", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFrost), 2), ComboIngredient(.exact(.channel)),
                             ComboIngredient(.exact(.runeArcane))],
-                 damage: 44, shield: 26, evadePercent: 20, weaken: 0.45, staged: true,
+                 damage: 44, shield: 26, dodgeCharges: 1, weaken: 0.45, staged: true,
                  flavor: "Walk the ice out ahead of you and let them come to it."),
         ComboDef(id: "mag_solarAegis", name: "Solar Aegis", owner: "magician", source: .armor,
                  required: [ComboIngredient(.exact(.runeFire)), ComboIngredient(.exact(.runeLife)),
                             ComboIngredient(.exact(.runeArcane)), ComboIngredient(.exact(.channel)),
                             ComboIngredient(.exact(.runeFrost))],
-                 damage: 56, heal: 24, shield: 34, evadePercent: 15,
+                 damage: 56, heal: 24, shield: 34, dodgeCharges: 1,
                  burnAmount: 5, reflect: 0.5, staged: true,
                  flavor: "Five runes bent into a standing sun. Stand under it."),
         ComboDef(id: "mag_astralReversal", name: "Astral Reversal", owner: "magician", source: .weapon,
@@ -257,3 +257,4 @@ enum MagicianContent {
     static let imbueName = "Rune-Etcher's Stylus"
     static let imbueSymbol = "hexagon.fill"
 }
+

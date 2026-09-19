@@ -157,7 +157,6 @@ private struct BattleContentView: View {
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
-                              maxStamina: game.effectiveMaxStamina,
                               drawnDieIDs: game.battle?.drawnDieIDs ?? [],
                               hasMetTrial: game.trialUsed,
                               boons: game.equippedBoons)
@@ -184,7 +183,7 @@ private struct BattleContentView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .frame(height: metrics.height)
         .background {
-            DeckShelfBackground(armed: engine.freezeArmed)
+            DeckShelfBackground(armed: engine.selectingReroll)
                 .ignoresSafeArea(edges: .bottom)
         }
         .offset(y: deckUp ? 0 : size.height)

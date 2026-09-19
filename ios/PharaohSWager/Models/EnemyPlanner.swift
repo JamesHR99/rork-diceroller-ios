@@ -26,7 +26,7 @@ struct EnemyTurnContext {
 
 /// Decides how a creature spends its round.
 ///
-/// A creature has a stamina allowance like you do. It may put everything into
+/// A creature has an internal allowance for choosing announced moves. It may put everything into
 /// one heavy blow, or string a guard and two quick cuts together — and the
 /// more separate actions it takes, the less each one is worth. That is what
 /// makes a round of block-attack-block worth planning: the read is no longer
@@ -155,3 +155,4 @@ enum EnemyPlanner {
         return moves.last
     }
 }
+

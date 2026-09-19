@@ -113,11 +113,11 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .mark:
             return "The next attack on \(you) hits harder, then it is spent."
         case .evade:
-            return "Rolled per blow. A success misses completely."
+            return "One charge dodges one chosen incoming hit."
         case .regeneration:
             return "Restores health at round end."
         case .shield:
-            return "Eaten by direct blows before health. Statuses seep under it."
+            return "Absorbs direct damage across hits. Player guard expires at round end; Warriors retain up to 8."
         case .armour:
             return "Plate over health. Direct blows chip it first."
         case .champion:
@@ -163,11 +163,11 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .mark:
             "One at a time."
         case .evade:
-            "Adds up to the ceiling."
+            "Each charge cancels one hit. Expires at round end."
         case .regeneration:
             "Strongest wins."
         case .shield:
-            "Adds up freely."
+            "Adds together. Player guard expires at round end; Warriors retain up to 8."
         case .armour:
             "Set when the creature rises."
         case .champion:
@@ -191,7 +191,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .poison: "Max \(GameData.poisonStackCap)."
         case .judgement: "Max \(GameData.judgementCap) stored."
         case .weaken: "Max \(Int(GameData.weakenCeiling * 100))%."
-        case .evade: "Max \(Int(GameData.evadeCeiling * 100))%."
+        case .evade: "Up to 6 charges. Expires at round end."
         default: nil
         }
     }
@@ -282,7 +282,7 @@ struct LiveStatus: Identifiable {
         }
         if let percent {
             switch kind {
-            case .evade: lines.append(("Chance per blow", "\(percent)%"))
+            case .evade: lines.append(("Legacy chance", "\(percent)%"))
             case .weaken: lines.append(("Next attack weaker by", "\(percent)%"))
             case .mark: lines.append(("Next attack harder by", "+\(percent)%"))
             default: lines.append(("Strength", "\(percent)%"))
@@ -294,3 +294,4 @@ struct LiveStatus: Identifiable {
         return lines.map { (label: $0.0, value: $0.1) }
     }
 }
+

@@ -29,7 +29,7 @@ struct DicePresentationTests {
             enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice,
             classID: hero.id, maxHP: hero.maxHP, startHP: hero.maxHP,
-            maxStamina: hero.maxStamina, critBonus: 0
+            critBonus: 0
         )
         let slotIDs = Set(engine.slots.map(\.id))
         engine.rollAll(reduceMotion: true)

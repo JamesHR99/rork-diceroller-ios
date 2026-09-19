@@ -52,7 +52,7 @@ enum ArcherContent {
         // Armour — light armour
         ComboDef(id: "arc_quickGuard", name: "Quick Guard", owner: "archer", source: .armor,
                  required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade))],
-                 shield: 14, evadePercent: 15,
+                 shield: 14, dodgeCharges: 1,
                  flavor: "Bracer up, then gone."),
         ComboDef(id: "arc_fieldDressing", name: "Field Dressing", owner: "archer", source: .armor,
                  required: [ComboIngredient(.exact(.heal), 2)], heal: 22,
@@ -66,7 +66,7 @@ enum ArcherContent {
         ComboDef(id: "arc_perfectShot", name: "Perfect Shot", owner: "archer", source: .weapon,
                  required: [ComboIngredient(.exact(.arrow1)), ComboIngredient(.exact(.arrow2)),
                             ComboIngredient(.exact(.arrow3))],
-                 damage: 58, pierce: 0.4, guaranteedCrit: true,
+                 damage: 34, pierce: 0.4, guaranteedCrit: true,
                  flavor: "Three draws, one breath, one perfect release."),
         ComboDef(id: "arc_stormOfShafts", name: "Storm of Shafts", owner: "archer", source: .weapon,
                  required: [ComboIngredient(.anyArrow, 4)], damage: 56, weaken: 0.4,
@@ -82,12 +82,12 @@ enum ArcherContent {
         ComboDef(id: "arc_coveringVolley", name: "Covering Volley", owner: "archer", source: .armor,
                  required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade)),
                             ComboIngredient(.anyArrow, 2)],
-                 damage: 42, shield: 18, evadePercent: 15, staged: true,
+                 damage: 42, shield: 18, dodgeCharges: 1, staged: true,
                  flavor: "Bracer up, feet set, and only then the shafts."),
         ComboDef(id: "arc_falconsReversal", name: "Falcon's Reversal", owner: "archer", source: .weapon,
                  required: [ComboIngredient(.exact(.bowSmack)), ComboIngredient(.exact(.evade)),
                             ComboIngredient(.anyArrow, 2)],
-                 damage: 50, evadePercent: 20, weaken: 0.3, markPercent: 25,
+                 damage: 50, dodgeCharges: 1, weaken: 0.3, markPercent: 25,
                  flavor: "Give them the riser, take the angle, mark the throat."),
         ComboDef(id: "arc_sunwardBarrage", name: "Sunward Barrage", owner: "archer", source: .weapon,
                  required: [ComboIngredient(.exact(.focus)), ComboIngredient(.anyArrow, 4)],
@@ -96,7 +96,7 @@ enum ArcherContent {
         ComboDef(id: "arc_heronsPassage", name: "Heron's Passage", owner: "archer", source: .armor,
                  required: [ComboIngredient(.exact(.block)), ComboIngredient(.exact(.evade)),
                             ComboIngredient(.exact(.heal)), ComboIngredient(.anyArrow, 2)],
-                 damage: 58, heal: 20, shield: 22, evadePercent: 25, staged: true,
+                 damage: 58, heal: 20, shield: 22, dodgeCharges: 1, staged: true,
                  flavor: "Wade slow, stand still, and strike once the water settles."),
     ]
 
@@ -149,3 +149,4 @@ enum ArcherContent {
     static let imbueName = "Fletcher's Whetstone"
     static let imbueSymbol = "arrowshape.up.fill"
 }
+

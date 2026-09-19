@@ -18,7 +18,7 @@ enum SharedContent {
                  flavor: "Put the shield where the answer will come from, then answer."),
         ComboDef(id: "shr_slipAndCut", name: "Slip and Cut", owner: nil, source: .armor,
                  required: [ComboIngredient(.exact(.evade)), ComboIngredient(.anyStrike)],
-                 damage: 18, evadePercent: 20,
+                 damage: 18, dodgeCharges: 1,
                  flavor: "They cannot hit what they cannot find."),
     ]
 
@@ -34,3 +34,4 @@ enum SharedContent {
         }
     }
 }
+

@@ -13,6 +13,8 @@ struct PlayBarView: View {
     let engine: BattleEngine
 
     /// A seam offering more than one recipe, waiting for the player to pick.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showingOrder = false
     @State private var picking: SeamChoice?
     /// Drives the short pull-together when a weld lands.
     @State private var weldPulse = 0
@@ -41,16 +43,16 @@ struct PlayBarView: View {
     /// The plan panel's full height. The freeze and commit slabs beside it are
     /// cut from the same measure so the row reads as one shelf.
     private var columnHeight: CGFloat { max(94, bodyHeight + (compact ? 22 : 28)) }
-    private var freezeHeight: CGFloat { 44 }
-    private var commitHeight: CGFloat { columnHeight - freezeHeight - 6 }
+    private var rerollHeight: CGFloat { 44 }
+    private var commitHeight: CGFloat { columnHeight - rerollHeight - 6 }
     private var controlWidth: CGFloat { compact ? 108 : 120 }
 
     var body: some View {
         HStack(spacing: 7) {
-            staminaRail
+            diceRail
             planSection
             VStack(spacing: 6) {
-                freezeButton
+                rerollButton
                 commitButton
             }
         }
@@ -140,83 +142,22 @@ struct PlayBarView: View {
         }
     }
 
-    // MARK: - Stamina rail
-
-    /// Stamina now lives in a narrow column so the plan can have the width.
-    private var staminaRail: some View {
-        VStack(spacing: 4) {
-            Text("STM")
-                .font(.system(size: 8, weight: .black))
-                .kerning(0.8)
-                .foregroundStyle(Theme.gold.opacity(0.8))
-
-            staminaPips
-
+    private var diceRail: some View {
+        VStack(spacing: 5) {
+            Image(systemName: "dice.fill")
+            Text("\(planFaces.count)/\(BattleRules.handSize)")
+                .font(.system(size: 13, weight: .black).monospacedDigit())
+            Text("DICE").font(.system(size: 8, weight: .bold))
             Spacer(minLength: 0)
-
-            VStack(spacing: 0) {
-                Text("NEXT")
-                    .font(.system(size: 7, weight: .black))
-                    .foregroundStyle(Theme.parchmentDim.opacity(0.7))
-                Text("\(engine.projectedNextTurnStamina)")
-                    .font(.system(size: 12.5, weight: .black).monospacedDigit())
-                    .foregroundStyle(engine.projectedNextTurnStamina > engine.roundAllowance
-                                     ? Theme.sunGold : Theme.parchmentDim)
-            }
+            Image(systemName: "arrow.triangle.2.circlepath")
+            Text("\(engine.rerollsRemaining)").font(.system(size: 13, weight: .black))
         }
-        .frame(width: 42, height: columnHeight - 8)
-        .padding(.vertical, 4)
-        .background {
-            PapyrusSurface(ground: .card, tint: Theme.bg, strength: 0.6, shade: 0.45)
-                .clipShape(.rect(cornerRadius: 13))
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 13)
-                .strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1)
-        )
+        .foregroundStyle(Theme.gold)
+        .padding(.vertical, 8)
+        .frame(width: 42, height: columnHeight)
+        .background(Theme.bg.opacity(0.7), in: .rect(cornerRadius: 12))
     }
 
-    /// Painted pips stack down the rail, wrapping into a second column once
-    /// the turn's budget runs long. Pips above the cap wear the reserve mark.
-    private var staminaPips: some View {
-        // The round's own allowance sets the rail; anything above it is
-        // overcharge a named power earned, and wears the reserve mark.
-        let total = max(engine.roundAllowance, engine.stamina)
-        // Four to a column, so a five or six point round wraps instead of
-        // running the pips off the bottom of the rail.
-        let columns = total > 4 ? 2 : 1
-        let perColumn = Int(ceil(Double(total) / Double(columns)))
-        let size = pipSize(perColumn: perColumn, columns: columns)
-        return HStack(alignment: .top, spacing: 3) {
-            ForEach(0..<columns, id: \.self) { column in
-                VStack(spacing: 2) {
-                    ForEach(0..<perColumn, id: \.self) { row in
-                        let index = column * perColumn + row
-                        if index < total {
-                            PharaohSWagerStaminaPip(
-                                isFilled: index < engine.stamina,
-                                isReserve: index >= engine.roundAllowance,
-                                size: size
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.stamina)
-    }
-
-    /// Pips cut to the room the rail actually has. A five or six point round was
-    /// drawing its pips at the same size as a three point one and spilling out
-    /// of the rail, so the column measures both axes and takes the smaller fit.
-    private func pipSize(perColumn: Int, columns: Int) -> CGFloat {
-        // The rail's inner width, shared by however many columns are up.
-        let byWidth = (44 - CGFloat(columns - 1) * 3) / CGFloat(columns)
-        // What is left between the STM heading and the NEXT readout.
-        let free = columnHeight - 8 - 44
-        let byHeight = free / CGFloat(max(perColumn, 1)) - 2
-        return max(9, min(17, min(byWidth, byHeight)))
-    }
 
     // MARK: - Turn plan
 
@@ -255,7 +196,36 @@ struct PlayBarView: View {
 
     private var planHeader: some View {
         HStack(spacing: 8) {
-            Text("TURN PLAN")
+            Button { showingOrder = true } label: {
+                Label("TURN ORDER", systemImage: "list.number")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(Theme.gold)
+            }
+            .sheet(isPresented: $showingOrder) {
+                NavigationStack {
+                    List {
+                        Section("Prepared before attacks") {
+                            ForEach(engine.displayedPlan.filter(\.isPreparedSupport)) { step in
+                                Text(step.isFocus ? "Focus → next attack +50%" : step.valueLine)
+                            }
+                        }
+                        Section("Alternating actions") {
+                            ForEach(engine.timeline) { entry in
+                                HStack {
+                                    Text("\(entry.beat)").monospacedDigit()
+                                    VStack(alignment: .leading) {
+                                        Text(entry.isPlayer ? "You · \(entry.title)" : "Enemy · \(entry.title)")
+                                        Text(entry.detail).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .navigationTitle("This round")
+                    .toolbar { Button("Done") { showingOrder = false } }
+                }
+            }
+            Text("PLAN")
                 .font(.fantasy(12, weight: .black))
                 .kerning(1.4)
                 .foregroundStyle(Theme.gold.opacity(0.85))
@@ -431,7 +401,7 @@ struct PlayBarView: View {
                     .minimumScaleFactor(0.6)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text("\(step.staminaCost)")
+                Text("\(step.faces.count) DICE")
                     .font(.system(size: 10, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.gold)
             }
@@ -455,6 +425,11 @@ struct PlayBarView: View {
                 effectChips(combo: combo, step: step)
             }
 
+            if step.focusFaceID != nil {
+                Text("FOCUS +\(step.focusBonus)")
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(Theme.gold)
+            }
             if let staged = combo?.stagedBeats {
                 Text("\(staged.guardFirst.uppercased()) → \(staged.strikeLater.uppercased())")
                     .font(.system(size: 7.5, weight: .black))
@@ -538,7 +513,7 @@ struct PlayBarView: View {
         if damage > 0 { chips.append(("\(damage) DMG", Theme.ember)) }
         if combo.shield > 0 { chips.append(("+\(GameData.scaleUp(combo.shield, by: scale)) SHD", Theme.steel)) }
         if combo.heal > 0 { chips.append(("+\(GameData.scaleUp(combo.heal, by: scale)) HP", Theme.forest)) }
-        if combo.evadePercent > 0 { chips.append(("\(combo.evadePercent)% EVA", Theme.steel)) }
+        if combo.dodgeCharges > 0 { chips.append(("\(combo.dodgeCharges) DODGE", Theme.steel)) }
         if combo.burnAmount > 0 {
             chips.append(("BURN \(min(GameData.scaleUp(combo.burnAmount, by: scale), GameData.burnStackCap))", Theme.ember))
         }
@@ -571,7 +546,7 @@ struct PlayBarView: View {
 
     /// The god upgrade riding a held die inside this action, if any.
     private func heldUpgrade(in step: PlanStep) -> (god: Deity, name: String, effect: String)? {
-        for face in step.faces where face.wasHeld {
+        for face in step.faces where face.wasKept {
             if let held = engine.heldBoon(forFace: face.id) { return held }
         }
         return nil
@@ -618,7 +593,7 @@ struct PlayBarView: View {
                 .contentShape(.rect)
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(engine.phase != .player)
+        .disabled(engine.phase != .player || engine.isRolling)
     }
 
     /// One die in the plan: its face and what that face does on its own. Its
@@ -659,7 +634,7 @@ struct PlayBarView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
 
-                Text(face.face.soloTag)
+                Text(engine.step(containing: face.id).map { engine.planDetail(for: $0) } ?? face.face.soloTag)
                     .font(.system(size: 9.5, weight: .bold).monospacedDigit())
                     .foregroundStyle(Theme.parchmentDim)
                     .lineLimit(1)
@@ -729,7 +704,26 @@ struct PlayBarView: View {
             }
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(engine.phase != .player)
+        .disabled(engine.phase != .player || engine.isRolling)
+        .overlay(alignment: .topTrailing) {
+            if face.matchFace == .evade {
+                Menu {
+                    Button("Next incoming strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
+                    ForEach(engine.incomingStrikes) { strike in
+                        Button("\(strike.title) · \(strike.damage) damage") {
+                            engine.assignEvade(faceID: face.id, strikeID: strike.id)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "scope")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Theme.frost)
+                        .frame(width: 32, height: 32)
+                        .background(Theme.bg.opacity(0.9), in: .circle)
+                }
+                .accessibilityLabel("Evade target: \(engine.evadeTargetLabel(faceID: face.id))")
+            }
+        }
         // Dragging is a deliberate press-and-hold. Without this a quick tap is
         // often swallowed by the drag recogniser, which is what made dice in
         // the plan feel unresponsive.
@@ -743,83 +737,31 @@ struct PlayBarView: View {
         .transition(.scale(scale: 0.6).combined(with: .opacity))
     }
 
-    // MARK: - Freeze
-
-    /// Arm freeze mode, then tap a die in the tray to ice it for next turn.
-    /// Free — one a turn — and the pip shows whether it is still in hand.
-    private var freezeButton: some View {
+    private var rerollButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                engine.freezeArmed.toggle()
-            }
+            if engine.canReroll { engine.rerollSelected(reduceMotion: reduceMotion) }
+            else { engine.selectingReroll.toggle() }
             Haptics.light()
-            Audio.shared.play(.uiTap)
         } label: {
-            VStack(spacing: 1) {
-                HStack(spacing: 5) {
-                    PharaohSWagerIcon(name: PharaohSWagerArt.interactionHeld, size: 20)
-
-                    Text("FREEZE")
-                        .font(.fantasy(15, weight: .black))
-                        .kerning(1.2)
-                }
-                freezePips
+            VStack(spacing: 2) {
+                Label(engine.canReroll ? "REROLL" : (engine.selectingReroll ? "CANCEL" : "REROLL"),
+                      systemImage: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 12, weight: .black))
+                Text("\(engine.rerollsRemaining) reroll left")
+                    .font(.system(size: 9, weight: .semibold))
             }
-            .foregroundStyle(engine.freezeArmed ? Theme.bg : Theme.frost)
-            .shadow(color: engine.freezeArmed ? .clear : .black.opacity(0.7), radius: 2, y: 1)
-            .frame(width: controlWidth, height: freezeHeight)
+            .foregroundStyle(Theme.gold)
+            .frame(width: controlWidth, height: rerollHeight)
             .background {
-                DeckButtonSurface(
-                    tone: .secondary,
-                    state: engine.freezeArmed ? .selected : (canFreeze ? .normal : .disabled),
-                    rim: Theme.frost,
-                    emphasis: engine.freezeArmed ? 1 : 0
-                )
-                .modifier(TintWash(tint: engine.freezeArmed ? Theme.frost : nil))
+                DeckButtonSurface(tone: .secondary,
+                    state: engine.selectingReroll ? .selected : .normal, rim: Theme.gold)
             }
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(!canFreeze)
-        .accessibilityIdentifier("battle.freeze")
-        .opacity(canFreeze ? 1 : 0.45)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.freezeArmed)
+        .disabled(engine.phase != .player || !engine.hasRolled || engine.isRolling || engine.rerollsRemaining == 0)
+        .accessibilityIdentifier("battle.reroll")
     }
 
-    private var canFreeze: Bool {
-        guard engine.phase == .player, engine.hasRolled, !engine.isRolling else { return false }
-        return engine.freezeArmed || (engine.freezesRemaining > 0 && engine.canFreezeAny)
-    }
-
-    /// One painted pip per freeze; filled pips are still in hand.
-    ///
-    /// Anubis's Preserved Moment rides as an extra pip in his own colour, so
-    /// the spare hold is something you can see sitting in the bar rather than a
-    /// rule you have to remember — and it visibly leaves once a commitment
-    /// actually spends it.
-    private var freezePips: some View {
-        HStack(spacing: 2.5) {
-            ForEach(0..<engine.freezesPerTurn, id: \.self) { index in
-                let inHand = index < engine.freezesRemaining
-                let isAnubisPip = engine.hasPreservedMomentSpare
-                    && index == engine.freezesPerTurn - 1
-                PharaohSWagerImage(
-                    name: inHand ? PharaohSWagerArt.staminaFull : PharaohSWagerArt.staminaEmpty,
-                    height: isAnubisPip ? 12.5 : 11,
-                    fit: .fit
-                )
-                .colorMultiply(engine.freezeArmed
-                               ? Theme.bg
-                               : (isAnubisPip ? Deity.anubis.tint : Theme.frost))
-                .opacity(inHand ? 1 : 0.35)
-                .shadow(color: isAnubisPip && inHand && !engine.freezeArmed
-                        ? Deity.anubis.tint.opacity(0.9)
-                        : .clear,
-                        radius: 5)
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.freezesRemaining)
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: engine.freezesPerTurn)
-    }
 
     // MARK: - Commit
 

@@ -7,7 +7,6 @@ struct InfoSheetView: View {
     let classID: String
     let critBonus: Double
     /// Turn ceiling as it stands — the class maximum plus any Breath of Ra.
-    let maxStamina: Int
     /// Dice this turn's draw put on the table; empty outside battle.
     let drawnDieIDs: Set<UUID>
     /// True once this run has met a god's Trial — the codex then names all six.
@@ -337,7 +336,7 @@ struct InfoSheetView: View {
                         .foregroundStyle(found ? combo.tint : Theme.parchmentDim.opacity(0.85))
 
                     if found {
-                        Text("\(combo.staminaCost) stam")
+                        Text("\(combo.diceCount) stam")
                             .font(.system(size: 10.5, weight: .black))
                             .foregroundStyle(Theme.parchmentDim)
                             .padding(.horizontal, 5)
@@ -707,52 +706,34 @@ struct InfoSheetView: View {
     private var rulesTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             ruleCard(
-                icon: "link", tint: Theme.ember, title: "COMBINING IS THE FIGHT",
+                icon: "link", tint: Theme.ember, title: "COMBOS AND SINGLES",
                 lines: [
-                    "A lone face is worth \(Int(GameData.soloAttackScale * 100))% of its printed value.",
-                    "Put dice side by side. If they make a recipe, a seam appears — tap it.",
-                    "The card shows everything before you agree: dice, cost, damage, statuses, timing, gods.",
-                    "Nothing combines on its own. Combine is always your tap.",
-                    "Separate takes it apart again. Nothing is spent until you commit.",
-                    "Assembling a new recipe names it and writes it into the codex.",
-                    "Each crit die adds +\(Int(GameData.critComboWeight * 100))% to the whole action.",
-                    "1 stamina per die, no discounts. Bigger recipes land later instead.",
+                    "Every die can be used once. A combo consumes only its ingredients and resolves as one action.",
+                    "Place matching dice side by side, tap the seam, then Combine. Separate returns them to individual actions.",
+                    "Keep spare dice useful: Twin Shot and a separate Block give you damage and defence in the same round.",
+                    "Each critical ingredient adds +15% to the combo's numeric output. Dodge charges stay whole.",
+                    "New recipes are recorded in your codex when discovered."
                 ]
             )
-
             ruleCard(
-                icon: "dice.fill", tint: Theme.steelBlue, title: "THE DRAW",
+                icon: "dice.fill", tint: Theme.gold, title: "SIX DICE AND A REROLL",
                 lines: [
-                    "You own \(GameData.ownedDiceTotal) dice — \(GameData.ownedWeaponDice) weapon and \(GameData.ownedArmourDice) armour — and \(GameData.diceDrawCount) of them fill your slots each round.",
-                    "The draw is fresh every round, without replacement, so the same collection produces a different hand each time. Hold one die and you draw five from the remaining seven; hold two and you draw four from six.",
-                    "No mix is guaranteed: a draw can come up all weapon and leave you nothing defensive. That is what holds are for.",
-                    "A held die keeps its face and takes one of next round's six slots — it cannot also be drawn again.",
-                    "The loadout tab marks which dice this turn's draw put on the table.",
-                    "A weak die dilutes every draw — the Ferryman's Whetstone Ritual rolls a die's faces anew instead of throwing it away.",
+                    "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
+                    "There is no player stamina. Use all six dice or commit early.",
+                    "One reroll each round: select any unplayed dice and reroll them together. Powers can raise this to two.",
+                    "Results left alone during a reroll become Kept, including their crits. God powers can reward these results.",
+                    "No results carry between rounds. The next round draws six fresh dice.",
+                    "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming returns it."
                 ]
             )
-
             ruleCard(
-                icon: "bolt.fill", tint: Theme.gold, title: "STAMINA",
+                icon: "shield.fill", tint: Theme.frost, title: "PREPARE YOUR DEFENCE",
                 lines: [
-                    "Every round hands you a fresh allowance: \(GameData.staminaAllowance(round: 1)) on the first round, \(GameData.staminaAllowance(round: 2)) on the second, \(GameData.staminaAllowance(round: 3)) from the third on. The curve resets at every fight.",
-                    "Nothing carries over. Whatever you do not spend is gone at the end of the round — hoarding buys you nothing.",
-                    "1 stamina per die: a pair 2, a triple 3, five dice 5. No discounts.",
-                    "Only named powers bank stamina for the next round, and the whole budget is capped at \(GameData.staminaBudgetCap) however much lands on it.",
-                    "Focus costs 1, primes +8 damage on your next attack and banks +1 for next round. Place it before the attack it should strengthen.",
-                ]
-            )
-
-            ruleCard(
-                icon: "snowflake", tint: Theme.frost, title: "FREEZING DICE",
-                lines: [
-                    "Holding is free: \(GameData.freezesPerTurn) dice every round, at every gate. Anubis's Preserved Moment adds a third pip to the freeze bar — it sits there until a commitment actually carries a third face over, then it is gone for the rest of the fight.",
-                    "Hit the FREEZE button on the right of the tray, then tap a die to hold its face.",
-                    "A held face keeps exactly as it landed, crit and all — and the die it came from still rolls again next turn. A freeze hands you an extra face, it never benches a die.",
-                    "The die behind a held face sits out the next draw, so the held face never arrives beside a fresh roll of its own die — the hold is the only way to guarantee a face comes back.",
-                    "Held faces sit at the front of the tray as their own reel, so they are always where you left them.",
-                    "The universal hold bonus is gone — gods reward holds instead. Ra and Horus pay out when an action carries a held face of theirs; Horus even hands stamina back for the first one each turn.",
-                    "The hold lasts one turn: play it, freeze it again to keep it longer, or leave it and it is gone.",
+                    "A standalone Block prepares 8 guard before the first attack. Guard absorbs damage across hits and expires at round end. Warriors carry up to 8 forward.",
+                    "A standalone Evade prepares one guaranteed dodge. Tap its target control to choose a specific announced hit, or leave it on Next strike.",
+                    "Evade cancels one hit of a multi-hit attack, never the entire move. Unused dodges expire at round end.",
+                    "Focus, Channel and Energize add 50% damage to the next attack or combo in the plan. One Focus per attack; place it before its target.",
+                    "These standalone support dice do not give enemies an extra action. Mixed combos prepare their defence when that combo acts."
                 ]
             )
 
@@ -924,14 +905,14 @@ struct InfoSheetView: View {
                 icon: "shield.fill", tint: Theme.bronze, title: "ENEMY GUARD",
                 lines: [
                     "A foe keeps one guard pool on a bronze channel over its health — plate it was born wearing and block it raises mid-fight are the same resource, so there is only ever one layer to chew through.",
-                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, exactly like your own shield.",
+                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, Your own guard expires at round end; Warriors carry up to 8.",
                     "Pierce ignores part of the guard, measured against the deepest it has ever stood.",
                     "Poison, burn and bleed seep under it and tick health directly — damage over time is the answer to a heavy guard.",
                     "Guard never regenerates on its own, so breaking a plated brute is a real investment: they trade burst damage for staying power.",
                 ]
             )
 
-            agilityCard
+            actionOrderCard
 
             statusGlossary
 
@@ -943,77 +924,20 @@ struct InfoSheetView: View {
                     "Inside a run of neighbours the order does not matter, so a chain is never a memory test about which die you tapped first.",
                     "Where two chains could both claim the same dice, the longer and more specific one takes them.",
                     "The plan only ever shows the order you will play, never what it adds up to — a chain names itself when it lands.",
-                    "Tap a die in the plan to take it back and reclaim the stamina.",
+                    "Tap a die in the plan to take it back and use it elsewhere.",
                 ]
             )
         }
     }
 
-    // MARK: - Agility
-
-    /// Turn order, defined once and arithmetically. Everything in the fight —
-    /// your plan, every creature's telegraphed blow — carries a number built
-    /// the same way, so the order of a round is something you can work out
-    /// rather than something you discover after committing.
-    private var agilityCard: some View {
-        let hero = GameData.heroClass(id: classID)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "hare.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.frost)
-                Text("AGILITY AND TURN ORDER")
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(Theme.frost)
-                    .kerning(1.5)
-            }
-
-            Text("One rule decides everything about when an action lands: its agility is its size in dice, added to your base agility. The lower total goes first. On a tie, you go before the creature.")
-                .font(.system(size: 12.5))
-                .foregroundStyle(Theme.parchment.opacity(0.9))
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("A big chain is a slow chain. One die counts 1, a two-die chain 2, a three-die chain 3 — power is paid for in time, every single time.")
-                .font(.system(size: 12.5))
-                .foregroundStyle(Theme.parchmentDim)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(spacing: 3) {
-                ForEach(GameData.classes) { entry in
-                    critRow(entry.id == hero.id ? "\(entry.name) — yours" : entry.name,
-                            "\(entry.agility)")
-                }
-            }
-            .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("WORKED TWICE")
-                    .font(.system(size: 9.5, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(Theme.frost)
-                Text("You play one die. \(hero.agility) + 1 = \(hero.agility + 1). A creature of base 2 swinging a single blow is 2 + 1 = 3 — so your die lands first.")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("You build a three-die chain instead. \(hero.agility) + 3 = \(hero.agility + 3). That same blow at 3 now lands before you do — the chain hits harder and arrives late, and you chose that.")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 9))
-
-            Text("Every number is on the deck before you commit: your base beside your health bar, each creature's beside its own, and the agility of every blow it has telegraphed. Haste pulls one of your actions earlier; Ice Blast, Glacier and Earthshaker shove a creature's later.")
-                .font(.system(size: 11.5))
-                .italic()
-                .foregroundStyle(Theme.parchmentDim.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.bgCard, in: .rect(cornerRadius: 14))
+    private var actionOrderCard: some View {
+        ruleCard(icon: "arrow.left.arrow.right", tint: Theme.frost, title: "ACTION ORDER", lines: [
+            "Standalone Block and Evade prepare first. Then your first action lands, then the first enemy action, then your second, and so on.",
+            "Each enemy gets only its announced actions. Playing more singles never gives it extra attacks.",
+            "When one side runs out, the remaining announced actions finish. Defeated enemies lose their pending actions.",
+            "Ice Blast, Glacier and Earthshaker move a pending enemy action behind your next action. They never delete attacks.",
+            "Open TURN ORDER to inspect the sequence before committing."
+        ])
     }
 
     // MARK: - Status glossary
