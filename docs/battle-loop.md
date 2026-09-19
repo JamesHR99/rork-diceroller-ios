@@ -20,6 +20,8 @@ Every class draws six different dice from its eight-die collection each round. T
 
 A Focus after all attacks has no target; the plan explains that it must move earlier. Two dodges cannot reserve the same hit: selecting an already reserved hit returns the other die to next-hit behaviour. A targeted dodge expires unused if its target is killed before that hit.
 
+The planning bar always uses its available width. Each die owns one share, and a combined action occupies the shares of all its ingredient dice. Enemy moves are listed once in a compact left-to-right strip above the reels. The six reels spin together, then lock individually from left to right.
+
 ## Catalogue and progression
 
 The existing combo and boon IDs are preserved. God powers rewarding frozen dice now reward results kept through a reroll. Stamina rewards become guard, attack bonuses, or extra rerolls. All dodge effects use whole charges instead of percentages. Focused-attack powers and attack-after-support powers have explicit triggers. Reactive guard and dodge effects activate on the relevant incoming hit, once; offensive status riders are applied after the action that creates them.
