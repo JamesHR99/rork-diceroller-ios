@@ -574,6 +574,7 @@ final class BattleEngine {
     private var primeBurnExtra = 0
     private var primeHealAmount = 0
     private var primeExpiryTurn = 0
+    private var primePierceBonus = 0.0
 
     // Per-turn flags for once-a-turn god and pairing answers.
     private var bastetEvadeUsed = false
@@ -713,6 +714,7 @@ final class BattleEngine {
     /// Reactions armed by Guard/Evade actions, expiring at round end.
     private var armedOnShieldAbsorb: [String] = []
     private var armedOnDodge: [String] = []
+    private var patronDodgeAnswers: [(answer: GodAnswer, god: Deity, step: PlanStep)] = []
     /// Set once the round has dealt the player any health damage, for Unscathed.
     private var lostHealthThisRound = false
     private var incomingAttemptedThisRound = false
@@ -2458,7 +2460,7 @@ final class BattleEngine {
         let foeID = target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
         combosLanded += 1
         announce(combo: combo, step: step, crit: crit)
-        var multiplier = GameData.comboOutputScale(
+        let multiplier = GameData.comboOutputScale(
             faces: step.faces.count,
             critDice: step.critDice,
             crit: crit
@@ -2613,7 +2615,7 @@ final class BattleEngine {
             applyWeaken(combo.weaken * (crit ? 1.3 : 1.0), targetIndex: target)
         }
         if combo.markPercent > 0, let target, enemies.indices.contains(target), enemies[target].isAlive {
-            applyMark(Double(combo.markPercent) / 100.0, targetIndex: target)
+            pendingBoonEffects.append((BoonPayload(markPercent: combo.markPercent), target))
         }
 
         // Ice Blast, Glacier and Earthshaker shove a creature's pending action
@@ -2636,6 +2638,7 @@ final class BattleEngine {
                 shield: GameData.scaleUp(GameData.scaleUp(combo.shield, by: multiplier), by: GameData.echoScale),
                 foeID: target.flatMap { enemies.indices.contains($0) ? enemies[$0].id : nil }
             )
+            echoArmedComboID = nil
         }
 
         // Alternating Current: opposite rune kinds bank a stamina point.
@@ -2778,7 +2781,13 @@ final class BattleEngine {
     /// pairing riders, capped at total.
     private func attackPierce(comboBase: Double, step: PlanStep?, crit: Bool, targetIndex target: Int?) -> Double {
         var pierce = comboBase
-        if let step { pierce += armedPierce(for: step) }
+        if let step {
+            pierce += armedPierce(for: step)
+            if step.faces.contains(where: { $0.patron == .horus && $0.face.isAttack }) {
+                pierce += hasUpgrade("ho_keen") ? 0.4 : 0.2
+            }
+        }
+        if primePierceBonus > 0 { pierce += primePierceBonus; primePierceBonus = 0 }
         // Pierce granted by god powers for this action, spent as it lands.
         if boonPierceBonus > 0 {
             pierce += boonPierceBonus
@@ -3277,7 +3286,11 @@ final class BattleEngine {
             }
             if god == .bastet, role == .evade { bastetEvadeUsed = true }
 
-            land(answer, god: god, step: step, targetIndex: target)
+            if role == .evade {
+                patronDodgeAnswers.append((answer, god, step))
+            } else {
+                land(answer, god: god, step: step, targetIndex: target)
+            }
         }
 
         // Held-face rewards ride the same action.
@@ -3445,7 +3458,7 @@ final class BattleEngine {
     /// and before the combo applies any Judgement of its own — a combo can
     /// never detonate weight it just added.
     private func releaseJudgement(targetIndex target: Int?) {
-        guard let index = resolveTarget(target), enemies[index].isAlive,
+        guard let index = target, enemies.indices.contains(index), enemies[index].isAlive,
               enemies[index].judgementPending, enemies[index].judgementAmount > 0 else { return }
 
         let foe = enemies[index]
@@ -3791,7 +3804,10 @@ final class BattleEngine {
                 addFloat("+\(payload.rerollsNext) Reroll Next", color: Theme.gold, onEnemy: false)
             }
             if payload.percentDamage > 0 { primeBonus(percent: payload.percentDamage) }
-            if payload.pierce > 0 { boonPierceBonus += Double(payload.pierce) / 100.0 }
+            if payload.pierce > 0 {
+                primePierceBonus = max(primePierceBonus, Double(payload.pierce) / 100)
+                primeExpiryTurn = turnNumber + 1
+            }
             guard let attackerIndex else { continue }
             if payload.burn > 0 {
                 if def.id == "RA-D3" {
@@ -3915,6 +3931,10 @@ final class BattleEngine {
     /// The first time an incoming hit is actually slipped, several gods and
     /// pairings answer once.
     private func firstEvadeRewards(attacker: EnemyState) {
+        let answers = patronDodgeAnswers
+        patronDodgeAnswers = []
+        let target = enemies.firstIndex { $0.id == attacker.id }
+        for answer in answers { land(answer.answer, god: answer.god, step: answer.step, targetIndex: target) }
         boonsOnDodge(attacker: attacker)
         guard !firstEvadeFired else { return }
         firstEvadeFired = true
@@ -4317,6 +4337,7 @@ final class BattleEngine {
             primePercentPoints = 0
             primeBurnExtra = 0
             primeHealAmount = 0
+            primePierceBonus = 0
         }
 
         rerollsUsed = 0
@@ -4352,6 +4373,7 @@ final class BattleEngine {
         lastAttackFoeID = nil
         armedOnShieldAbsorb = []
         armedOnDodge = []
+        patronDodgeAnswers = []
         lostHealthThisRound = false
         incomingAttemptedThisRound = false
         boonPierceBonus = 0

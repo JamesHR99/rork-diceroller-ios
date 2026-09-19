@@ -218,7 +218,7 @@ struct LiveStatus: Identifiable {
     let ticksLeft: Int?
     /// A flat stored total, for Judgement and guard pools.
     let total: Int?
-    /// A percentage reading, for Evade, Weaken and Mark.
+    /// A percentage reading, for Weaken and Mark.
     let percent: Int?
     /// Turns left before a stored effect fires — Judgement's fuse on the
     /// scales. Distinct from `ticksLeft`, which counts repeating bites.
@@ -282,7 +282,7 @@ struct LiveStatus: Identifiable {
         }
         if let percent {
             switch kind {
-            case .evade: lines.append(("Legacy chance", "\(percent)%"))
+            case .evade: break
             case .weaken: lines.append(("Next attack weaker by", "\(percent)%"))
             case .mark: lines.append(("Next attack harder by", "+\(percent)%"))
             default: lines.append(("Strength", "\(percent)%"))

@@ -669,7 +669,7 @@ struct PlayBarView: View {
                 }
             }
             .overlay {
-                if let group {
+                if group != nil {
                     RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(Theme.gold.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
                         .shadow(color: Theme.gold.opacity(0.5), radius: 7)

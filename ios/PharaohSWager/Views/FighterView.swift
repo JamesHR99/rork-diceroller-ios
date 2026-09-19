@@ -649,7 +649,7 @@ struct FighterView: View {
         if side == .player {
             if engine.dodgeCharges > 0 {
                 list.append(LiveStatus(kind: .evade, onSelf: true,
-                                       amount: engine.dodgeCharges))
+                                       total: engine.dodgeCharges))
             }
             if engine.regenTurns > 0 {
                 list.append(LiveStatus(kind: .regeneration, onSelf: true,

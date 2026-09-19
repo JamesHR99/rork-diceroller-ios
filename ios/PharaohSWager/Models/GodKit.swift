@@ -121,7 +121,7 @@ enum GodKit {
         switch role {
         case .attack: "Attacks"
         case .block: "Block faces"
-        case .evade: "Evade faces"
+        case .evade: "Evade: on the next dodge"
         case .support: "Mends & support"
         }
     }
@@ -231,7 +231,7 @@ enum GodKit {
                     detail: "Once a turn, a chain holding a kept Horus face and containing a critical face ignores all block and armour.",
                     symbol: "bird.fill"),
         GodCapstone(id: "ba_nineLives", deity: .bastet, name: "Nine Lives Unbound",
-                    detail: "Once a battle, a lethal blow leaves you at 1 health instead, makes you near-certain to evade for the rest of that enemy turn, and primes 10 damage.",
+                    detail: "Once a battle, a lethal blow leaves you at 1 health instead, prepares two guaranteed Dodges, and primes 10 damage.",
                     symbol: "cat.fill"),
     ]
 

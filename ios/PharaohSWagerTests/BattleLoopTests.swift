@@ -4,12 +4,12 @@ import Testing
 
 @MainActor
 struct BattleLoopTests {
-    private func battle(_ faces: [FaceKind], classID: String = "archer", boons: [String] = [], chisels: Set<String> = []) -> BattleEngine {
+    private func battle(_ faces: [FaceKind], classID: String = "archer", boons: [String] = [], chisels: Set<String> = [], patron: Deity? = nil) -> BattleEngine {
         let move = EnemyMove(id: "two-hits", name: "Two hits", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
         let enemy = EnemyDef(id: "test-foe", name: "Practice foe", title: "Tests", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
         let dice = faces.enumerated().map { index, face in
-            Die(name: "Test \(index)", slot: face.isAttack ? .weapon : .armor, faces: Array(repeating: face, count: 6))
+            Die(name: "Test \(index)", slot: face.isAttack ? .weapon : .armor, faces: Array(repeating: face, count: 6), patron: patron)
         }
         return BattleEngine(enemies: [enemy], dice: dice, classID: classID, maxHP: 100, startHP: 100,
             critBonus: -1, boons: boons.map { EquippedBoon(defID: $0, rarity: .common, level: 1) }, chisels: chisels)
@@ -142,6 +142,45 @@ struct BattleLoopTests {
         #expect(engine.reservedRerolls == 1 && engine.rerollsRemaining == 1)
         engine.returnToTray(faceID: arrow.id)
         #expect(engine.reservedRerolls == 0 && engine.rerollsRemaining == 2)
+    }
+
+    @Test func focusedGodPowerCanTriggerAfterAnUnfocusedAttack() async throws {
+        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], boons: ["RA-A4"])
+        try await roll(engine)
+        for kind in [FaceKind.arrow1, .focus, .arrow2] {
+            let face = try #require(engine.rolled.first { $0.face == kind })
+            engine.placeInPlayBar(faceID: face.id)
+        }
+        let damage = engine.turnPlan.reduce(0) { $0 + $1.damage }
+        let before = engine.enemies[0].hp
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == before - damage - 4)
+        #expect(engine.enemies[0].burnAmount == 2)
+    }
+
+    @Test func patronEvadeRetaliatesAgainstTheActualAttacker() async throws {
+        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], patron: .ra)
+        try await roll(engine)
+        let evade = try #require(engine.rolled.first { $0.face == .evade })
+        engine.placeInPlayBar(faceID: evade.id)
+        let before = engine.enemies[0].hp
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == before - 2)
+        #expect(engine.enemies[0].burnAmount == 1)
+    }
+
+    @Test func siegeBonusOnASingleArrowMatchesItsPreview() async throws {
+        let engine = battle([.arrow1, .focus, .arrow2, .block, .evade, .heal], chisels: ["ch_siegeDraw"])
+        try await roll(engine)
+        let arrow = try #require(engine.rolled.first { $0.face == .arrow1 })
+        engine.placeInPlayBar(faceID: arrow.id)
+        engine.beginArming("ch_siegeDraw")
+        #expect(engine.armHeldChisel(ontoFace: arrow.id))
+        let step = try #require(engine.turnPlan.first)
+        let expected = engine.displayedDamage(for: step)
+        let before = engine.enemies[0].hp
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == before - expected)
     }
 
     @Test func guardExpiresExceptForWarriorCarry() {
