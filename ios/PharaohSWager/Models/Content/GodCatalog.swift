@@ -862,7 +862,7 @@ enum GodCatalog {
             id: "DU-04", god: .ra, slot: .attack, name: "Sunstrike",
             effect: "First Prepared Attack: +6 damage. If primary was already Burning, add 3 Burn after damage.",
             function: "Ra + Horus", kind: .duo, trigger: .firstKeptAttack,
-            payload: BoonPayload(flatDamage: 6, bonusCondition: .targetBurning, burnBonus: 4),
+            payload: BoonPayload(flatDamage: 6, bonusCondition: .targetBurning, burnBonus: 3),
 
             sources: [.raBurn, .horusKept]
         ),

@@ -408,6 +408,9 @@ struct EnemyState: Identifiable {
     /// and what is left stands until something breaks it — exactly like your
     /// own shield.
     var armour: Int
+    var shield = 0
+    var markExpires = 0
+    var weakenExpires = 0
     /// Bleed never adds: the strongest wound stands. It bites just before this
     /// creature attacks, so aggression costs it blood.
     var bleedAmount = 0
@@ -470,8 +473,7 @@ struct EnemyState: Identifiable {
     /// blocks past its authored plate still reads honestly.
     mutating func gainGuard(_ amount: Int) {
         guard amount > 0 else { return }
-        armour += amount
-        armourMax = max(armourMax, armour)
+        shield = min(100, shield + amount)
     }
 
     mutating func animate(_ newPose: FighterPose, power: Int = 1) {
@@ -483,7 +485,7 @@ struct EnemyState: Identifiable {
     /// True when this creature is standing behind a guard worth the name —
     /// used by the planner to stop it stacking walls it does not need.
     var isWellGuarded: Bool {
-        armour >= max(12, Int(Double(def.maxHP) * 0.18))
+        armour + shield >= max(12, Int(Double(def.maxHP) * 0.18))
     }
     /// Divine Trials: this foe carries the attending god's lent power.
     var isTrialChampion = false
@@ -616,6 +618,7 @@ final class BattleEngine {
     private var actionFocus = 0
     private var counterweightPayment = 0
     private var nativeReflectCap = 0
+    private var playerJudgementExpires = 0
     private var divineHealingThisRound = 0
     private var conversionUsed = false
     private var crownBurn = 0
@@ -888,9 +891,13 @@ final class BattleEngine {
         return 1 + min(0.5, Double(max(0, turnNumber - start + 1)) * 0.1)
     }
 
-    func heatDamage(for foe: EnemyState) -> Int {
-        foe.def.heatPerTurn * max(0, turnNumber - 1)
+    var pressureSummary: String {
+        let start = enemies.contains { $0.def.isBoss } ? 11 : 7
+        if turnNumber < start { return "Pressure in \(start - turnNumber) rounds" }
+        return "Enemy damage +\(min(50, (turnNumber - start + 1) * 10))%"
     }
+
+    func heatDamage(for foe: EnemyState) -> Int { 0 }
 
     /// The hour's depth folded into a printed damage value. The single place
     /// the scaling lives, so the telegraph and the blow can never disagree.
@@ -1152,9 +1159,19 @@ final class BattleEngine {
     /// A step's damage with its armed Chisels folded in — the number the
     /// plan and the forecast print.
     func displayedDamage(for step: PlanStep) -> Int {
-        let multiplier = armedDamageMultiplier(for: step)
-        guard multiplier != 1.0 else { return step.damage }
-        return GameData.scaleUp(step.damage, by: multiplier)
+        guard let combo = step.combo, combo.roles.contains(.attack) else { return step.damage }
+        var focus = focusPrime
+        for previous in turnPlan {
+            if previous.id == step.id { break }
+            if previous.combo?.roles.contains(.attack) == true { focus = 0 }
+            if let action = previous.combo, action.focusPercent > 0 {
+                let amount = previous.faces.first?.matchFace == .focus
+                    ? GameData.scaleUp(action.focusPercent, by: previous.comboScale) : action.focusPercent
+                focus = max(focus, amount)
+            }
+        }
+        let percent = min(200, focus + Int(((armedDamageMultiplier(for: step) - 1) * 100).rounded()))
+        return Int((Double(combo.damage) * step.comboScale + Double(step.momentumBonus)) * (1 + Double(percent) / 100))
     }
 
     /// One copper line naming what the armed Chisels and passives do to this
@@ -1751,7 +1768,7 @@ final class BattleEngine {
 
     func assignEvade(faceID: UUID, strikeID: String?) {
         guard phase == .player, !isRolling, turnPlan.contains(where: {
-            $0.id == faceID && !$0.isCombo && $0.faces.first?.matchFace == .evade
+            ($0.combo?.dodgeCharges ?? 0) > 0 && $0.faces.prefix($0.combo?.dodgeCharges ?? 0).contains { $0.id == faceID }
         }) else { return }
         if let strikeID {
             for (otherID, assigned) in evadeAssignments where otherID != faceID && assigned == strikeID {
@@ -1912,7 +1929,6 @@ final class BattleEngine {
         // The reel supplies its own impact. Reserve camera shake for combat;
         // six overlapping whole-screen shakes make the roll read as dropped frames.
         if result.isCrit {
-            critsLanded += 1
             Haptics.heavy()
             Audio.shared.play(.diceLock)
             Audio.shared.play(.crit, after: 0.06, volumeScale: 0.7)
@@ -2294,6 +2310,7 @@ final class BattleEngine {
                             faces: step.faces.map(\.matchFace)
                         ))
                     }
+                    critsLanded += step.critDice
                     applyCombo(combo, step: step, crit: didCrit, targetIndex: target)
                     if step.isCombo, step.faces.first?.matchFace.isSwing == true {
                         weaponComboLandedThisTurn = true
@@ -2400,7 +2417,7 @@ final class BattleEngine {
         boilingNileTick()
         // Anubis's Sentence: stored by a trial champion, it falls against
         // health at the end of your next turn.
-        if playerJudgementPending {
+        if playerJudgementPending, turnNumber >= playerJudgementExpires {
             playerJudgementPending = false
             let amount = playerJudgementAmount
             playerJudgementAmount = 0
@@ -2408,6 +2425,7 @@ final class BattleEngine {
             if amount > 0 { lostHealthThisRound = true }
             addFloat("-\(amount) SENTENCE", color: Deity.anubis.tint, onEnemy: false, big: true)
             withAnimation(.linear(duration: 0.35)) { shakeTrigger += 0.6 }
+            preventLethalDamage()
             if playerHP <= 0 {
                 finishDefeat("The Sentence falls, and the scale tips...")
                 return
@@ -2443,11 +2461,14 @@ final class BattleEngine {
     private func settleStatusTicks() async {
         for index in enemies.indices where enemies[index].isAlive {
             for tick in statusTicks(index: index) {
+                guard enemies[index].isAlive else { break }
                 try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
                 enemies[index].animate(.hurt)
                 showStatusImpact(tick.label, on: .foe(enemies[index].id), magnitude: tick.amount)
-                enemies[index].hp = max(0, enemies[index].hp - tick.amount)
-                damageDealt += tick.amount
+                let paid = min(tick.amount, enemies[index].hp)
+                enemies[index].hp -= paid
+                damageDealt += paid
+                indirectDamage += paid
                 addFloat("-\(tick.amount) \(tick.label)", color: tick.color, onEnemy: true,
                          foe: enemies[index].id)
                 lastAction = "\(enemies[index].displayName) takes \(tick.amount) \(tick.label.lowercased()) damage."
@@ -2460,8 +2481,9 @@ final class BattleEngine {
 
     private func settlePlayerStatusTicks() async {
         let ticks: [(label: String, amount: Int, color: Color)] = [
+            ("Burn", playerBurnAmount, Theme.ember),
             ("Bleed", playerBleedTurns > 0 ? playerBleedAmount : 0, Theme.blood),
-            ("Burn", playerBurnTurns > 0 ? playerBurnAmount : 0, Theme.ember)
+            ("Poison", playerPoisonAmount, Theme.venom)
         ]
         for tick in ticks where tick.amount > 0 {
             try? await Task.sleep(for: .milliseconds(BattleBeat.statusTick))
@@ -2469,7 +2491,8 @@ final class BattleEngine {
             showStatusImpact(tick.label, on: .player, magnitude: tick.amount)
             playerHP = max(0, playerHP - tick.amount)
             lostHealthThisRound = true
-            if tick.label == "Bleed" { playerBleedTurns -= 1 }
+            if tick.label == "Bleed" { playerBleedTurns -= 1; if playerBleedTurns == 0 { playerBleedAmount = 0 } }
+            if tick.label == "Poison" { playerPoisonAmount = GameData.poisonAfterTick(playerPoisonAmount) }
             if tick.label == "Burn" {
                 playerBurnAmount = GameData.burnAfterTick(playerBurnAmount)
                 playerBurnTurns = playerBurnAmount > 0 ? 1 : 0
@@ -2477,6 +2500,7 @@ final class BattleEngine {
             addFloat("-\(tick.amount) \(tick.label)", color: tick.color, onEnemy: false)
             try? await Task.sleep(for: .milliseconds(BattleBeat.statusHold))
             resetPoses()
+            preventLethalDamage()
             if playerHP <= 0 {
                 finishDefeat(tick.label == "Bleed" ? "You bleed out..." : "The burning sun consumes you...")
                 return
@@ -2615,7 +2639,9 @@ final class BattleEngine {
         if combo.dodgeCharges > 0 {
             let before = dodgeReservations.count
             gainDodges(combo.dodgeCharges)
-            if dodgeReservations.count > before { dodgeReservations[before] = evadeAssignments[step.id] }
+            for offset in 0..<(dodgeReservations.count - before) where offset < step.faces.count {
+                dodgeReservations[before + offset] = evadeAssignments[step.faces[offset].id]
+            }
         }
         if combo.reflect > 0 { reflectFraction = combo.reflect; nativeReflectCap = combo.reflectCap }
         if combo.regenAmount > 0 { regenAmount = max(regenAmount, combo.regenAmount); regenTurns = 2 }
@@ -2663,6 +2689,14 @@ final class BattleEngine {
             }
         }
         if thermalPending { primeBonus(percent: 15); thermalPending = false }
+    }
+
+    private func preventLethalDamage() {
+        guard playerHP <= 0, activeBoon("LG-BA") != nil, !nineLivesUsed else { return }
+        nineLivesUsed = true
+        playerHP = 1
+        gainDodges(2)
+        addFloat("NINE LIVES UNBOUND", color: Deity.bastet.tint, onEnemy: false, big: true)
     }
 
     private func cleanseStatuses(count: Int) {
@@ -2916,7 +2950,7 @@ final class BattleEngine {
         if roles.contains(.guardian) { guardsThisRound += 1 }
 
         if roles.contains(.attack), let evolved = activeBoon("LG-BE") {
-            let count = step.faces.filter { $0.matchFace.isAttack }.count
+            let count = step.faces.count
             if (boonStartShield ?? 0) >= 8 { primeBonus(percent: 10) }
             let inherited = GodCatalog.boon("BE-A1")?.resolved(rarity: evolved.rarity, level: evolved.level).shield ?? 2
             gainShield(min(8, count * inherited))
@@ -3543,15 +3577,9 @@ final class BattleEngine {
     /// round count because it bites when the creature attacks, not on a clock.
     private func applyBleed(_ amount: Int, turns: Int = 0, targetIndex target: Int?) {
         guard amount > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
-        let capped = min(GameData.bleedStackCap, amount)
-        guard capped > enemies[target].bleedAmount else {
-            addFloat("Bleed holds at \(enemies[target].bleedAmount)",
-                     color: Theme.blood, onEnemy: true, foe: enemies[target].id)
-            return
-        }
-        enemies[target].bleedAmount = capped
-        enemies[target].bleedTurns = 1
-        addFloat("Bleed \(capped)", color: Theme.blood, onEnemy: true, foe: enemies[target].id)
+        enemies[target].bleedAmount = min(GameData.bleedStackCap, max(amount, enemies[target].bleedAmount))
+        enemies[target].bleedTurns = 2
+        addFloat("Bleed \(enemies[target].bleedAmount)", color: Theme.blood, onEnemy: true, foe: enemies[target].id)
     }
 
     /// Anubis's Burial Cloth: a held guard washes your own wounds away.
@@ -3572,6 +3600,7 @@ final class BattleEngine {
     private func applyWeaken(_ fraction: Double, targetIndex target: Int?) {
         guard fraction > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
         let value = min(GameData.weakenCeiling, fraction)
+        enemies[target].weakenExpires = turnNumber + 1
         guard value > enemies[target].weaken else { return }
         enemies[target].weaken = value
         addFloat("Weaken \(Int(value * 100))%", color: Theme.frost,
@@ -3582,6 +3611,7 @@ final class BattleEngine {
     /// be cashed in by the same action that applied it.
     private func applyMark(_ fraction: Double, targetIndex target: Int?) {
         guard fraction > 0, let target, enemies.indices.contains(target), enemies[target].isAlive else { return }
+        enemies[target].markExpires = turnNumber + 1
         guard fraction > enemies[target].markBonus else { return }
         enemies[target].markBonus = fraction
         addFloat("Marked +\(Int(fraction * 100))%", color: Theme.venom,
@@ -3610,6 +3640,9 @@ final class BattleEngine {
         var damage = max(0, raw)
         let bypass = Int(Double(damage) * min(1, max(0, pierce)))
         var guarded = damage - bypass
+        let shieldAbsorbed = min(foe.shield, guarded)
+        foe.shield -= shieldAbsorbed
+        guarded -= shieldAbsorbed
         let absorbed = min(foe.armour, guarded)
         foe.armour -= absorbed
         guarded -= absorbed
@@ -3679,7 +3712,15 @@ final class BattleEngine {
     private func endOfRound() {
         // The round's banks and retaliation, checked against what the round
         // actually ended on — shield still standing, stamina actually spent.
+        let oldAttribution = attributing
+        attributing = .divine
         applyRoundEndBoons()
+        attributing = oldAttribution
+        for index in enemies.indices {
+            enemies[index].shield = 0
+            if turnNumber >= enemies[index].markExpires { enemies[index].markBonus = 0 }
+            if turnNumber >= enemies[index].weakenExpires { enemies[index].weaken = 0 }
+        }
 
         // Capstone: Unbroken House — retaliate for half of what the shield
         // absorbed, up to 20, at whoever hit hardest.
@@ -3724,6 +3765,8 @@ final class BattleEngine {
     /// Powers armed by an Evade action, paid out when a hit is actually
     /// slipped. Armed reactions expire at round end if never used.
     private func boonsOnDodge(attacker: EnemyState) {
+        let old = attributing; attributing = .divine
+        defer { attributing = old }
         let attackerIndex = enemies.firstIndex { $0.id == attacker.id }
         for boon in boons {
             guard let def = boon.def else { continue }
@@ -4001,6 +4044,7 @@ final class BattleEngine {
             try? await Task.sleep(for: .milliseconds(BattleBeat.sentence))
             foe.animate(.attack, power: 3)
             addFloat("SENTENCE \(GameData.trialSentence)", color: Deity.anubis.tint, onEnemy: true, big: true, foe: foe.id)
+            playerJudgementExpires = turnNumber + 1
             playerJudgementAmount = GameData.trialSentence
             playerJudgementPending = true
             lastAction = "\(foe.displayName) passes Sentence — it falls at the end of your next turn."
@@ -4090,7 +4134,7 @@ final class BattleEngine {
                     }
                     if playerShield == 0, absorbed > 0, !shieldBrokeThisRound {
                         shieldBrokeThisRound = true
-                        if activeBoon("DU-14") != nil { gainDodges(1) }
+                        if activeBoon("DU-14") != nil, boonsFiredThisRound.contains("DU-14") { gainDodges(1) }
                     }
                     if playerShield == 0, !shieldRebuiltThisBattle,
                        hasUpgrade("be_rebuild") || activeBoon("BE-D2") != nil {
@@ -4141,14 +4185,8 @@ final class BattleEngine {
 
                 // Capstone: Nine Lives Unbound — once a battle, death waits.
                 if playerHP <= 0 {
-                    if (capstoneID == "ba_nineLives" || activeBoon("LG-BA") != nil), !nineLivesUsed {
-                        nineLivesUsed = true
-                        playerHP = 1
-                        gainDodges(2)
-                        primeBonus(damage: 10)
-                        addFloat("NINE LIVES UNBOUND", color: Deity.bastet.tint, onEnemy: false, big: true)
-                        Haptics.heavy()
-                    } else {
+                    preventLethalDamage()
+                    if playerHP <= 0 {
                         finishDefeat("\(foe.displayName) puts out the disc...")
                         return true
                     }
@@ -4161,8 +4199,8 @@ final class BattleEngine {
         }
 
         if move.bleedAmount > 0 && landedAnyHit {
-            playerBleedAmount = max(playerBleedAmount, move.bleedAmount)
-            playerBleedTurns = max(playerBleedTurns, move.bleedTurns)
+            playerBleedAmount = min(GameData.bleedStackCap, max(playerBleedAmount, move.bleedAmount))
+            playerBleedTurns = 2
             addFloat("Bleeding!", color: Theme.blood, onEnemy: false)
         }
 
@@ -4186,7 +4224,7 @@ final class BattleEngine {
     private func turnContext(for foe: EnemyState) -> EnemyTurnContext {
         EnemyTurnContext(
             hpFraction: foe.hpFraction,
-            isBare: foe.armour <= 0,
+            isBare: foe.armour + foe.shield <= 0,
             isWellGuarded: foe.isWellGuarded,
             playerHPFraction: playerMaxHP > 0 ? Double(playerHP) / Double(playerMaxHP) : 0,
             playerHasShield: playerShield > 0,

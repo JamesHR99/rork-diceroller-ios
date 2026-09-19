@@ -204,11 +204,24 @@ enum GameData {
     // MARK: - Offer pools
 
     static func diceOffers(_ classID: String, _ rarity: Rarity) -> [(die: Die, hint: String)] {
+        let offers: [(die: Die, hint: String)]
         switch classID {
-        case "archer": ArcherContent.diceOffers(rarity)
-        case "warrior": WarriorContent.diceOffers(rarity)
-        case "rogue": RogueContent.diceOffers(rarity)
-        default: MagicianContent.diceOffers(rarity)
+        case "archer": offers = ArcherContent.diceOffers(rarity)
+        case "warrior": offers = WarriorContent.diceOffers(rarity)
+        case "rogue": offers = RogueContent.diceOffers(rarity)
+        default: offers = MagicianContent.diceOffers(rarity)
+        }
+        let legal = SameFaceCatalog.palette(for: classID)
+        return offers.map { offer in
+            var die = offer.die
+            var counts: [FaceKind: Int] = [:]
+            die.faces = die.faces.map { side in
+                let kind = legal.contains(side.kind) && counts[side.kind, default: 0] < 3
+                    ? side.kind : (legal.first { counts[$0, default: 0] < 3 } ?? legal[0])
+                counts[kind, default: 0] += 1
+                return side.reforged(to: kind)
+            }
+            return (die, "Build matching groups of 1–6 dice")
         }
     }
 

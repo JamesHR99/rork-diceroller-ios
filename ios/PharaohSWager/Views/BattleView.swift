@@ -527,6 +527,8 @@ private struct BattleContentView: View {
                     .kerning(1.2)
                     .foregroundStyle(Theme.parchmentDim)
                 Text("\(engine.turnNumber)")
+                    .accessibilityLabel("Round \(engine.turnNumber). \(engine.pressureSummary)")
+                    .help(engine.pressureSummary)
                     .font(.system(size: 15, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.gold)
                     .contentTransition(.numericText())
@@ -840,3 +842,4 @@ private struct DeckShelfBackground: View {
         .allowsHitTesting(false)
     }
 }
+

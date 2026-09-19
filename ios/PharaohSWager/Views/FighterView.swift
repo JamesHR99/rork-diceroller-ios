@@ -563,6 +563,7 @@ struct FighterView: View {
                                        total: engine.playerJudgementAmount))
             }
         } else if let foe {
+            if foe.shield > 0 { list.append(LiveStatus(kind: .shield, onSelf: false, total: foe.shield)) }
             if foe.isTrialChampion, engine.trialAccepted {
                 list.append(LiveStatus(kind: .champion, onSelf: false))
             }
@@ -631,3 +632,4 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
+

@@ -52,7 +52,7 @@ struct InfoSheetView: View {
 
     /// Every chain this class could ever find, for the found-count heading.
     private var allCombos: [ComboDef] {
-        SameFaceCatalog.actions(for: classID) + SharedContent.combos
+        SameFaceCatalog.actions(for: classID)
     }
 
     var body: some View {
@@ -257,15 +257,15 @@ struct InfoSheetView: View {
 
             comboGroup(
                 title: "\(hero.weaponName.uppercased()) — WEAPON COMBOS",
-                combos: SameFaceCatalog.actions(for: classID).filter { $0.source == .weapon }
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner != nil && $0.source == .weapon }
             )
             comboGroup(
                 title: "\(hero.armorName.uppercased()) — ARMOUR COMBOS",
-                combos: SameFaceCatalog.actions(for: classID).filter { $0.source == .armor }
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner != nil && $0.source == .armor }
             )
             comboGroup(
-                title: "SHARED CHAINS — EVERY CLASS CAN FIND THESE",
-                combos: SharedContent.combos
+                title: "SHARED FACES",
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner == nil }
             )
 
             if classID == "warrior" {

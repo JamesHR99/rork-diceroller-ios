@@ -163,4 +163,41 @@ struct BattleLoopTests {
             #expect(legendary.slot == GodCatalog.boon(legendary.evolves ?? "")?.slot)
         }
     }
+    @Test func enemyShieldDoesNotRestoreItsArmourPool() {
+        let def = EnemyContent.enemy(hour: 1, isHerald: false)
+        var foe = EnemyState(def: def)
+        foe.armour = 0
+        foe.gainGuard(18)
+        #expect(foe.armour == 0)
+        #expect(foe.shield == 18)
+        foe.gainGuard(200)
+        #expect(foe.shield == 100)
+    }
+
+    @Test func bleedingSoloPaysAtRoundEndAndKeepsItsSecondTick() async throws {
+        let engine = battle([.swiftSlash, .daggerThrow, .poison, .block, .evade, .heal], classID: "rogue")
+        try await roll(engine)
+        let slash = try #require(engine.rolled.first { $0.face == .swiftSlash })
+        engine.placeInPlayBar(faceID: slash.id)
+        let native = try #require(SameFaceCatalog.action(.swiftSlash, count: 1))
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == 500 - native.damage - native.bleedAmount)
+        #expect(engine.enemies[0].bleedAmount == native.bleedAmount)
+        #expect(engine.enemies[0].bleedTurns == 1)
+    }
+
+    @Test func dieOffersRespectClassPaletteAndThreeSideLimit() {
+        for classID in ["archer", "warrior", "rogue", "magician"] {
+            for rarity in Rarity.allCases {
+                for offer in GameData.diceOffers(classID, rarity) {
+                    #expect(offer.die.faces.count == 6)
+                    for face in offer.die.faces {
+                        #expect(SameFaceCatalog.palette(for: classID).contains(face.kind))
+                        #expect(offer.die.faces.filter { $0.kind == face.kind }.count <= 3)
+                    }
+                }
+            }
+        }
+    }
+
 }

@@ -468,6 +468,18 @@ struct PlayBarView: View {
         )
         .shadow(color: tint.opacity(burstStepID == step.id ? 0.9 : 0.35),
                 radius: burstStepID == step.id ? 16 : 8)
+        .contextMenu {
+            if let action = step.combo, action.dodgeCharges > 0 {
+                ForEach(Array(step.faces.prefix(action.dodgeCharges).enumerated()), id: \.element.id) { index, face in
+                    Menu("Dodge \(index + 1): \(engine.evadeTargetLabel(faceID: face.id))") {
+                        Button("Next incoming strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
+                        ForEach(engine.incomingStrikes) { strike in
+                            Button(strike.title) { engine.assignEvade(faceID: face.id, strikeID: strike.id) }
+                        }
+                    }
+                }
+            }
+        }
         .scaleEffect(burstStepID == step.id ? 1 + (1 - burstProgress) * 0.16 : 1)
         .overlay {
             if burstStepID == step.id {
