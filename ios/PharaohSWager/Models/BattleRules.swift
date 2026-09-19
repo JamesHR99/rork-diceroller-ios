@@ -31,6 +31,16 @@ enum BattleRules {
         return true
     }
 
+    /// Move one announced foe action after the next player action. No entry
+    /// is added or removed, even if the player has no actions left.
+    static func postponeEnemy(_ foeID: UUID, queue: inout [TimelineEntry]) -> Bool {
+        guard let index = queue.firstIndex(where: { $0.sourceID == foeID && !$0.isPlayer }) else { return false }
+        let delayed = queue.remove(at: index)
+        let nextPlayer = queue.indices.first { $0 >= index && queue[$0].isPlayer }
+        queue.insert(delayed, at: nextPlayer.map { $0 + 1 } ?? queue.count)
+        return true
+    }
+
     static func guardAfterRound(_ guardValue: Int, warrior: Bool) -> Int {
         warrior ? min(warriorGuardCarry, max(0, guardValue)) : 0
     }

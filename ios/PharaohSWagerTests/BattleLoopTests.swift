@@ -42,6 +42,23 @@ struct BattleLoopTests {
         #expect(BattleRules.alternating(player: [Int](), enemy: [1, 2]) == [1, 2])
     }
 
+    @Test func delayChangesOrderWithoutDeletingOrRepeatingEnemyActions() {
+        let foeID = UUID()
+        let otherID = UUID()
+        let player = TimelineEntry(side: .player, beat: 2, duration: 1, title: "Player", detail: "", sourceID: UUID())
+        let enemy = TimelineEntry(side: .foe(foeID), beat: 1, duration: 1, title: "Enemy", detail: "", sourceID: foeID)
+        let other = TimelineEntry(side: .foe(otherID), beat: 3, duration: 1, title: "Other", detail: "", sourceID: otherID)
+        var queue = [enemy, player, other]
+        let ids = Set(queue.map(\.id))
+        #expect(BattleRules.postponeEnemy(foeID, queue: &queue))
+        #expect(queue.map(\.title) == ["Player", "Enemy", "Other"])
+        #expect(Set(queue.map(\.id)) == ids)
+        queue = [enemy, other]
+        #expect(BattleRules.postponeEnemy(foeID, queue: &queue))
+        #expect(queue.count == 2)
+        #expect(queue.last?.sourceID == foeID)
+    }
+
     @Test func reservedDodgeWaitsForItsHitAndNeverCancelsAWholeMove() {
         var charges: [String?] = ["second", nil]
         #expect(BattleRules.consumeDodge(reservations: &charges, strikeID: "first"))
@@ -181,6 +198,7 @@ struct BattleLoopTests {
         let before = engine.enemies[0].hp
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == before - expected)
+        #expect(engine.siegeArmedFaceIDs.isEmpty && engine.rerollsRemaining == 1)
     }
 
     @Test func guardExpiresExceptForWarriorCarry() {

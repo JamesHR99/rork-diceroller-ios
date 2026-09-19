@@ -270,7 +270,7 @@ struct LiveStatus: Identifiable {
             }
         }
         if let total, perTick == nil {
-            lines.append((kind == .judgement ? "Stored" : "Depth", "\(total)"))
+            lines.append((kind == .judgement ? "Stored" : (kind == .evade ? "Hits protected" : "Depth"), "\(total)"))
         }
         // Judgement is the one status you can watch coming, so the bubble
         // spells out both the wait and what the pile is currently worth.

@@ -91,7 +91,6 @@ struct PlanStep: Identifiable {
     /// Chance the whole combo crits, from how many crit dice fed it.
     let comboCritChance: Double
 
-
     init(
         faces: [RolledFace],
         combo: ComboDef?,
@@ -195,6 +194,7 @@ struct PlanStep: Identifiable {
             if combo.heal > 0 { parts.append("+\(scaled(combo.heal)) HP") }
             if combo.regenAmount > 0 { parts.append("Regen \(scaled(combo.regenAmount))×\(combo.regenTurns)") }
             if combo.lifesteal { parts.append("Lifesteal") }
+            if combo.momentumNext > 0 { parts.append("+\(scaled(combo.momentumNext)) damage next round") }
             if combo.shield > 0 { parts.append("+\(scaled(combo.shield)) Shield") }
             if combo.dodgeCharges > 0 { parts.append("\(combo.dodgeCharges) Dodge") }
             if combo.pierce > 0 { parts.append("Pierce \(Int(combo.pierce * 100))%") }
@@ -685,7 +685,6 @@ final class BattleEngine {
     /// Anubis's Preserved Moment, armed in planning: this one commitment may
     /// hold three faces instead of two.
 
-
     // MARK: God powers, per round
     /// Completed primary player actions this round, by role. Every
     /// "first/second/third" counter in the catalogue reads these — never
@@ -740,7 +739,6 @@ final class BattleEngine {
     private(set) var playerPose: FighterPose = .idle
     /// The gods whose blessings ride the blow currently being thrown.
     private(set) var strikeGods: [Deity] = []
-
 
     // MARK: Effects & stats
     /// Shots crossing the deck right now: arrows, thrown knives, cast runes and
@@ -809,7 +807,6 @@ final class BattleEngine {
         maxHP: Int,
         startHP: Int,
 
-
         hour: Int = 1,
         critBonus: Double,
         boons: [EquippedBoon] = [],
@@ -825,13 +822,11 @@ final class BattleEngine {
         self.classID = classID
         self.critBonus = critBonus
 
-
         self.boons = boons
         self.hour = hour
         self.playerMaxHP = maxHP
         self.playerHP = startHP
         // The round's allowance, not a carried bar: every encounter opens on 3.
-
 
         self.loadoutDice = dice
         let opening = Self.draw(count: GameData.diceDrawCount, from: dice, excluding: [])
@@ -1907,7 +1902,6 @@ final class BattleEngine {
             prospective.append(faceID)
         }
 
-
         if let slotID = slotID(showing: face.id) { rerollSelection.remove(slotID) }
         playOrder = prospective
         Haptics.light()
@@ -1944,9 +1938,9 @@ final class BattleEngine {
         var id: String { combo.id + "@" + faceIDs.map(\.uuidString).joined() }
     }
 
-    /// Every seam currently on offer: maximal adjacent runs of un-welded dice
-    /// that complete a recipe. Longer runs are listed first so a five-die
-    /// working is visible, but nothing is chosen for you.
+    /// Every adjacent recipe remains available until the player combines it.
+    /// Overlapping offers are alternatives, not reservations: Focus beside an
+    /// arrow must never hide the Twin Shot made by that arrow and its neighbour.
     var weldCandidates: [WeldCandidate] {
         guard phase == .player else { return [] }
         let faces = playedFaces
@@ -1961,9 +1955,6 @@ final class BattleEngine {
             for start in 0...(max(0, faces.count - length)) where start + length <= faces.count {
                 let window = Array(faces[start..<(start + length)])
                 guard !window.contains(where: { welded.contains($0.id) }) else { continue }
-                guard !found.contains(where: { candidate in
-                    window.contains { candidate.faceIDs.contains($0.id) }
-                }) else { continue }
                 guard let resolved = resolveWeld(window) else { continue }
                 found.append(WeldCandidate(faceIDs: window.map(\.id),
                                            combo: resolved.combo,
@@ -2292,6 +2283,10 @@ final class BattleEngine {
                 if dealtHealthDamage && pendingHealOnHit > 0 { healPlayer(pendingHealOnHit, label: "Feeding Frenzy") }
                 pendingHealOnHit = 0
                 applyPendingBoonEffects()
+                if let combo = step.combo {
+                    assassinArmed.remove(combo.id)
+                    counterweightArmed.remove(combo.id)
+                }
                 if hasChisel("ch_returningKnife"), !returningKnifeUsedThisTurn,
                    step.faces.contains(where: { $0.matchFace == .daggerThrow }) {
                     returningKnifeUsedThisTurn = true
@@ -2701,7 +2696,6 @@ final class BattleEngine {
             lastAction = "A drop of venom finds its mark."
         case .focus:
             lastAction = "Focus strengthens the next attack in your plan."
-
 
         case .damage:
             break
@@ -3409,8 +3403,6 @@ final class BattleEngine {
 
     }
 
-
-
     private func healPlayer(_ amount: Int, label: String? = nil) {
         guard amount > 0 else { return }
         let healed = min(playerMaxHP, playerHP + amount) - playerHP
@@ -3565,10 +3557,7 @@ final class BattleEngine {
         let foeID = enemies[index].id
         let already = foeDelays[foeID] ?? 0
         guard already < Timing.maxDelayPerEnemy else { return }
-        guard let index = pendingEntries.firstIndex(where: { $0.sourceID == foeID && !$0.isPlayer }) else { return }
-        let delayed = pendingEntries.remove(at: index)
-        let nextPlayer = pendingEntries.indices.first { $0 >= index && pendingEntries[$0].isPlayer }
-        pendingEntries.insert(delayed, at: nextPlayer.map { $0 + 1 } ?? pendingEntries.count)
+        guard BattleRules.postponeEnemy(foeID, queue: &pendingEntries) else { return }
         foeDelays[foeID] = already + 1
         addFloat("Delayed", color: Theme.frost, onEnemy: true, foe: foeID)
     }
@@ -4300,37 +4289,6 @@ final class BattleEngine {
     }
 
     private func startPlayerTurn() {
-        // The Echoing Staff's half-cast lands before anything else moves.
-        firePendingEcho()
-        if !hasLivingFoes { finishVictory(); return }
-
-        if regenTurns > 0 {
-            playerHP = min(playerMaxHP, playerHP + regenAmount)
-            regenTurns -= 1
-            addFloat("+\(regenAmount) Regen", color: Theme.forest, onEnemy: false)
-        }
-
-        if playerBleedTurns > 0 {
-            playerHP = max(0, playerHP - playerBleedAmount)
-            playerBleedTurns -= 1
-            addFloat("-\(playerBleedAmount) Bleed", color: Theme.blood, onEnemy: false)
-            if playerHP <= 0 {
-                finishDefeat("You bleed out...")
-                return
-            }
-        }
-
-        // Ra's trial: the champion's first strike leaves you burning.
-        if playerBurnTurns > 0 {
-            playerHP = max(0, playerHP - playerBurnAmount)
-            playerBurnTurns -= 1
-            addFloat("-\(playerBurnAmount) Burn", color: Theme.ember, onEnemy: false)
-            if playerHP <= 0 {
-                finishDefeat("The burning sun consumes you...")
-                return
-            }
-        }
-
         // Primes left unspent die after your next player turn.
         if turnNumber >= primeExpiryTurn {
             primeDamageFlat = 0
@@ -4340,23 +4298,7 @@ final class BattleEngine {
             primePierceBonus = 0
         }
 
-        rerollsUsed = 0
-        rerollBonus = min(1, nextRoundRerolls)
-        rerollSelection = []
-        selectingReroll = false
-        evadeAssignments = [:]
-        rollingSlotIDs = []
-        preparedFocusUsed = []
-        pendingEntries = []
-
-
-
-
-        foeDelays = [:]
-        currentBeat = 0
-
-
-
+        turnNumber += 1
         // Every "first/second/third" counter in the catalogue is per round.
         attacksThisRound = 0
         guardsThisRound = 0
@@ -4378,6 +4320,55 @@ final class BattleEngine {
         incomingAttemptedThisRound = false
         boonPierceBonus = 0
 
+        siegeArmedFaceIDs = []
+        counterweightArmed = []
+        assassinArmed = []
+        echoArmedComboID = nil
+        armingChiselID = nil
+        // The Echoing Staff's half-cast lands before anything else moves.
+        firePendingEcho()
+        if !hasLivingFoes { finishVictory(); return }
+
+        if regenTurns > 0 {
+            healPlayer(regenAmount, label: "Regen")
+            regenTurns -= 1
+        }
+
+        if playerBleedTurns > 0 {
+            playerHP = max(0, playerHP - playerBleedAmount)
+            if playerBleedAmount > 0 { lostHealthThisRound = true }
+            playerBleedTurns -= 1
+            addFloat("-\(playerBleedAmount) Bleed", color: Theme.blood, onEnemy: false)
+            if playerHP <= 0 {
+                finishDefeat("You bleed out...")
+                return
+            }
+        }
+
+        // Ra's trial: the champion's first strike leaves you burning.
+        if playerBurnTurns > 0 {
+            playerHP = max(0, playerHP - playerBurnAmount)
+            if playerBurnAmount > 0 { lostHealthThisRound = true }
+            playerBurnTurns -= 1
+            addFloat("-\(playerBurnAmount) Burn", color: Theme.ember, onEnemy: false)
+            if playerHP <= 0 {
+                finishDefeat("The burning sun consumes you...")
+                return
+            }
+        }
+
+        rerollsUsed = 0
+        rerollBonus = min(1, nextRoundRerolls)
+        rerollSelection = []
+        selectingReroll = false
+        evadeAssignments = [:]
+        rollingSlotIDs = []
+        preparedFocusUsed = []
+        pendingEntries = []
+
+        foeDelays = [:]
+        currentBeat = 0
+
         if nextRoundRerolls > 0 {
             addFloat("Extra reroll ready", color: Theme.gold, onEnemy: false)
         }
@@ -4395,7 +4386,6 @@ final class BattleEngine {
         drawnDieIDs = Set(drawn.map(\.id))
         rolled = []
         hasRolled = false
-
 
         var reCoiled = false
         for index in enemies.indices where enemies[index].isAlive {
@@ -4419,7 +4409,6 @@ final class BattleEngine {
                 context: turnContext(for: enemies[index])
             )
         }
-        turnNumber += 1
 
         // Per-turn Chisel timers: the nock frees up, the current forgets and
         // the knife's promise is renewed.

@@ -252,8 +252,8 @@ struct ComboDef: Identifiable, Hashable {
         if regenAmount > 0 { parts.append("regen \(regenAmount)×\(regenTurns)") }
         if lifesteal { parts.append("heals for damage dealt") }
         if shield > 0 { parts.append("\(shield) shield") }
-        if dodgeCharges > 0 { parts.append("+\(dodgeCharges)% evade") }
-        if momentumNext > 0 { parts.append("+\(momentumNext) next swing") }
+        if dodgeCharges > 0 { parts.append("\(dodgeCharges) Dodge") }
+        if momentumNext > 0 { parts.append("+\(momentumNext) damage next round") }
         if guaranteedCrit { parts.append("always crits") }
         return parts.joined(separator: ", ")
     }

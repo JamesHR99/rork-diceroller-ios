@@ -197,7 +197,7 @@ struct PlayBarView: View {
     private var planHeader: some View {
         HStack(spacing: 8) {
             Button { showingOrder = true } label: {
-                Label("TURN ORDER", systemImage: "list.number")
+                Label(compact ? "ORDER" : "TURN ORDER", systemImage: "list.number")
                     .font(.system(size: 10, weight: .black))
                     .foregroundStyle(Theme.gold)
             }
@@ -206,7 +206,7 @@ struct PlayBarView: View {
                     List {
                         Section("Prepared before attacks") {
                             ForEach(engine.displayedPlan.filter(\.isPreparedSupport)) { step in
-                                Text(step.isFocus ? "Focus → next attack +50%" : step.valueLine)
+                                Text("\(step.title) · \(engine.planDetail(for: step))")
                             }
                         }
                         Section("Alternating actions") {
@@ -225,11 +225,6 @@ struct PlayBarView: View {
                     .toolbar { Button("Done") { showingOrder = false } }
                 }
             }
-            Text("PLAN")
-                .font(.fantasy(12, weight: .black))
-                .kerning(1.4)
-                .foregroundStyle(Theme.gold.opacity(0.85))
-
             // The header is a title, not a narrator. The only line that earns
             // its place is the held Chisel prompt, which is an instruction.
             if let chisel = engine.armingChisel {
@@ -247,18 +242,12 @@ struct PlayBarView: View {
             if engine.hasEchoPending {
                 HStack(spacing: 3) {
                     PharaohSWagerIcon(name: PharaohSWagerArt.echoMarker, size: 16)
-                    Text("ECHO WAITS")
+                    Text(compact ? "ECHO" : "ECHO WAITS")
                         .font(.system(size: 10.5, weight: .black))
                         .kerning(0.8)
                 }
                 .foregroundStyle(Theme.ptahCopper)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
-            } else if !planFaces.isEmpty {
-                Text("\(planFaces.count) \(planFaces.count == 1 ? "DIE" : "DICE")")
-                    .font(.system(size: 11, weight: .black).monospacedDigit())
-                    .kerning(0.8)
-                    .foregroundStyle(Theme.gold.opacity(0.75))
-                    .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
         .frame(height: compact ? 14 : 16)
@@ -375,8 +364,8 @@ struct PlayBarView: View {
     /// swallow can wear the same bracket. Seams never overlap, so a die is in
     /// at most one of these.
     private func pendingGroup(for faceID: UUID) -> BattleEngine.WeldCandidate? {
-        guard engine.phase == .player else { return nil }
-        return engine.weldCandidates.first { $0.faceIDs.contains(faceID) }
+        guard engine.phase == .player, let picking else { return nil }
+        return picking.options.first { $0.faceIDs.contains(faceID) }
     }
 
     /// An action you welded together: its name, its ingredient dice, its cost,
