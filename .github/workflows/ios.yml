@@ -1,0 +1,38 @@
+name: iOS battle rules
+on:
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode and an available iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH=$(python3 - <<'PY'
+          import glob, re
+          paths = glob.glob('/Applications/Xcode*.app')
+          print(max(paths, key=lambda p: tuple(map(int, re.findall(r'\d+', p))) or (0,)))
+          PY
+          )
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          xcodebuild -version
+          SIMULATOR_ID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPhone")))')
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+      - name: Build and run battle regression tests
+        run: |
+          set -o pipefail
+          xcodebuild test -project ios/PharaohSWager.xcodeproj -scheme PharaohSWager -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -only-testing:PharaohSWagerTests CODE_SIGNING_ALLOWED=NO -resultBundlePath TestResults.xcresult | tee xcodebuild.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-test-results
+          path: |
+            TestResults.xcresult
+            xcodebuild.log

@@ -29,13 +29,13 @@ enum ChiselCatalog {
         ),
         ChiselDef(
             id: "ch_siegeDraw", classID: "archer", name: "Siege Draw",
-            detail: "Tap the mark, then an arrow: +1 stamina for +40% damage and 50% pierce. Carries to whatever combo that arrow joins.",
+            detail: "Tap the mark, then an arrow: reserve 1 reroll for +40% damage and 50% pierce. Carries to whatever combo that arrow joins.",
             example: "Overdraw an arrow inside Piercing Bolt and all 38 pierces.",
             symbol: "arrow.up.circle.fill", isOptional: true
         ),
         ChiselDef(
             id: "ch_adjustableNock", classID: "archer", name: "Adjustable Nock",
-            detail: "Once a turn, tap a held arrow to shift it one tier up or down. The die visibly changes. Tap again to put it back.",
+            detail: "Once a turn, tap a kept arrow to shift it one tier up or down. The die visibly changes. Tap again to put it back.",
             example: "Arrow I → Arrow II, forming Perfect Shot.",
             symbol: "chevron.up.chevron.down", isOptional: false
         ),
@@ -55,16 +55,16 @@ enum ChiselCatalog {
         ),
         ChiselDef(
             id: "ch_relentless", classID: "warrior", name: "Relentless Advance",
-            detail: "Land a weapon combo: next turn's first one costs 1 less, min 1.",
-            example: "Wide Sweep costs 1 instead of 2.",
+            detail: "Land a weapon combo: next round's first weapon combo deals +6 damage.",
+            example: "Wide Sweep gains 6 damage after a combo last round.",
             symbol: "forward.fill", isOptional: false
         ),
 
         // MARK: Rogue
         ChiselDef(
             id: "ch_returningKnife", classID: "rogue", name: "Returning Knife",
-            detail: "Once a turn, your first thrown dagger returns held next turn. Takes a hold slot.",
-            example: "Throw it turn 3, it opens turn 4.",
+            detail: "Once a round, your first thrown dagger banks +6 damage for next round's first attack.",
+            example: "Throw now, strengthen your next opening attack.",
             symbol: "arrow.uturn.backward.circle.fill", isOptional: false
         ),
         ChiselDef(
@@ -75,7 +75,7 @@ enum ChiselCatalog {
         ),
         ChiselDef(
             id: "ch_assassin", classID: "rogue", name: "Assassin's Commitment",
-            detail: "Burn 15% evade for +40% damage and 50% pierce.",
+            detail: "Spend 1 prepared Dodge for +40% damage and 50% pierce.",
             example: "Hemorrhage 36 → 50, mostly unblockable.",
             symbol: "bolt.fill", isOptional: true
         ),
@@ -89,14 +89,14 @@ enum ChiselCatalog {
         ),
         ChiselDef(
             id: "ch_echoingStaff", classID: "magician", name: "Echoing Staff",
-            detail: "+1 stamina: the spell repeats next turn for half its damage, healing and shield.",
+            detail: "Reserve 1 reroll: the spell repeats next turn for half its damage, healing and shield.",
             example: "Fireball 26 → echoes for 13.",
             symbol: "repeat", isOptional: true
         ),
         ChiselDef(
             id: "ch_current", classID: "magician", name: "Alternating Current",
-            detail: "Alternate matched and mixed runes to bank 1 stamina, once a turn.",
-            example: "Fireball then Meteor → +1 stamina.",
+            detail: "Alternate matched and mixed runes to bank 1 extra reroll next round, once a turn.",
+            example: "Fireball then Meteor → +1 reroll next round.",
             symbol: "arrow.left.arrow.right", isOptional: false
         ),
     ]
@@ -110,3 +110,4 @@ enum ChiselCatalog {
         all.first { $0.id == id }
     }
 }
+

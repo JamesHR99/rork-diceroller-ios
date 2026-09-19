@@ -129,18 +129,24 @@ enum BoonKind: Hashable {
 enum BoonTrigger: Hashable {
     case everyAttack
     case firstAttack
+    case firstSoloAttack
+    case firstFocusedAttack
+    case firstAttackAfterGuard
+    case firstAttackAfterSupport
+    case firstAttackAfterEvade
+    case firstTwoSoloAttacks
     case secondAttack
     case thirdAttack
     case firstLargeCombo
     case firstTwoFaceCombo
-    case firstFrozenAttack
+    case firstKeptAttack
     case firstAttackOnWounded
     case firstComboWithBlock
     case everyGuard
     case firstGuard
-    case firstFrozenGuard
+    case firstKeptGuard
     case firstEvade
-    case firstFrozenAction
+    case firstKeptAction
     case onDodge
     case onShieldAbsorb
     case encounterStart
@@ -153,18 +159,24 @@ enum BoonTrigger: Hashable {
         switch self {
         case .everyAttack: "Every attack"
         case .firstAttack: "First attack"
+        case .firstSoloAttack: "First individual attack"
+        case .firstFocusedAttack: "First focused attack"
+        case .firstAttackAfterGuard: "First attack after Block"
+        case .firstAttackAfterSupport: "First attack after support"
+        case .firstAttackAfterEvade: "First attack after Evade"
+        case .firstTwoSoloAttacks: "First two individual attacks"
         case .secondAttack: "Second attack"
         case .thirdAttack: "Third attack"
         case .firstLargeCombo: "First large combo"
         case .firstTwoFaceCombo: "First two-face combo"
-        case .firstFrozenAttack: "First held attack"
+        case .firstKeptAttack: "First kept attack"
         case .firstAttackOnWounded: "First attack on the wounded"
         case .firstComboWithBlock: "First attack combo with a Block"
         case .everyGuard: "Every guard"
         case .firstGuard: "First guard"
-        case .firstFrozenGuard: "First held guard"
+        case .firstKeptGuard: "First kept guard"
         case .firstEvade: "First evade"
-        case .firstFrozenAction: "First held action"
+        case .firstKeptAction: "First kept action"
         case .onDodge: "On your first dodge"
         case .onShieldAbsorb: "When your shield takes a hit"
         case .encounterStart: "At the start of the fight"
@@ -182,14 +194,14 @@ enum BoonCondition: Hashable {
     case targetJudged
     case hadEightShield
     case hasCritIngredient
-    case openedRoundWithFive
-    case usesFrozenFace
+    case focusedAction
+    case usesKeptFace
     case sameTargetAsLast
     case isTwoFaceCombo
     case lostNoHealth
     case healthAtHalf
     case endedWithEightShield
-    case endedWithZeroStamina
+    case usedAllDice
 }
 
 /// Which number on a card the level and rarity move. Everything else on the
@@ -204,7 +216,7 @@ enum BoonScalingField: Hashable {
     case judgement
     case shield
     case heal
-    case evadePoints
+    case dodgeCharges
     /// Cards whose scaling number is the *conditional* percentage, like Sun's
     /// Edge, where the fixed clause is the per-ingredient Burn.
     case bonusPercent
@@ -222,18 +234,17 @@ struct BoonPayload: Hashable {
     var judgement = 0
     var shield = 0
     var heal = 0
-    var evadePoints = 0
+    var dodgeCharges = 0
     /// How much the target's next attack is softened by, in percentage points.
     var weakenPercent = 0
     /// How much harder your next attack on the target lands, in percentage
     /// points. Additive on the hit, never multiplied over it.
     var markPercent = 0
-    /// Clears your own Burn, Bleed and Poison.
+    /// Clears your own Burn and Bleed.
     var cleansesSelf = false
-    /// Stamina banked for the following round.
-    var staminaNext = 0
-    /// Beats of Haste handed to the qualifying action.
-    var haste = 0
+    /// Extra rerolls banked for the following round.
+    var rerollsNext = 0
+    var guardNext = 0
     /// Scales the headline number by each qualifying ingredient.
     var perIngredient = false
     /// Ceiling when `perIngredient` pools its result (Sheltering Blow).
@@ -243,7 +254,7 @@ struct BoonPayload: Hashable {
     var bonusPercentDamage = 0
     var bonusFlatDamage = 0
     var bonusShield = 0
-    var bonusEvadePoints = 0
+    var bonusDodges = 0
     var bonusJudgement = 0
     var bonusHeal = 0
     /// Extra Burn added when the card's condition holds.
@@ -323,7 +334,7 @@ struct GodBoonDef: Identifiable, Hashable {
         case .judgement: result.judgement = live
         case .shield: result.shield = live
         case .heal: result.heal = live
-        case .evadePoints: result.evadePoints = live
+        case .dodgeCharges: result.dodgeCharges = live
         case .bonusPercent: result.bonusPercentDamage = live
         }
         return result
@@ -338,7 +349,7 @@ enum BoonSourceGroup: String, Hashable {
     case sobekHealing
     case anubisJudgement
     case besShield
-    case horusFrozen
+    case horusKept
     case horusPierce
     case bastetEvade
 
@@ -349,7 +360,7 @@ enum BoonSourceGroup: String, Hashable {
         case .sobekHealing: "Sobek Healing"
         case .anubisJudgement: "Anubis Judgement"
         case .besShield: "Bes Shield"
-        case .horusFrozen: "Horus Frozen"
+        case .horusKept: "Horus Kept"
         case .horusPierce: "Horus Pierce"
         case .bastetEvade: "Bastet Evade"
         }
@@ -363,7 +374,7 @@ enum BoonSourceGroup: String, Hashable {
         case .sobekBleed, .sobekHealing: .sobek
         case .anubisJudgement: .anubis
         case .besShield: .bes
-        case .horusFrozen, .horusPierce: .horus
+        case .horusKept, .horusPierce: .horus
         case .bastetEvade: .bastet
         }
     }
@@ -381,7 +392,7 @@ enum BoonSourceGroup: String, Hashable {
             ["AN-A1", "AN-A2", "AN-A3", "AN-A4", "AN-A5", "AN-D1", "AN-D2"]
         case .besShield:
             ["BE-A1", "BE-A2", "BE-A3", "BE-A4", "BE-A5", "BE-D1", "BE-D2", "BE-D3", "BE-U2"]
-        case .horusFrozen:
+        case .horusKept:
             ["HO-A1", "HO-D1", "HO-D2", "HO-D3", "HO-U1", "HO-U2"]
         case .horusPierce:
             ["HO-A1", "HO-A2", "HO-A3", "HO-A4", "HO-A5"]
@@ -416,3 +427,4 @@ struct EquippedBoon: Identifiable, Hashable, Codable {
         def?.text(rarity: rarity, level: level) ?? ""
     }
 }
+

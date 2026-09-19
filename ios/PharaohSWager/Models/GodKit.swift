@@ -13,8 +13,8 @@ struct GodAnswer: Hashable {
     var bleed = 0
     /// Judgement stored against the target (Anubis).
     var judgement = 0
-    /// Evade chance added, in percentage points (Bastet).
-    var evadePercent = 0
+    /// Guaranteed single-hit Dodge charges (Bastet).
+    var dodgeCharges = 0
     /// Flat damage banked onto your next damaging action.
     var primeDamage = 0
     /// Percentage damage banked onto your next damaging action.
@@ -25,14 +25,14 @@ struct GodAnswer: Hashable {
     var primeHeal = 0
     /// Fraction of the target's block and armour this attack ignores.
     var pierce = 0.0
-    /// Stamina handed back next turn.
-    var staminaNext = 0
+    /// Extra rerolls banked for the following round.
+    var rerollsNext = 0
 
     var isEmpty: Bool {
         damage == 0 && shield == 0 && heal == 0 && burn == 0 && bleed == 0
-            && judgement == 0 && evadePercent == 0 && primeDamage == 0
+            && judgement == 0 && dodgeCharges == 0 && primeDamage == 0
             && primePercent == 0 && primeBurn == 0 && primeHeal == 0
-            && pierce == 0 && staminaNext == 0
+            && pierce == 0 && rerollsNext == 0
     }
 
     /// One-line readout for the codex and offer cards.
@@ -44,13 +44,13 @@ struct GodAnswer: Hashable {
         if burn > 0 { parts.append("burn \(burn)") }
         if bleed > 0 { parts.append("bleed \(bleed)") }
         if judgement > 0 { parts.append("\(judgement) judgement") }
-        if evadePercent > 0 { parts.append("+\(evadePercent)% evade") }
+        if dodgeCharges > 0 { parts.append("+\(dodgeCharges) Dodge") }
         if primeDamage > 0 { parts.append("prime \(primeDamage) damage") }
         if primePercent > 0 { parts.append("prime +\(primePercent)%") }
         if primeBurn > 0 { parts.append("prime \(primeBurn) burn") }
         if primeHeal > 0 { parts.append("heal \(primeHeal) on your next hit") }
         if pierce > 0 { parts.append("ignore \(Int(pierce * 100))% defences") }
-        if staminaNext > 0 { parts.append("+\(staminaNext) stamina") }
+        if rerollsNext > 0 { parts.append("+\(rerollsNext) reroll") }
         return parts.joined(separator: ", ")
     }
 }
@@ -111,7 +111,7 @@ enum GodKit {
 
         case (.bastet, .attack): return GodAnswer(damage: 4)
         case (.bastet, .block): return GodAnswer(shield: 3)
-        case (.bastet, .evade): return GodAnswer(evadePercent: 8)
+        case (.bastet, .evade): return GodAnswer(dodgeCharges: 1)
         case (.bastet, .support): return GodAnswer(primeDamage: 4)
         }
     }
@@ -121,7 +121,7 @@ enum GodKit {
         switch role {
         case .attack: "Attacks"
         case .block: "Block faces"
-        case .evade: "Evade faces"
+        case .evade: "Evade: on the next dodge"
         case .support: "Mends & support"
         }
     }
@@ -136,7 +136,7 @@ enum GodKit {
                    detail: "Your attacks cut through a quarter of a burning enemy's defences.",
                    symbol: "flame.circle.fill"),
         GodUpgrade(id: "ra_solarWind", deity: .ra, name: "Solar Wind",
-                   detail: "An action holding a held Ra attack face deals 8 more damage.",
+                   detail: "An action holding a kept Ra attack face deals 8 more damage.",
                    symbol: "wind.circle.fill"),
         GodUpgrade(id: "ra_ashes", deity: .ra, name: "Ashes to Ashes",
                    detail: "When a burning enemy dies, its fire spreads to another living foe.",
@@ -165,7 +165,7 @@ enum GodKit {
                    detail: "When a judged enemy dies before its judgement falls, gain 8 health and 8 shield.",
                    symbol: "gift.fill"),
         GodUpgrade(id: "an_weighed", deity: .anubis, name: "Weighed to the Grain",
-                   detail: "An action holding a held Anubis attack face adds 6 more judgement.",
+                   detail: "An action holding a kept Anubis attack face adds 6 more judgement.",
                    symbol: "scalemass"),
 
         GodUpgrade(id: "be_stout", deity: .bes, name: "The Stout Door",
@@ -182,7 +182,7 @@ enum GodKit {
                    symbol: "music.note"),
 
         GodUpgrade(id: "ho_falconEye", deity: .horus, name: "Falcon's Eye",
-                   detail: "An action holding a held Horus attack face deals 25% more damage.",
+                   detail: "An action holding a kept Horus attack face deals 25% more damage.",
                    symbol: "eye.fill"),
         GodUpgrade(id: "ho_keen", deity: .horus, name: "The Keen Edge",
                    detail: "Horus attack blessings ignore 40% of defences instead of a fifth.",
@@ -191,14 +191,14 @@ enum GodKit {
                    detail: "Horus patron dice roll 8% more critical chance.",
                    symbol: "wind.snow"),
         GodUpgrade(id: "ho_thermal", deity: .horus, name: "Thermal",
-                   detail: "The first held Horus face each turn hands back 1 stamina.",
+                   detail: "The first kept Horus face each turn hands back 1 reroll.",
                    symbol: "arrow.up.circle.fill"),
 
         GodUpgrade(id: "ba_pounce", deity: .bastet, name: "Pounce",
                    detail: "Chains of exactly two faces deal 6 more damage.",
                    symbol: "pawprint.fill"),
         GodUpgrade(id: "ba_lightLanding", deity: .bastet, name: "Light Landing",
-                   detail: "Your first successful evade each enemy turn banks 1 stamina.",
+                   detail: "Your first successful evade each enemy turn banks 1 reroll.",
                    symbol: "figure.run"),
         GodUpgrade(id: "ba_claws", deity: .bastet, name: "Claws Out",
                    detail: "Your first successful evade each enemy turn primes 10 damage on your next attack.",
@@ -228,10 +228,10 @@ enum GodKit {
                     detail: "After each enemy turn, strike back at the foe that hit you hardest for half the damage your shield absorbed, up to 20.",
                     symbol: "shield.checkered"),
         GodCapstone(id: "ho_eyeFalcon", deity: .horus, name: "Eye of the Falcon",
-                    detail: "Once a turn, a chain holding a held Horus face and containing a critical face ignores all block and armour.",
+                    detail: "Once a turn, a chain holding a kept Horus face and containing a critical face ignores all block and armour.",
                     symbol: "bird.fill"),
         GodCapstone(id: "ba_nineLives", deity: .bastet, name: "Nine Lives Unbound",
-                    detail: "Once a battle, a lethal blow leaves you at 1 health instead, makes you near-certain to evade for the rest of that enemy turn, and primes 10 damage.",
+                    detail: "Once a battle, a lethal blow leaves you at 1 health instead, prepares two guaranteed Dodges, and primes 10 damage.",
                     symbol: "cat.fill"),
     ]
 
@@ -258,7 +258,7 @@ enum BlessingRole: CaseIterable, Hashable {
         case .damage: .attack
         case .block: .block
         case .evade: .evade
-        case .heal, .poison, .stamina, .focus: .support
+        case .heal, .poison, .focus: .support
         }
     }
 }
@@ -289,7 +289,7 @@ enum PairingContent {
                    detail: "Once a turn, when your shield absorbs a hit, the striker is set alight.",
                    symbol: "anvil.fill"),
         PairingDef(id: "pair_ra_horus", name: "Sunstrike", first: .ra, second: .horus,
-                   detail: "Once a turn, an action holding a held Ra attack face and a held Horus face lands an early burn tick.",
+                   detail: "Once a turn, an action holding a kept Ra attack face and a kept Horus face lands an early burn tick.",
                    symbol: "sun.haze.fill"),
         PairingDef(id: "pair_ra_bastet", name: "Dancing Flame", first: .ra, second: .bastet,
                    detail: "Your first successful evade each enemy turn sets the attacker alight.",
@@ -301,7 +301,7 @@ enum PairingContent {
                    detail: "Your first heal each turn hardens into 5 shield.",
                    symbol: "lizard.fill"),
         PairingDef(id: "pair_sobek_horus", name: "Reed and Sky", first: .sobek, second: .horus,
-                   detail: "Once a turn, an action holding a held Horus face deals 25% more damage against a bleeding foe.",
+                   detail: "Once a turn, an action holding a kept Horus face deals 25% more damage against a bleeding foe.",
                    symbol: "water.holder"),
         PairingDef(id: "pair_sobek_bastet", name: "Death Roll", first: .sobek, second: .bastet,
                    detail: "After a successful evade, the attacker is bitten for its bleed early — once a turn.",
@@ -310,13 +310,13 @@ enum PairingContent {
                    detail: "Once a turn, when your shield absorbs a hit, the striker takes 4 more judgement.",
                    symbol: "building.columns.fill"),
         PairingDef(id: "pair_anubis_horus", name: "The Weighing Eye", first: .anubis, second: .horus,
-                   detail: "Once a turn, an action holding a held Horus face adds 6 judgement to the target.",
+                   detail: "Once a turn, an action holding a kept Horus face adds 6 judgement to the target.",
                    symbol: "eye.circle.fill"),
         PairingDef(id: "pair_anubis_bastet", name: "Borrowed Life", first: .anubis, second: .bastet,
                    detail: "Your first successful evade each enemy turn weighs the attacker — 4 judgement.",
                    symbol: "heart.circle"),
         PairingDef(id: "pair_bes_horus", name: "Watchful Guardian", first: .bes, second: .horus,
-                   detail: "Once a turn, an action holding a held Horus face grants 4 shield.",
+                   detail: "Once a turn, an action holding a kept Horus face grants 4 shield.",
                    symbol: "bird.square"),
         PairingDef(id: "pair_bes_bastet", name: "Warm Doorstep", first: .bes, second: .bastet,
                    detail: "Your first successful evade each enemy turn banks 4 shield.",
@@ -330,3 +330,4 @@ enum PairingContent {
         pairings.first { ($0.first == first && $0.second == second) || ($0.first == second && $0.second == first) }
     }
 }
+

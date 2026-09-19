@@ -8,7 +8,7 @@ struct DivineFaceEffect: Hashable {
     var heal: Int = 0
     var block: Int = 0
     var dodgeGain: Int = 0
-    var staminaNext: Int = 0
+    var rerollsNext: Int = 0
     var burnAmount: Int = 0
     var burnTurns: Int = 0
     var poisonAmount: Int = 0
@@ -86,7 +86,8 @@ struct DivineFaceEffect: Hashable {
         if reflect > 0 { list.append("scorches back \(Int(reflect * 100))%") }
         if mark > 1 { list.append("marks +\(Int((mark - 1) * 100))%") }
         if critBoost > 0 { list.append("+\(Int(critBoost * 100))% crit for the fight") }
-        if staminaNext > 0 { list.append("+\(staminaNext) stamina next turn") }
+        if rerollsNext > 0 { list.append("+\(rerollsNext) reroll next round") }
         return list
     }
 }
+

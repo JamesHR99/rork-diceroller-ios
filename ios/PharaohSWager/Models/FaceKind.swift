@@ -18,7 +18,6 @@ enum SoloKind: Hashable {
     case evade
     case heal
     case poison
-    case stamina
     case focus
 }
 
@@ -160,7 +159,7 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         case .runeArcane: return 4
         case .wandZap: return 8
         case .channel: return 0
-        case .block: return 8
+        case .block: return BattleRules.blockValue
         case .evade: return 0
         case .heal: return 10
         case .focus: return 0
@@ -169,20 +168,10 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         }
     }
 
-    /// Evade chance one face adds while it is played this turn, before any
-    /// god's answer stacks on top. Faces of the same kind share the same
-    /// slice, so an Evade face means the same thing on every die.
-    ///
-    /// A coin flip. Block is a known quantity — it eats a fixed bite of the
-    /// next blow and never surprises you. Evade has to be worth gambling a
-    /// slot on, so it either eats the whole blow or none of it.
-    var evadeChance: Double {
-        self == .evade ? 0.5 : 0
-    }
-
     /// What this face is worth played on its own, after the solo cut. A lone
     /// face is workable now — the chain is still the fight.
     var soloValue: Int {
+        if self == .block { return BattleRules.blockValue }
         guard baseValue > 0 else { return 0 }
         let scale = isAttack ? GameData.soloAttackScale : GameData.soloGuardScale
         return max(1, Int((Double(baseValue) * scale).rounded()))
@@ -229,7 +218,7 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         case .evade: return .evade
         case .heal, .runeLife: return .heal
         case .poison: return .poison
-        case .energize, .channel: return .stamina
+        case .energize, .channel: return .focus
         case .focus: return .focus
         default: return .block
         }
@@ -239,18 +228,18 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
     var soloEffect: String {
         switch self {
         case .runeFrost: return "Deal \(soloValue) damage and slow the next attack"
-        case .poison: return "Poison \(soloValue) for 2 turns"
-        case .evade: return "Gain 50% chance to evade each hit this turn"
-        case .focus: return "+1 stamina next turn, next attack this turn +5"
+        case .poison: return "Apply \(soloValue) Poison; grows each round"
+        case .evade: return "Prepare 1 guaranteed Dodge against a chosen strike this round"
+        case .focus: return "Place before an attack or combo: +50% damage. One Focus per action."
         default:
             switch soloKind {
             case .damage: return "Deal \(soloValue) damage"
             case .block: return "Gain \(soloValue) shield"
             case .heal: return "Restore \(soloValue) health"
-            case .evade: return "Gain 50% chance to evade each hit"
-            case .stamina: return "+1 stamina next turn"
-            case .poison: return "Poison \(soloValue) for 2 turns"
-            case .focus: return "+1 stamina next turn"
+            case .evade: return "Prepare 1 Dodge this round"
+
+            case .poison: return "Apply \(soloValue) Poison; grows each round"
+            case .focus: return "Next attack or combo +50% damage"
             }
         }
     }
@@ -261,10 +250,10 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         case .damage: return "\(soloValue) dmg"
         case .block: return "+\(soloValue) shield"
         case .heal: return "+\(soloValue) hp"
-        case .evade: return "50% evade"
+        case .evade: return "1 Dodge"
         case .poison: return "\(soloValue) psn"
-        case .stamina: return "+1 stam"
-        case .focus: return "focus"
+
+        case .focus: return "+50% next hit"
         }
     }
 
@@ -286,3 +275,4 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         }
     }
 }
+

@@ -149,7 +149,7 @@ struct FighterView: View {
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    agilityChip(scale: 0.9)
+                    actionChip(scale: 0.9)
                     badgeRow
                 }
 
@@ -210,14 +210,14 @@ struct FighterView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 ForEach(Array(round.enumerated()), id: \.offset) { index, entry in
                     intentStep(entry.move,
-                               cost: engine.duration(for: foe, moveIndex: index),
+                               cost: index + 1,
                                strike: entry.strike,
                                step: index + 1, of: round.count)
                 }
             }
         } else if let entry = round.first {
             intentStep(entry.move,
-                       cost: engine.duration(for: foe, moveIndex: 0),
+                       cost: 1,
                        strike: entry.strike, step: 1, of: 1)
         }
     }
@@ -233,7 +233,7 @@ struct FighterView: View {
     ) -> some View {
         let tight = tickerWidth < 200
         return HStack(spacing: 3) {
-            agilityCartouche(cost)
+            actionCartouche(cost)
 
             if total > 1 {
                 Text("\(step)")
@@ -300,9 +300,9 @@ struct FighterView: View {
     /// This blow's own agility: the creature's base plus the size of the move.
     /// The same number your own actions carry, so the two sides can be read
     /// against each other and the order of the round worked out by hand.
-    private func agilityCartouche(_ cost: Int) -> some View {
+    private func actionCartouche(_ cost: Int) -> some View {
         HStack(spacing: 1.5) {
-            Image(systemName: "hare.fill")
+            Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: 7, weight: .black))
             Text("\(cost)")
                 .font(.system(size: 9.5, weight: .black).monospacedDigit())
@@ -312,7 +312,7 @@ struct FighterView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 1)
         .background(Theme.blood, in: .capsule)
-        .accessibilityLabel("Agility \(cost)")
+        .accessibilityLabel("Action \(cost)")
     }
 
     // MARK: - Overlays
@@ -511,7 +511,7 @@ struct FighterView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
 
-            agilityChip()
+            actionChip()
         }
     }
 
@@ -519,21 +519,12 @@ struct FighterView: View {
     /// Every action adds its size in dice to this number, and the lower total
     /// acts first — so with both sides printed, the order of the round can be
     /// worked out by hand before you commit to anything.
-    private func agilityChip(scale: CGFloat = 1) -> some View {
-        let value = side == .player ? engine.agility : (foe.map { engine.agility(for: $0) } ?? 0)
-        return HStack(spacing: 1.5) {
-            Image(systemName: "hare.fill")
-                .font(.system(size: 8 * scale, weight: .black))
-            Text("\(value)")
-                .font(.system(size: 10 * scale, weight: .black).monospacedDigit())
-                .contentTransition(.numericText())
-        }
-        .foregroundStyle(Theme.frost)
-        .padding(.horizontal, 4.5 * scale)
-        .padding(.vertical, 1.5 * scale)
-        .background(Theme.frost.opacity(0.16), in: .capsule)
-        .overlay(Capsule().strokeBorder(Theme.frost.opacity(0.45), lineWidth: 0.8))
-        .accessibilityLabel("Base agility \(value). Each action adds its size in dice; lower acts first.")
+    private func actionChip(scale: CGFloat = 1) -> some View {
+        Text(side == .player ? "ROUND \(engine.turnNumber)" : "\(foe?.intents.count ?? 0) ACTIONS")
+            .font(.system(size: 8 * scale, weight: .black))
+            .foregroundStyle(Theme.frost)
+            .padding(.horizontal, 5).padding(.vertical, 3)
+            .background(Theme.bg.opacity(0.7), in: .capsule)
     }
 
     private var currentHP: Int { side == .player ? engine.playerHP : (foe?.hp ?? 0) }
@@ -647,7 +638,7 @@ struct FighterView: View {
         }
         .frame(height: layout == .ticker ? 16 : 21)
         .animation(.spring(response: 0.3, dampingFraction: 0.7),
-                   value: engine.playerShield + Int(engine.evadeChance * 100) + (foe?.armour ?? 0))
+                   value: engine.playerShield + engine.dodgeCharges + (foe?.armour ?? 0))
     }
 
     /// Every status on this fighter right now, with its live numbers. Reading
@@ -656,9 +647,9 @@ struct FighterView: View {
     private var liveStatuses: [LiveStatus] {
         var list: [LiveStatus] = []
         if side == .player {
-            if engine.evadeChance > 0 {
+            if engine.dodgeCharges > 0 {
                 list.append(LiveStatus(kind: .evade, onSelf: true,
-                                       percent: Int(engine.evadeChance * 100)))
+                                       total: engine.dodgeCharges))
             }
             if engine.regenTurns > 0 {
                 list.append(LiveStatus(kind: .regeneration, onSelf: true,

@@ -48,8 +48,8 @@ struct ComboDef: Identifiable, Hashable {
     let damage: Int
     let heal: Int
     let shield: Int
-    /// Evade chance this chain adds, in percentage points.
-    let evadePercent: Int
+    /// Guaranteed single-hit dodges granted when this action starts.
+    let dodgeCharges: Int
 
     let bleedAmount: Int
     let bleedTurns: Int
@@ -97,7 +97,7 @@ struct ComboDef: Identifiable, Hashable {
         damage: Int = 0,
         heal: Int = 0,
         shield: Int = 0,
-        evadePercent: Int = 0,
+        dodgeCharges: Int = 0,
         bleedAmount: Int = 0,
         bleedTurns: Int = 0,
         poisonAmount: Int = 0,
@@ -128,7 +128,7 @@ struct ComboDef: Identifiable, Hashable {
         self.damage = damage
         self.heal = heal
         self.shield = shield
-        self.evadePercent = evadePercent
+        self.dodgeCharges = dodgeCharges
         self.bleedAmount = bleedAmount
         self.bleedTurns = bleedTurns
         self.poisonAmount = poisonAmount
@@ -154,19 +154,14 @@ struct ComboDef: Identifiable, Hashable {
     /// Total faces the recipe consumes.
     var faceCount: Int { required.reduce(0) { $0 + $1.count } }
 
-    /// A step costs one stamina per face it consumes. Large recipes no longer
-    /// come at a discount — they buy their power with time on the clock.
-    var staminaCost: Int { GameData.comboStaminaCost(faces: faceCount) }
-
-    /// This recipe's own agility: its size in dice, before the actor's base
-    /// agility and any Haste are counted.
-    var agilitySize: Int { faceCount }
+    /// Dice consumed by this recipe; each recipe resolves as one action.
+    var diceCount: Int { faceCount }
 
     /// The two beats a staged recipe resolves on, named for the card and the
     /// timeline. A single-impact recipe has none.
     var stagedBeats: (guardFirst: String, strikeLater: String)? {
         guard staged else { return nil }
-        return ("Guard up now", "Strike later this round")
+        return ("Defence ready", "Then strike")
     }
 
     /// What this action *is*, which decides which god powers answer it.
@@ -176,8 +171,8 @@ struct ComboDef: Identifiable, Hashable {
             roles.insert(.attack)
         }
         if shield > 0 { roles.insert(.guardian) }
-        if evadePercent > 0 { roles.insert(.evade) }
-        if heal > 0 || regenAmount > 0 || lifesteal { roles.insert(.support) }
+        if dodgeCharges > 0 { roles.insert(.evade) }
+        if heal > 0 || regenAmount > 0 || lifesteal || momentumNext > 0 { roles.insert(.support) }
         return roles
     }
 
@@ -257,8 +252,8 @@ struct ComboDef: Identifiable, Hashable {
         if regenAmount > 0 { parts.append("regen \(regenAmount)×\(regenTurns)") }
         if lifesteal { parts.append("heals for damage dealt") }
         if shield > 0 { parts.append("\(shield) shield") }
-        if evadePercent > 0 { parts.append("+\(evadePercent)% evade") }
-        if momentumNext > 0 { parts.append("+\(momentumNext) next swing") }
+        if dodgeCharges > 0 { parts.append("\(dodgeCharges) Dodge") }
+        if momentumNext > 0 { parts.append("+\(momentumNext) damage next round") }
         if guaranteedCrit { parts.append("always crits") }
         return parts.joined(separator: ", ")
     }
@@ -274,3 +269,4 @@ struct ComboDef: Identifiable, Hashable {
         }
     }
 }
+

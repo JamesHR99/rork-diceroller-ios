@@ -122,7 +122,6 @@ final class GameManager {
 
     /// The turn ceiling: the class maximum. Nothing raises it permanently any
     /// more — the round allowance is the whole stamina economy.
-    var effectiveMaxStamina: Int { heroClass?.maxStamina ?? 3 }
 
     var diceCount: Int { loadout?.diceCount ?? 0 }
 
@@ -551,8 +550,7 @@ final class GameManager {
             classID: hero.id,
             maxHP: maxHP,
             startHP: currentHP,
-            maxStamina: effectiveMaxStamina,
-            agility: hero.agility,
+
             hour: node.hour,
             critBonus: critBonus,
             boons: equippedBoons,
@@ -1568,3 +1566,4 @@ final class GameManager {
             .joined(separator: ", ")
     }
 }
+

@@ -8,17 +8,12 @@ struct HeroClass: Identifiable, Hashable {
     let symbol: String
     let accentName: String
     let maxHP: Int
-    let maxStamina: Int
     let weaponName: String
     let armorName: String
     let blurb: String
     let playstyle: String
-    /// Beats this class shaves off every action's preparation. Agility decides
-    /// *when* an action lands; stamina decides how much you can do. A Rogue
-    /// guards almost immediately, a Warrior's heavy swings arrive late.
-    let agility: Int
-    /// The one-line read of this class's place on the clock.
-    let timingIdentity: String
+    /// The class mechanic highlighted during selection and the briefing.
+    let battleIdentity: String
 
     var accent: Color {
         switch id {
@@ -38,7 +33,7 @@ struct HeroClass: Identifiable, Hashable {
         }
     }
 
-    /// Fresh weapon + armour for a new run. Three dice in the weapon, two in
+    /// Fresh weapon + armour for a new run. Five dice in the weapon, three in
     /// the armour — defence is something you play, not something you carry.
     var startingLoadout: Loadout {
         Loadout(weapon: startingWeapon, armor: startingArmor)
@@ -62,3 +57,4 @@ struct HeroClass: Identifiable, Hashable {
         }
     }
 }
+

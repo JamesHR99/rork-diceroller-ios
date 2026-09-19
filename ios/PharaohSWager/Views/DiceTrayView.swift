@@ -20,7 +20,7 @@ struct DiceTrayView: View {
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
 
-    private var freezeArmed: Bool { engine.freezeArmed }
+    private var selectingReroll: Bool { engine.selectingReroll }
 
     /// Dice grow to fill the deck, shrinking only once the row gets long — and
     /// never past the width the deck actually has. A freeze adds a carried reel
@@ -81,7 +81,7 @@ struct DiceTrayView: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
         .offset(y: reduceMotion ? 0 : slamKick)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
         .onChange(of: engine.slamPulse) { _, _ in
             let heavy = engine.lastReelLocked
             slamKick = heavy ? 1.5 : 0
@@ -121,13 +121,13 @@ struct DiceTrayView: View {
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(
                     LinearGradient(
-                        colors: freezeArmed
+                        colors: selectingReroll
                             ? [Theme.frost.opacity(0.85), Theme.frost.opacity(0.25)]
                             : [Theme.gold.opacity(0.6), Theme.goldDeep.opacity(0.35)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: freezeArmed ? 2 : 1.5
+                    lineWidth: selectingReroll ? 2 : 1.5
                 )
         )
         .overlay(
@@ -143,13 +143,13 @@ struct DiceTrayView: View {
                 .opacity(slamFlare * 0.9)
         }
         .overlay(alignment: .top) {
-            HieroglyphBand(tint: freezeArmed ? Theme.frost : Theme.gold, height: 8, opacity: 0.22)
+            HieroglyphBand(tint: selectingReroll ? Theme.frost : Theme.gold, height: 8, opacity: 0.22)
                 .padding(.horizontal, 20)
                 .padding(.top, 2)
         }
         .shadow(color: Theme.gold.opacity(slamFlare * 0.5), radius: 26)
         .shadow(color: .black.opacity(0.55), radius: 14, y: 5)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
         .allowsHitTesting(false)
     }
 
@@ -160,7 +160,7 @@ struct DiceTrayView: View {
             Text(headerTitle)
                 .font(.fantasy(13, weight: .black))
                 .kerning(1.6)
-                .foregroundStyle(freezeArmed ? Theme.frost : Theme.gold)
+                .foregroundStyle(selectingReroll ? Theme.frost : Theme.gold)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
@@ -179,49 +179,20 @@ struct DiceTrayView: View {
                 .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.4), lineWidth: 1))
             }
 
-            // Freeze mode is a live instruction, not narration, so it is the
-            // one line that stays beside the title.
-            if freezeArmed {
-                Text(freezeHint)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.frost)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-
             Spacer(minLength: 6)
 
-            if engine.frozenCount > 0 {
-                HStack(spacing: 3) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.interactionHeld, fallback: "snowflake",
-                               size: 12, tint: Theme.frost)
-                    Text("\(engine.frozenCount) HELD FOR NEXT TURN")
-                        .font(.system(size: 9, weight: .black))
-                }
-                .foregroundStyle(Theme.frost)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2.5)
-                .background(Theme.frost.opacity(0.15), in: .capsule)
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
-            } else if engine.carriedCount > 0 {
-                HStack(spacing: 3) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.interactionHeld, fallback: "snowflake",
-                               size: 12, tint: Theme.frost.opacity(0.8))
-                    Text("\(engine.carriedCount) CARRIED")
-                        .font(.system(size: 9, weight: .black))
-                }
-                .foregroundStyle(Theme.frost.opacity(0.8))
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2.5)
-                .background(Theme.frost.opacity(0.1), in: .capsule)
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
-            }
+            Text(selectingReroll
+                 ? "\(engine.rerollSelection.count) SELECTED"
+                 : "\(engine.rerollsRemaining) REROLL\(engine.rerollsRemaining == 1 ? "" : "S")")
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(Theme.gold)
+
         }
         .lineLimit(1)
         .minimumScaleFactor(0.75)
         .frame(height: 16)
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.frozenCount)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: engine.rerollSelection.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
     }
 
     /// One copper Chisel mark. Tapping it opens the rule the Chisel is quietly
@@ -251,15 +222,10 @@ struct DiceTrayView: View {
     }
 
     private var headerTitle: String {
-        if freezeArmed { return "FREEZE MODE" }
+        if selectingReroll { return "SELECT DICE" }
         if engine.canRoll { return "YOUR DICE" }
         if engine.isRolling { return "LOCKING \(engine.lockedReelCount)/\(engine.slots.count)" }
         return "YOUR ROLL"
-    }
-
-    private var freezeHint: String {
-        let left = engine.freezesRemaining
-        return "Tap a face to hold · \(left) left"
     }
 
     // MARK: - Combo panel
@@ -268,8 +234,9 @@ struct DiceTrayView: View {
 
     private var leadingControl: some View {
         RollLeverButton(height: reelHeight, width: leverWidth,
-                        isEnabled: engine.canRoll, isRolling: engine.isRolling) {
-            engine.rollAll(reduceMotion: reduceMotion)
+                        isEnabled: engine.canRoll || engine.canReroll, isRolling: engine.isRolling) {
+            if engine.hasRolled { engine.rerollSelected(reduceMotion: reduceMotion) }
+            else { engine.rollAll(reduceMotion: reduceMotion) }
         }
     }
 }
@@ -296,10 +263,10 @@ private struct DiceTrayReelView: View {
     /// travels up or down rather than silently becoming another tier.
     @State private var nockNudge: CGFloat = 0
 
-    private var freezeArmed: Bool { engine.freezeArmed }
-    private var isFrozen: Bool { engine.isFrozen(slotID: slot.id) }
+    private var selectingReroll: Bool { engine.selectingReroll }
+    private var isSelectedForReroll: Bool { engine.rerollSelection.contains(slot.id) }
     /// A reel holding a face carried over from last turn's freeze.
-    private var isHeld: Bool { slot.isCarried }
+    private var isHeld: Bool { if case .rolled(let face) = slot.state { return face.wasKept }; return false }
 
     private var corner: CGFloat { 15 }
     /// The face drawing is the whole point of a die, so it is drawn as large
@@ -333,8 +300,8 @@ private struct DiceTrayReelView: View {
         }
         .frame(width: width, height: height)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.playOrder)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFrozen)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: freezeArmed)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelectedForReroll)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
     }
 
     private var idleReel: some View {
@@ -420,8 +387,8 @@ private struct DiceTrayReelView: View {
 
     private func settledReel(_ face: RolledFace) -> some View {
         Button {
-            if freezeArmed {
-                engine.toggleFreeze(slotID: slot.id)
+            if selectingReroll {
+                engine.toggleReroll(slotID: slot.id)
             } else {
                 engine.placeInPlayBar(faceID: face.id)
             }
@@ -431,7 +398,7 @@ private struct DiceTrayReelView: View {
                            fallback: face.matchFace.symbol,
                            size: iconSize * 1.2,
                            tint: iconTint(face))
-                    .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isFrozen))
+                    .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isSelectedForReroll))
                     // The shifted arrow slides into its new tier, so the
                     // change is something you watch happen.
                     .offset(y: nockNudge)
@@ -492,8 +459,8 @@ private struct DiceTrayReelView: View {
             .overlay { slamFlash(face) }
             .overlay { if !reduceMotion { shockRing(face) } }
             .overlay { if !reduceMotion { critSparks(face) } }
-            .shadow(color: glowTint(face).opacity(isFrozen ? 0.7 : (face.isCrit ? 0.8 : 0.35)),
-                    radius: (face.isCrit && critFlash) || (isFrozen && frostPulse) ? 14 : 7)
+            .shadow(color: glowTint(face).opacity(isSelectedForReroll ? 0.7 : (face.isCrit ? 0.8 : 0.35)),
+                    radius: (face.isCrit && critFlash) || (isSelectedForReroll && frostPulse) ? 14 : 7)
             .scaleEffect(reduceMotion || settled ? 1 : 1.045)
             .offset(y: reduceMotion || settled ? 0 : -3)
         }
@@ -511,7 +478,7 @@ private struct DiceTrayReelView: View {
                 withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { critFlash = true }
                 withAnimation(.easeOut(duration: 0.72)) { sparkBurst = 1 }
             }
-            if isFrozen && !reduceMotion {
+            if isSelectedForReroll && !reduceMotion {
                 withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { frostPulse = true }
             }
         }
@@ -520,7 +487,7 @@ private struct DiceTrayReelView: View {
     /// Which painted frame a settled reel wears. A held face and a critical
     /// each have their own drawing; everything else is a ready die.
     private func settledFrame(_ face: RolledFace) -> PharaohSWagerArt.DieFrame {
-        if isFrozen || isHeld { return .held }
+        if isSelectedForReroll || isHeld { return .held }
         if face.isCrit { return .critical }
         return .ready
     }
@@ -528,7 +495,7 @@ private struct DiceTrayReelView: View {
     /// The colour washed over the painted frame — the state coding the border
     /// used to carry.
     private func frameTint(_ face: RolledFace) -> Color? {
-        if isFrozen { return Theme.frost }
+        if isSelectedForReroll { return Theme.frost }
         if face.effectiveFace != nil { return Theme.ptahCopper }
         if face.isCrit { return nil }
         if isHeld { return Theme.frost }
@@ -607,7 +574,7 @@ private struct DiceTrayReelView: View {
     /// Gold badge that says CRIT without stealing the face's name.
     @ViewBuilder
     private func critBadge(_ face: RolledFace) -> some View {
-        if face.isCrit && !isFrozen {
+        if face.isCrit && !isSelectedForReroll {
             HStack(spacing: 2.5) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.critical, size: max(11, width * 0.13))
                 Text("CRIT")
@@ -672,13 +639,13 @@ private struct DiceTrayReelView: View {
     /// Icy sheen drawn over a frozen (or carried-over) die.
     @ViewBuilder
     private var frostLayer: some View {
-        if isFrozen || isHeld {
+        if isSelectedForReroll || isHeld {
             RoundedRectangle(cornerRadius: corner)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Theme.frost.opacity(isFrozen ? 0.34 : 0.16),
-                            Theme.frost.opacity(isFrozen ? 0.10 : 0.04)
+                            Theme.frost.opacity(isSelectedForReroll ? 0.34 : 0.16),
+                            Theme.frost.opacity(isSelectedForReroll ? 0.10 : 0.04)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -686,10 +653,10 @@ private struct DiceTrayReelView: View {
                 )
                 .overlay(alignment: .bottomTrailing) {
                     PharaohSWagerIcon(name: PharaohSWagerArt.interactionHeld, size: 18)
-                        .opacity(isFrozen ? 0.95 : 0.55)
+                        .opacity(isSelectedForReroll ? 0.95 : 0.55)
                         .padding(4)
                 }
-                .opacity(isFrozen ? (frostPulse ? 1 : 0.75) : 1)
+                .opacity(isSelectedForReroll ? (frostPulse ? 1 : 0.75) : 1)
                 .allowsHitTesting(false)
         }
     }
@@ -697,7 +664,7 @@ private struct DiceTrayReelView: View {
     /// While freeze mode is armed, every freezable die wears a breathing icy ring.
     @ViewBuilder
     private var armedHalo: some View {
-        if freezeArmed && !isFrozen {
+        if selectingReroll && !isSelectedForReroll {
             RoundedRectangle(cornerRadius: corner)
                 .strokeBorder(Theme.frost.opacity(frostPulse ? 0.95 : 0.4),
                               style: StrokeStyle(lineWidth: 2.4, dash: [4.5, 4]))
@@ -733,13 +700,13 @@ private struct DiceTrayReelView: View {
 
     private func iconTint(_ face: RolledFace) -> Color {
         if face.isCrit { return Theme.gold }
-        if isFrozen { return Theme.frost }
+        if isSelectedForReroll { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return face.matchFace.tint
     }
 
     private func borderTint(_ face: RolledFace) -> Color {
-        if isFrozen { return Theme.frost }
+        if isSelectedForReroll { return Theme.frost }
         if face.effectiveFace != nil { return Theme.ptahCopper }
         if face.isCrit { return Theme.gold }
         if isHeld { return Theme.frost.opacity(0.6) }
@@ -748,20 +715,20 @@ private struct DiceTrayReelView: View {
     }
 
     private func glowTint(_ face: RolledFace) -> Color {
-        if isFrozen { return Theme.frost }
+        if isSelectedForReroll { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return face.isCrit ? Theme.gold : face.face.tint
     }
 
     private func bottomTagTint(_ face: RolledFace) -> Color {
-        if isFrozen { return Theme.frost }
+        if isSelectedForReroll { return Theme.frost }
         return face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85)
     }
 
     /// Quick "what will this do" tag under the face icon — read from the
     /// substituted tier when a Chisel has shifted the face.
     private func bottomTag(_ face: RolledFace) -> String {
-        if isFrozen { return "HELD NEXT" }
+        if isSelectedForReroll { return "REROLL" }
         guard face.isCrit else { return face.matchFace.soloTag }
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
@@ -769,9 +736,9 @@ private struct DiceTrayReelView: View {
         case .block: return "+\(value) shield"
         case .heal: return "+\(value) hp"
         case .poison: return "\(value) psn"
-        case .stamina: return "+2 stam"
-        case .evade: return face.isCrit ? "+20% evd" : "+15% evd"
-        case .focus: return "focus"
+
+        case .evade: return "1 Dodge"
+        case .focus: return "+50% next hit"
         }
     }
 
@@ -789,7 +756,7 @@ private struct DiceTrayReelView: View {
     }
 
     private var reelName: some View {
-        Text(slot.isCarried ? "Held · \(slot.die.name)" : slot.die.name)
+        Text(isHeld ? "Kept · \(slot.die.name)" : slot.die.name)
             .font(.system(size: max(8.5, width * 0.105), weight: .semibold))
             .foregroundStyle(Theme.parchmentDim)
             .lineLimit(1)

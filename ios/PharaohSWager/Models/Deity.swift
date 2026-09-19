@@ -75,8 +75,9 @@ enum Deity: String, CaseIterable, Identifiable, Hashable, Codable {
         case .sobek: "Opens veins and feeds on them — bleed that refreshes, and health for every wound."
         case .anubis: "Weighs every blow — judgement that stores up and detonates against health."
         case .bes: "Stands in the doorway — shield that stays until it breaks, and the swing that follows."
-        case .horus: "Never misses — piercing attacks, held-face rewards, and primed precision."
+        case .horus: "Never misses — piercing attacks, kept-die rewards, and primed precision."
         case .bastet: "Lands on its feet — evade upon evade, and counters for every escape."
         }
     }
 }
+

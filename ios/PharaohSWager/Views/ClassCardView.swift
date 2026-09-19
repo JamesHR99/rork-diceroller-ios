@@ -64,12 +64,12 @@ struct ClassCardView: View {
                 statPill(art: PharaohSWagerArt.Status.health, icon: "heart.fill",
                          value: "\(hero.maxHP)", label: "HP", tint: Theme.blood)
                 statPill(art: PharaohSWagerArt.staminaFull, icon: "bolt.fill",
-                         value: "\(hero.maxStamina)", label: "STAM", tint: Theme.gold)
+                         value: "6", label: "DICE", tint: Theme.gold)
                 // Base agility sits with health and stamina because it decides
                 // the shape of every turn: lower acts first, and each action
                 // adds its own size in dice on top of this.
                 statPill(art: nil, icon: "hare.fill",
-                         value: "\(hero.agility)", label: "AGIL", tint: Theme.frost)
+                         value: "1", label: "REROLL", tint: Theme.frost)
             }
 
             Text(hero.playstyle.uppercased())
