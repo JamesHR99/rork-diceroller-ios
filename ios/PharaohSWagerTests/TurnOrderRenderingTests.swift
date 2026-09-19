@@ -7,7 +7,7 @@ final class TurnOrderRenderingTests: XCTestCase {
     private var captureWindows: [UIWindow] = []
 
     private func capture<V: View>(_ view: V, name: String, size: CGSize) async throws {
-        let host = UIHostingController(rootView: view.frame(width: size.width, height: size.height).background(Color.black))
+        let host = UIHostingController(rootView: view.frame(width: size.width, height: size.height).background(Color.black).ignoresSafeArea())
         let window = UIWindow(frame: CGRect(origin: .zero, size: size))
         window.rootViewController = host
         window.makeKeyAndVisible()

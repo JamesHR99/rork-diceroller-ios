@@ -224,6 +224,7 @@ struct PlayBarView: View {
                             Text(label.uppercased())
                                 .font(.system(size: min(20, max(10, min(bodyHeight * 0.18, width / 15))), weight: .bold))
                                 .foregroundStyle(label.contains("DAMAGE") ? Theme.gold : Theme.parchment)
+                                .lineLimit(1).minimumScaleFactor(0.7)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 5).padding(.vertical, 2)
                                 .background(tint.opacity(0.13), in: .rect(cornerRadius: 3))
