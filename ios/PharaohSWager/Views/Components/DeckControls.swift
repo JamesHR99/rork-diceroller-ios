@@ -77,19 +77,8 @@ struct RollLeverButton: View {
             )
             .clipShape(.rect(cornerRadius: 18))
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(
-                    LinearGradient(colors: [Theme.gold, Theme.goldDeep.opacity(0.5)],
-                                   startPoint: .top, endPoint: .bottom),
-                    lineWidth: 2
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .inset(by: 4)
-                .strokeBorder(Theme.rule.opacity(0.3), lineWidth: 0.8)
-        )
+        // The painted lever housing already includes its ornamental edge.
+        // A second SwiftUI rim made the control look boxed in bright yellow.
         .goldCorners(size: 15, inset: 3, opacity: 0.7)
         .shadow(color: Theme.ember.opacity(glow ? 0.5 : 0.28), radius: 16)
         .shadow(color: .black.opacity(0.6), radius: 10, y: 5)
@@ -120,8 +109,8 @@ struct RollLeverButton: View {
 }
 
 /// The deck's own button: a slab of carved stone with the painted plate laid
-/// over it, a gold rim and corner ornaments. Used for the controls that must
-/// read as buttons at a glance — commit and freeze.
+/// over it. The painted asset supplies its own edge and corner ornaments, so
+/// code adds depth and emphasis without drawing a second yellow border.
 struct DeckButtonSurface: View {
     var tone: PharaohSWagerArt.ButtonTone = .primary
     var state: PharaohSWagerArt.ButtonState = .normal
@@ -148,19 +137,6 @@ struct DeckButtonSurface: View {
             )
             .clipShape(.rect(cornerRadius: cornerRadius))
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(
-                    LinearGradient(colors: [rim.opacity(0.9), rim.opacity(0.35)],
-                                   startPoint: .top, endPoint: .bottom),
-                    lineWidth: 1.6
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .inset(by: 3)
-                .strokeBorder(rim.opacity(0.2), lineWidth: 0.8)
-        )
         .shadow(color: rim.opacity(0.25 + 0.4 * emphasis), radius: 8 + 10 * emphasis)
         .shadow(color: .black.opacity(0.55), radius: 8, y: 4)
         .allowsHitTesting(false)
