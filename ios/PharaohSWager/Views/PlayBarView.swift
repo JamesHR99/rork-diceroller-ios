@@ -387,56 +387,35 @@ struct PlayBarView: View {
         let tint = combo?.tint ?? Theme.gold
         let known = engine.isChainKnown(step)
         let transform = step.faces.first.flatMap { engine.transformOffer(faceID: $0.id) }
-        // Every row hangs off the same left edge. Without an explicit leading
-        // alignment the name and the timing lines centre themselves while the
-        // dice row stays left, which is what made a four- or five-die card
-        // read as overlapping text.
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Text(engine.planTitle(for: step).uppercased())
-                    .font(.fantasy(compact ? 11 : 12.5, weight: .black))
-                    .kerning(0.6)
-                    .foregroundStyle(known ? tint : Theme.parchmentDim)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.6)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("\(step.faces.count) DICE")
-                    .font(.system(size: 10, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.gold)
-            }
+        let titleSize = min(compact ? 12.5 : 14.5, max(compact ? 10 : 11, width / 13))
+        let ingredientSize = comboIconSize(for: step.faces.count, width: width * 0.48)
 
-            // The real dice that went in, so what you spent stays visible. A
-            // wide recipe draws its dice slightly smaller rather than shoving
-            // the rest of the card sideways.
-            HStack(spacing: 2) {
-                ForEach(step.faces) { face in
-                    PharaohSWagerSymbol(art: face.face.artName,
-                                        fallback: face.face.symbol,
-                                        size: comboIconSize(for: step.faces.count, width: width),
-                                        tint: face.isCrit ? Theme.gold : face.face.tint)
+        // The card grows with the dice it consumes. Its content uses that width
+        // too: ingredients and title share the first line, while outcomes wrap
+        // underneath instead of remaining pinned in a tiny fixed cluster.
+        return VStack(alignment: .leading, spacing: compact ? 1.5 : 2.5) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 6) {
+                    ingredientIcons(step.faces, size: ingredientSize)
+                    comboTitle(step, known: known, tint: tint, size: titleSize)
                 }
-                Spacer(minLength: 0)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    comboTitle(step, known: known, tint: tint, size: titleSize)
+                    ingredientIcons(step.faces, size: ingredientSize)
+                }
             }
 
-            // What this action actually does, right on the plate — the whole
-            // reason the preview screen is gone.
             if let combo {
-                effectChips(combo: combo, step: step)
+                effectChips(combo: combo, step: step, width: max(48, width - 16))
             }
 
-            if step.focusFaceID != nil {
-                Text("FOCUS +\(step.focusBonus)")
-                    .font(.system(size: 8, weight: .black))
-                    .foregroundStyle(Theme.gold)
-            }
             if let staged = combo?.stagedBeats {
                 Text("\(staged.guardFirst.uppercased()) → \(staged.strikeLater.uppercased())")
-                    .font(.system(size: 7.5, weight: .black))
+                    .font(.system(size: width < 150 ? 7 : 8, weight: .black))
                     .foregroundStyle(Theme.steel)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -449,9 +428,6 @@ struct PlayBarView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // A held die inside this action carries its god's upgrade, so the
-            // card repeats what the die already promised — the bonus is
-            // visible on both the die and the action it ends up in.
             if let held = heldUpgrade(in: step) {
                 HStack(spacing: 2) {
                     PharaohSWagerSymbol(art: held.god.artName, fallback: held.god.symbol,
@@ -479,8 +455,8 @@ struct PlayBarView: View {
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, compact ? 5 : 7)
+        .padding(.horizontal, width < 130 ? 6 : 8)
+        .padding(.vertical, compact ? 4 : 6)
         .frame(width: width, height: bodyHeight, alignment: .topLeading)
         .background {
             PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.75, shade: 0.3)
@@ -492,8 +468,6 @@ struct PlayBarView: View {
         )
         .shadow(color: tint.opacity(burstStepID == step.id ? 0.9 : 0.35),
                 radius: burstStepID == step.id ? 16 : 8)
-        // The plate lands: it overshoots, throws a ring and a spray of shards,
-        // then settles. This is the moment the dice became one thing.
         .scaleEffect(burstStepID == step.id ? 1 + (1 - burstProgress) * 0.16 : 1)
         .overlay {
             if burstStepID == step.id {
@@ -504,9 +478,41 @@ struct PlayBarView: View {
         .transition(.scale(scale: 0.8).combined(with: .opacity))
     }
 
-    /// Damage, defence and statuses as tight chips — the numbers the preview
-    /// screen used to carry, now on the plate itself.
-    private func effectChips(combo: ComboDef, step: PlanStep) -> some View {
+    private func ingredientIcons(_ faces: [RolledFace], size: CGFloat) -> some View {
+        HStack(spacing: 2) {
+            ForEach(faces) { face in
+                PharaohSWagerSymbol(art: face.face.artName,
+                                    fallback: face.face.symbol,
+                                    size: size,
+                                    tint: face.isCrit ? Theme.gold : face.face.tint)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+        .accessibilityLabel("\(faces.count) ingredient dice")
+    }
+
+    private func comboTitle(_ step: PlanStep, known: Bool, tint: Color, size: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(engine.planTitle(for: step).uppercased())
+                .font(.fantasy(size, weight: .black))
+                .kerning(0.5)
+                .foregroundStyle(known ? tint : Theme.parchmentDim)
+                .lineLimit(2)
+                .minimumScaleFactor(0.56)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("\(step.faces.count) DICE")
+                .font(.system(size: max(7.5, size * 0.64), weight: .black).monospacedDigit())
+                .foregroundStyle(Theme.gold)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Damage, defence and statuses wrap across the width the action owns.
+    /// This keeps the important result readable when cards resize as the turn
+    /// fills, instead of clipping every chip into one fixed horizontal strip.
+    private func effectChips(combo: ComboDef, step: PlanStep, width: CGFloat) -> some View {
         let scale = step.comboScale
         var chips: [(String, Color)] = []
         let damage = engine.displayedDamage(for: step)
@@ -528,20 +534,33 @@ struct PlayBarView: View {
         }
         if combo.markPercent > 0 { chips.append(("MARK +\(combo.markPercent)%", Theme.venom)) }
         if combo.pierce > 0 { chips.append(("PRC \(Int(combo.pierce * 100))%", Theme.gold)) }
+        if step.focusFaceID != nil { chips.append(("FOCUS +\(step.focusBonus)", Theme.gold)) }
 
-        return HStack(spacing: 3) {
-            ForEach(Array(chips.prefix(4).enumerated()), id: \.offset) { _, chip in
-                Text(chip.0)
-                    .font(.system(size: 7.5, weight: .black).monospacedDigit())
-                    .foregroundStyle(chip.1)
-                    .padding(.horizontal, 3.5)
-                    .padding(.vertical, 1)
-                    .background(chip.1.opacity(0.16), in: .rect(cornerRadius: 3))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-            }
-            Spacer(minLength: 0)
+        let visible = Array(chips.prefix(6))
+        let columns = max(1, min(visible.count, width >= 205 ? 3 : (width >= 116 ? 2 : 1)))
+        let rows = stride(from: 0, to: visible.count, by: columns).map {
+            Array(visible[$0..<min($0 + columns, visible.count)])
         }
+        let fontSize: CGFloat = width >= 170 ? 8.5 : 7.5
+
+        return VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: 3) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, chip in
+                        Text(chip.0)
+                            .font(.system(size: fontSize, weight: .black).monospacedDigit())
+                            .foregroundStyle(chip.1)
+                            .padding(.horizontal, width < 116 ? 2.5 : 4)
+                            .padding(.vertical, 1)
+                            .background(chip.1.opacity(0.16), in: .rect(cornerRadius: 3))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The god upgrade riding a held die inside this action, if any.
