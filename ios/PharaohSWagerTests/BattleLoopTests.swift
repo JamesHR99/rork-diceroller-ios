@@ -101,25 +101,25 @@ struct BattleLoopTests {
         #expect(engine.rerollsRemaining == 2)
     }
 
-    @Test func rerollSubsetUsesOnePassAndPreparesEveryRetainedResult() async throws {
+    @Test func tappingARerollDieStartsImmediatelyAndSpendsExactlyOnce() async throws {
         let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
         let before = engine.rolled
-        let selected = Array(engine.slots.prefix(2))
-        let rerolledDieIDs = Set(selected.map { $0.die.id })
+        let selected = try #require(engine.slots.first)
         engine.selectingReroll = true
-        for slot in selected { engine.reroll(slotID: slot.id, reduceMotion: true) }
-        #expect(engine.rerollSelection.count == 2)
-        #expect(engine.rerollsRemaining == 2)
-        engine.confirmReroll(reduceMotion: true)
-        try await settled(engine)
+        engine.reroll(slotID: selected.id, reduceMotion: true)
+        #expect(engine.isRolling)
         #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollSelection.isEmpty)
+        engine.reroll(slotID: selected.id, reduceMotion: true)
+        #expect(engine.rerollsRemaining == 1)
+        try await settled(engine)
         #expect(engine.rolled.count == 6)
-        for face in before where !rerolledDieIDs.contains(face.dieID) {
+        for face in before where face.dieID != selected.die.id {
             let kept = try #require(engine.rolled.first { $0.id == face.id })
             #expect(kept.wasKept && kept.face == face.face && kept.isCrit == face.isCrit)
         }
-        #expect(engine.rolled.filter { rerolledDieIDs.contains($0.dieID) }.allSatisfy { !$0.wasKept })
+        #expect(engine.rolled.first { $0.dieID == selected.die.id }?.wasKept == false)
     }
 
     @Test func mixedArrowsCannotCombineAndSupportTakesAnEvent() async throws {
@@ -135,12 +135,13 @@ struct BattleLoopTests {
         try await roll(engine)
         let arrows = engine.rolled.filter { $0.face == .arrow1 }
         for face in arrows { engine.placeInPlayBar(faceID: face.id) }
-        let candidate = try #require(engine.weldCandidates.first { $0.combo.faceCount == 4 })
-        #expect(engine.combine(candidate))
+        #expect(engine.turnPlan.first?.faces.count == 4)
         #expect(engine.turnPlan.count == 1)
         #expect(engine.timeline.filter(\.isPlayer).count == 2)
         #expect(engine.separate(faceID: arrows[0].id))
-        #expect(engine.turnPlan.count == 4)
+        #expect(engine.turnPlan.count == 1)
+        #expect(engine.turnPlan.first?.faces.count == 3)
+        #expect(engine.timeline.filter(\.isPlayer).count == 1)
     }
 
     @Test func ordinarySoloRoundSettlesAndResetsTheHand() async throws {
@@ -178,8 +179,7 @@ struct BattleLoopTests {
         let engine = battle([.swiftSlash, .swiftSlash, .poison, .block, .evade, .heal], classID: "rogue")
         try await roll(engine)
         for slash in engine.rolled.filter({ $0.face == .swiftSlash }) { engine.placeInPlayBar(faceID: slash.id) }
-        let candidate = try #require(engine.weldCandidates.first)
-        #expect(engine.combine(candidate))
+        #expect(engine.turnPlan.first?.isCombo == true)
         let native = try #require(SameFaceCatalog.action(.swiftSlash, count: 2))
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - native.damage - native.bleedAmount)
@@ -207,14 +207,70 @@ struct BattleLoopTests {
         try await roll(engine)
         let life = engine.rolled.filter { $0.face == .runeLife }
         for face in life { engine.placeInPlayBar(faceID: face.id) }
-        let candidate = try #require(engine.weldCandidates.first)
-        #expect(engine.combine(candidate))
+        #expect(engine.turnPlan.first?.isCombo == true)
         let action = try #require(engine.turnPlan.first)
         engine.beginArming("ch_echoingStaff")
         #expect(engine.armHeldChisel(onto: action))
         #expect(engine.reservedRerolls == 1 && engine.rerollsRemaining == 1)
         #expect(engine.separate(faceID: life[0].id))
         #expect(engine.reservedRerolls == 0 && engine.rerollsRemaining == 2)
+    }
+
+    @Test func adjacentRunsMatchTheRequestedExamplesAndRegroupOnRemoval() async throws {
+        let engine = battle([.arrow1, .arrow1, .arrow2, .arrow1, .arrow1, .block])
+        try await roll(engine)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let separator = try #require(engine.rolled.first { $0.face == .arrow2 })
+        engine.placeInPlayBar(faceID: arrows[0].id)
+        engine.placeInPlayBar(faceID: arrows[1].id)
+        engine.placeInPlayBar(faceID: arrows[2].id)
+        #expect(engine.turnPlan.map { $0.faces.count } == [3])
+        engine.placeInPlayBar(faceID: separator.id, before: arrows[2].id)
+        #expect(engine.turnPlan.map { $0.faces.count } == [2, 1, 1])
+        engine.placeInPlayBar(faceID: arrows[3].id)
+        #expect(engine.turnPlan.map { $0.faces.count } == [2, 1, 2])
+        #expect(engine.turnPlan.map { $0.faces[0].matchFace } == [.arrow1, .arrow2, .arrow1])
+        engine.returnToTray(faceID: separator.id)
+        #expect(engine.turnPlan.map { $0.faces.count } == [4])
+        #expect(Set(engine.turnPlan.flatMap(\.faces).map(\.dieID)).count == 4)
+    }
+
+    @Test func movingAMatchingDieAcrossABarrierDoesNotMergeAcrossIt() async throws {
+        let engine = battle([.arrow1, .arrow1, .arrow2, .arrow1, .block, .focus])
+        try await roll(engine)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let separator = try #require(engine.rolled.first { $0.face == .arrow2 })
+        for face in arrows { engine.placeInPlayBar(faceID: face.id) }
+        engine.placeInPlayBar(faceID: separator.id)
+        engine.placeInPlayBar(faceID: arrows[0].id)
+        #expect(engine.turnPlan.map { $0.faces.count } == [2, 1, 1])
+    }
+
+    @Test func destinationRerollIsSharedByBothDiceAndPersists() throws {
+        let first = VoyageNode(id: UUID(), kind: .ferryman, stage: 0, hour: 1, isRevealed: true)
+        let second = VoyageNode(id: UUID(), kind: .battle, stage: 0, hour: 1, isRevealed: false)
+        let boss = VoyageNode(id: UUID(), kind: .boss, stage: 7, hour: 4, isRevealed: true)
+        var voyage = Voyage(nodes: [first, second, boss])
+        #expect(voyage.rerollDestination(first.id))
+        #expect(voyage.node(second.id) == second)
+        #expect(voyage.node(first.id)?.stage == 0)
+        #expect(voyage.node(first.id)?.kind.isForced == false)
+        #expect(!voyage.rerollDestination(second.id))
+        #expect(!voyage.rerollDestination(boss.id))
+        let restored = try JSONDecoder().decode(Voyage.self, from: JSONEncoder().encode(voyage))
+        #expect(!restored.canReroll(second))
+        #expect(restored.nodes == voyage.nodes)
+    }
+
+    @Test func oldVoyageSavesDecodeWithoutRerollState() throws {
+        let voyage = Voyage.generate()
+        let data = try JSONEncoder().encode(voyage)
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "rerolledStages")
+        let oldData = try JSONSerialization.data(withJSONObject: object)
+        let restored = try JSONDecoder().decode(Voyage.self, from: oldData)
+        let first = try #require(restored.nodes.first)
+        #expect(restored.canReroll(first))
     }
 
 }

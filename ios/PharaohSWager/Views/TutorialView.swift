@@ -206,7 +206,7 @@ struct TutorialView: View {
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("6 dice · 2 reroll passes each round · \(hero.battleIdentity.lowercased())")
+                Text("6 dice · 2 instant rerolls each round · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -366,7 +366,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "order",
                 title: "Combining is the game",
-                body: "Tap these faces into the plan. Dice standing side by side can be combined; dice with a gap cannot.\n\nWhen they make something, a seam appears. Tap it to see exactly what you would get, then choose Combine. Nothing ever fuses on its own, and Separate undoes it.",
+                body: "Tap these faces into the plan. Matching neighbours join automatically, growing from two to six dice. A different face starts a new action.\n\nArrow I, Arrow I, Arrow II, Arrow I makes a pair, a single Arrow II, and a single Arrow I. Drag dice to reorder them; use minus to return a die.",
                 art: PharaohSWagerArt.chainConnector,
                 fallbackSymbol: "arrow.left.arrow.right",
                 tint: Theme.ember,
@@ -374,8 +374,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Six dice. Two reroll passes.",
-                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, select any subset of unplayed dice, then confirm. Unselected results become Prepared. You have two passes; a boon may grant a third. Every round starts with a fresh draw.",
+                title: "Six dice. Two instant rerolls.",
+                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap an unplayed die to reroll it immediately. Other results become Prepared. You have two rerolls; a boon may grant a third. Every round starts with a fresh draw.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -674,7 +674,7 @@ private struct OrderDemoView: View {
                 ? "A single die is a useful action. Try adding a matching face for a combo."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "Those dice now land together as one action. Keep another die for Block or Evade, or put Focus before the combo to boost it. Separate gives you two individual actions again."
+        return "Those dice now land together as one action. Keep another die for Block or Evade, or put Focus before the combo to boost it. A different face splits the run. Return a die or drag its icon to change the order."
     }
 
     // MARK: Hand

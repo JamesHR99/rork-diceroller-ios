@@ -29,6 +29,10 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test -project ios/PharaohSWager.xcodeproj -scheme PharaohSWager -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -only-testing:PharaohSWagerTests CODE_SIGNING_ALLOWED=NO -resultBundlePath TestResults.xcresult | tee xcodebuild.log
+      - name: Export simulator visual checks
+        if: always()
+        continue-on-error: true
+        run: xcrun xcresulttool export attachments --path TestResults.xcresult --output-path TestAttachments
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -36,3 +40,9 @@ jobs:
           path: |
             TestResults.xcresult
             xcodebuild.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-visual-checks
+          path: TestAttachments
+

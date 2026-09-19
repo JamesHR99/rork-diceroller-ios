@@ -485,8 +485,20 @@ final class GameManager {
     }
 
     /// Sail into a stage of the river and take whatever waits there.
-    func enter(_ node: VoyageNode) {
-        guard isNodeAvailable(node) else { return }
+    var canRerollDestination: Bool {
+        availableNodes.contains { voyage.canReroll($0) }
+    }
+
+    @discardableResult
+    func rerollDestination(_ nodeID: UUID) -> Bool {
+        guard screen == .chart, availableNodes.contains(where: { $0.id == nodeID }),
+              voyage.rerollDestination(nodeID) else { return false }
+        autosave()
+        return true
+    }
+
+    func enter(_ proposedNode: VoyageNode) {
+        guard let node = availableNodes.first(where: { $0.id == proposedNode.id }) else { return }
         currentNodeID = node.id
         deepestHour = max(deepestHour, node.hour)
         Haptics.medium()

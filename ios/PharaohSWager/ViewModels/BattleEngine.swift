@@ -1727,8 +1727,8 @@ final class BattleEngine {
         guard canReroll, selectingReroll,
               let slot = slots.first(where: { $0.id == slotID }),
               case .rolled(let face) = slot.state, !playOrder.contains(face.id) else { return }
-        if rerollSelection.contains(slotID) { rerollSelection.remove(slotID) }
-        else { rerollSelection.insert(slotID) }
+        rerollSelection = [slotID]
+        rerollSelected(reduceMotion: reduceMotion)
     }
 
     func confirmReroll(reduceMotion: Bool = false) {
@@ -1971,6 +1971,7 @@ final class BattleEngine {
 
         if let slotID = slotID(showing: face.id) { rerollSelection.remove(slotID) }
         playOrder = prospective
+        pruneWelds()
         Haptics.light()
         // The knock climbs a step for each die already in the plan, so a long
         // turn builds audibly as you lay it out.
@@ -2095,13 +2096,8 @@ final class BattleEngine {
     /// order they went in, and nothing has been spent.
     @discardableResult
     func separate(faceID: UUID) -> Bool {
-        guard phase == .player,
-              let index = weldedGroups.firstIndex(where: { $0.contains(faceID) }) else { return false }
-        weldedGroups.remove(at: index)
-        pruneWelds()
-        lastAction = "Separated — the dice are yours again."
-        Haptics.light()
-        Audio.shared.play(.diceTake)
+        guard phase == .player, playOrder.contains(faceID) else { return false }
+        returnToTray(faceID: faceID)
         return true
     }
 
@@ -2156,9 +2152,9 @@ final class BattleEngine {
     private func pruneWelds() {
         let faces = playedFaces
         siegeArmedFaceIDs.formIntersection(Set(faces.map(\.id)))
-        weldedGroups.removeAll { group in
-            let members = group.compactMap { id in faces.first { $0.id == id } }
-            return members.count != group.count || resolveWeld(members) == nil
+        weldedGroups = buildPlan(from: faces).filter(\.isCombo).map { $0.faces.map(\.id) }
+        for step in turnPlan where step.isCombo {
+            if let combo = step.combo, knownChainIDs.insert(combo.id).inserted { _ = ComboLore.discover(combo.id) }
         }
         let combos = Set(turnPlan.map { $0.id.uuidString })
         counterweightArmed.formIntersection(combos)
@@ -4493,29 +4489,21 @@ final class BattleEngine {
     /// Groups played faces into steps. Combos come only from welds you made
     /// yourself; everything else resolves as the single die it is.
     func buildPlan(from faces: [RolledFace]) -> [PlanStep] {
-        var grouped: [UUID: (ComboDef, [RolledFace])] = [:]
-        var consumed: Set<UUID> = []
-        for ids in weldedGroups {
-            guard Set(ids).count == ids.count, consumed.isDisjoint(with: ids) else { continue }
-            let members = ids.compactMap { id in faces.first { $0.id == id } }
-            guard members.count == ids.count, let first = members.first, let match = resolveWeld(members) else { continue }
-            grouped[first.id] = (match.combo, match.members)
-            consumed.formUnion(ids)
-        }
-        var steps: [PlanStep] = []
+        var runs: [[RolledFace]] = []
         var usedDice: Set<UUID> = []
-        var relentlessReady = relentlessActive && hasChisel("ch_relentless")
-        for face in faces {
-            if consumed.contains(face.id) && grouped[face.id] == nil { continue }
-            let members = grouped[face.id]?.1 ?? [face]
-            guard members.allSatisfy({ !usedDice.contains($0.dieID) }) else { continue }
-            usedDice.formUnion(members.map(\.dieID))
-            let combo = grouped[face.id]?.0 ?? SameFaceCatalog.action(face.matchFace, count: 1)
-            let bonus = relentlessReady && members.count >= 2 && face.matchFace.isSwing ? GameData.relentlessDamage : 0
-            if bonus > 0 { relentlessReady = false }
-            steps.append(PlanStep(faces: members, combo: combo, momentumBonus: bonus))
+        for face in faces where usedDice.insert(face.dieID).inserted {
+            if let last = runs.last, last.count < 6, last.last?.matchFace == face.matchFace {
+                runs[runs.count - 1].append(face)
+            } else { runs.append([face]) }
         }
-        return steps
+        var relentlessReady = relentlessActive && hasChisel("ch_relentless")
+        return runs.map { members in
+            let face = members[0].matchFace
+            let combo = SameFaceCatalog.action(face, count: members.count)
+            let bonus = relentlessReady && members.count >= 2 && face.isSwing ? GameData.relentlessDamage : 0
+            if bonus > 0 { relentlessReady = false }
+            return PlanStep(faces: members, combo: combo, momentumBonus: bonus)
+        }
     }
 
     /// Warrior passive: each swing already thrown this turn adds damage.

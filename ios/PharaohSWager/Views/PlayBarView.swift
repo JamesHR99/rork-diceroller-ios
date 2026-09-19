@@ -11,6 +11,9 @@ import SwiftUI
 /// spoiler.
 struct PlayBarView: View {
     let engine: BattleEngine
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var impactTask: Task<Void, Never>?
+    @State private var impactSize = 2
 
     /// A seam offering more than one recipe, waiting for the player to pick.
     @State private var showingOrder = false
@@ -57,7 +60,27 @@ struct PlayBarView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, compact ? 2 : 4)
-        .animation(.spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
+        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.8), value: engine.hasCombo)
+        .onChange(of: engine.weldedGroups) { old, new in
+            guard engine.phase == .player,
+                  let formed = new.filter({ !old.contains($0) }).max(by: { $0.count < $1.count }),
+                  formed.count > 1 else { return }
+            impactTask?.cancel()
+            impactSize = formed.count
+            burstStepID = formed.first
+            burstProgress = 0
+            Haptics.chain(length: formed.count, crit: false)
+            Audio.shared.play(.chain, volumeScale: min(1, 0.35 + Double(formed.count) * 0.1))
+            if formed.count >= 4 { Audio.shared.play(.diceLock, after: 0.07) }
+            withAnimation(.easeOut(duration: reduceMotion ? 0.18 : 0.35 + Double(formed.count) * 0.07)) {
+                burstProgress = 1
+            }
+            impactTask = Task { @MainActor in
+                do { try await Task.sleep(for: .milliseconds(reduceMotion ? 200 : 900)) } catch { return }
+                burstStepID = nil
+            }
+        }
+        .onDisappear { impactTask?.cancel() }
     }
 
     // MARK: - Combining
@@ -174,18 +197,7 @@ struct PlayBarView: View {
         .padding(.horizontal, 9)
         .padding(.vertical, compact ? 4 : 6)
         .frame(maxWidth: .infinity)
-        .background {
-            PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.55, shade: 0.5)
-                .clipShape(.rect(cornerRadius: 15))
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 15)
-                .strokeBorder(
-                    engine.hasCombo ? Theme.ember.opacity(0.7) : Theme.gold.opacity(0.28),
-                    lineWidth: engine.hasCombo ? 2 : 1
-                )
-        )
-        .shadow(color: Theme.ember.opacity(engine.hasCombo ? 0.3 : 0), radius: 14)
+        .background { TurnOrderPlaque(accent: Theme.gold) }
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first, let faceID = UUID(uuidString: idString) else { return false }
             engine.placeInPlayBar(faceID: faceID)
@@ -260,46 +272,27 @@ struct PlayBarView: View {
     private var planRow: some View {
         let steps = engine.displayedPlan
         return GeometryReader { geometry in
-            let dividers = max(0, steps.count - 1)
-            let seamCount = steps.indices.dropLast().filter { seam(after: $0, in: steps) != nil }.count
-            let gapCount = max(0, dividers - seamCount)
-            let seamWidth: CGFloat = compact ? 28 : 32
-            let reserved = CGFloat(seamCount) * seamWidth + CGFloat(gapCount) * 5
+            let reserved = CGFloat(max(0, steps.count - 1)) * 6
             let diceCount = max(1, steps.reduce(0) { $0 + $1.faces.count })
-            // Each die owns an equal share of the bar. A combo receives all of
-            // its ingredients' shares, so a four-die action is visibly larger
-            // than a single while every arrangement fills the available row.
-            let share = max(compact ? 34 : 38,
-                            (geometry.size.width - reserved) / CGFloat(diceCount))
-
+            let share = max(78, (geometry.size.width - reserved - 2) / CGFloat(diceCount))
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                        let width = share * CGFloat(max(1, step.faces.count))
-                        if step.isCombo {
-                            combinedCard(step, width: width)
-                        } else if let face = step.faces.first {
-                            planDieCard(face, width: width)
-                        }
-
-                        // Between two loose dice that would make something,
-                        // the seam remains a full-height target without
-                        // stealing a whole card's share of the plan.
-                        if let candidate = seam(after: index, in: steps) {
-                            seamButton(candidate, steps: steps, at: index, width: seamWidth)
-                        } else if index < steps.count - 1 {
-                            Spacer().frame(width: 5)
-                        }
+                HStack(spacing: 6) {
+                    if steps.isEmpty {
+                        Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
+                            .font(.fantasy(compact ? 13 : 17, weight: .bold))
+                            .foregroundStyle(Theme.parchment.opacity(0.75))
+                            .frame(width: max(0, geometry.size.width - 2), height: bodyHeight)
+                    }
+                    ForEach(steps) { step in
+                        combinedCard(step, width: share * CGFloat(step.faces.count))
                     }
                 }
                 .padding(.horizontal, 1)
-                .frame(minWidth: geometry.size.width, minHeight: bodyHeight, alignment: .leading)
+                .frame(minHeight: bodyHeight)
             }
         }
         .frame(height: bodyHeight)
-        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: engine.playOrder)
-        .animation(.spring(response: 0.34, dampingFraction: 0.62), value: engine.weldedGroups.count)
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: weldPulse)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.72), value: engine.playOrder)
     }
 
     /// The seam sitting between two adjacent loose dice, when the run they
@@ -383,96 +376,84 @@ struct PlayBarView: View {
     /// and the controls to pull it apart or grow it. Tapping the body opens the
     /// same card you combined from, so you can re-read what it does.
     private func combinedCard(_ step: PlanStep, width: CGFloat) -> some View {
-        let combo = step.combo
-        let tint = combo?.tint ?? Theme.gold
-        let known = engine.isChainKnown(step)
-        let transform = step.faces.first.flatMap { engine.transformOffer(faceID: $0.id) }
-        let titleSize = min(compact ? 12.5 : 14.5, max(compact ? 10 : 11, width / 13))
-        let ingredientSize = comboIconSize(for: step.faces.count, width: width * 0.48)
-
-        // The card grows with the dice it consumes. Its content uses that width
-        // too: ingredients and title share the first line, while outcomes wrap
-        // underneath instead of remaining pinned in a tiny fixed cluster.
-        return VStack(alignment: .leading, spacing: compact ? 1.5 : 2.5) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .center, spacing: 6) {
-                    ingredientIcons(step.faces, size: ingredientSize)
-                    comboTitle(step, known: known, tint: tint, size: titleSize)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    comboTitle(step, known: known, tint: tint, size: titleSize)
-                    ingredientIcons(step.faces, size: ingredientSize)
-                }
-            }
-
-            if let combo {
-                effectChips(combo: combo, step: step, width: max(48, width - 16))
-            }
-
-            if let staged = combo?.stagedBeats {
-                Text("\(staged.guardFirst.uppercased()) → \(staged.strikeLater.uppercased())")
-                    .font(.system(size: width < 150 ? 7 : 8, weight: .black))
-                    .foregroundStyle(Theme.steel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if let line = engine.chiselLine(for: step) {
-                Text(line)
-                    .font(.system(size: 7.5, weight: .black))
-                    .foregroundStyle(Theme.ptahCopper)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if let held = heldUpgrade(in: step) {
-                HStack(spacing: 2) {
-                    PharaohSWagerSymbol(art: held.god.artName, fallback: held.god.symbol,
-                                        size: 10, tint: held.god.tint)
-                    Text(held.effect.uppercased())
-                        .font(.system(size: 7.5, weight: .black))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                }
-                .foregroundStyle(held.god.tint)
-            }
-
-            Spacer(minLength: 0)
-
+        let roomy = width >= 350
+        let tint = step.tint
+        let titleSize = min(34, min(bodyHeight * 0.29, max(12, width * 0.085)))
+        let iconSize = min(bodyHeight * (roomy ? 0.42 : 0.2), max(12, (width - 28) / CGFloat(step.faces.count + 2)))
+        let content = roomy ? AnyLayout(HStackLayout(alignment: .center, spacing: 18))
+                            : AnyLayout(VStackLayout(alignment: .leading, spacing: 3))
+        return content {
             HStack(spacing: 3) {
-                smallControl("SEPARATE", tint: Theme.parchmentDim) {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
-                        if let face = step.faces.first { engine.separate(faceID: face.id) }
+                ForEach(step.faces) { face in
+                    PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
+                        size: iconSize, tint: face.isCrit ? Theme.gold : face.matchFace.tint)
+                        .draggable(face.id.uuidString)
+                        .accessibilityLabel(face.displayName + (face.isCrit ? ", critical" : ""))
+                }
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .top, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(step.title.uppercased())
+                            .font(.fantasy(titleSize, weight: .black))
+                            .foregroundStyle(Theme.parchment)
+                            .lineLimit(2).minimumScaleFactor(0.65)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(step.isCombo ? "\(step.faces.count) DICE COMBO" : "1 DIE")
+                            .font(.system(size: max(9, titleSize * 0.46), weight: .black))
+                            .foregroundStyle(Theme.gold)
+                    }
+                    if engine.phase == .player {
+                        Button {
+                            if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: max(16, titleSize * 0.65)))
+                                .foregroundStyle(Theme.gold)
+                                .frame(minWidth: 30, minHeight: 30)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Return last die from \(step.title) to tray")
                     }
                 }
-                if let transform {
-                    smallControl("GROW", tint: Theme.gold) {
-                        performCombine(transform, transform: true)
+                ScrollView(.vertical, showsIndicators: false) {
+                    let labels = (engine.displayedDamage(for: step) > 0 ? ["\(engine.displayedDamage(for: step)) DAMAGE"] : []) + step.effects
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: min(max(60, width - 24), roomy ? 150 : 100)), spacing: 4)], alignment: .leading, spacing: 3) {
+                        ForEach(labels, id: \.self) { label in
+                            Text(label.uppercased())
+                                .font(.system(size: min(20, max(10, min(bodyHeight * 0.18, width / 15))), weight: .bold))
+                                .foregroundStyle(label.contains("DAMAGE") ? Theme.gold : Theme.parchment)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(tint.opacity(0.13), in: .rect(cornerRadius: 3))
+                        }
+                    }
+                    if let line = engine.chiselLine(for: step) {
+                        Text(line).font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.ptahCopper)
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, width < 130 ? 6 : 8)
-        .padding(.vertical, compact ? 4 : 6)
-        .frame(width: width, height: bodyHeight, alignment: .topLeading)
-        .background {
-            PapyrusSurface(ground: .card, tint: Theme.bgCard, strength: 0.75, shade: 0.3)
-                .clipShape(.rect(cornerRadius: 12))
+        .padding(.horizontal, roomy ? 18 : 8).padding(.vertical, 7)
+        .frame(width: width, height: bodyHeight)
+        .background { TurnOrderPlaque(accent: tint) }
+        .onTapGesture {
+            if engine.armingChiselID != nil, let face = step.faces.first { _ = engine.armHeldChisel(ontoFace: face.id) }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(tint.opacity(0.85), lineWidth: 2)
-        )
-        .shadow(color: tint.opacity(burstStepID == step.id ? 0.9 : 0.35),
-                radius: burstStepID == step.id ? 16 : 8)
+        .dropDestination(for: String.self) { items, _ in
+            guard let value = items.first, let id = UUID(uuidString: value), let first = step.faces.first else { return false }
+            engine.placeInPlayBar(faceID: id, before: first.id)
+            return true
+        }
         .contextMenu {
+            ForEach(step.faces) { face in
+                Button("Return \(face.displayName)") { engine.returnToTray(faceID: face.id) }
+            }
             if let action = step.combo, action.dodgeCharges > 0 {
                 ForEach(Array(step.faces.prefix(action.dodgeCharges).enumerated()), id: \.element.id) { index, face in
                     Menu("Dodge \(index + 1): \(engine.evadeTargetLabel(faceID: face.id))") {
-                        Button("Next incoming strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
+                        Button("Next strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
                         ForEach(engine.incomingStrikes) { strike in
                             Button(strike.title) { engine.assignEvade(faceID: face.id, strikeID: strike.id) }
                         }
@@ -480,14 +461,14 @@ struct PlayBarView: View {
                 }
             }
         }
-        .scaleEffect(burstStepID == step.id ? 1 + (1 - burstProgress) * 0.16 : 1)
+        .scaleEffect(!reduceMotion && burstStepID == step.id ? 1 + (1 - burstProgress) * CGFloat(impactSize) * 0.018 : 1)
+        .shadow(color: Theme.gold.opacity(burstStepID == step.id ? Double(1 - burstProgress) * 0.7 : 0), radius: CGFloat(impactSize * 3))
         .overlay {
-            if burstStepID == step.id {
-                CombineBurst(progress: burstProgress, tint: tint)
-                    .allowsHitTesting(false)
+            if !reduceMotion && burstStepID == step.id {
+                CombineBurst(progress: burstProgress, tint: Theme.gold, size: impactSize).allowsHitTesting(false)
             }
         }
-        .transition(.scale(scale: 0.8).combined(with: .opacity))
+        .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.92)))
     }
 
     private func ingredientIcons(_ faces: [RolledFace], size: CGFloat) -> some View {
@@ -764,27 +745,23 @@ struct PlayBarView: View {
 
     private var rerollButton: some View {
         Button {
-            if engine.selectingReroll && !engine.rerollSelection.isEmpty {
-                engine.confirmReroll()
-            } else { engine.selectingReroll.toggle() }
+            engine.selectingReroll.toggle()
             Haptics.light()
         } label: {
             VStack(spacing: 2) {
-                Label(engine.selectingReroll ? (engine.rerollSelection.isEmpty ? "CANCEL" : "ROLL SELECTED") : "REROLL",
-                      systemImage: "arrow.triangle.2.circlepath")
+                Label(engine.selectingReroll ? "CANCEL" : "REROLL", systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
-                Text("\(engine.rerollsRemaining) passes left")
+                Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollsRemaining) rolls left")
                     .font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Theme.gold)
             .frame(width: controlWidth, height: rerollHeight)
             .background {
-                DeckButtonSurface(tone: .secondary,
-                    state: engine.selectingReroll ? .selected : .normal, rim: Theme.gold)
+                DeckButtonSurface(tone: .secondary, state: engine.selectingReroll ? .selected : .normal, rim: Theme.gold)
             }
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(engine.phase != .player || !engine.hasRolled || engine.isRolling || engine.rerollsRemaining == 0)
+        .disabled(!engine.canReroll)
         .accessibilityIdentifier("battle.reroll")
     }
 

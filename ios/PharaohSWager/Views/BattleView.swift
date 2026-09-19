@@ -772,8 +772,7 @@ private struct BattleContentView: View {
                     .padding(.horizontal, 30)
                     .padding(.vertical, 12)
                     .background {
-                        PharaohSWagerImage(name: won ? PharaohSWagerArt.bannerVictory : PharaohSWagerArt.bannerDefeat, fit: .stretch)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        TurnOrderPlaque(accent: won ? Theme.gold : Theme.blood)
                     }
 
                 Text(won

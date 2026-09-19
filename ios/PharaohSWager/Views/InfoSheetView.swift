@@ -709,7 +709,7 @@ struct InfoSheetView: View {
                 icon: "link", tint: Theme.ember, title: "COMBOS AND SINGLES",
                 lines: [
                     "Every die can be used once. Combine 1–6 identical faces; Arrow I and Arrow II are separate.",
-                    "Place matching dice side by side, tap the seam, then Combine. Separate returns them to individual actions.",
+                    "Adjacent matching faces combine immediately. Different faces split the run. Drag dice to reorder; minus returns the last die.",
                     "Keep spare dice useful: Twin Shot and a separate Block give you damage and defence in the same round.",
                     "Native crit multiplier: 1 + 0.5 × critical dice / group size. No second critical roll.",
                     "New recipes are recorded in your codex when discovered."
@@ -720,7 +720,7 @@ struct InfoSheetView: View {
                 lines: [
                     "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
                     "There is no player stamina. Use all six dice or commit early.",
-                    "Two reroll passes each round. Select any unplayed subset, then Roll Selected. Bonuses raise the maximum to three.",
+                    "Two instant rerolls each round. Tap Reroll, then tap an unplayed die: it rolls immediately and spends one reroll. Bonuses raise the maximum to three.",
                     "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
                     "No results carry between rounds. The next round draws six fresh dice.",
                     "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming returns it."

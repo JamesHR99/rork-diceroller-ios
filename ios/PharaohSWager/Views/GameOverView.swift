@@ -132,8 +132,7 @@ struct GameOverView: View {
                 .padding(.horizontal, 34)
                 .padding(.vertical, 16)
                 .background {
-                    PharaohSWagerImage(name: won ? PharaohSWagerArt.bannerVictory : PharaohSWagerArt.bannerDefeat, fit: .stretch)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    TurnOrderPlaque(accent: won ? Theme.gold : Theme.blood)
                 }
 
             WingedDivider(height: 22, opacity: 0.8)
@@ -271,4 +270,5 @@ struct GameOverView: View {
         }
     }
 }
+
 
