@@ -313,12 +313,17 @@ private struct BattleContentView: View {
             let room = stage.size.height
             let foeCount = engine.stagedFoes.count
             let boatWidth = min(stage.size.width * 0.99, 920)
-            let deckLift = min(88, max(42, boatWidth / 7.7))
+            // The usable fighting deck is inset from the prow and stern and
+            // sits lower than the ornamental rail. The old lift put feet on
+            // the rail itself; this value follows the broad central planks.
+            let deckInset = min(56, max(18, boatWidth * 0.075))
+            let combatWidth = max(280, stage.size.width - deckInset * 2)
+            let deckLift = min(62, max(28, boatWidth / 11.2))
             let fighterRoom = max(150, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.
-            let playerWidth = max(112, stage.size.width * (foeCount >= 3 ? 0.25 : 0.35))
-            let foeWidth = max(92, stage.size.width - 20 - playerWidth)
+            let playerWidth = max(112, combatWidth * (foeCount >= 3 ? 0.25 : 0.35))
+            let foeWidth = max(92, combatWidth - 20 - playerWidth)
 
             ZStack(alignment: .bottom) {
                 BattleBarqueView(gate: gate, width: boatWidth, discGlow: game.discGlow)
@@ -340,7 +345,7 @@ private struct BattleContentView: View {
 
                     enemyGroup(room: fighterRoom, width: foeWidth)
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, deckInset)
                 .padding(.bottom, deckLift)
                 .frame(width: stage.size.width, height: room, alignment: .bottom)
             }
