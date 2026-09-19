@@ -171,21 +171,13 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
     /// What this face is worth played on its own, after the solo cut. A lone
     /// face is workable now — the chain is still the fight.
     var soloValue: Int {
-        if self == .block { return BattleRules.blockValue }
-        guard baseValue > 0 else { return 0 }
-        let scale = isAttack ? GameData.soloAttackScale : GameData.soloGuardScale
-        return max(1, Int((Double(baseValue) * scale).rounded()))
+        guard let action = SameFaceCatalog.action(self, count: 1) else { return 0 }
+        return [action.damage, action.heal, action.shield, action.poisonAmount].max() ?? 0
     }
 
     /// Chance this face lands a critical the moment the die settles, before
     /// any imbues are added.
-    var baseCrit: Double {
-        switch self {
-        case .arrow3, .overhead, .daggerThrow: return 0.08
-        case .arrow2, .swiftSlash, .runeArcane: return 0.06
-        default: return 0.05
-        }
-    }
+    var baseCrit: Double { 0.10 }
 
     var isAttack: Bool {
         switch self {
@@ -225,24 +217,7 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
     }
 
     /// What playing this face on its own does — shown in the codex and tray.
-    var soloEffect: String {
-        switch self {
-        case .runeFrost: return "Deal \(soloValue) damage and slow the next attack"
-        case .poison: return "Apply \(soloValue) Poison; grows each round"
-        case .evade: return "Prepare 1 guaranteed Dodge against a chosen strike this round"
-        case .focus: return "Place before an attack or combo: +50% damage. One Focus per action."
-        default:
-            switch soloKind {
-            case .damage: return "Deal \(soloValue) damage"
-            case .block: return "Gain \(soloValue) shield"
-            case .heal: return "Restore \(soloValue) health"
-            case .evade: return "Prepare 1 Dodge this round"
-
-            case .poison: return "Apply \(soloValue) Poison; grows each round"
-            case .focus: return "Next attack or combo +50% damage"
-            }
-        }
-    }
+    var soloEffect: String { SameFaceCatalog.action(self, count: 1)?.effectSummary ?? "" }
 
     /// Short "what will this do" tag for the dice tray.
     var soloTag: String {
@@ -275,4 +250,5 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         }
     }
 }
+
 

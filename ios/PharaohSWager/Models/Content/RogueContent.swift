@@ -20,7 +20,7 @@ enum RogueContent {
     /// Leather die: 2× Evade, 2× Heal, 1× Focus, 1× Block.
     static func armorDie(rarity: Rarity = .common, name: String = "Leather Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.evade, .evade, .heal, .heal, .focus, .block])
+            faces: [.swiftSlash, .evade, .evade, .heal, .focus, .block])
     }
 
     static func weapon() -> GearPiece {
@@ -175,4 +175,5 @@ enum RogueContent {
     static let imbueName = "Assassin's Coating"
     static let imbueSymbol = "drop.fill"
 }
+
 

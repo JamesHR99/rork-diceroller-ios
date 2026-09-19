@@ -85,6 +85,15 @@ struct ComboDef: Identifiable, Hashable {
     /// This combo always crits, no matter which dice fed it.
     let guaranteedCrit: Bool
 
+    let focusPercent: Int
+    let splashDamage: Int
+    let cleanseCount: Int
+    let delaysEnemy: Bool
+    let earlyTick: String
+    let conditionalDamagePercent: Int
+    let damageCondition: String
+    let reflectCap: Int
+    let lifestealCap: Int
     let flavor: String
 
     init(
@@ -117,6 +126,15 @@ struct ComboDef: Identifiable, Hashable {
         scalesWithBurn: Bool = false,
         momentumNext: Int = 0,
         guaranteedCrit: Bool = false,
+        focusPercent: Int = 0,
+        splashDamage: Int = 0,
+        cleanseCount: Int = 0,
+        delaysEnemy: Bool = false,
+        earlyTick: String = "",
+        conditionalDamagePercent: Int = 0,
+        damageCondition: String = "",
+        reflectCap: Int = 0,
+        lifestealCap: Int = 0,
         flavor: String
     ) {
         self.id = id
@@ -148,6 +166,15 @@ struct ComboDef: Identifiable, Hashable {
         self.scalesWithBurn = scalesWithBurn
         self.momentumNext = momentumNext
         self.guaranteedCrit = guaranteedCrit
+        self.focusPercent = focusPercent
+        self.splashDamage = splashDamage
+        self.cleanseCount = cleanseCount
+        self.delaysEnemy = delaysEnemy
+        self.earlyTick = earlyTick
+        self.conditionalDamagePercent = conditionalDamagePercent
+        self.damageCondition = damageCondition
+        self.reflectCap = reflectCap
+        self.lifestealCap = lifestealCap
         self.flavor = flavor
     }
 
@@ -167,12 +194,12 @@ struct ComboDef: Identifiable, Hashable {
     /// What this action *is*, which decides which god powers answer it.
     var roles: ActionRole {
         var roles: ActionRole = .none
-        if damage > 0 || scalesWithBleed || scalesWithWounds || scalesWithBurn {
+        if damage > 0 || poisonAmount > 0 || scalesWithBleed || scalesWithWounds || scalesWithBurn {
             roles.insert(.attack)
         }
         if shield > 0 { roles.insert(.guardian) }
         if dodgeCharges > 0 { roles.insert(.evade) }
-        if heal > 0 || regenAmount > 0 || lifesteal || momentumNext > 0 { roles.insert(.support) }
+        if focusPercent > 0 || heal > 0 || regenAmount > 0 || lifesteal || momentumNext > 0 { roles.insert(.support) }
         return roles
     }
 
@@ -254,7 +281,12 @@ struct ComboDef: Identifiable, Hashable {
         if shield > 0 { parts.append("\(shield) shield") }
         if dodgeCharges > 0 { parts.append("\(dodgeCharges) Dodge") }
         if momentumNext > 0 { parts.append("+\(momentumNext) damage next round") }
-        if guaranteedCrit { parts.append("always crits") }
+        if focusPercent > 0 { parts.append("next Attack +\(focusPercent)%") }
+        if splashDamage > 0 { parts.append("splash \(splashDamage)") }
+        if cleanseCount > 0 { parts.append(cleanseCount > 1 ? "cleanse all" : "cleanse one") }
+        if delaysEnemy { parts.append("delay next enemy action") }
+        if !earlyTick.isEmpty { parts.append("early \(earlyTick) tick") }
+        if faceCount >= 4 && roles.contains(.attack) { parts.append("wind-up, then release") }
         return parts.joined(separator: ", ")
     }
 
@@ -269,4 +301,5 @@ struct ComboDef: Identifiable, Hashable {
         }
     }
 }
+
 

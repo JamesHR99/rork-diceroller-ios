@@ -14,7 +14,7 @@ nonisolated struct RunSave: Codable {
     /// connections, they carry a revealed flag instead, an hour is two stops
     /// rather than four, and Mooring is gone as a kind — nothing about an old
     /// chart can be read into the new one.
-    static let currentVersion = 3
+    static let currentVersion = 4
 
     var version: Int = RunSave.currentVersion
 
@@ -76,15 +76,11 @@ enum RunSaveStore {
     static func load() -> RunSave? {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else { return nil }
         do {
-            var save = try JSONDecoder().decode(RunSave.self, from: data)
+            let save = try JSONDecoder().decode(RunSave.self, from: data)
             // A save from an older shape of the game is not worth guessing at.
             guard (2...RunSave.currentVersion).contains(save.version) else {
                 clear()
                 return nil
-            }
-            if save.version < RunSave.currentVersion {
-                save.version = RunSave.currentVersion
-                Self.save(save)
             }
             return save
         } catch {
@@ -114,4 +110,5 @@ enum RunSaveStore {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 }
+
 

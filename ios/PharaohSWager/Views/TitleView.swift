@@ -60,7 +60,7 @@ struct TitleView: View {
             Button("Keep It", role: .cancel) {}
         } message: {
             if let save = game.savedRun {
-                Text("\(save.hero.name) is still on the river at \(save.placeLabel). Starting a new voyage writes that night over for good.")
+                Text("\(save.hero.name) is still on the river at \(save.placeLabel). This save uses its original combat rules. Starting a new voyage uses the same-face system and replaces this save.")
             }
         }
     }
@@ -161,7 +161,8 @@ struct TitleView: View {
     /// guess.
     private func continueButton(_ save: RunSave) -> some View {
         Button {
-            game.continueRun()
+            if save.version == RunSave.currentVersion { game.continueRun() }
+            else { confirmingOverwrite = true }
         } label: {
             HStack(spacing: 10) {
                 PharaohSWagerSymbol(art: PharaohSWagerArt.classSigil(save.classID),
@@ -170,7 +171,7 @@ struct TitleView: View {
                     .frame(width: 34)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Continue the Voyage")
+                    Text(save.version == RunSave.currentVersion ? "Continue the Voyage" : "Old rules · Start a new voyage")
                         .font(.fantasy(17, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                     Text("\(save.hero.name) · \(save.placeLabel)")
@@ -295,4 +296,5 @@ struct TitleView: View {
     }
     .environment(GameManager())
 }
+
 

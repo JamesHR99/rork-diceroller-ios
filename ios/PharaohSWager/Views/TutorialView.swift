@@ -143,9 +143,9 @@ struct TutorialView: View {
 
     private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Prepare Block and Evade before attacks", systemImage: "shield.fill")
+            Label("Order defence before the hit you want to stop", systemImage: "shield.fill")
             Label("Your action → enemy action → your action", systemImage: "arrow.left.arrow.right")
-            Text("A combo is one action. Singles never give enemies extra attacks. When one side runs out, the other finishes its announced actions.")
+            Text("A 1–3 die Attack takes one event; 4–6 dice take two. Singles never give enemies extra attacks. When one side runs out, the other finishes its announced actions.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -157,7 +157,7 @@ struct TutorialView: View {
     /// How many chains this player has ever found, so the hunt is framed as
     /// the long game it is.
     private var loreCount: some View {
-        let all = GameData.classCombos(hero.id) + SharedContent.combos
+        let all = GameData.combos(for: hero.id)
         let found = ComboLore.knownCount(among: all)
         return HStack(spacing: 12) {
             VStack(spacing: 0) {
@@ -206,7 +206,7 @@ struct TutorialView: View {
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("6 dice · 1 reroll each round · \(hero.battleIdentity.lowercased())")
+                Text("6 dice · 2 reroll passes each round · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -374,8 +374,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Six dice. One reroll.",
-                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap one unplayed die. It rerolls immediately. The other results become Kept for this round. Powers can unlock a second single-die reroll. Every round starts with a fresh draw.",
+                title: "Six dice. Two reroll passes.",
+                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, select any subset of unplayed dice, then confirm. Unselected results become Prepared. You have two passes; a boon may grant a third. Every round starts with a fresh draw.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -384,7 +384,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "action-order",
                 title: "Who moves first",
-                body: "Prepare Block for 8 guard or Evade to dodge one chosen hit. Put Focus before an attack or combo to add 50% damage. These support dice do not spend an exchange.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
+                body: "Block gives 8 shield; Evade gives one guaranteed dodge. Focus primes +50% damage for your next Attack. Each support action takes one event. Attacks using four to six matching dice take a wind-up event and a release event.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
@@ -689,13 +689,13 @@ private struct OrderDemoView: View {
     private func demoFaces(for hero: HeroClass) -> [FaceKind] {
         switch hero.id {
         case "archer":
-            [.arrow1, .block, .arrow2, .evade, .arrow3, .heal]
+            [.arrow1, .block, .arrow1, .evade, .arrow1, .heal]
         case "warrior":
             [.overhead, .block, .sideSwing, .heal, .overhead, .focus]
         case "rogue":
             [.swiftSlash, .evade, .swiftSlash, .heal, .daggerThrow, .poison]
         default:
-            [.runeFire, .channel, .runeFrost, .runeLife, .runeArcane, .wandZap]
+            [.runeFire, .channel, .runeFire, .runeLife, .runeFire, .wandZap]
         }
     }
 }
@@ -706,3 +706,4 @@ private struct DemoFace: Identifiable {
     let id = UUID()
     let kind: FaceKind
 }
+

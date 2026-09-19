@@ -23,80 +23,80 @@ enum ChiselCatalog {
         // MARK: Archer
         ChiselDef(
             id: "ch_twinBowstring", classID: "archer", name: "Twin Bowstring",
-            detail: "Arrow combos fire 2 hits at 60% each. Split them or stack them.",
-            example: "Twin Shot 22 → two hits of 13.",
+            detail: "Arrow groups of 2+ fire two packets at 55% native damage each. Gods and statuses ride only the first.",
+            example: "Hunter’s Volley 30 → 16 + 16; split or stack targets.",
             symbol: "square.split.2x1.fill", isOptional: false
         ),
         ChiselDef(
             id: "ch_siegeDraw", classID: "archer", name: "Siege Draw",
-            detail: "Tap the mark, then an arrow: reserve 1 reroll for +40% damage and 50% pierce. Carries to whatever combo that arrow joins.",
-            example: "Overdraw an arrow inside Piercing Bolt and all 38 pierces.",
+            detail: "Reserve one reroll pass for one Arrow combo: +25% damage and +30 points Pierce.",
+            example: "A pass spent on power cannot also reroll dice.",
             symbol: "arrow.up.circle.fill", isOptional: true
         ),
         ChiselDef(
             id: "ch_adjustableNock", classID: "archer", name: "Adjustable Nock",
-            detail: "Once a turn, tap a kept arrow to shift it one tier up or down. The die visibly changes. Tap again to put it back.",
-            example: "Arrow I → Arrow II, forming Perfect Shot.",
+            detail: "Once a round, shift one Prepared arrow one tier up or down before grouping.",
+            example: "Arrow I → Arrow II visibly, preserving its critical result.",
             symbol: "chevron.up.chevron.down", isOptional: false
         ),
 
         // MARK: Warrior
         ChiselDef(
             id: "ch_crescentEdge", classID: "warrior", name: "Crescent Edge",
-            detail: "Damaging weapon combos splash a second foe for 35%. Damage only.",
-            example: "Crushing Blow 30 → second foe takes 10.",
+            detail: "Swing combos add 25% of native main damage as splash to a second foe. No copied gods or statuses.",
+            example: "Crushing Blow 27 → 6 additional splash.",
             symbol: "moon.fill", isOptional: false
         ),
         ChiselDef(
             id: "ch_counterweight", classID: "warrior", name: "Counterweight",
-            detail: "Spend up to 10 held shield for +2 damage each.",
-            example: "10 shield → +20 damage.",
+            detail: "Spend up to 10 existing Shield at release for +2 main damage per Shield. The action’s new Shield cannot pay.",
+            example: "8 remaining Shield → +16 damage; incoming hits can reduce this.",
             symbol: "plusminus.circle.fill", isOptional: true
         ),
         ChiselDef(
             id: "ch_relentless", classID: "warrior", name: "Relentless Advance",
-            detail: "Land a weapon combo: next round's first weapon combo deals +6 damage.",
-            example: "Wide Sweep gains 6 damage after a combo last round.",
+            detail: "Resolve a swing combo: next round’s first swing combo gains +8 damage. Does not stack.",
+            example: "A pair now strengthens a finisher next round.",
             symbol: "forward.fill", isOptional: false
         ),
 
         // MARK: Rogue
         ChiselDef(
             id: "ch_returningKnife", classID: "rogue", name: "Returning Knife",
-            detail: "Once a round, your first thrown dagger banks +6 damage for next round's first attack.",
-            example: "Throw now, strengthen your next opening attack.",
+            detail: "First Dagger action arms a returning blade: after your next separate Attack this round, deal 8 secondary damage.",
+            example: "Dagger pair → Slash pair → one returning blade. No extra die.",
             symbol: "arrow.uturn.backward.circle.fill", isOptional: false
         ),
         ChiselDef(
             id: "ch_concealedBlade", classID: "rogue", name: "Concealed Blade",
-            detail: "Once a turn, an Evade also counts as a Swift Slash. You keep the evasion.",
-            example: "Evade + Swift Slash → Opening Cut.",
+            detail: "Once a round, convert one Evade to Swift Slash. It loses its Dodge and visibly becomes Slash.",
+            example: "Long-press the die: two Slashes plus converted Evade make three Slashes.",
             symbol: "eye.slash.fill", isOptional: false
         ),
         ChiselDef(
             id: "ch_assassin", classID: "rogue", name: "Assassin's Commitment",
-            detail: "Spend 1 prepared Dodge for +40% damage and 50% pierce.",
-            example: "Hemorrhage 36 → 50, mostly unblockable.",
+            detail: "Spend one unassigned Dodge at release for +30% damage and +30 points Pierce on a Slash or Dagger.",
+            example: "The action’s own new Dodge cannot pay. Assigned Dodges are protected.",
             symbol: "bolt.fill", isOptional: true
         ),
 
         // MARK: Magician
         ChiselDef(
             id: "ch_prismatic", classID: "magician", name: "Prismatic Focus",
-            detail: "Once a turn, an Arcane rune stands in for Fire, Frost or Life.",
-            example: "Arcane + Fire → Fireball.",
+            detail: "Once a round, convert one Arcane result to Fire, Frost or Life before grouping.",
+            example: "Long-press Arcane to choose its new visible face. No Arcane effect remains.",
             symbol: "diamond.fill", isOptional: false
         ),
         ChiselDef(
             id: "ch_echoingStaff", classID: "magician", name: "Echoing Staff",
-            detail: "Reserve 1 reroll: the spell repeats next turn for half its damage, healing and shield.",
-            example: "Fireball 26 → echoes for 13.",
+            detail: "Reserve one reroll pass: a spell combo echoes 40% of native damage, healing and Shield next round.",
+            example: "No status, Dodge, Focus, god or Chisel payload is copied.",
             symbol: "repeat", isOptional: true
         ),
         ChiselDef(
             id: "ch_current", classID: "magician", name: "Alternating Current",
-            detail: "Alternate matched and mixed runes to bank 1 extra reroll next round, once a turn.",
-            example: "Fireball then Meteor → +1 reroll next round.",
+            detail: "Once a round, consecutive different rune actions give the second +6 damage if offensive, otherwise +6 Shield.",
+            example: "Channel → Fire qualifies; Fire → Fire does not. Wand Zap breaks the sequence.",
             symbol: "arrow.left.arrow.right", isOptional: false
         ),
     ]
@@ -110,4 +110,5 @@ enum ChiselCatalog {
         all.first { $0.id == id }
     }
 }
+
 

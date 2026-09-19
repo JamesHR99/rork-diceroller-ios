@@ -26,12 +26,8 @@ enum SharedContent {
 
     /// How much crit an imbue adds at each tier, and what it costs to buy.
     static func imbueAmount(_ rarity: Rarity) -> Double {
-        switch rarity {
-        case .common: 0.06
-        case .uncommon: 0.10
-        case .rare: 0.15
-        case .signature: 0.22
-        }
+        [0.05, 0.08, 0.12, 0.15][rarity.rawValue]
     }
 }
+
 

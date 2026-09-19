@@ -131,7 +131,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .burn, .poison, .regeneration:
             "Round end."
         case .bleed:
-            "Just before the wearer attacks."
+            "Round end, for two ticks."
         case .judgement:
             "When a 3+ die attack combo releases it."
         case .weaken:
@@ -265,7 +265,7 @@ struct LiveStatus: Identifiable {
             switch kind {
             case .burn: lines.append(("Takes", "\(perTick), then halves"))
             case .poison: lines.append(("Takes", "\(perTick), then grows to \(min(GameData.poisonStackCap, perTick + 1))"))
-            case .bleed: lines.append(("Takes", "\(perTick) on its next attack"))
+            case .bleed: lines.append(("Takes", "\(perTick) at round end"))
             default: lines.append(("Takes", "\(perTick)"))
             }
         }
@@ -294,4 +294,5 @@ struct LiveStatus: Identifiable {
         return lines.map { (label: $0.0, value: $0.1) }
     }
 }
+
 

@@ -468,6 +468,18 @@ struct PlayBarView: View {
         )
         .shadow(color: tint.opacity(burstStepID == step.id ? 0.9 : 0.35),
                 radius: burstStepID == step.id ? 16 : 8)
+        .contextMenu {
+            if let action = step.combo, action.dodgeCharges > 0 {
+                ForEach(Array(step.faces.prefix(action.dodgeCharges).enumerated()), id: \.element.id) { index, face in
+                    Menu("Dodge \(index + 1): \(engine.evadeTargetLabel(faceID: face.id))") {
+                        Button("Next incoming strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
+                        ForEach(engine.incomingStrikes) { strike in
+                            Button(strike.title) { engine.assignEvade(faceID: face.id, strikeID: strike.id) }
+                        }
+                    }
+                }
+            }
+        }
         .scaleEffect(burstStepID == step.id ? 1 + (1 - burstProgress) * 0.16 : 1)
         .overlay {
             if burstStepID == step.id {
@@ -752,14 +764,16 @@ struct PlayBarView: View {
 
     private var rerollButton: some View {
         Button {
-            engine.selectingReroll.toggle()
+            if engine.selectingReroll && !engine.rerollSelection.isEmpty {
+                engine.confirmReroll()
+            } else { engine.selectingReroll.toggle() }
             Haptics.light()
         } label: {
             VStack(spacing: 2) {
-                Label(engine.selectingReroll ? "CANCEL" : "REROLL",
+                Label(engine.selectingReroll ? (engine.rerollSelection.isEmpty ? "CANCEL" : "ROLL SELECTED") : "REROLL",
                       systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
-                Text("\(engine.rerollsRemaining) reroll left")
+                Text("\(engine.rerollsRemaining) passes left")
                     .font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Theme.gold)
@@ -821,3 +835,4 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }
+

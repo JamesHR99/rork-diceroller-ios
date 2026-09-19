@@ -20,7 +20,7 @@ enum WarriorContent {
     /// Plate die: 2× Block, 2× Heal, 2× Focus.
     static func armorDie(rarity: Rarity = .common, name: String = "Plate Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.block, .block, .heal, .heal, .focus, .focus])
+            faces: [.overhead, .block, .block, .heal, .focus, .focus])
     }
 
     static func weapon() -> GearPiece {
@@ -157,3 +157,4 @@ enum WarriorContent {
     static let imbueName = "Grindstone Oil"
     static let imbueSymbol = "hammer.fill"
 }
+

@@ -16,7 +16,7 @@ struct ActionRole: OptionSet, Hashable {
 
 /// Effects that postpone a pending foe action behind one player action.
 enum Timing {
-    static let maxDelayPerEnemy = 2
+    static let maxDelayPerEnemy = 1
     static let delayGranting: Set<String> = ["mag_iceBlast", "mag_glacier", "war_earthshaker"]
 }
 
@@ -77,4 +77,5 @@ struct TimelineEntry: Identifiable, Hashable {
 
     var isPlayer: Bool { side.isPlayer }
 }
+
 
