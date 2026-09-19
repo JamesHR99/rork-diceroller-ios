@@ -263,24 +263,19 @@ private struct DiceTrayReelView: View {
     @State private var nockNudge: CGFloat = 0
 
     private var selectingReroll: Bool { engine.selectingReroll }
-    private var isSelectedForReroll: Bool { engine.rerollSelection.contains(slot.id) }
-    /// A reel holding a face carried over from last turn's freeze.
-    private var isHeld: Bool { if case .rolled(let face) = slot.state { return face.wasKept }; return false }
 
     private var corner: CGFloat { 15 }
-    /// The face drawing is the whole point of a die, so it is drawn as large
-    /// as the window allows — a small plate scaled up reads grainy, a large
-    /// one reads painted.
-    /// The painted frame's open window is narrower than half the reel. Keeping
-    /// the symbol inside that opening prevents wide glyphs touching its rim.
-    private var iconSize: CGFloat { max(15, min(width * 0.36, (height - 38) * 0.62)) }
-    private var labelSize: CGFloat { max(10, width * 0.135) }
-    /// A claimed die's face carries its name in bigger type — the god's
-    /// blessing is part of the read that decides a turn.
-    private func labelSize(for face: RolledFace) -> CGFloat {
-        face.patron == nil || height < 76 ? labelSize : max(12.5, width * 0.175)
+    /// All three lines live inside the painted frame's true opening. The art
+    /// has a broad ornamental rim, so sizing against the outer square made the
+    /// glyph, name and value look cropped even when SwiftUI's bounds were valid.
+    private var iconSize: CGFloat {
+        max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
     }
-    private var tagSize: CGFloat { max(9.5, width * 0.135) }
+    private var labelSize: CGFloat { max(8.5, min(10.5, width * 0.105)) }
+    private func labelSize(for face: RolledFace) -> CGFloat {
+        face.patron == nil ? labelSize : min(10.5, labelSize + 0.75)
+    }
+    private var tagSize: CGFloat { max(8, min(9.5, width * 0.095)) }
 
     var body: some View {
         Group {
@@ -301,7 +296,6 @@ private struct DiceTrayReelView: View {
         }
         .frame(width: width, height: height)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: engine.playOrder)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelectedForReroll)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
     }
 
@@ -394,12 +388,12 @@ private struct DiceTrayReelView: View {
                 engine.placeInPlayBar(faceID: face.id)
             }
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 PharaohSWagerSymbol(art: face.matchFace.artName,
                            fallback: face.matchFace.symbol,
                            size: iconSize,
                            tint: iconTint(face))
-                    .modifier(FaceWash(tint: iconTint(face), active: face.isCrit || isSelectedForReroll))
+                    .modifier(FaceWash(tint: iconTint(face), active: face.isCrit))
                     // The shifted arrow slides into its new tier, so the
                     // change is something you watch happen.
                     .offset(y: nockNudge)
@@ -423,12 +417,10 @@ private struct DiceTrayReelView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
-            .padding(.horizontal, 4)
-            .padding(.top, 6)
-            .padding(.bottom, 6)
+            .padding(.horizontal, max(8, width * 0.1))
+            .padding(.vertical, max(9, height * 0.075))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { reelGround(opacity: 1) }
-            .overlay { frostLayer }
             .clipShape(.rect(cornerRadius: corner))
             .dieFrame(settledFrame(face), tint: frameTint(face))
             .overlay { armedHalo }
@@ -460,8 +452,8 @@ private struct DiceTrayReelView: View {
             .overlay { slamFlash(face) }
             .overlay { if !reduceMotion { shockRing(face) } }
             .overlay { if !reduceMotion { critSparks(face) } }
-            .shadow(color: glowTint(face).opacity(isSelectedForReroll ? 0.7 : (face.isCrit ? 0.8 : 0.35)),
-                    radius: (face.isCrit && critFlash) || (isSelectedForReroll && frostPulse) ? 14 : 7)
+            .shadow(color: glowTint(face).opacity(face.isCrit ? 0.8 : 0.35),
+                    radius: face.isCrit && critFlash ? 14 : 7)
             .scaleEffect(reduceMotion || settled ? 1 : 1.045)
             .offset(y: reduceMotion || settled ? 0 : -3)
         }
@@ -479,27 +471,19 @@ private struct DiceTrayReelView: View {
                 withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { critFlash = true }
                 withAnimation(.easeOut(duration: 0.72)) { sparkBurst = 1 }
             }
-            if isSelectedForReroll && !reduceMotion {
-                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { frostPulse = true }
-            }
         }
     }
 
-    /// Which painted frame a settled reel wears. A held face and a critical
-    /// each have their own drawing; everything else is a ready die.
+    /// Reroll retention can still trigger boons, but it no longer turns an
+    /// untouched die into the old frozen/held visual. Only the face itself
+    /// determines its painted frame.
     private func settledFrame(_ face: RolledFace) -> PharaohSWagerArt.DieFrame {
-        if isSelectedForReroll || isHeld { return .held }
-        if face.isCrit { return .critical }
-        return .ready
+        face.isCrit ? .critical : .ready
     }
 
-    /// The colour washed over the painted frame — the state coding the border
-    /// used to carry.
     private func frameTint(_ face: RolledFace) -> Color? {
-        if isSelectedForReroll { return Theme.frost }
         if face.effectiveFace != nil { return Theme.ptahCopper }
         if face.isCrit { return nil }
-        if isHeld { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return nil
     }
@@ -637,35 +621,12 @@ private struct DiceTrayReelView: View {
         .allowsHitTesting(false)
     }
 
-    /// Icy sheen drawn over a frozen (or carried-over) die.
-    @ViewBuilder
-    private var frostLayer: some View {
-        if isSelectedForReroll || isHeld {
-            RoundedRectangle(cornerRadius: corner)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Theme.frost.opacity(isSelectedForReroll ? 0.34 : 0.16),
-                            Theme.frost.opacity(isSelectedForReroll ? 0.10 : 0.04)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(alignment: .bottomTrailing) {
-                    PharaohSWagerIcon(name: PharaohSWagerArt.interactionHeld, size: 18)
-                        .opacity(isSelectedForReroll ? 0.95 : 0.55)
-                        .padding(4)
-                }
-                .opacity(isSelectedForReroll ? (frostPulse ? 1 : 0.75) : 1)
-                .allowsHitTesting(false)
-        }
-    }
-
+    /// Reroll mode marks eligible dice with a light dashed target. It does
+    /// not replace their frame or wash the face with the old freeze effect.
     /// While freeze mode is armed, every freezable die wears a breathing icy ring.
     @ViewBuilder
     private var armedHalo: some View {
-        if selectingReroll && !isSelectedForReroll {
+        if selectingReroll {
             RoundedRectangle(cornerRadius: corner)
                 .strokeBorder(Theme.frost.opacity(frostPulse ? 0.95 : 0.4),
                               style: StrokeStyle(lineWidth: 2.4, dash: [4.5, 4]))
@@ -701,35 +662,30 @@ private struct DiceTrayReelView: View {
 
     private func iconTint(_ face: RolledFace) -> Color {
         if face.isCrit { return Theme.gold }
-        if isSelectedForReroll { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return face.matchFace.tint
     }
 
     private func borderTint(_ face: RolledFace) -> Color {
-        if isSelectedForReroll { return Theme.frost }
         if face.effectiveFace != nil { return Theme.ptahCopper }
         if face.isCrit { return Theme.gold }
-        if isHeld { return Theme.frost.opacity(0.6) }
         if let patron = face.patron { return patron.tint.opacity(0.85) }
         return face.face.tint.opacity(0.55)
     }
 
     private func glowTint(_ face: RolledFace) -> Color {
-        if isSelectedForReroll { return Theme.frost }
         if let patron = face.patron { return patron.tint }
         return face.isCrit ? Theme.gold : face.face.tint
     }
 
     private func bottomTagTint(_ face: RolledFace) -> Color {
-        if isSelectedForReroll { return Theme.frost }
-        return face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85)
+        selectingReroll ? Theme.frost : (face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85))
     }
 
     /// Quick "what will this do" tag under the face icon — read from the
     /// substituted tier when a Chisel has shifted the face.
     private func bottomTag(_ face: RolledFace) -> String {
-        if isSelectedForReroll { return "REROLL" }
+        if selectingReroll { return "TAP TO REROLL" }
         guard face.isCrit else { return face.matchFace.soloTag }
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
