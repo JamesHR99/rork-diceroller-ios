@@ -1140,7 +1140,7 @@ final class BattleEngine {
     private func armedDamageMultiplier(for step: PlanStep) -> Double {
         var multiplier = 1.0
         if siegeApplies(step) { multiplier += GameData.siegeDamageBonus }
-        if let combo = step.combo, assassinArmed.contains(combo.id) {
+        if let combo = step.combo, assassinArmed.contains(step.id.uuidString) {
             multiplier += GameData.assassinDamageBonus
         }
         return multiplier
@@ -1150,7 +1150,7 @@ final class BattleEngine {
     private func armedPierce(for step: PlanStep) -> Double {
         var pierce = 0.0
         if siegeApplies(step) { pierce += GameData.siegePierce }
-        if let combo = step.combo, assassinArmed.contains(combo.id) {
+        if let combo = step.combo, assassinArmed.contains(step.id.uuidString) {
             pierce += GameData.assassinPierce
         }
         return pierce
@@ -1183,12 +1183,12 @@ final class BattleEngine {
         var parts: [String] = []
         if siegeApplies(step) { parts.append("SIEGE +25% · PIERCE 30%") }
         guard let combo = step.combo else { return parts.isEmpty ? nil : parts.joined(separator: " · ") }
-        if assassinArmed.contains(combo.id) { parts.append("COMMITTED +30% · PIERCE 30%") }
-        if counterweightArmed.contains(combo.id) {
+        if assassinArmed.contains(step.id.uuidString) { parts.append("COMMITTED +30% · PIERCE 30%") }
+        if counterweightArmed.contains(step.id.uuidString) {
             let spend = min(GameData.counterweightMaxSpend, playerShield)
             if spend > 0 { parts.append("COUNTERWEIGHT +\(spend * GameData.counterweightDamagePerPoint)") }
         }
-        if echoArmedComboID == combo.id { parts.append("ECHO NEXT TURN") }
+        if echoArmedComboID == step.id.uuidString { parts.append("ECHO NEXT TURN") }
         if twinBowstringApplies(step) { parts.append("2 × 55% NATIVE HITS") }
         if crescentApplies(step) { parts.append("SPLASH 25% NATIVE") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
@@ -1198,15 +1198,15 @@ final class BattleEngine {
     /// badge on its chip — nil when none applies.
     func badgeChisel(for comboID: String) -> ChiselDef? {
         guard phase == .player,
-              let combo = comboPool.first(where: { $0.id == comboID }) else { return nil }
-        if hasChisel("ch_counterweight"), combo.damage > 0, plannedGuard > 0 {
+              let combo = SameFaceCatalog.all.first(where: { $0.id == comboID }) else { return nil }
+        if hasChisel("ch_counterweight"), [FaceKind.overhead, .sideSwing].contains(where: { face in combo.matches(Array(repeating: face, count: combo.faceCount)) }), plannedGuard > 0 {
             return ChiselCatalog.def("ch_counterweight")
         }
-        if hasChisel("ch_assassin"), combo.damage > 0,
+        if hasChisel("ch_assassin"), [FaceKind.swiftSlash, .daggerThrow].contains(where: { face in combo.matches(Array(repeating: face, count: combo.faceCount)) }),
            plannedDodges > 0 {
             return ChiselCatalog.def("ch_assassin")
         }
-        if hasChisel("ch_echoingStaff"), combo.source == .weapon {
+        if hasChisel("ch_echoingStaff"), combo.owner == "magician", combo.faceCount >= 2 {
             return ChiselCatalog.def("ch_echoingStaff")
         }
         return nil
@@ -1328,7 +1328,7 @@ final class BattleEngine {
     @discardableResult
     func armHeldChisel(onto step: PlanStep) -> Bool {
         guard let chisel = armableChisel(for: step), let combo = step.combo else { return false }
-        toggleArmed(chisel, comboID: combo.id)
+        toggleArmed(chisel, comboID: step.id.uuidString)
         armingChiselID = nil
         return true
     }
@@ -1367,7 +1367,8 @@ final class BattleEngine {
         guard nockAvailable(for: faceID),
               let index = rolled.firstIndex(where: { $0.id == faceID }) else { return }
         if nockShiftedFaceID == faceID, rolled[index].effectiveFace != nil {
-            rolled[index].effectiveFace = nil
+            updateRolledFace(faceID) { $0.effectiveFace = nil }
+            pruneWelds()
             nockShiftedFaceID = nil
             Haptics.light()
             return
@@ -1376,7 +1377,8 @@ final class BattleEngine {
         guard let tier = tiers.firstIndex(of: rolled[index].matchFace) else { return }
         let shifted = tier + (up ? 1 : -1)
         guard tiers.indices.contains(shifted) else { return }
-        rolled[index].effectiveFace = tiers[shifted]
+        updateRolledFace(faceID) { $0.effectiveFace = tiers[shifted] }
+        pruneWelds()
         nockShiftedFaceID = faceID
         Haptics.light()
     }
@@ -1445,8 +1447,8 @@ final class BattleEngine {
     func isComboArmed(_ step: PlanStep) -> Bool {
         if siegeApplies(step) { return true }
         guard let combo = step.combo else { return false }
-        return counterweightArmed.contains(combo.id)
-            || assassinArmed.contains(combo.id) || echoArmedComboID == combo.id
+        return counterweightArmed.contains(step.id.uuidString)
+            || assassinArmed.contains(step.id.uuidString) || echoArmedComboID == step.id.uuidString
     }
 
     // MARK: - Divine Trials
@@ -1702,18 +1704,17 @@ final class BattleEngine {
     var reservedRerolls: Int {
         let plan = displayedPlan
         let siege = plan.contains { siegeApplies($0) } ? 1 : 0
-        let echo = plan.contains { $0.combo?.id == echoArmedComboID && echoArmedComboID != nil } ? 1 : 0
+        let echo = plan.contains { $0.id.uuidString == echoArmedComboID && echoArmedComboID != nil } ? 1 : 0
         return siege + echo
     }
     var rerollsRemaining: Int {
         max(0, min(BattleRules.maximumRerolls, BattleRules.baseRerolls + rerollBonus) - rerollsUsed - reservedRerolls)
     }
     private var plannedDodges: Int {
-        dodgeCharges + displayedPlan.filter { $0.isPreparedSupport && $0.faces.first?.matchFace == .evade }.count
+        dodgeCharges + displayedPlan.reduce(0) { $0 + ($1.combo?.dodgeCharges ?? 0) }
     }
     private var plannedGuard: Int {
-        playerShield + displayedPlan.filter { $0.isPreparedSupport && $0.faces.first?.matchFace == .block }
-            .reduce(0) { $0 + ($1.faces.first?.face.soloValue ?? 0) }
+        playerShield + displayedPlan.reduce(0) { $0 + GameData.scaleUp($1.combo?.shield ?? 0, by: $1.comboScale) }
     }
     var canReroll: Bool { phase == .player && hasRolled && !isRolling && rerollsRemaining > 0 }
     private var rollingSlotIDs: [UUID] = []
@@ -1771,6 +1772,14 @@ final class BattleEngine {
             ($0.combo?.dodgeCharges ?? 0) > 0 && $0.faces.prefix($0.combo?.dodgeCharges ?? 0).contains { $0.id == faceID }
         }) else { return }
         if let strikeID {
+            guard let step = turnPlan.first(where: { $0.faces.contains { $0.id == faceID } }),
+                  let strike = incomingStrikes.first(where: { $0.id == strikeID }),
+                  let release = timeline.lastIndex(where: { $0.isPlayer && $0.sourceID == step.id }),
+                  let incoming = timeline.firstIndex(where: { !$0.isPlayer && $0.sourceID == strike.foeID && $0.chainIndex == strike.moveIndex }),
+                  incoming > release else {
+                lastAction = "That strike occurs before this Dodge is ready. Move the Dodge earlier."
+                return
+            }
             for (otherID, assigned) in evadeAssignments where otherID != faceID && assigned == strikeID {
                 evadeAssignments.removeValue(forKey: otherID)
             }
@@ -2151,10 +2160,10 @@ final class BattleEngine {
             let members = group.compactMap { id in faces.first { $0.id == id } }
             return members.count != group.count || resolveWeld(members) == nil
         }
-        let combos = Set(turnPlan.compactMap { $0.combo?.id })
+        let combos = Set(turnPlan.map { $0.id.uuidString })
         counterweightArmed.formIntersection(combos)
         assassinArmed.formIntersection(combos)
-        if let echoArmedComboID, !combos.contains(echoArmedComboID) { self.echoArmedComboID = nil }
+        if let echoArmedComboID, !turnPlan.contains(where: { $0.id.uuidString == echoArmedComboID && $0.isCombo }) { self.echoArmedComboID = nil }
     }
 
     /// What a combined action would do against what the same dice would do
@@ -2258,18 +2267,18 @@ final class BattleEngine {
             actionFocus = roles(for: step).contains(.attack) ? focusPrime : 0
             if roles(for: step).contains(.attack) { focusPrime = 0 }
             counterweightPayment = 0
-            if let combo = step.combo, counterweightArmed.contains(combo.id) {
+            if let combo = step.combo, counterweightArmed.contains(step.id.uuidString) {
                 counterweightPayment = min(10, playerShield)
                 playerShield -= counterweightPayment
             }
 
             // Assassin's Commitment: the evade charge burns before the blow
             // lands, so the combo's own evasion can never pay for it.
-            if let combo = step.combo, assassinArmed.contains(combo.id), let available = dodgeReservations.firstIndex(where: { $0 == nil }) {
+            if let combo = step.combo, assassinArmed.contains(step.id.uuidString), let available = dodgeReservations.firstIndex(where: { $0 == nil }) {
                 dodgeReservations.remove(at: available)
                 addFloat("Commitment −1 Dodge", color: Theme.ptahCopper, onEnemy: false)
             } else if let combo = step.combo {
-                assassinArmed.remove(combo.id)
+                assassinArmed.remove(step.id.uuidString)
             }
 
             // Bastet's trial gift: one charge slips the first damaging blow
@@ -2359,8 +2368,8 @@ final class BattleEngine {
                 finishSameFaceAction(step, target: target)
                 completedDice += step.faces.count
                 if let combo = step.combo {
-                    assassinArmed.remove(combo.id)
-                    counterweightArmed.remove(combo.id)
+                    assassinArmed.remove(step.id.uuidString)
+                    counterweightArmed.remove(step.id.uuidString)
                 }
 
             }
@@ -2595,7 +2604,7 @@ final class BattleEngine {
         }
         lastRuneFace = rune ? face : nil
         if siegeApplies(step) { percent += 25 }
-        if assassinArmed.contains(combo.id) { percent += 30 }
+        if assassinArmed.contains(step.id.uuidString) { percent += 30 }
         if combo.damageCondition == "marked", (old?.markBonus ?? 0) > 0 { percent += combo.conditionalDamagePercent }
         if combo.damageCondition == "bleeding", (old?.bleedAmount ?? 0) > 0 { percent += combo.conditionalDamagePercent }
         let mark = Int(((old?.markBonus ?? 0) * 100).rounded())
@@ -2657,7 +2666,7 @@ final class BattleEngine {
         if combo.markPercent > 0 { pendingBoonEffects.append((BoonPayload(markPercent: combo.markPercent), target)) }
         if combo.delaysEnemy { delayFoe(targetIndex: target) }
         if combo.earlyTick == "bleed" { earlyBleedArmed = true }
-        if echoArmedComboID == combo.id {
+        if echoArmedComboID == step.id.uuidString {
             pendingEcho = PendingEcho(damage: Int(native * GameData.echoScale),
                 heal: Int(Double(combo.heal) * scale * GameData.echoScale),
                 shield: Int(Double(combo.shield) * scale * GameData.echoScale), foeID: old?.id)
@@ -4082,6 +4091,11 @@ final class BattleEngine {
                 total = Int(Double(total) * foe.chargeBonus)
                 addFloat("UNLEASHED!", color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
                 foe.chargeBonus = 0
+            }
+            let livingIDs = Set(enemies.filter(\.isAlive).map { $0.id.uuidString })
+            dodgeReservations = dodgeReservations.map { reservation in
+                guard let reservation else { return nil }
+                return livingIDs.contains(String(reservation.prefix(36))) ? reservation : nil
             }
             let weakness = foe.weaken
             var actionReduction: Double? = nil

@@ -174,12 +174,13 @@ struct BattleLoopTests {
         #expect(foe.shield == 100)
     }
 
-    @Test func bleedingSoloPaysAtRoundEndAndKeepsItsSecondTick() async throws {
-        let engine = battle([.swiftSlash, .daggerThrow, .poison, .block, .evade, .heal], classID: "rogue")
+    @Test func bleedingPairPaysAtRoundEndAndKeepsItsSecondTick() async throws {
+        let engine = battle([.swiftSlash, .swiftSlash, .poison, .block, .evade, .heal], classID: "rogue")
         try await roll(engine)
-        let slash = try #require(engine.rolled.first { $0.face == .swiftSlash })
-        engine.placeInPlayBar(faceID: slash.id)
-        let native = try #require(SameFaceCatalog.action(.swiftSlash, count: 1))
+        for slash in engine.rolled.filter({ $0.face == .swiftSlash }) { engine.placeInPlayBar(faceID: slash.id) }
+        let candidate = try #require(engine.weldCandidates.first)
+        #expect(engine.combine(candidate))
+        let native = try #require(SameFaceCatalog.action(.swiftSlash, count: 2))
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - native.damage - native.bleedAmount)
         #expect(engine.enemies[0].bleedAmount == native.bleedAmount)
@@ -198,6 +199,22 @@ struct BattleLoopTests {
                 }
             }
         }
+    }
+
+    @Test func echoReservationBelongsToTheSelectedAction() async throws {
+        let engine = battle([.runeFire, .runeFire, .runeLife, .runeLife, .runeFrost, .channel],
+            classID: "magician", chisels: ["ch_echoingStaff"])
+        try await roll(engine)
+        let life = engine.rolled.filter { $0.face == .runeLife }
+        for face in life { engine.placeInPlayBar(faceID: face.id) }
+        let candidate = try #require(engine.weldCandidates.first)
+        #expect(engine.combine(candidate))
+        let action = try #require(engine.turnPlan.first)
+        engine.beginArming("ch_echoingStaff")
+        #expect(engine.armHeldChisel(onto: action))
+        #expect(engine.reservedRerolls == 1 && engine.rerollsRemaining == 1)
+        #expect(engine.separate(faceID: life[0].id))
+        #expect(engine.reservedRerolls == 0 && engine.rerollsRemaining == 2)
     }
 
 }
