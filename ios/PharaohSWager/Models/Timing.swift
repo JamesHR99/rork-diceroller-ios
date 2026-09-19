@@ -36,8 +36,7 @@ struct TimelineEntry: Identifiable, Hashable {
     let side: TimelineSide
     /// The beat this action lands on, counting from the start of the round.
     let beat: Int
-
-
+    /// One exchange for every action, independent of ingredient count.
     let duration: Int
     let title: String
     /// What it will do, in the same words the plan card uses.

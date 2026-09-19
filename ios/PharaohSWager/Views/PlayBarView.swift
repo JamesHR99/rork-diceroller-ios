@@ -214,7 +214,7 @@ struct PlayBarView: View {
                                 HStack {
                                     Text("\(entry.beat)").monospacedDigit()
                                     VStack(alignment: .leading) {
-                                        Text(entry.isPlayer ? "You · \(entry.title)" : "Enemy · \(entry.title)")
+                                        Text(entry.isPlayer ? "You · \(entry.title)" : entry.title)
                                         Text(entry.detail).font(.caption).foregroundStyle(.secondary)
                                     }
                                 }

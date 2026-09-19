@@ -590,7 +590,7 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "LG-BA", god: .bastet, slot: .legendary, name: "Nine Lives Unbound",
-            effect: "Keeps Hunting Step. Once a fight, a killing blow leaves you at 1 HP and prepares 2 Dodges.",
+            effect: "First Evade: +%V Guard, plus 3 if it is a two-die combo. Once a fight, a killing blow leaves you at 1 HP and prepares 2 Dodges.",
             function: "Evolves Hunting Step", kind: .legendary, trigger: .firstEvade,
             payload: BoonPayload(bonusCondition: .isTwoFaceCombo, bonusShield: 3),
             scales: .shield, values: [5, 7, 9], evolves: "BA-D1"

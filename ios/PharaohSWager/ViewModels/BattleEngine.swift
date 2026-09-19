@@ -61,7 +61,6 @@ struct DieSlot: Identifiable {
     let die: Die
     var state: SlotState
 
-    /// Carried reels never tumble; they hand you their face and retire.
 
     init(die: Die, state: SlotState) {
         self.id = die.id
@@ -131,8 +130,7 @@ struct PlanStep: Identifiable {
     var hasCritFace: Bool { critDice > 0 }
     var isGuaranteedCrit: Bool { combo?.guaranteedCrit == true }
     var title: String { combo?.name ?? faces.first?.displayName ?? "" }
-    /// Fused combos cost less than their faces played apart. Relentless
-    /// Advance shaves one more off the first weapon combo of a turn.
+    /// Each die is consumed once, whether combined or played separately.
     var diceCount: Int {
         faces.count
     }
@@ -530,7 +528,6 @@ final class BattleEngine {
     var heroName: String { GameData.heroClass(id: classID).name }
     let critBonus: Double
 
-    /// and the lower total acts first.
     /// The god powers carried into this fight, in their slots.
     let boons: [EquippedBoon]
     /// How deep into the PharaohSWager this fight sits — scales enemy pressure.
@@ -979,7 +976,7 @@ final class BattleEngine {
             for foe in foes where foe.intents.indices.contains(moveIndex) {
                 let projected = projectedMoves(for: foe)[moveIndex]
                 enemy.append(TimelineEntry(side: .foe(foe.id), beat: 0, duration: 1,
-                    title: projected.move.name, detail: intentDetail(strike: projected.strike, move: projected.move),
+                    title: "\(foe.displayName) · \(projected.move.name)", detail: intentDetail(strike: projected.strike, move: projected.move),
                     targetID: foe.id, roles: projected.strike.damage > 0 ? .attack : .guardian,
                     sourceID: foe.id, chainIndex: moveIndex))
             }
@@ -1770,9 +1767,7 @@ final class BattleEngine {
         return loadoutDice.filter { !onTable.contains($0.id) }
     }
 
-    /// Draws without replacement to fill the round's six slots. Held dice take
-    /// slots of their own, so holding two means drawing four from the other
-    /// six — a hold spends a slot rather than adding one.
+    /// Draws distinct physical dice from the collection.
     static func draw(count: Int, from dice: [Die], excluding heldIDs: Set<UUID>) -> [Die] {
         guard count > 0 else { return [] }
         let bag = dice.filter { !heldIDs.contains($0.id) }
@@ -2894,7 +2889,8 @@ final class BattleEngine {
         if roles.contains(.attack), let evolved = activeBoon("LG-BE") {
             let count = step.faces.filter { $0.matchFace.isAttack }.count
             if (boonStartShield ?? 0) >= 8 { primeBonus(percent: 15) }
-            gainShield(min(8, count * (2 + evolved.rarity.rawValue)))
+            let inherited = GodCatalog.boon("BE-A1")?.resolved(rarity: evolved.rarity, level: evolved.level).shield ?? 2
+            gainShield(min(8, count * inherited))
         }
         for boon in boons {
             guard let def = boon.def else { continue }

@@ -68,8 +68,7 @@ enum GameData {
     /// planner will ever offer.
     static let maxComboFaces = 5
 
-    /// large-combo discounts are gone — a big recipe pays for every ingredient,
-
+    /// Number of physical dice consumed by a recipe.
     static func comboDiceCount(faces: Int) -> Int {
         max(1, faces)
     }
@@ -95,10 +94,6 @@ enum GameData {
         let base = 1.0 + Double(critDice) * critComboWeight
         return crit ? base * comboCritMultiplier : base
     }
-
-    /// Ceiling on evade chance — stacking Evade faces can never make you
-    /// untouchable. One face is a coin flip, so the wall sits above it to
-    /// leave a second face something to buy, but well short of certainty.
 
     /// The most Judgement a fighter may have stored on the scales at once.
     /// Nothing tips it on a timer: only a primary attack combo of
