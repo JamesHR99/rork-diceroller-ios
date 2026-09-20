@@ -36,6 +36,9 @@ final class TurnOrderRenderingTests: XCTestCase {
                 XCTAssertGreaterThan(plate.size.width, 200)
             }
         }
+        for enemy in InkArt.enemies {
+            XCTAssertNotNil(InkArt.image("ink.foeAttack.\(enemy)"))
+        }
         for enemy in InkArt.enemies + ["trainingDummy"] {
             let name = try XCTUnwrap(InkArt.foe(enemy))
             XCTAssertNotNil(InkArt.image(name))
@@ -67,6 +70,17 @@ final class TurnOrderRenderingTests: XCTestCase {
             }
         }.background(Color(red: 0.05, green: 0.06, blue: 0.12)), name: "Ink-enemy-roster", size: CGSize(width: 960, height: 500))
 
+        try await capture(VStack(spacing: 5) {
+            ForEach(0..<3, id: \.self) { row in
+                HStack(spacing: 10) {
+                    ForEach(Array(InkArt.enemies[(row * 5)..<(row * 5 + 5)]), id: \.self) { enemy in
+                        PortraitView(art: "ink.foeAttack.\(enemy)", fallbackSymbol: "person", tint: .white, height: 150)
+                            .frame(width: 170)
+                    }
+                }
+            }
+        }.background(Color(red: 0.05, green: 0.06, blue: 0.12)), name: "Ink-enemy-attacks", size: CGSize(width: 960, height: 500))
+
         for gate in Gate.allCases {
             let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: gate.firstHour + 1, isHerald: false)],
                 dice: [], classID: "archer", maxHP: 100, startHP: 100, critBonus: 0)
@@ -81,7 +95,7 @@ final class TurnOrderRenderingTests: XCTestCase {
                     FighterView(engine: engine, side: .enemy, heroSymbol: "", heroName: "",
                         accent: gate.accent, foe: engine.enemies[0], stageHeight: 190, cardWidth: 260)
                 }.padding(.horizontal, 100).padding(.bottom, 94)
-            }.environment(\.accessibilityReduceMotion, true), name: "Ink-battle-\(gate.rawValue)", size: CGSize(width: 960, height: 414))
+            }, name: "Ink-battle-\(gate.rawValue)", size: CGSize(width: 960, height: 414))
         }
     }
 

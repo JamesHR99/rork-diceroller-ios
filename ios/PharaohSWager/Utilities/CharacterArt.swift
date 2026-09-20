@@ -209,6 +209,10 @@ enum CharacterArt {
     /// figure beats a glyph, and the code-driven motion does the acting.
     static func foeFrames(_ enemyID: String, stageID: String? = nil) -> FrameSet {
         if let ink = InkArt.foe(enemyID) {
+            let attack = ink.replacingOccurrences(of: "ink.foe.", with: "ink.foeAttack.")
+            if ink.hasPrefix("ink.foe."), InkArt.image(attack) != nil {
+                return FrameSet(frames: [.idle: ink, .strike: attack, .follow: attack])
+            }
             return FrameSet(frames: [.idle: ink])
         }
         let id = baseID(enemyID)

@@ -19,7 +19,7 @@ the ready drawing with the existing motion score and state treatment. These are 
 new eight-frame animation sheets. Existing clips remain the fallback if new art is absent.
 
 The fifteen enemy designs plus Straw Effigy receive new flat-colour silhouettes.
-Enemy movement is procedural: floating spirits, planted heavy beasts and coiling
+Enemies have a new ready and attack drawing, with procedural movement: floating spirits, planted heavy beasts and coiling
 serpents. Boss stages retain gameplay and timings but currently share their boss's
 new illustration; separate stage drawings are a future art expansion.
 
@@ -40,7 +40,7 @@ travel/afterimages, scene drift and impact shards.
 
 Generated with the built-in image-generation tool. Final masters are preserved in
 `ios/PharaohSWager/Assets.xcassets/ink_*.imageset/atlas.png`, including alpha channels.
-`InkArt.swift` exposes cached virtual crops and preserves a 380-pixel hero baseline.
+`InkArt.swift` exposes cached virtual plates. `InkAtlasSlicer.swift` separates connected alpha silhouettes, keeps nearby floating ornaments and preserves a shared minimum 380-pixel baseline. This prevents off-grid weapons and tails being clipped.
 The image catalogue renderer and character resolver support these virtual plates.
 
 Final prompt direction: expressive original Egyptian demigods with distinct exposed
