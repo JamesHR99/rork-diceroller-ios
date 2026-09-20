@@ -65,7 +65,7 @@ struct PlayBarView: View {
             Text("DICE").font(.system(size: 8, weight: .bold))
             Spacer(minLength: 0)
             Image(systemName: "arrow.triangle.2.circlepath")
-            Text("\(engine.rerollsRemaining)").font(.system(size: 13, weight: .black))
+            Text(engine.rerollChargeText).font(.system(size: 13, weight: .black))
         }
         .foregroundStyle(Theme.gold)
         .padding(.vertical, 8)
@@ -120,6 +120,13 @@ struct PlayBarView: View {
                     .navigationTitle("This round")
                     .toolbar { Button("Done") { showingOrder = false } }
                 }
+            }
+            if engine.pendingRerollHalfCharges > 0 {
+                Text("+\(BattleEngine.chargeText(engine.pendingRerollHalfCharges)) REROLL ON COMMIT")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Theme.frost)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
             // The header is a title, not a narrator. The only line that earns
             // its place is the held Chisel prompt, which is an instruction.
@@ -281,7 +288,7 @@ struct PlayBarView: View {
             VStack(spacing: 2) {
                 Label(engine.selectingReroll ? "CANCEL" : "REROLL", systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
-                Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollsRemaining) rolls left")
+                Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollChargeText)/\(engine.rerollCapacity) charges")
                     .font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Theme.gold)

@@ -675,7 +675,9 @@ final class BattleEngine {
     private var pendingRolls: [UUID: RolledFace] = [:]
     private(set) var rerollSelection: Set<UUID> = []
     private(set) var rerollsUsed = 0
-    private(set) var rerollBonus = 0
+    /// Integer half-charges avoid rounding losses and persist for this encounter.
+    private(set) var rerollHalfCharges = 0
+    var rerollCapacity: Int { BattleRules.maximumRerolls }
     var selectingReroll = false
     private(set) var evadeAssignments: [UUID: String] = [:]
     private var dodgeReservations: [String?] = []
@@ -863,7 +865,7 @@ final class BattleEngine {
             let payload = boon.payload
             if payload.shield > 0 { self.playerShield += payload.shield }
             if payload.rerollsNext > 0 {
-                self.rerollBonus = min(1, self.rerollBonus + payload.rerollsNext)
+                self.gainRerollHalfCharges(payload.rerollsNext * 2)
 
             }
         }
@@ -1708,8 +1710,31 @@ final class BattleEngine {
         return siege + echo
     }
     var rerollsRemaining: Int {
-        max(0, min(BattleRules.maximumRerolls, BattleRules.baseRerolls + rerollBonus) - rerollsUsed - reservedRerolls)
+        max(0, rerollHalfCharges / 2 - reservedRerolls)
     }
+    var availableRerollHalfCharges: Int {
+        max(0, rerollHalfCharges - reservedRerolls * 2)
+    }
+    static func chargeText(_ halfCharges: Int) -> String {
+        halfCharges.isMultiple(of: 2) ? "\(halfCharges / 2)" : "\(halfCharges / 2).5"
+    }
+    var rerollChargeText: String { Self.chargeText(availableRerollHalfCharges) }
+    var unusedDiceCount: Int {
+        slots.filter { slot in
+            if case .rolled(let face) = slot.state { return !playOrder.contains(face.id) }
+            return false
+        }.count
+    }
+    var pendingRerollHalfCharges: Int {
+        guard hasRolled, !isRolling else { return 0 }
+        return min(unusedDiceCount, max(0, rerollCapacity * 2 - availableRerollHalfCharges))
+    }
+    /// All rewards share the same storage ceiling. Overflow is discarded.
+    func gainRerollHalfCharges(_ amount: Int) {
+        guard amount > 0 else { return }
+        rerollHalfCharges = min(rerollCapacity * 2, rerollHalfCharges + amount)
+    }
+
     private var plannedDodges: Int {
         dodgeCharges + displayedPlan.reduce(0) { $0 + ($1.combo?.dodgeCharges ?? 0) }
     }
@@ -1739,6 +1764,7 @@ final class BattleEngine {
     private func rerollSelected(reduceMotion: Bool = false) {
         guard canReroll, !rerollSelection.isEmpty else { return }
         let selected = rerollSelection
+        rerollHalfCharges -= 2
         rerollsUsed += 1
         // Only results retained through a real reroll qualify as kept dice.
         for index in slots.indices where !selected.contains(slots[index].id) {
@@ -2209,6 +2235,13 @@ final class BattleEngine {
 
     func commitTurn() {
         guard canResolve else { return }
+        let earned = pendingRerollHalfCharges
+        // Pay reservations before refilling; a reserved charge cannot be spent
+        // on a reroll too. Commitment locks the award, including an empty plan.
+        rerollHalfCharges = max(0, rerollHalfCharges - reservedRerolls * 2)
+        gainRerollHalfCharges(earned)
+        selectingReroll = false
+        rerollSelection = []
         resetTargetingSelection()
         phase = .resolving
         Task { await resolveTurn() }
@@ -3792,7 +3825,7 @@ final class BattleEngine {
             if payload.shield > 0 { gainShield(payload.shield) }
             if payload.heal > 0 { healPlayer(min(payload.heal, 8), label: def.god.name) }
             if payload.rerollsNext > 0 {
-                nextRoundRerolls = min(1, nextRoundRerolls + payload.rerollsNext)
+                nextRoundRerolls = min(rerollCapacity, nextRoundRerolls + payload.rerollsNext)
                 addFloat("+\(payload.rerollsNext) Reroll Next", color: Theme.gold, onEnemy: false)
             }
             if payload.percentDamage > 0 { primeBonus(percent: payload.percentDamage) }
@@ -3846,7 +3879,7 @@ final class BattleEngine {
             let payload = boon.payload
             if payload.shield > 0 { gainShield(payload.shield) }
             if payload.rerollsNext > 0 {
-                rerollBonus = min(1, rerollBonus + payload.rerollsNext)
+                gainRerollHalfCharges(payload.rerollsNext * 2)
 
             }
         }
@@ -3862,7 +3895,7 @@ final class BattleEngine {
                !conditionHolds(requirement, step: nil, frozen: false, targetIndex: nil) { continue }
             let payload = boon.payload
             if payload.rerollsNext > 0 {
-                rerollBonus = min(1, rerollBonus + payload.rerollsNext)
+                gainRerollHalfCharges(payload.rerollsNext * 2)
                 addFloat("\(def.name.uppercased()) +\(payload.rerollsNext)", color: def.god.tint, onEnemy: false)
             }
             if payload.shield > 0 { gainShield(payload.shield) }
@@ -3914,7 +3947,7 @@ final class BattleEngine {
             }
             if payload.heal > 0 { healPlayer(min(payload.heal, 8), label: def.god.name) }
             if payload.rerollsNext > 0 {
-                nextRoundRerolls = min(1, nextRoundRerolls + payload.rerollsNext)
+                nextRoundRerolls = min(rerollCapacity, nextRoundRerolls + payload.rerollsNext)
                 addFloat("+\(payload.rerollsNext) Reroll Next", color: Theme.gold, onEnemy: false)
             }
         }
@@ -4336,7 +4369,7 @@ final class BattleEngine {
 
 
         rerollsUsed = 0
-        rerollBonus = min(1, nextRoundRerolls)
+        gainRerollHalfCharges(nextRoundRerolls * 2)
         rerollSelection = []
         selectingReroll = false
         evadeAssignments = [:]

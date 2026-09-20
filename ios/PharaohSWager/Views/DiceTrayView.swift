@@ -183,7 +183,7 @@ struct DiceTrayView: View {
 
             Text(selectingReroll
                  ? "TAP A DIE"
-                 : "\(engine.rerollsRemaining) REROLL\(engine.rerollsRemaining == 1 ? "" : "S")")
+                 : "\(engine.rerollChargeText)/\(engine.rerollCapacity) REROLL CHARGES")
                 .font(.system(size: 9, weight: .black))
                 .foregroundStyle(Theme.gold)
 

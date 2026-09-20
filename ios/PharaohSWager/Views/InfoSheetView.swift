@@ -716,14 +716,14 @@ struct InfoSheetView: View {
                 ]
             )
             ruleCard(
-                icon: "dice.fill", tint: Theme.gold, title: "SIX DICE AND A REROLL",
+                icon: "dice.fill", tint: Theme.gold, title: "SIX DICE · EARN YOUR REROLLS",
                 lines: [
                     "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
                     "There is no player stamina. Use all six dice or commit early.",
-                    "Two instant rerolls each round. Tap Reroll, then tap an unplayed die: it rolls immediately and spends one reroll. Bonuses raise the maximum to three.",
+                    "Start each encounter with zero rerolls. Each unused die at commitment earns half a charge, up to two stored rerolls. Half-charges carry between rounds and reset after the encounter. Tap Reroll, then an unplayed die to spend one full charge immediately.",
                     "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
                     "No results carry between rounds. The next round draws six fresh dice.",
-                    "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming returns it."
+                    "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming releases it; committing spends it. Boon rewards refill the same two-charge pool."
                 ]
             )
             ruleCard(
