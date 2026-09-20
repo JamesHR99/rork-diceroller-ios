@@ -3,7 +3,7 @@ import SwiftUI
 /// How a fighter's attack reads on screen. The drawn frames carry the pose;
 /// this decides the timing and travel between them, so a bow snaps, an axe
 /// falls heavy, blades flurry, and a staff detonates in place.
-enum WeaponSignature {
+enum WeaponSignature: Equatable {
     case bow
     case axe
     case blades
@@ -29,7 +29,7 @@ enum BattleAnimationTiming {
     static let reactionHold = 0.94
 
     static func playerDuration(classID: String, power: Int) -> Double {
-        let level = Double(max(1, min(power, 5)) - 1)
+        let level = Double(max(1, min(power, 6)) - 1)
         switch classID {
         case "archer": return 0.82 + level * 0.18
         case "warrior": return 0.92 + level * 0.23
@@ -40,7 +40,7 @@ enum BattleAnimationTiming {
     }
 
     static func foeDuration(power: Int) -> Double {
-        0.72 + Double(max(1, min(power, 5)) - 1) * 0.12
+        0.72 + Double(max(1, min(power, 6)) - 1) * 0.12
     }
 
     static func releaseDelay(classID: String, power: Int) -> Double {
@@ -56,11 +56,16 @@ enum BattleAnimationTiming {
 
     /// Time between a release and the last projectile or melee contact.
     static func contactDelay(faces: [FaceKind]) -> Double {
-        let contacts = faces.prefix(4).enumerated().map { index, face in
-            Double(index) * (face.projectile == nil ? 0.10 : 0.12)
-                + (face.projectile?.flight ?? 0.22)
+        contacts(faces: faces).map { $0.delay + ($0.face.projectile?.flight ?? 0.22) }.max() ?? 0.22
+    }
+
+    /// The engine and presentation share one bounded schedule, including mixed
+    /// melee/ranged recipes. Six-die actions no longer silently omit two shots.
+    static func contacts(faces: [FaceKind]) -> [(face: FaceKind, delay: Double)] {
+        faces.prefix(6).enumerated().compactMap { index, face in
+            guard face.projectile != nil || face.impactForm != nil else { return nil }
+            return (face: face, delay: Double(index) * 0.12)
         }
-        return contacts.max() ?? 0.22
     }
 }
 
@@ -117,7 +122,7 @@ enum FrameTimeline {
     /// Larger actions keep their class silhouette but add readable follow-up
     /// beats and stronger travel, instead of merely scaling the same attack.
     private static func amplified(_ beats: [FrameBeat], power: Int) -> [FrameBeat] {
-        let level = max(1, min(power, 5))
+        let level = max(1, min(power, 6))
         guard level > 1, let impact = beats.first(where: { $0.key == .strike }) else { return beats }
         var result = beats
         for echo in 1..<level {
@@ -253,8 +258,9 @@ struct AnimatedFighterSprite: View {
     var foeSheetID: String? = nil
     /// Changes for every action, even consecutive actions with the same pose.
     var actionID: Int = 0
-    /// Number of dice/faces feeding the action, clamped to five.
+    /// Number of dice/faces feeding the action, clamped to six.
     var actionPower: Int = 1
+    var choreography = CombatChoreography()
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var beat = FrameBeat(key: .idle)
@@ -271,12 +277,13 @@ struct AnimatedFighterSprite: View {
         return SpriteClipLibrary.clip(for: characterID, pose: pose, intensity: actionPower)
     }
 
-    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)" }
+    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)-\(characterID ?? "")-\(foeSheetID ?? "")-\(reduceMotion)" }
 
     var body: some View {
         currentFigure
             .shadow(color: accent.opacity(0.8), radius: 0, x: -1.5 * facing, y: -1)
             .overlay { hurtWash }
+            .overlay { CombatGuardGlyph(pose: pose, power: actionPower, tint: choreography.faces.isEmpty ? accent : choreography.tint, height: height) }
             .background { smearGhost }
             .scaleEffect(x: beat.scaleX, y: beat.scaleY, anchor: .bottom)
             .rotationEffect(.degrees(beat.rotation * facing), anchor: .bottom)
@@ -365,11 +372,13 @@ struct AnimatedFighterSprite: View {
         // dialled back to a nudge — the art should not be dragged across the
         // deck on top of its own animation.
         if reduceMotion {
-            beat = FrameBeat(key: FrameTimeline.rest(for: pose).key)
+            beat = FrameBeat(key: pose == .attack ? .strike : FrameTimeline.rest(for: pose).key)
             return
         }
         let hasClip = clip != nil
-        var score = FrameTimeline.beats(for: pose, weapon: weapon, power: actionPower)
+        var score = (characterID != nil
+            ? choreography.score(pose: pose, weapon: weapon, power: actionPower)
+            : FrameTimeline.beats(for: pose, weapon: weapon, power: actionPower))
             .map { hasClip ? $0.softened() : $0 }
         // The new drawn release must coincide with the engine's projectile launch.
         if pose == .attack, !hasClip, let characterID,
@@ -377,8 +386,11 @@ struct AnimatedFighterSprite: View {
             let anticipation = score[..<release].reduce(0.0) { $0 + $1.hold }
             let target = BattleAnimationTiming.releaseDelay(classID: characterID, power: actionPower)
             for index in 0..<release { score[index].hold *= target / max(0.01, anticipation) }
+            let tail = score[release...].reduce(0.0) { $0 + $1.hold }
+            let remaining = BattleAnimationTiming.playerDuration(classID: characterID, power: actionPower) - target
+            for index in release..<score.count { score[index].hold *= remaining / max(0.01, tail) }
         }
-        if let name = frames.art(.idle), name.hasPrefix("ink.foe.") {
+        if let name = frames.art(.idle), (name.hasPrefix("ink.foe.") || name.hasPrefix("ink.apep.")) {
             // Wraiths float into contact; heavy beasts plant and crush; serpents coil.
             for index in score.indices {
                 if name.contains("Shade") || name.contains("Wraith") || name.contains("Shadow") {

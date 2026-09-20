@@ -13,6 +13,7 @@ struct ProjectileArtView: View {
     /// 0 at the thrower's hand, 1 on impact — lets a form animate in flight.
     let progress: Double
     let isCrit: Bool
+    var magnitude: Int = 1
 
     var body: some View {
         Group {
@@ -27,6 +28,10 @@ struct ProjectileArtView: View {
             case .lightning: LightningShot(size: size, tint: tint, progress: progress)
             case .venomFlask: VenomFlaskShot(size: size, tint: tint)
             }
+        }
+        .overlay {
+            ComboProjectileCrown(form: form, size: size, tint: tint,
+                                 progress: progress, magnitude: magnitude)
         }
         .shadow(color: Color(red: 0.035, green: 0.02, blue: 0.09), radius: 0, x: 1.5, y: 1.5)
         // A critical washes the whole shot gold on its way across, not just

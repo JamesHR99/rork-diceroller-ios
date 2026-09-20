@@ -10,24 +10,60 @@ enum InkArt {
     private static var cache: [String: UIImage] = [:]
 
     static func hero(_ id: String, _ key: FrameKey = .idle) -> String? {
-        guard heroes.contains(id), UIImage(named: "ink_heroes") != nil else { return nil }
-        let row: Int
+        guard heroes.contains(id) else { return nil }
+        let actionRow: Int
         switch key {
-        case .windup, .guardUp, .dodge: row = 1
-        case .strike, .follow, .victory: row = 2
-        default: row = 0
+        case .idle: actionRow = 0
+        case .windup: actionRow = 1
+        case .strike, .follow: actionRow = 2
+        case .guardUp: actionRow = 3
+        case .hurt: actionRow = 4
+        case .dodge: actionRow = 5
+        case .finisher, .victory, .defeat:
+            let row = key == .finisher ? 0 : (key == .victory ? 1 : 2)
+            let name = "ink.heroSpecial.\(id).\(row)"
+            if image(name) != nil { return name }
+            actionRow = key == .defeat ? 4 : 2
         }
-        return "ink.hero.\(id).\(row)"
+        let name = "ink.heroAction.\(id).\(actionRow)"
+        if image(name) != nil { return name }
+        // Keep the earlier ready/anticipation/release set as a real fallback.
+        let old = "ink.hero.\(id).\(min(actionRow, 2))"
+        return image(old) != nil ? old : nil
     }
 
-    static func foe(_ id: String) -> String? {
+    static func foe(_ id: String, stageID: String? = nil, key: FrameKey = .idle) -> String? {
         var base = id
         for suffix in ["_herald", "_armoured", "_pack"] where base.hasSuffix(suffix) {
             base = String(base.dropLast(suffix.count))
         }
-        if base == "trainingDummy", UIImage(named: "ink_dummy") != nil { return "ink.dummy" }
-        guard enemies.contains(base), UIImage(named: "ink_enemies") != nil else { return nil }
-        return "ink.foe.\(base)"
+        if base == "trainingDummy", image("ink.dummy") != nil { return "ink.dummy" }
+        if base == "apep" || base == "apep_coils" || base == "apep_maw" {
+            let stage = stageID ?? base
+            let column = stage == "apep_coils" ? 1 : (stage == "apep_maw" ? 2 : 0)
+            let row: Int
+            switch key {
+            case .strike, .follow, .finisher, .victory: row = 1
+            case .guardUp, .dodge, .windup: row = 2
+            case .hurt, .defeat: row = 3
+            default: row = 0
+            }
+            let name = "ink.apep.\(column).\(row)"
+            if image(name) != nil { return name }
+            base = "apep"
+        }
+        guard enemies.contains(base) else { return nil }
+        let family: String
+        switch key {
+        case .strike, .follow, .finisher, .victory: family = "foeAttack"
+        case .guardUp, .dodge, .windup: family = "foeGuard"
+        case .hurt, .defeat: family = "foeHurt"
+        default: family = "foe"
+        }
+        let name = "ink.\(family).\(base)"
+        if image(name) != nil { return name }
+        let idle = "ink.foe.\(base)"
+        return image(idle) != nil ? idle : nil
     }
 
     static func image(_ name: String) -> UIImage? {
@@ -36,11 +72,25 @@ enum InkArt {
         var atlas: String
         var rect: CGRect
         let parts = name.split(separator: ".").map(String.init)
-        if parts.count == 4, parts[1] == "hero",
-           let column = heroes.firstIndex(of: parts[2]), let row = Int(parts[3]), (0...2).contains(row) {
+        if parts.count == 4, parts[1] == "heroAction",
+           let column = heroes.firstIndex(of: parts[2]), let row = Int(parts[3]), (0...5).contains(row) {
+            return InkAtlasSlicer.plate(at: row * 4 + column, atlas: "ink_hero_actions", columns: 4, rows: 6,
+                                       threshold: 240, referenceHeight: 320)
+        } else if parts.count == 4, parts[1] == "heroSpecial",
+                  let column = heroes.firstIndex(of: parts[2]), let row = Int(parts[3]), (0...2).contains(row) {
+            return InkAtlasSlicer.plate(at: row * 4 + column, atlas: "ink_hero_specials", columns: 4, rows: 3,
+                                       referenceHeight: 420)
+        } else if parts.count == 4, parts[1] == "apep",
+                  let column = Int(parts[2]), let row = Int(parts[3]), (0...2).contains(column), (0...3).contains(row) {
+            return InkAtlasSlicer.plate(at: row * 3 + column, atlas: "ink_apep_phases", columns: 3, rows: 4)
+        } else if parts.count == 4, parts[1] == "hero",
+                  let column = heroes.firstIndex(of: parts[2]), let row = Int(parts[3]), (0...2).contains(row) {
             return InkAtlasSlicer.plate(at: row * 4 + column, atlas: "ink_heroes", columns: 4, rows: 3)
-        } else if parts.count == 3, ["foe", "foeAttack"].contains(parts[1]), let index = enemies.firstIndex(of: parts[2]) {
-            return InkAtlasSlicer.plate(at: index, atlas: parts[1] == "foeAttack" ? "ink_enemy_attacks" : "ink_enemies", columns: 5, rows: 3)
+        } else if parts.count == 3, let index = enemies.firstIndex(of: parts[2]),
+                  let sheet = ["foe": "ink_enemies", "foeAttack": "ink_enemy_attacks",
+                               "foeGuard": "ink_enemy_guards", "foeHurt": "ink_enemy_hurt"][parts[1]] {
+            return InkAtlasSlicer.plate(at: index, atlas: sheet, columns: 5, rows: 3,
+                                       referenceHeight: parts[1] == "foeGuard" ? 310 : 380)
         } else if parts.count == 3, parts[1] == "region", let index = Int(parts[2]), (0...2).contains(index) {
             atlas = "ink_regions"
             rect = CGRect(x: 0, y: CGFloat(index) * 341.333, width: 1536, height: 341.333)
@@ -59,3 +109,4 @@ enum InkArt {
         return result
     }
 }
+

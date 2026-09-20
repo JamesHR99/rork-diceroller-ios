@@ -116,7 +116,8 @@ private struct ProjectileView: View {
                 size: size,
                 tint: shot.tint,
                 progress: progress,
-                isCrit: shot.isCrit
+                isCrit: shot.isCrit,
+                magnitude: shot.magnitude
             )
             .rotationEffect(.degrees(holdsUpright ? spin : heading + pitch + spin))
         }
@@ -208,7 +209,7 @@ private struct ImpactMarkView: View {
     /// A critical doubles the mark and washes everything gold.
     private var tint: Color { mark.isCrit ? Theme.gold : mark.tint }
     private var scale: CGFloat {
-        let growth = 1 + CGFloat(max(0, mark.magnitude - 1)) * 0.16
+        let growth = 1 + CGFloat(max(0, min(6, mark.magnitude) - 1)) * 0.16
         return growth * (mark.isCrit ? 1.35 : 1)
     }
 

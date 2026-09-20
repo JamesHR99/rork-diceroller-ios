@@ -99,6 +99,41 @@ final class TurnOrderRenderingTests: XCTestCase {
         }
     }
 
+    func testExpandedCombatArtVisuals() async throws {
+        guard InkArt.image("ink.heroAction.archer.0") != nil,
+              InkArt.image("ink.heroSpecial.archer.0") != nil,
+              InkArt.image("ink.foeGuard.reedLurker") != nil,
+              InkArt.image("ink.foeHurt.reedLurker") != nil else {
+            throw XCTSkip("Install the combat-art expansion ZIP before capturing its visuals.")
+        }
+        for keys in [[FrameKey.guardUp, .hurt, .dodge], [.finisher, .victory, .defeat]] {
+            try await capture(VStack(spacing: 8) {
+                ForEach(keys, id: \.rawValue) { pose in
+                    HStack(alignment: .bottom, spacing: 20) {
+                        ForEach(InkArt.heroes, id: \.self) { hero in
+                            PortraitView(art: InkArt.hero(hero, pose), fallbackSymbol: "person", tint: .white, height: 160)
+                                .frame(width: 205)
+                        }
+                    }
+                }
+            }.background(Color(red: 0.05, green: 0.06, blue: 0.12)),
+              name: "Expanded-heroes-\(keys[0].rawValue)", size: CGSize(width: 960, height: 540))
+        }
+        for key in [FrameKey.guardUp, .hurt] {
+            try await capture(VStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { row in
+                    HStack(spacing: 10) {
+                        ForEach(Array(InkArt.enemies[(row * 5)..<(row * 5 + 5)]), id: \.self) { enemy in
+                            PortraitView(art: InkArt.foe(enemy, key: key), fallbackSymbol: "person", tint: .white, height: 150)
+                                .frame(width: 170)
+                        }
+                    }
+                }
+            }.background(Color(red: 0.05, green: 0.06, blue: 0.12)),
+              name: "Expanded-enemies-\(key.rawValue)", size: CGSize(width: 960, height: 500))
+        }
+    }
+
     func testTurnOrderAndDestinationLayouts() async throws {
         let kinds: [FaceKind] = [.arrow1, .arrow1, .arrow2, .arrow1, .arrow1, .block]
         let dice = kinds.map { Die(name: "Layout", slot: .weapon, faces: Array(repeating: $0, count: 6)) }

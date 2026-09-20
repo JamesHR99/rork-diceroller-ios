@@ -364,7 +364,8 @@ struct FighterView: View {
                 characterID: side == .player ? heroClassID : nil,
                 foeSheetID: foeSheetID,
                 actionID: actionID,
-                actionPower: actionPower
+                actionPower: actionPower,
+                choreography: side == .player ? engine.playerChoreography : CombatChoreography()
             )
             .shadow(color: auraColor.opacity(pose == .idle ? 0.2 : 0.65), radius: pose == .idle ? 3 : 7)
             .opacity(pose == .defeat ? 0.42 : 1)

@@ -106,7 +106,7 @@ struct ProjectileShot: Identifiable, Equatable {
 
     /// The drawn size once the feeding dice and a critical are taken in.
     var drawnSize: CGFloat {
-        let growth = 1 + CGFloat(max(0, magnitude - 1)) * 0.28
+        let growth = 1 + CGFloat(max(0, min(6, magnitude) - 1)) * 0.28
         return style.size * growth * (isCrit ? 1.2 : 1)
     }
 }

@@ -14,12 +14,12 @@ enum InkAtlasSlicer {
     }
     private static var cache: [String: [Int: UIImage]] = [:]
 
-    static func plate(at index: Int, atlas: String, columns: Int, rows: Int) -> UIImage? {
-        if cache[atlas] == nil { cache[atlas] = extract(atlas, columns: columns, rows: rows) }
+    static func plate(at index: Int, atlas: String, columns: Int, rows: Int, threshold: UInt8 = 32, referenceHeight: CGFloat = 380) -> UIImage? {
+        if cache[atlas] == nil { cache[atlas] = extract(atlas, columns: columns, rows: rows, threshold: threshold, referenceHeight: referenceHeight) }
         return cache[atlas]?[index]
     }
 
-    private static func extract(_ atlas: String, columns: Int, rows: Int) -> [Int: UIImage] {
+    private static func extract(_ atlas: String, columns: Int, rows: Int, threshold: UInt8, referenceHeight: CGFloat) -> [Int: UIImage] {
         guard let source = UIImage(named: atlas)?.cgImage else { return [:] }
         let width = source.width, height = source.height, total = width * height
         var pixels = [UInt8](repeating: 0, count: total * 4)
@@ -35,7 +35,7 @@ enum InkAtlasSlicer {
         var islands: [Island] = []
         var queue: [Int] = []
         queue.reserveCapacity(total / 3)
-        for seed in 0..<total where labels[seed] == 0 && pixels[seed * 4 + 3] > 32 {
+        for seed in 0..<total where labels[seed] == 0 && pixels[seed * 4 + 3] > threshold {
             let label = Int32(islands.count + 1)
             var island = Island(minX: seed % width, minY: seed / width, maxX: seed % width, maxY: seed / width)
             queue.removeAll(keepingCapacity: true)
@@ -51,7 +51,7 @@ enum InkAtlasSlicer {
                 island.minY = min(island.minY, y); island.maxY = max(island.maxY, y)
                 for neighbor in [x > 0 ? point - 1 : -1, x + 1 < width ? point + 1 : -1,
                                  y > 0 ? point - width : -1, y + 1 < height ? point + width : -1] {
-                    if neighbor >= 0, labels[neighbor] == 0, pixels[neighbor * 4 + 3] > 32 {
+                    if neighbor >= 0, labels[neighbor] == 0, pixels[neighbor * 4 + 3] > threshold {
                         labels[neighbor] = label
                         queue.append(neighbor)
                     }
@@ -89,7 +89,7 @@ enum InkAtlasSlicer {
             let left = max(0, bound.minX - 2), top = max(0, bound.minY - 2)
             let right = min(width - 1, bound.maxX + 2), bottom = min(height - 1, bound.maxY + 2)
             let outputWidth = right - left + 1, inkHeight = bottom - top + 1
-            let outputHeight = max(380, inkHeight)
+            let outputHeight = max(Int(referenceHeight), inkHeight)
             var output = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
             for y in top...bottom {
                 for x in left...right {
@@ -106,9 +106,20 @@ enum InkAtlasSlicer {
                     bytesPerRow: outputWidth * 4, space: CGColorSpaceCreateDeviceRGB(),
                     bitmapInfo: CGBitmapInfo(rawValue: info), provider: provider, decode: nil,
                     shouldInterpolate: true, intent: .defaultIntent) {
-                result[slot] = UIImage(cgImage: image)
+                let raw = UIImage(cgImage: image)
+                // Each atlas has a measured shared canvas height. Scale the whole
+                // canvas, never each pose's bounds, to keep crouches crouched.
+                let scale = 380 / referenceHeight
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1
+                format.opaque = false
+                let size = CGSize(width: CGFloat(outputWidth) * scale, height: CGFloat(outputHeight) * scale)
+                result[slot] = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                    raw.draw(in: CGRect(origin: .zero, size: size))
+                }
             }
         }
         return result
     }
 }
+
