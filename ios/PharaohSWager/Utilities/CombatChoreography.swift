@@ -6,6 +6,7 @@ struct CombatChoreography: Equatable {
     var faces: [FaceKind] = []
     var grantsGuard = false
     var grantsEvade = false
+    var moveID: String? = nil
 
     var face: FaceKind? { faces.first }
     var tint: Color {

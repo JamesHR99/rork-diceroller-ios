@@ -433,6 +433,7 @@ struct EnemyState: Identifiable {
     var animationID = 0
     /// How many faces feed the current performance, clamped for presentation.
     var actionPower = 1
+    var choreography = CombatChoreography()
     /// Everything this creature has told you it is going to do this round, in
 
     /// do, so a round can be one heavy blow or a guard and two quick cuts —
@@ -476,9 +477,10 @@ struct EnemyState: Identifiable {
         shield = min(100, shield + amount)
     }
 
-    mutating func animate(_ newPose: FighterPose, power: Int = 1) {
+    mutating func animate(_ newPose: FighterPose, power: Int = 1, choreography: CombatChoreography = CombatChoreography()) {
         pose = newPose
         actionPower = max(1, min(power, 5))
+        self.choreography = choreography
         animationID &+= 1
     }
 
@@ -4067,7 +4069,7 @@ final class BattleEngine {
         // A wind-up: it spends the round gathering itself and the blow that
         // follows is a great deal worse. That window is the whole point.
         if move.charge > 0 {
-            foe.animate(.telegraph)
+            foe.animate(.telegraph, choreography: CombatChoreography(faces: move.faces, moveID: move.id))
             foe.chargeBonus = move.charge
             addFloat("WINDING UP ×\(String(format: "%.1f", move.charge))",
                      color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
@@ -4095,7 +4097,9 @@ final class BattleEngine {
         }
 
         if move.block > 0 {
-            foe.animate(.block)
+            foe.animate(move.faces.contains(.evade) ? .dodge : .block,
+                        power: max(1, move.faces.count),
+                        choreography: CombatChoreography(faces: move.faces, moveID: move.id))
             foe.gainGuard(move.block)
             addFloat("+\(move.block) Guard", color: Theme.bronze, onEnemy: true, foe: foe.id)
             try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
@@ -4136,9 +4140,11 @@ final class BattleEngine {
             for hitIndex in 0..<attackFaces {
                 guard foe.isAlive else { break }
                 let actionPower = min(5, max(1, move.faces.count))
-                foe.animate(.telegraph, power: actionPower)
+                foe.animate(.telegraph, power: actionPower,
+                            choreography: CombatChoreography(faces: move.faces, moveID: move.id))
                 try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
-                foe.animate(.attack, power: actionPower)
+                foe.animate(.attack, power: actionPower,
+                            choreography: CombatChoreography(faces: move.faces, moveID: move.id))
                 launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id)
                 await waitForAnimation(BattleAnimationTiming.contactDelay(faces: move.faces))
                 var hit = perHit + remainder
@@ -4684,5 +4690,4 @@ final class BattleEngine {
         }
     }
 }
-
 

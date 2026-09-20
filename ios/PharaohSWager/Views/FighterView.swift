@@ -365,7 +365,9 @@ struct FighterView: View {
                 foeSheetID: foeSheetID,
                 actionID: actionID,
                 actionPower: actionPower,
-                choreography: side == .player ? engine.playerChoreography : CombatChoreography()
+                choreography: side == .player ? engine.playerChoreography : (foe?.choreography ?? CombatChoreography()),
+                enemyID: side == .enemy ? (foe?.def.id ?? engine.enemy.id) : nil,
+                allowsPersonality: engine.phase == .player
             )
             .shadow(color: auraColor.opacity(pose == .idle ? 0.2 : 0.65), radius: pose == .idle ? 3 : 7)
             .opacity(pose == .defeat ? 0.42 : 1)
@@ -633,4 +635,3 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
-

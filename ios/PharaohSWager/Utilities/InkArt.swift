@@ -68,6 +68,7 @@ enum InkArt {
 
     static func image(_ name: String) -> UIImage? {
         guard name.hasPrefix("ink.") else { return nil }
+        if let technique = InkTechniqueArt.image(name) { return technique }
         if let cached = cache[name] { return cached }
         var atlas: String
         var rect: CGRect
@@ -109,4 +110,3 @@ enum InkArt {
         return result
     }
 }
-

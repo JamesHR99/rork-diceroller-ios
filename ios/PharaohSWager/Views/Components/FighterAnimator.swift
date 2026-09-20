@@ -261,12 +261,15 @@ struct AnimatedFighterSprite: View {
     /// Number of dice/faces feeding the action, clamped to six.
     var actionPower: Int = 1
     var choreography = CombatChoreography()
+    var enemyID: String? = nil
+    var allowsPersonality = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var beat = FrameBeat(key: .idle)
     @State private var breathing = false
     /// Which plate of the drawn clip is showing, when one is playing.
     @State private var clipFrame = 0
+    @State private var personalityFrame: Int? = nil
 
     /// The hand-drawn clip for this action, if the character owns one.
     private var clip: SpriteClip? {
@@ -277,7 +280,7 @@ struct AnimatedFighterSprite: View {
         return SpriteClipLibrary.clip(for: characterID, pose: pose, intensity: actionPower)
     }
 
-    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)-\(characterID ?? "")-\(foeSheetID ?? "")-\(reduceMotion)" }
+    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)-\(characterID ?? "")-\(foeSheetID ?? "")-\(enemyID ?? "")-\(allowsPersonality)-\(reduceMotion)" }
 
     var body: some View {
         currentFigure
@@ -290,6 +293,7 @@ struct AnimatedFighterSprite: View {
             .offset(x: beat.lunge * facing, y: beat.rise + breathDrift)
             .task(id: playbackID) { await play() }
             .task(id: playbackID) { await playClip() }
+            .task(id: playbackID) { await playPersonality() }
             .onAppear {
                 guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
@@ -319,11 +323,45 @@ struct AnimatedFighterSprite: View {
 
     @ViewBuilder
     private func figure(_ key: FrameKey) -> some View {
-        PortraitView(art: frames.art(key),
+        PortraitView(art: drawing(for: key),
                      fallbackSymbol: fallbackSymbol,
                      tint: accent,
                      height: height,
                      mirrorFallback: mirrorFallback)
+    }
+
+    private func drawing(for key: FrameKey) -> String? {
+        if key == .idle, pose == .idle, allowsPersonality, !reduceMotion,
+           let personalityFrame,
+           let art = InkTechniqueArt.personality(hero: characterID, enemy: enemyID,
+                                                  stage: foeSheetID, frame: personalityFrame) { return art }
+        if let characterID,
+           let art = InkTechniqueArt.hero(characterID, key: key, action: choreography, power: actionPower) { return art }
+        if let enemyID,
+           let art = InkTechniqueArt.foe(enemyID, stage: foeSheetID, key: key, action: choreography, power: actionPower) { return art }
+        return frames.art(key)
+    }
+
+    /// Idle acting never delays combat: cancellation and the render gate both
+    /// remove it as soon as planning ends or the fighter changes action.
+    private func playPersonality() async {
+        personalityFrame = nil
+        guard pose == .idle, allowsPersonality, !reduceMotion, clip == nil,
+              InkTechniqueArt.personality(hero: characterID, enemy: enemyID, stage: foeSheetID, frame: 0) != nil else { return }
+        let seed = (characterID ?? enemyID ?? "").unicodeScalars.reduce(0) { $0 + Int($1.value) }
+        do {
+            try await Task.sleep(for: .seconds(2.5 + Double(seed % 17) * 0.1))
+            while !Task.isCancelled {
+                let holds = characterID != nil ? [0.22, 0.48, 0.26] : [0.48, 0.32]
+                for (index, hold) in holds.enumerated() {
+                    try Task.checkCancellation()
+                    personalityFrame = index
+                    try await Task.sleep(for: .seconds(hold))
+                }
+                personalityFrame = nil
+                try await Task.sleep(for: .seconds(6 + Double(seed % 5)))
+            }
+        } catch { return }
     }
 
     /// One named plate of a drawn sheet, at the fighter's height.
@@ -460,4 +498,3 @@ extension FrameBeat {
         return eased
     }
 }
-
