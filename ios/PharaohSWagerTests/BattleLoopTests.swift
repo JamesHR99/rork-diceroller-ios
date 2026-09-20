@@ -22,9 +22,9 @@ struct BattleLoopTests {
 
     private func settled(_ engine: BattleEngine) async throws {
         let clock = ContinuousClock()
-        let deadline = clock.now.advanced(by: .seconds(3))
+        let deadline = clock.now.advanced(by: .seconds(15))
         while engine.isRolling && clock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(!engine.isRolling)
+        try #require(!engine.isRolling)
     }
 
     private func nextRound(_ engine: BattleEngine) async throws {

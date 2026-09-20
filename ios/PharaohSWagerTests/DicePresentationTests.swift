@@ -45,11 +45,11 @@ struct DicePresentationTests {
         // A generous ceiling lets a loaded simulator schedule the task. The
         // exact presentation budget is covered independently above.
         let clock = ContinuousClock()
-        let deadline = clock.now.advanced(by: .seconds(2))
+        let deadline = clock.now.advanced(by: .seconds(15))
         while engine.isRolling && clock.now < deadline {
             try await Task.sleep(for: .milliseconds(20))
         }
-        #expect(!engine.isRolling)
+        try #require(!engine.isRolling)
         #expect(engine.canCommit)
         #expect(Set(engine.slots.map(\.id)) == slotIDs)
         #expect(engine.rolled.count == slotIDs.count)
