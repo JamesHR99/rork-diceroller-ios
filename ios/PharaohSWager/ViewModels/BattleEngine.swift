@@ -4145,7 +4145,7 @@ final class BattleEngine {
                 try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
                 foe.animate(.attack, power: actionPower,
                             choreography: CombatChoreography(faces: move.faces, moveID: move.id))
-                launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id)
+                launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id, magnitude: actionPower)
                 await waitForAnimation(BattleAnimationTiming.contactDelay(faces: move.faces))
                 var hit = perHit + remainder
                 remainder = 0
