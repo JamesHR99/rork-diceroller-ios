@@ -30,6 +30,10 @@ struct PharaohSWagerSceneView: View {
             let horizon = size.height * waterline
 
             ZStack {
+                if InkArt.image("ink.region.\(gate.rawValue)") != nil {
+                    InkRiverView(gate: gate, speed: speed, discGlow: discGlow)
+                    if showsBarque { barque(size: size, horizon: horizon) }
+                } else {
                 skyWash(size: size, horizon: horizon)
                 starField(size: size, horizon: horizon)
                 sunDisc(size: size, horizon: horizon)
@@ -42,6 +46,7 @@ struct PharaohSWagerSceneView: View {
                 if gate.hasEmbers { brazier(size: size, horizon: horizon) }
                 reeds(size: size, horizon: horizon)
                 if gate.hasEmbers { embers(size: size) }
+                }
             }
             .frame(width: size.width, height: size.height)
             .clipped()
@@ -239,7 +244,7 @@ struct PharaohSWagerSceneView: View {
             let time = context.date.timeIntervalSinceReferenceDate * speed
             let bob = CGFloat(sin(time * 0.6)) * 5
             let lean = sin(time * 0.43) * 0.7
-            PharaohSWagerImage(name: "duat_environment_barque", width: width, fit: .fit)
+            PharaohSWagerImage(name: InkArt.image("ink.barque") != nil ? "ink.barque" : "duat_environment_barque", width: width, fit: .fit)
                 .rotationEffect(.degrees(lean))
                 .position(x: size.width * 0.5, y: horizon + (size.height - horizon) * 0.22 + bob)
                 .opacity(0.9)
@@ -412,3 +417,4 @@ private struct SeededGenerator: RandomNumberGenerator {
         return state
     }
 }
+

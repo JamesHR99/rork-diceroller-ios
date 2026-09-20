@@ -433,6 +433,7 @@ struct EnemyState: Identifiable {
     var animationID = 0
     /// How many faces feed the current performance, clamped for presentation.
     var actionPower = 1
+    var choreography = CombatChoreography()
     /// Everything this creature has told you it is going to do this round, in
 
     /// do, so a round can be one heavy blow or a guard and two quick cuts —
@@ -476,9 +477,10 @@ struct EnemyState: Identifiable {
         shield = min(100, shield + amount)
     }
 
-    mutating func animate(_ newPose: FighterPose, power: Int = 1) {
+    mutating func animate(_ newPose: FighterPose, power: Int = 1, choreography: CombatChoreography = CombatChoreography()) {
         pose = newPose
         actionPower = max(1, min(power, 5))
+        self.choreography = choreography
         animationID &+= 1
     }
 
@@ -754,6 +756,7 @@ final class BattleEngine {
     private(set) var playerPose: FighterPose = .idle
     private(set) var playerAnimationID = 0
     private(set) var playerActionPower = 1
+    private(set) var playerChoreography = CombatChoreography()
     /// The gods whose blessings ride the blow currently being thrown.
     private(set) var strikeGods: [Deity] = []
 
@@ -2334,9 +2337,10 @@ final class BattleEngine {
                 let healthBefore = target.map { enemies[$0].hp } ?? 0
                 if let combo = step.combo {
                     let didCrit = step.hasCritFace
-                    let power = min(5, max(1, step.faces.count))
-                    let actionPose: FighterPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : .heal)
-                    animatePlayer(actionPose, power: power)
+                    let power = min(6, max(1, step.faces.count))
+                    let actionPose: FighterPose = combo.damage > 0 ? .attack : (combo.shield > 0 ? .block : (combo.dodgeCharges > 0 ? .dodge : .heal))
+                    animatePlayer(actionPose, power: power, choreography: CombatChoreography(
+                        faces: step.faces.map(\.matchFace), grantsGuard: combo.shield > 0, grantsEvade: combo.dodgeCharges > 0))
                     noteStrikeGods(in: step.faces)
                     if combo.damage > 0 {
                         let release = BattleAnimationTiming.releaseDelay(classID: classID, power: power)
@@ -2367,7 +2371,7 @@ final class BattleEngine {
                         await waitForAnimation(total)
                     }
                 } else if let face = step.faces.first {
-                    animatePlayer(pose(for: face.face))
+                    animatePlayer(pose(for: face.face), choreography: CombatChoreography(faces: [face.matchFace]))
                     noteStrikeGods(in: [face])
                     if face.matchFace.isAttack || face.matchFace == .poison {
                         let release = BattleAnimationTiming.releaseDelay(classID: classID, power: 1)
@@ -2556,9 +2560,10 @@ final class BattleEngine {
         }
     }
 
-    private func animatePlayer(_ pose: FighterPose, power: Int = 1) {
+    private func animatePlayer(_ pose: FighterPose, power: Int = 1, choreography: CombatChoreography = CombatChoreography()) {
         playerPose = pose
-        playerActionPower = max(1, min(power, 5))
+        playerActionPower = max(1, min(power, 6))
+        playerChoreography = choreography
         playerAnimationID &+= 1
     }
 
@@ -4064,7 +4069,7 @@ final class BattleEngine {
         // A wind-up: it spends the round gathering itself and the blow that
         // follows is a great deal worse. That window is the whole point.
         if move.charge > 0 {
-            foe.animate(.telegraph)
+            foe.animate(.telegraph, choreography: CombatChoreography(faces: move.faces, moveID: move.id))
             foe.chargeBonus = move.charge
             addFloat("WINDING UP ×\(String(format: "%.1f", move.charge))",
                      color: Theme.ember, onEnemy: true, big: true, foe: foe.id)
@@ -4092,7 +4097,9 @@ final class BattleEngine {
         }
 
         if move.block > 0 {
-            foe.animate(.block)
+            foe.animate(move.faces.contains(.evade) ? .dodge : .block,
+                        power: max(1, move.faces.count),
+                        choreography: CombatChoreography(faces: move.faces, moveID: move.id))
             foe.gainGuard(move.block)
             addFloat("+\(move.block) Guard", color: Theme.bronze, onEnemy: true, foe: foe.id)
             try? await Task.sleep(for: .milliseconds(BattleBeat.foeSupport))
@@ -4133,10 +4140,12 @@ final class BattleEngine {
             for hitIndex in 0..<attackFaces {
                 guard foe.isAlive else { break }
                 let actionPower = min(5, max(1, move.faces.count))
-                foe.animate(.telegraph, power: actionPower)
+                foe.animate(.telegraph, power: actionPower,
+                            choreography: CombatChoreography(faces: move.faces, moveID: move.id))
                 try? await Task.sleep(for: .milliseconds(BattleBeat.telegraph))
-                foe.animate(.attack, power: actionPower)
-                launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id)
+                foe.animate(.attack, power: actionPower,
+                            choreography: CombatChoreography(faces: move.faces, moveID: move.id))
+                launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id, magnitude: actionPower)
                 await waitForAnimation(BattleAnimationTiming.contactDelay(faces: move.faces))
                 var hit = perHit + remainder
                 remainder = 0
@@ -4586,37 +4595,29 @@ final class BattleEngine {
     ) {
         guard let foeID else { return }
         let landsOn: FighterAnchorID = fromPlayer ? .foe(foeID) : .player
+        let sourceEnemyID = fromPlayer ? nil : enemies.first(where: { $0.id == foeID })?.def.id
 
-        // Faces swung where the fighter stands never cross the deck — an axe
-        // lands where it is swung. They still whistle, and they still leave a
-        // mark at the point of contact.
-        for (index, face) in faces.prefix(4).enumerated() where face.projectile == nil {
-            let delay = Double(index) * 0.1
-            if let cue = face.launchCue { Audio.shared.play(cue, after: delay) }
-            if let impact = face.impactCue { Audio.shared.play(impact, after: delay + 0.22) }
-            landMark(face: face, on: landsOn, after: delay + 0.22,
-                     magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
-        }
-
-        let flying = faces.compactMap { face -> ProjectileShot? in
-            guard let style = face.projectile else { return nil }
-            return ProjectileShot(face: face, style: style, tint: face.tint,
-                                  fromPlayer: fromPlayer, foeID: foeID,
-                                  magnitude: magnitude, isCrit: isCrit)
-        }
-        guard !flying.isEmpty else { return }
-        for (index, shot) in flying.prefix(4).enumerated() {
+        for contact in BattleAnimationTiming.contacts(faces: faces) {
+            let face = contact.face
+            guard let style = face.projectile else {
+                if let cue = face.launchCue { Audio.shared.play(cue, after: contact.delay) }
+                if let cue = face.impactCue { Audio.shared.play(cue, after: contact.delay + 0.22) }
+                landMark(face: face, on: landsOn, after: contact.delay + 0.22,
+                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer, sourceEnemyID: sourceEnemyID)
+                continue
+            }
+            let shot = ProjectileShot(face: face, style: style, tint: face.tint,
+                                      fromPlayer: fromPlayer, foeID: foeID,
+                                      magnitude: magnitude, isCrit: isCrit, sourceEnemyID: sourceEnemyID)
             Task {
-                try? await Task.sleep(for: .milliseconds(index * 120))
+                try? await Task.sleep(for: .seconds(contact.delay))
+                guard !Task.isCancelled, phase == .resolving else { return }
                 shots.append(shot)
-                // Fires as it leaves the hand, lands as it arrives.
-                if let cue = shot.face.launchCue { Audio.shared.play(cue) }
-                if let impact = shot.face.impactCue {
-                    Audio.shared.play(impact, after: shot.style.flight)
-                }
-                landMark(face: shot.face, on: landsOn, after: shot.style.flight,
-                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
-                try? await Task.sleep(for: .seconds(shot.style.flight + 0.2))
+                if let cue = face.launchCue { Audio.shared.play(cue) }
+                if let cue = face.impactCue { Audio.shared.play(cue, after: style.flight) }
+                landMark(face: face, on: landsOn, after: style.flight,
+                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer, sourceEnemyID: sourceEnemyID)
+                try? await Task.sleep(for: .seconds(style.flight + 0.2))
                 shots.removeAll { $0.id == shot.id }
             }
         }
@@ -4630,7 +4631,8 @@ final class BattleEngine {
         after delay: Double,
         magnitude: Int,
         isCrit: Bool,
-        fromPlayer: Bool
+        fromPlayer: Bool,
+        sourceEnemyID: String? = nil
     ) {
         guard let form = face.impactForm else { return }
         let mark = ImpactMark(
@@ -4641,7 +4643,8 @@ final class BattleEngine {
             // come back the other way.
             angle: fromPlayer ? 0 : 180,
             isCrit: isCrit,
-            magnitude: magnitude
+            magnitude: magnitude,
+            sourceEnemyID: sourceEnemyID
         )
         Task {
             try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
@@ -4690,4 +4693,3 @@ final class BattleEngine {
         }
     }
 }
-

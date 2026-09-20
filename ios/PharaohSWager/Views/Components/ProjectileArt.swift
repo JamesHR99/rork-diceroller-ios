@@ -13,9 +13,15 @@ struct ProjectileArtView: View {
     /// 0 at the thrower's hand, 1 on impact — lets a form animate in flight.
     let progress: Double
     let isCrit: Bool
+    var magnitude: Int = 1
+    var sourceEnemyID: String? = nil
 
     var body: some View {
         Group {
+            if let image = InkWorldArt.cell("ink_projectiles", index: InkWorldArt.projectileIndex(form, enemy: sourceEnemyID)) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .frame(width: size * 1.45, height: size)
+            } else {
             switch form {
             case .arrow: ArrowShot(size: size, tint: tint)
             case .crescent: CrescentShot(size: size, tint: tint, progress: progress)
@@ -27,7 +33,13 @@ struct ProjectileArtView: View {
             case .lightning: LightningShot(size: size, tint: tint, progress: progress)
             case .venomFlask: VenomFlaskShot(size: size, tint: tint)
             }
+            }
         }
+        .overlay {
+            ComboProjectileCrown(form: form, size: size, tint: tint,
+                                 progress: progress, magnitude: magnitude)
+        }
+        .shadow(color: Color(red: 0.035, green: 0.02, blue: 0.09), radius: 0, x: 1.5, y: 1.5)
         // A critical washes the whole shot gold on its way across, not just
         // when it lands.
         .overlay {
@@ -170,39 +182,34 @@ private struct FireOrbShot: View {
 
     var body: some View {
         ZStack {
-            // Outer roil
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Theme.sunGold, tint, Theme.blood.opacity(0.7), .clear],
-                        center: .center, startRadius: 0, endRadius: size * 0.62
-                    )
-                )
-                .frame(width: size * 1.25, height: size * 1.25)
-                .blur(radius: size * 0.1)
-
-            // Tongues of flame, turning as the orb churns.
-            ForEach(0..<5, id: \.self) { index in
-                let angle = Double(index) / 5 * 360 + progress * 420
-                Ellipse()
-                    .fill(
-                        LinearGradient(colors: [Theme.sunGold.opacity(0.9), .clear],
-                                       startPoint: .leading, endPoint: .trailing)
-                    )
-                    .frame(width: size * 0.5, height: size * 0.2)
-                    .offset(x: size * 0.4)
-                    .rotationEffect(.degrees(angle))
-            }
-
-            // White-hot core
-            Circle()
-                .fill(Theme.parchment.opacity(0.95))
-                .frame(width: size * 0.34, height: size * 0.34)
-                .blur(radius: size * 0.04)
+            InkFlameStar()
+                .fill(tint)
+                .frame(width: size * 1.2, height: size)
+                .rotationEffect(.degrees(progress * 75))
+            InkFlameStar()
+                .fill(Color(red: 1, green: 0.77, blue: 0.08))
+                .frame(width: size * 0.78, height: size * 0.68)
+                .rotationEffect(.degrees(-progress * 110 + 20))
+            InkFlameStar()
+                .fill(Theme.parchment)
+                .frame(width: size * 0.38, height: size * 0.34)
         }
-        .frame(width: size, height: size)
-        .shadow(color: tint.opacity(0.95), radius: size * 0.4)
-        .blendMode(.plusLighter)
+        .frame(width: size * 1.2, height: size * 1.2)
+    }
+}
+
+private struct InkFlameStar: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        for index in 0..<18 {
+            let angle = Double(index) * .pi / 9
+            let radius = index.isMultiple(of: 2) ? 0.5 : 0.27
+            let point = CGPoint(x: rect.midX + cos(angle) * rect.width * radius,
+                                y: rect.midY + sin(angle) * rect.height * radius)
+            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
     }
 }
 

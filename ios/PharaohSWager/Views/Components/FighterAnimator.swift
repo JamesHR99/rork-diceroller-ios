@@ -3,7 +3,7 @@ import SwiftUI
 /// How a fighter's attack reads on screen. The drawn frames carry the pose;
 /// this decides the timing and travel between them, so a bow snaps, an axe
 /// falls heavy, blades flurry, and a staff detonates in place.
-enum WeaponSignature {
+enum WeaponSignature: Equatable {
     case bow
     case axe
     case blades
@@ -29,7 +29,7 @@ enum BattleAnimationTiming {
     static let reactionHold = 0.94
 
     static func playerDuration(classID: String, power: Int) -> Double {
-        let level = Double(max(1, min(power, 5)) - 1)
+        let level = Double(max(1, min(power, 6)) - 1)
         switch classID {
         case "archer": return 0.82 + level * 0.18
         case "warrior": return 0.92 + level * 0.23
@@ -40,7 +40,7 @@ enum BattleAnimationTiming {
     }
 
     static func foeDuration(power: Int) -> Double {
-        0.72 + Double(max(1, min(power, 5)) - 1) * 0.12
+        0.72 + Double(max(1, min(power, 6)) - 1) * 0.12
     }
 
     static func releaseDelay(classID: String, power: Int) -> Double {
@@ -56,11 +56,16 @@ enum BattleAnimationTiming {
 
     /// Time between a release and the last projectile or melee contact.
     static func contactDelay(faces: [FaceKind]) -> Double {
-        let contacts = faces.prefix(4).enumerated().map { index, face in
-            Double(index) * (face.projectile == nil ? 0.10 : 0.12)
-                + (face.projectile?.flight ?? 0.22)
+        contacts(faces: faces).map { $0.delay + ($0.face.projectile?.flight ?? 0.22) }.max() ?? 0.22
+    }
+
+    /// The engine and presentation share one bounded schedule, including mixed
+    /// melee/ranged recipes. Six-die actions no longer silently omit two shots.
+    static func contacts(faces: [FaceKind]) -> [(face: FaceKind, delay: Double)] {
+        faces.prefix(6).enumerated().compactMap { index, face in
+            guard face.projectile != nil || face.impactForm != nil else { return nil }
+            return (face: face, delay: Double(index) * 0.12)
         }
-        return contacts.max() ?? 0.22
     }
 }
 
@@ -117,7 +122,7 @@ enum FrameTimeline {
     /// Larger actions keep their class silhouette but add readable follow-up
     /// beats and stronger travel, instead of merely scaling the same attack.
     private static func amplified(_ beats: [FrameBeat], power: Int) -> [FrameBeat] {
-        let level = max(1, min(power, 5))
+        let level = max(1, min(power, 6))
         guard level > 1, let impact = beats.first(where: { $0.key == .strike }) else { return beats }
         var result = beats
         for echo in 1..<level {
@@ -253,34 +258,44 @@ struct AnimatedFighterSprite: View {
     var foeSheetID: String? = nil
     /// Changes for every action, even consecutive actions with the same pose.
     var actionID: Int = 0
-    /// Number of dice/faces feeding the action, clamped to five.
+    /// Number of dice/faces feeding the action, clamped to six.
     var actionPower: Int = 1
+    var choreography = CombatChoreography()
+    var enemyID: String? = nil
+    var allowsPersonality = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var beat = FrameBeat(key: .idle)
     @State private var breathing = false
     /// Which plate of the drawn clip is showing, when one is playing.
     @State private var clipFrame = 0
+    @State private var personalityFrame: Int? = nil
 
     /// The hand-drawn clip for this action, if the character owns one.
     private var clip: SpriteClip? {
+        if frames.art(.idle)?.hasPrefix("ink.") == true { return nil }
         if let foeSheetID {
             return SpriteClipLibrary.foeClip(sheetID: foeSheetID, pose: pose, intensity: actionPower)
         }
         return SpriteClipLibrary.clip(for: characterID, pose: pose, intensity: actionPower)
     }
 
-    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)" }
+    private var playbackID: String { "\(pose)-\(actionID)-\(actionPower)-\(characterID ?? "")-\(foeSheetID ?? "")-\(enemyID ?? "")-\(allowsPersonality)-\(reduceMotion)" }
 
     var body: some View {
         currentFigure
+            .shadow(color: accent.opacity(0.8), radius: 0, x: -1.5 * facing, y: -1)
             .overlay { hurtWash }
+            .overlay { CombatGuardGlyph(pose: pose, power: actionPower, tint: choreography.faces.isEmpty ? accent : choreography.tint, height: height) }
             .background { smearGhost }
             .scaleEffect(x: beat.scaleX, y: beat.scaleY, anchor: .bottom)
             .rotationEffect(.degrees(beat.rotation * facing), anchor: .bottom)
             .offset(x: beat.lunge * facing, y: beat.rise + breathDrift)
             .task(id: playbackID) { await play() }
             .task(id: playbackID) { await playClip() }
+            .task(id: playbackID) { await playPersonality() }
             .onAppear {
+                guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                     breathing = true
                 }
@@ -302,17 +317,51 @@ struct AnimatedFighterSprite: View {
     /// breath. A drawn idle loop already breathes on its own, so it is left
     /// alone rather than bobbing twice.
     private var breathDrift: CGFloat {
-        guard pose == .idle, clip == nil else { return 0 }
+        guard !reduceMotion, pose == .idle, clip == nil else { return 0 }
         return breathing ? -2.5 : 1.5
     }
 
     @ViewBuilder
     private func figure(_ key: FrameKey) -> some View {
-        PortraitView(art: frames.art(key),
+        PortraitView(art: drawing(for: key),
                      fallbackSymbol: fallbackSymbol,
                      tint: accent,
                      height: height,
                      mirrorFallback: mirrorFallback)
+    }
+
+    private func drawing(for key: FrameKey) -> String? {
+        if key == .idle, pose == .idle, allowsPersonality, !reduceMotion,
+           let personalityFrame,
+           let art = InkTechniqueArt.personality(hero: characterID, enemy: enemyID,
+                                                  stage: foeSheetID, frame: personalityFrame) { return art }
+        if let characterID,
+           let art = InkTechniqueArt.hero(characterID, key: key, action: choreography, power: actionPower) { return art }
+        if let enemyID,
+           let art = InkTechniqueArt.foe(enemyID, stage: foeSheetID, key: key, action: choreography, power: actionPower) { return art }
+        return frames.art(key)
+    }
+
+    /// Idle acting never delays combat: cancellation and the render gate both
+    /// remove it as soon as planning ends or the fighter changes action.
+    private func playPersonality() async {
+        personalityFrame = nil
+        guard pose == .idle, allowsPersonality, !reduceMotion, clip == nil,
+              InkTechniqueArt.personality(hero: characterID, enemy: enemyID, stage: foeSheetID, frame: 0) != nil else { return }
+        let seed = (characterID ?? enemyID ?? "").unicodeScalars.reduce(0) { $0 + Int($1.value) }
+        do {
+            try await Task.sleep(for: .seconds(2.5 + Double(seed % 17) * 0.1))
+            while !Task.isCancelled {
+                let holds = characterID != nil ? [0.22, 0.48, 0.26] : [0.48, 0.32]
+                for (index, hold) in holds.enumerated() {
+                    try Task.checkCancellation()
+                    personalityFrame = index
+                    try await Task.sleep(for: .seconds(hold))
+                }
+                personalityFrame = nil
+                try await Task.sleep(for: .seconds(6 + Double(seed % 5)))
+            }
+        } catch { return }
     }
 
     /// One named plate of a drawn sheet, at the fighter's height.
@@ -328,12 +377,14 @@ struct AnimatedFighterSprite: View {
     /// speed instead of teleporting.
     @ViewBuilder
     private var smearGhost: some View {
-        if beat.smear > 0 {
-            currentFigure
-                .opacity(0.34 * beat.smear)
-                .blur(radius: 5 * beat.smear)
-                .offset(x: -22 * facing * CGFloat(beat.smear))
-                .allowsHitTesting(false)
+        if !reduceMotion, beat.smear > 0 {
+            ForEach(1...2, id: \.self) { index in
+                currentFigure
+                    .colorMultiply(accent)
+                    .opacity((index == 1 ? 0.32 : 0.15) * beat.smear)
+                    .offset(x: -CGFloat(index) * 15 * facing * CGFloat(beat.smear))
+                    .allowsHitTesting(false)
+            }
         }
     }
 
@@ -343,8 +394,9 @@ struct AnimatedFighterSprite: View {
     private var hurtWash: some View {
         if beat.key == .hurt, clip == nil {
             figure(.hurt)
-                .colorMultiply(Theme.blood)
-                .opacity(0.7)
+                .colorMultiply(Theme.parchment)
+                .brightness(0.55)
+                .opacity(0.8)
                 .blendMode(.plusLighter)
                 .allowsHitTesting(false)
         }
@@ -357,12 +409,43 @@ struct AnimatedFighterSprite: View {
         // A drawn clip carries the pose itself, so the code-driven travel is
         // dialled back to a nudge — the art should not be dragged across the
         // deck on top of its own animation.
+        if reduceMotion {
+            beat = FrameBeat(key: pose == .attack ? .strike : FrameTimeline.rest(for: pose).key)
+            return
+        }
         let hasClip = clip != nil
-        let score = FrameTimeline.beats(for: pose, weapon: weapon, power: actionPower)
+        var score = (characterID != nil
+            ? choreography.score(pose: pose, weapon: weapon, power: actionPower)
+            : FrameTimeline.beats(for: pose, weapon: weapon, power: actionPower))
             .map { hasClip ? $0.softened() : $0 }
+        // The new drawn release must coincide with the engine's projectile launch.
+        if pose == .attack, !hasClip, let characterID,
+           let release = score.firstIndex(where: { $0.key == .strike }), release > 0 {
+            let anticipation = score[..<release].reduce(0.0) { $0 + $1.hold }
+            let target = BattleAnimationTiming.releaseDelay(classID: characterID, power: actionPower)
+            for index in 0..<release { score[index].hold *= target / max(0.01, anticipation) }
+            let tail = score[release...].reduce(0.0) { $0 + $1.hold }
+            let remaining = BattleAnimationTiming.playerDuration(classID: characterID, power: actionPower) - target
+            for index in release..<score.count { score[index].hold *= remaining / max(0.01, tail) }
+        }
+        if let name = frames.art(.idle), (name.hasPrefix("ink.foe.") || name.hasPrefix("ink.apep.")) {
+            // Wraiths float into contact; heavy beasts plant and crush; serpents coil.
+            for index in score.indices {
+                if name.contains("Shade") || name.contains("Wraith") || name.contains("Shadow") {
+                    score[index].rise -= score[index].key == .strike ? 12 : 5
+                    score[index].rotation *= 0.3
+                } else if name.contains("Colossus") || name.contains("Devourer") || name.contains("Effigy") {
+                    score[index].lunge *= 0.65
+                    score[index].scaleY = 1 + (score[index].scaleY - 1) * 1.35
+                } else if name.contains("sekhen") || name.contains("nehebkau") || name.contains("apep") {
+                    score[index].rotation *= 1.6
+                    score[index].scaleX = 1 + (score[index].scaleX - 1) * 1.25
+                }
+            }
+        }
         for step in score {
             let motion: Animation = step.snap
-                ? .interpolatingSpring(stiffness: 420, damping: 29)
+                ? .linear(duration: 0.045)
                 : .easeInOut(duration: min(0.18, max(0.08, step.hold * 0.72)))
             withAnimation(motion) { beat = step }
             try? await Task.sleep(for: .seconds(step.hold))

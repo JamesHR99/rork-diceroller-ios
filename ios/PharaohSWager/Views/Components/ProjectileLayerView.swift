@@ -116,7 +116,9 @@ private struct ProjectileView: View {
                 size: size,
                 tint: shot.tint,
                 progress: progress,
-                isCrit: shot.isCrit
+                isCrit: shot.isCrit,
+                magnitude: shot.magnitude,
+                sourceEnemyID: shot.sourceEnemyID
             )
             .rotationEffect(.degrees(holdsUpright ? spin : heading + pitch + spin))
         }
@@ -133,7 +135,7 @@ private struct ProjectileView: View {
     /// own colour for a cast rune, a puff for something tumbling.
     private var wake: some View {
         let length = size * (style.trail == .streak ? 2.4 : 1.7)
-        return Capsule()
+        return InkStreak()
             .fill(
                 LinearGradient(
                     colors: [.clear, shot.tint.opacity(trailStrength)],
@@ -142,7 +144,7 @@ private struct ProjectileView: View {
                 )
             )
             .frame(width: length, height: size * trailThickness)
-            .blur(radius: style.trail == .streak ? 1.6 : 5)
+            .overlay(InkStreak().stroke(shot.tint.opacity(0.8), lineWidth: 1))
             .offset(x: -length * 0.5)
             .rotationEffect(.degrees(heading), anchor: .center)
             .blendMode(.plusLighter)
@@ -204,16 +206,21 @@ private struct ImpactMarkView: View {
     let span: CGFloat
 
     @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// A critical doubles the mark and washes everything gold.
     private var tint: Color { mark.isCrit ? Theme.gold : mark.tint }
     private var scale: CGFloat {
-        let growth = 1 + CGFloat(max(0, mark.magnitude - 1)) * 0.16
+        let growth = 1 + CGFloat(max(0, min(6, mark.magnitude) - 1)) * 0.16
         return growth * (mark.isCrit ? 1.35 : 1)
     }
 
     var body: some View {
         Group {
+            if let image = InkWorldArt.cell("ink_impacts", index: InkWorldArt.impactIndex(mark.form, enemy: mark.sourceEnemyID)) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .rotationEffect(.degrees(mark.angle))
+            } else {
             switch mark.form {
             case .gashes(let count): gashes(count)
             case .puncture: puncture
@@ -228,13 +235,15 @@ private struct ImpactMarkView: View {
             case .poisonTick: poisonTick
             case .burnTick: burnTick
             }
+            }
         }
         .frame(width: span, height: span)
-        .scaleEffect(shown ? scale : scale * 0.6)
+        .overlay { InkImpactFlare(tint: tint, magnitude: mark.magnitude, isCrit: mark.isCrit) }
+        .scaleEffect(reduceMotion ? scale : (shown ? scale : scale * 0.6))
         .opacity(shown ? 1 : 0)
-        .blendMode(.plusLighter)
+        .blendMode(.normal)
         .onAppear {
-            withAnimation(.spring(response: 0.16, dampingFraction: 0.6)) { shown = true }
+            withAnimation(reduceMotion ? nil : .spring(response: 0.16, dampingFraction: 0.6)) { shown = true }
             withAnimation(.easeOut(duration: mark.lifetime * 0.7).delay(mark.lifetime * 0.3)) {
                 shown = false
             }
@@ -249,13 +258,13 @@ private struct ImpactMarkView: View {
         ZStack {
             ForEach(0..<max(1, count), id: \.self) { index in
                 let fan = Double(index - (count - 1)) * 13
-                Capsule()
+                InkStreak()
                     .fill(
-                        LinearGradient(colors: [.clear, tint, Theme.parchment, tint, .clear],
+                        LinearGradient(colors: [tint, Theme.parchment, Theme.parchment, tint],
                                        startPoint: .leading, endPoint: .trailing)
                     )
                     .frame(width: span * 0.62, height: max(2, span * 0.035))
-                    .shadow(color: tint.opacity(0.9), radius: span * 0.04)
+                    .shadow(color: tint.opacity(0.8), radius: 1, x: 2, y: 2)
                     .rotationEffect(.degrees(mark.angle + 28 + fan))
                     .offset(x: span * 0.02 * CGFloat(index), y: span * 0.08 * CGFloat(index - count / 2))
             }

@@ -13,6 +13,7 @@ enum FrameKey: String, CaseIterable {
     case dodge
     case defeat
     case victory
+    case finisher
 }
 
 /// Every drawing that exists for one fighter, resolved against the asset
@@ -150,7 +151,7 @@ enum CharacterArt {
     /// The portrait plate for one of the four demigods, falling back to their
     /// painted PharaohSWager pose when the older portrait was never filed.
     static func demigod(_ classID: String) -> String? {
-        PharaohSWagerArt.resolve(demigods[classID]) ?? PharaohSWagerArt.resolve(heroRestingPlates[classID])
+        InkArt.hero(classID) ?? PharaohSWagerArt.resolve(demigods[classID]) ?? PharaohSWagerArt.resolve(heroRestingPlates[classID])
     }
 
     /// A god's portrait, falling back to their painted PharaohSWager sigil.
@@ -163,6 +164,7 @@ enum CharacterArt {
     /// shows its resting drawing; anything still undrawn stands in the Straw
     /// Effigy's pose.
     static func foe(_ enemyID: String, stageID: String? = nil) -> String? {
+        if let ink = InkArt.foe(enemyID, stageID: stageID) { return ink }
         if let sheet = foeSheetID(enemyID, stageID: stageID) {
             return PharaohSWagerArt.resolve(EnemySheet.portrait(sheet))
         }
@@ -191,7 +193,12 @@ enum CharacterArt {
 
     /// The full animation set for one of the four demigods.
     static func heroFrames(_ classID: String) -> FrameSet {
-        resolve(cacheKey: "hero.\(classID)",
+        if InkArt.hero(classID) != nil {
+            return FrameSet(frames: Dictionary(uniqueKeysWithValues: FrameKey.allCases.compactMap { key in
+                InkArt.hero(classID, key).map { (key, $0) }
+            }))
+        }
+        return resolve(cacheKey: "hero.\(classID)",
                 plates: heroPlates[classID] ?? [:],
                 base: demigods[classID],
                 painted: heroRestingPlates[classID])
@@ -202,6 +209,11 @@ enum CharacterArt {
     /// so every foe stands in its pose until their own plates land — a painted
     /// figure beats a glyph, and the code-driven motion does the acting.
     static func foeFrames(_ enemyID: String, stageID: String? = nil) -> FrameSet {
+        if InkArt.foe(enemyID, stageID: stageID) != nil {
+            return FrameSet(frames: Dictionary(uniqueKeysWithValues: FrameKey.allCases.compactMap { key in
+                InkArt.foe(enemyID, stageID: stageID, key: key).map { (key, $0) }
+            }))
+        }
         let id = baseID(enemyID)
         // A creature with its own sheet never needs the single-drawing set,
         // but it still resolves one so the glyph fallback chain stays whole.
@@ -283,3 +295,4 @@ enum CharacterArt {
         return set
     }
 }
+

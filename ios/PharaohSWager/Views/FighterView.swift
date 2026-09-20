@@ -364,9 +364,12 @@ struct FighterView: View {
                 characterID: side == .player ? heroClassID : nil,
                 foeSheetID: foeSheetID,
                 actionID: actionID,
-                actionPower: actionPower
+                actionPower: actionPower,
+                choreography: side == .player ? engine.playerChoreography : (foe?.choreography ?? CombatChoreography()),
+                enemyID: side == .enemy ? (foe?.def.id ?? engine.enemy.id) : nil,
+                allowsPersonality: engine.phase == .player
             )
-            .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 14 : 30)
+            .shadow(color: auraColor.opacity(pose == .idle ? 0.2 : 0.65), radius: pose == .idle ? 3 : 7)
             .opacity(pose == .defeat ? 0.42 : 1)
             .grayscale(pose == .defeat ? 0.85 : 0)
             .overlay { godSigil }
@@ -632,4 +635,3 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
-
