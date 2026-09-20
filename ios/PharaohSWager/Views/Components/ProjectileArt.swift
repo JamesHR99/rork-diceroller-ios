@@ -28,6 +28,7 @@ struct ProjectileArtView: View {
             case .venomFlask: VenomFlaskShot(size: size, tint: tint)
             }
         }
+        .shadow(color: Color(red: 0.035, green: 0.02, blue: 0.09), radius: 0, x: 1.5, y: 1.5)
         // A critical washes the whole shot gold on its way across, not just
         // when it lands.
         .overlay {
@@ -465,3 +466,4 @@ struct Triangle: Shape {
         return path
     }
 }
+

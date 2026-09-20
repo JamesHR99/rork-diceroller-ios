@@ -366,7 +366,7 @@ struct FighterView: View {
                 actionID: actionID,
                 actionPower: actionPower
             )
-            .shadow(color: auraColor.opacity(pose == .idle ? 0.4 : 0.95), radius: pose == .idle ? 14 : 30)
+            .shadow(color: auraColor.opacity(pose == .idle ? 0.2 : 0.65), radius: pose == .idle ? 3 : 7)
             .opacity(pose == .defeat ? 0.42 : 1)
             .grayscale(pose == .defeat ? 0.85 : 0)
             .overlay { godSigil }

@@ -48,7 +48,7 @@ struct PharaohSWagerImage: View {
             let fullWidth = draw.width / max(box.width, 0.0001)
             let fullHeight = draw.height / max(box.height, 0.0001)
 
-            Image(name)
+            (InkArt.image(name).map { Image(uiImage: $0) } ?? Image(name))
                 .resizable()
                 .frame(width: fullWidth, height: fullHeight)
                 .offset(x: -box.x * fullWidth, y: -box.y * fullHeight)

@@ -30,7 +30,7 @@ struct BarqueView: View {
             ZStack {
                 if showsDisc { disc(breath: breath) }
 
-                PharaohSWagerImage(name: "duat_environment_barque", width: width, fit: .fit)
+                PharaohSWagerImage(name: InkArt.image("ink.barque") != nil ? "ink.barque" : "duat_environment_barque", width: width, fit: .fit)
                     .shadow(color: gate.discColor.opacity(0.32 * discGlow), radius: 22, y: 6)
                     .rotationEffect(.degrees(rock * 1.4))
                     .offset(y: CGFloat(rock * 2.4))
@@ -81,7 +81,7 @@ struct BattleBarqueView: View {
                     .blur(radius: 3)
                     .offset(y: 5)
 
-                PharaohSWagerImage(name: "duat_environment_battle_barque", width: width, fit: .fit)
+                PharaohSWagerImage(name: InkArt.image("ink.barque") != nil ? "ink.barque" : "duat_environment_battle_barque", width: width, fit: .fit)
                     .shadow(color: Color.black.opacity(0.65), radius: 12, y: 9)
                     .shadow(color: gate.discColor.opacity(0.26 * discGlow), radius: 24, y: 2)
             }
@@ -91,3 +91,4 @@ struct BattleBarqueView: View {
         .accessibilityHidden(true)
     }
 }
+

@@ -53,7 +53,10 @@ enum PharaohSWagerArt {
     // MARK: - Lookup
 
     static func crop(_ name: String) -> PharaohSWagerCrop {
-        crops[name] ?? .full
+        if let image = InkArt.image(name) {
+            return PharaohSWagerCrop(0, 0, 1, 1, image.size.width / image.size.height)
+        }
+        return crops[name] ?? .full
     }
 
     /// Whether a plate really landed in the catalogue. Cached: this is asked
@@ -61,7 +64,7 @@ enum PharaohSWagerArt {
     static func exists(_ name: String?) -> Bool {
         guard let name else { return false }
         if let known = existence[name] { return known }
-        let found = UIImage(named: name) != nil
+        let found = InkArt.image(name) != nil || UIImage(named: name) != nil
         existence[name] = found
         return found
     }
@@ -81,7 +84,7 @@ enum PharaohSWagerArt {
         let dimension = min(512, max(32, ((pixels + 31) / 32) * 32))
         let key = "\(name).\(dimension)" as NSString
         if let cached = icons.object(forKey: key) { return cached }
-        guard let source = UIImage(named: name), let page = source.cgImage else { return nil }
+        guard let source = InkArt.image(name) ?? UIImage(named: name), let page = source.cgImage else { return nil }
         let box = crop(name)
         let rect = CGRect(x: box.x * CGFloat(page.width), y: box.y * CGFloat(page.height),
                           width: box.width * CGFloat(page.width), height: box.height * CGFloat(page.height)).integral
@@ -112,7 +115,7 @@ enum PharaohSWagerArt {
     /// whole and does not need a second copy in memory.
     static func sheet(_ name: String) -> UIImage? {
         if let cached = sheets[name] { return cached }
-        guard let source = UIImage(named: name), let page = source.cgImage else { return nil }
+        guard let source = InkArt.image(name) ?? UIImage(named: name), let page = source.cgImage else { return nil }
         let box = crop(name)
         let pixelWidth = CGFloat(page.width)
         let pixelHeight = CGFloat(page.height)
@@ -783,3 +786,4 @@ extension Offer {
         }
     }
 }
+
