@@ -28,14 +28,77 @@ struct BattleLoopTests {
     }
 
     private func nextRound(_ engine: BattleEngine) async throws {
+        let previousTurn = engine.turnNumber
         engine.commitTurn()
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(45))
-        while engine.turnNumber == 1 && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
-        #expect(engine.turnNumber == 2)
+        while engine.turnNumber == previousTurn && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.turnNumber == previousTurn + 1)
         #expect(engine.phase == .player)
     }
 
+
+
+    @Test func halfChargesPersistRechargeAndResetPerEncounter() async throws {
+        let engine = battle(Array(repeating: .block, count: 6))
+        try await roll(engine)
+        let first = try #require(engine.slots.first)
+        engine.selectingReroll = true
+        engine.reroll(slotID: first.id, reduceMotion: true)
+        #expect(!engine.isRolling && engine.rerollsRemaining == 0)
+        engine.selectingReroll = false
+
+        // Five physical dice form one action; only the sixth earns a half.
+        for face in engine.rolled.prefix(5) { engine.placeInPlayBar(faceID: face.id) }
+        #expect(engine.pendingRerollHalfCharges == 1)
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == 1 && engine.rerollsRemaining == 0)
+
+        try await roll(engine)
+        for face in engine.rolled.prefix(5) { engine.placeInPlayBar(faceID: face.id) }
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == 2 && engine.rerollsRemaining == 1)
+
+        try await roll(engine)
+        engine.selectingReroll = true
+        engine.reroll(slotID: engine.slots[0].id, reduceMotion: true)
+        #expect(engine.rerollHalfCharges == 0)
+        try await settled(engine)
+        // An empty plan still resolves the enemy queue and caps the award.
+        let healthBefore = engine.playerHP
+        #expect(engine.pendingRerollHalfCharges == 4)
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == 4)
+        #expect(engine.playerHP < healthBefore)
+        let fresh = battle(Array(repeating: .block, count: 6))
+        #expect(fresh.rerollHalfCharges == 0)
+    }
+
+    @Test func fullHandEarnsNothingAndCommitCannotPayTwice() async throws {
+        let engine = battle(Array(repeating: .block, count: 6))
+        try await roll(engine)
+        engine.gainRerollHalfCharges(1)
+        for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
+        #expect(engine.pendingRerollHalfCharges == 0)
+        engine.commitTurn()
+        #expect(engine.rerollHalfCharges == 1)
+        engine.commitTurn()
+        #expect(engine.rerollHalfCharges == 1)
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == 1)
+    }
+
+    @Test func rewardsShareTheCapAndKeepHalfCharges() {
+        let engine = battle(Array(repeating: .block, count: 6))
+        engine.gainRerollHalfCharges(1)
+        engine.gainRerollHalfCharges(2)
+        #expect(engine.rerollHalfCharges == 3)
+        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollChargeText == "1.5")
+        engine.gainRerollHalfCharges(20)
+        #expect(engine.rerollHalfCharges == 4)
+        #expect(engine.rerollsRemaining == 2)
+    }
 
     @Test func alternatingActionsAreFinite() {
         #expect(BattleRules.alternating(player: [1, 2, 3], enemy: [4]) == [1, 4, 2, 3])
@@ -98,12 +161,14 @@ struct BattleLoopTests {
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice, classID: classID, maxHP: hero.maxHP, startHP: hero.maxHP, critBonus: 0)
         #expect(Set(engine.slots.map { $0.die.id }).count == 6)
-        #expect(engine.rerollsRemaining == 2)
+        #expect(engine.rerollsRemaining == 0)
+        #expect(engine.rerollHalfCharges == 0)
     }
 
     @Test func tappingARerollDieStartsImmediatelyAndSpendsExactlyOnce() async throws {
         let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
+        engine.gainRerollHalfCharges(4)
         let before = engine.rolled
         let selected = try #require(engine.slots.first)
         engine.selectingReroll = true
@@ -205,6 +270,7 @@ struct BattleLoopTests {
         let engine = battle([.runeFire, .runeFire, .runeLife, .runeLife, .runeFrost, .channel],
             classID: "magician", chisels: ["ch_echoingStaff"])
         try await roll(engine)
+        engine.gainRerollHalfCharges(4)
         let life = engine.rolled.filter { $0.face == .runeLife }
         for face in life { engine.placeInPlayBar(faceID: face.id) }
         #expect(engine.turnPlan.first?.isCombo == true)

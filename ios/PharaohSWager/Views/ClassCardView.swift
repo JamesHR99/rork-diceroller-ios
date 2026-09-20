@@ -69,7 +69,7 @@ struct ClassCardView: View {
                 // the shape of every turn: lower acts first, and each action
                 // adds its own size in dice on top of this.
                 statPill(art: nil, icon: "hare.fill",
-                         value: "1", label: "REROLL", tint: Theme.frost)
+                         value: "0/2", label: "REROLLS", tint: Theme.frost)
             }
 
             Text(hero.playstyle.uppercased())

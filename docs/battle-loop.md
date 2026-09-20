@@ -5,7 +5,7 @@ Every class draws six different dice from its eight-die collection each round. T
 ## Planning and resolution
 
 1. Inspect the enemies' announced moves and individual hits.
-2. Roll six dice. Tap **Reroll**, then tap one unplayed die to reroll it immediately. One reroll is available each round; effects can raise the allowance to two. The other results become **Kept** for this round, preserving their critical result.
+2. Roll six dice. Tap **Reroll**, then tap one unplayed die to reroll it immediately. Start each encounter with zero reroll charges. At commitment, each unused rolled physical die earns half a charge. Store up to two full charges (four halves); overflow is discarded. Charges persist between rounds, refill after spending, and reset for each encounter. A reroll costs one full charge. Boon reroll rewards refill this same capped pool. Committing fewer dice never cancels announced enemy actions. The other results become **Kept** for this round, preserving their critical result.
 3. Arrange actions and explicitly Combine or Separate recipes. Focus precedes the attack it boosts. Separate Block and Evade prepare before attacks; each consumes its die without spending an exchange.
 4. Commit. Player and enemy actions alternate, player first. Each combo is one action. Once one side runs out, the other finishes its announced actions. Singles never create additional enemy moves. Dead enemies lose their pending actions.
 5. Settle statuses and round effects, then draw six fresh dice. Unused results and dodges expire. Guard expires except for Warriors, who retain up to eight.
@@ -26,7 +26,7 @@ The planning bar always uses its available width. Each die owns one share, and a
 
 The existing combo and boon IDs are preserved. God powers rewarding frozen dice now reward results kept through a reroll. Stamina rewards become guard, attack bonuses, or extra rerolls. All dodge effects use whole charges instead of percentages. Focused-attack powers and attack-after-support powers have explicit triggers. Reactive guard and dodge effects activate on the relevant incoming hit, once; offensive status riders are applied after the action that creates them.
 
-Siege Draw and Echoing Staff reserve an unused reroll while armed. Disarming or removing the relevant action releases that reservation. Assassin's Commitment consumes one available dodge before its attack; it cannot spend the dodge created by that same combo. Returning Knife banks six damage for next round's first attack. Relentless Advance adds six to next round's first weapon combo after landing one this round.
+Siege Draw and Echoing Staff reserve an unused reroll while armed. Disarming or removing the relevant action releases that reservation. Commitment spends reserved charges before awarding unused-die recharge. Assassin's Commitment consumes one available dodge before its attack; it cannot spend the dodge created by that same combo. Returning Knife banks six damage for next round's first attack. Relentless Advance adds six to next round's first weapon combo after landing one this round.
 
 Singles retain 85% of their printed damage. Perfect Shot and Vanishing Strike have reduced base damage while retaining their guaranteed critical hit; Read the Room grants two dodges. Enemy health tuning rises from 1.12 to 1.35 to accompany the six-die opening hand. These are initial balance values, not a claim of completed device playtesting.
 

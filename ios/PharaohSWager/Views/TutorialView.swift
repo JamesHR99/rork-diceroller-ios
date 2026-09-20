@@ -206,7 +206,7 @@ struct TutorialView: View {
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("6 dice · 2 instant rerolls each round · \(hero.battleIdentity.lowercased())")
+                Text("6 dice · unused dice charge rerolls · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -374,8 +374,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Six dice. Two instant rerolls.",
-                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap an unplayed die to reroll it immediately. Other results become Prepared. You have two rerolls; a boon may grant a third. Every round starts with a fresh draw.",
+                title: "Six dice. Earn your rerolls.",
+                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap an unplayed die to reroll it immediately. Other results become Prepared. Start each encounter with zero charges. Every unused die earns half a reroll when you commit. Store up to two, spend them, and recharge the empty space. Half-charges carry between rounds; all charges reset after each encounter. Every round starts with a fresh draw.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
