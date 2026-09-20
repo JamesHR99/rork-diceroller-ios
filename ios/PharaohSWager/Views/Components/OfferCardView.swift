@@ -8,6 +8,7 @@ struct OfferCardView: View {
     /// Fixed card width for scrolling shelves; pass `nil` to let the card share
     /// the row's width evenly (used by the three-card altar).
     var width: CGFloat? = 196
+    var fixedPresentation = false
     let action: () -> Void
 
     /// The card's own read-out, chosen by what is on offer. Split out of the
@@ -96,7 +97,7 @@ struct OfferCardView: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 7) {
+            VStack(spacing: fixedPresentation ? 4 : 7) {
                 HStack(spacing: 5) {
                     // Rarity reads as a material swatch: clay, copper, lapis, gold leaf.
                     RoundedRectangle(cornerRadius: 2.5)
@@ -119,14 +120,26 @@ struct OfferCardView: View {
                     }
                 }
 
+                if fixedPresentation {
+                    HStack(spacing: 6) {
+                        PharaohSWagerSymbol(art: offer.artName, fallback: offer.symbol, size: 28,
+                                            tint: isSelected ? Theme.gold : offer.tint)
+                        Text(offer.name)
+                            .font(.fantasy(15, weight: .bold))
+                            .foregroundStyle(Theme.parchment)
+                            .lineLimit(2).minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: 36)
+                } else {
                 // What is on offer, inside its rarity's painted frame. Drawn
                 // large: a small plate blown up reads grainy, a large one reads
                 // painted, and this is the thing you are choosing.
                 PharaohSWagerSymbol(art: offer.artName, fallback: offer.symbol,
-                           size: 50, tint: isSelected ? Theme.gold : offer.tint)
-                    .frame(width: 66, height: 66)
+                           size: fixedPresentation ? 26 : 50, tint: isSelected ? Theme.gold : offer.tint)
+                    .frame(width: fixedPresentation ? 34 : 66, height: fixedPresentation ? 34 : 66)
                     .background {
-                        PharaohSWagerImage(name: offer.rarity.frameArt, width: 76, height: 76, fit: .fit)
+                        PharaohSWagerImage(name: offer.rarity.frameArt, width: fixedPresentation ? 40 : 76, height: fixedPresentation ? 40 : 76, fit: .fit)
                             .modifier(TintWash(tint: offer.deity?.tint))
                     }
                     .shadow(color: offer.deity?.tint.opacity(0.5) ?? .clear, radius: 8)
@@ -137,10 +150,16 @@ struct OfferCardView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.6)
+                }
 
                 // What the thing actually does — the line that decides the
                 // choice. Long Chisel text scrolls within the card at a
                 // readable size while its name and selection remain visible.
+                if fixedPresentation {
+                    FittedOfferDetail(text: offer.detail)
+                        .frame(maxHeight: .infinity)
+                        .layoutPriority(1)
+                } else {
                 ScrollView(.vertical) {
                     Text(offer.detail)
                         .font(.system(size: 12.5, weight: .medium))
@@ -152,10 +171,15 @@ struct OfferCardView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                 .frame(maxHeight: .infinity)
+                }
 
-                kindDigest
+                if fixedPresentation {
+                    compactDigest
+                } else {
+                    kindDigest
+                }
             }
-            .padding(11)
+            .padding(fixedPresentation ? 8 : 11)
             .frame(width: width)
             .frame(maxWidth: width == nil ? .infinity : nil, maxHeight: .infinity)
             .papyrusPanel(tint: Theme.bgCard, cornerRadius: 16, shade: 0.5, ground: .card)
@@ -208,6 +232,15 @@ struct OfferCardView: View {
         }
     }
 
+    @ViewBuilder
+    private var compactDigest: some View {
+        switch offer.kind {
+        case .boon(let def, _), .legendary(let def, _): footnote("\(def.slot.label) · Level 1")
+        case .boonLevel(let owned): footnote("\(owned.def?.slot.label ?? "Boon") · Level \(min(owned.level + 1, boonMaxLevel))")
+        default: kindDigest
+        }
+    }
+
     /// The small print under a blessing card — small, but not so small that it
     /// stops being readable.
     private func footnote(_ text: String) -> some View {
@@ -225,5 +258,34 @@ struct OfferCardView: View {
             .background(tint.opacity(0.16), in: .rect(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(tint.opacity(0.55), lineWidth: 1))
+    }
+}
+
+/// Measures the complete description against the allocated area. No nested
+/// scrolling and no ellipsis; decorative art yields room to the rules text.
+private struct FittedOfferDetail: View {
+    let text: String
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = fittingSize(in: proxy.size)
+            Text(text)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(Theme.parchment.opacity(0.92))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+        }
+    }
+
+    private func fittingSize(in box: CGSize) -> CGFloat {
+        for size in stride(from: CGFloat(12.5), through: CGFloat(8), by: -0.25) {
+            let bounds = (text as NSString).boundingRect(
+                with: CGSize(width: max(1, box.width - 2), height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: [.font: UIFont.systemFont(ofSize: size, weight: .medium)], context: nil)
+            if ceil(bounds.height) + 3 <= box.height { return size }
+        }
+        return 8
     }
 }

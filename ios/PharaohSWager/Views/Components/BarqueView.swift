@@ -67,12 +67,13 @@ struct BattleBarqueView: View {
     let gate: Gate
     var width: CGFloat
     var discGlow: Double = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var height: CGFloat { width / 3 }
+    private var height: CGFloat { min(260, max(150, width * 0.27)) }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate
+        TimelineView(.animation(minimumInterval: 1.0 / 24.0, paused: reduceMotion)) { context in
+            let time = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
             let tide = 0.5 + 0.5 * sin(time * 1.1)
             ZStack(alignment: .bottom) {
                 Ellipse()
@@ -81,11 +82,21 @@ struct BattleBarqueView: View {
                     .blur(radius: 3)
                     .offset(y: 5)
 
-                PharaohSWagerImage(name: InkArt.image("ink.barque") != nil ? "ink.barque" : "duat_environment_battle_barque", width: width, fit: .fit)
+                Group {
+                    if let deck = UIImage(named: "ink_battle_deck") {
+                        Image(uiImage: deck).resizable()
+                            .frame(width: width * 1.06, height: height)
+                    } else {
+                        // Crop the middle of the existing hull until the new art is installed.
+                        PharaohSWagerImage(name: InkArt.image("ink.barque") != nil ? "ink.barque" : "duat_environment_battle_barque",
+                                          width: width * 1.85, height: height, fit: .stretch)
+                    }
+                }
                     .shadow(color: Color.black.opacity(0.65), radius: 12, y: 9)
                     .shadow(color: gate.discColor.opacity(0.26 * discGlow), radius: 24, y: 2)
             }
             .frame(width: width, height: height)
+            .clipped()
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

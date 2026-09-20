@@ -27,7 +27,7 @@ struct HeroSelectionView: View {
 
             GeometryReader { proxy in
                 HStack(spacing: 0) {
-                    FittingScrollColumn { titleColumn.padding(.horizontal, 14) }
+                    titleColumn.padding(.horizontal, 14)
                         .frame(width: min(260, max(200, proxy.size.width * 0.31)))
 
                     TabView(selection: $selectedIndex) {
@@ -67,7 +67,7 @@ struct HeroSelectionView: View {
     }
 
     private var titleColumn: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             Button("Back to Menu", action: onBack)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.gold)
@@ -76,18 +76,18 @@ struct HeroSelectionView: View {
 
             // Ra's disc, low and burning inside its halo.
             ZStack {
-                PharaohSWagerImage(name: "duat_environment_sun_halo", height: 122, fit: .fit)
+                PharaohSWagerImage(name: "duat_environment_sun_halo", height: 82, fit: .fit)
                     .opacity(glowPulse ? 0.55 : 0.3)
                     .scaleEffect(glowPulse ? 1.05 : 1)
 
-                PharaohSWagerImage(name: "duat_environment_sun_bright", height: 58, fit: .fit)
+                PharaohSWagerImage(name: "duat_environment_sun_bright", height: 38, fit: .fit)
                     .shadow(color: Theme.sunGold.opacity(0.9), radius: glowPulse ? 26 : 12)
             }
-            .frame(height: 84)
+            .frame(height: 52)
 
             VStack(spacing: 2) {
-                Text("THE TWELVE HOURS")
-                    .font(.fantasy(25, weight: .black))
+                Text("CHOOSE YOUR")
+                    .font(.fantasy(21, weight: .black))
                     .kerning(3.5)
                     .foregroundStyle(
                         LinearGradient(colors: [Theme.parchment, Theme.gold, Theme.goldDeep],
@@ -96,7 +96,7 @@ struct HeroSelectionView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
 
-                Text("OF THE DUAT")
+                Text("DEMIGOD")
                     .font(.fantasy(19, weight: .black))
                     .kerning(8)
                     .foregroundStyle(Theme.gold.opacity(0.85))
@@ -104,7 +104,7 @@ struct HeroSelectionView: View {
                     .minimumScaleFactor(0.6)
             }
 
-            WingedDivider(height: 26, opacity: 0.9)
+            WingedDivider(height: 18, opacity: 0.9)
                 .frame(width: 210)
 
             Text("Guard Ra's barque until dawn.")
@@ -113,12 +113,6 @@ struct HeroSelectionView: View {
                 .foregroundStyle(Theme.parchmentDim)
 
             Spacer(minLength: 0)
-
-            // A night still waiting is the first thing offered, above the
-            // class select — with the hour and purse you would step back into.
-            if let save = game.savedRun {
-                continueButton(save)
-            }
 
             classPicker
 
@@ -152,67 +146,15 @@ struct HeroSelectionView: View {
                 .shadow(color: hero.accent.opacity(0.45), radius: 18, y: 6)
             }
             .buttonStyle(PressableButtonStyle())
+            .accessibilityIdentifier("heroSelect.castOff")
 
             HStack(spacing: 6) {
-                recordsButton
                 briefingButton
             }
-            .padding(.bottom, 14)
+            .padding(.bottom, 6)
         }
     }
 
-    /// The night still waiting on the river. Shows who is out there, how deep
-    /// they got and what they are carrying, so stepping back in is never a
-    /// guess.
-    private func continueButton(_ save: RunSave) -> some View {
-        Button {
-            if save.version == RunSave.currentVersion { game.continueRun() }
-            else { confirmingOverwrite = true }
-        } label: {
-            HStack(spacing: 10) {
-                PharaohSWagerSymbol(art: PharaohSWagerArt.classSigil(save.classID),
-                           fallback: save.hero.symbol,
-                           size: 24, tint: save.hero.accent)
-                    .frame(width: 34)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(save.version == RunSave.currentVersion ? "Continue the Voyage" : "Old rules · Start a new voyage")
-                        .font(.fantasy(17, weight: .bold))
-                        .foregroundStyle(Theme.parchment)
-                    Text("\(save.hero.name) · \(save.placeLabel)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.parchmentDim)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-
-                Spacer(minLength: 0)
-
-                VStack(alignment: .trailing, spacing: 1) {
-                    HStack(spacing: 3) {
-                        PharaohSWagerIcon(name: PharaohSWagerArt.currency, size: 13)
-                        Text("\(save.gold)")
-                            .font(.system(size: 12, weight: .black).monospacedDigit())
-                            .foregroundStyle(Theme.gold)
-                    }
-                    Text("\(save.currentHP)/\(save.maxHP) HP")
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
-                        .foregroundStyle(save.currentHP * 3 < save.maxHP
-                                         ? Theme.blood : Theme.parchmentDim)
-                }
-            }
-            .padding(.horizontal, 13)
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .background {
-                DeckButtonSurface(tone: .secondary, state: .normal,
-                                  rim: save.hero.accent, cornerRadius: 15)
-            }
-            .shadow(color: save.hero.accent.opacity(0.3), radius: 12, y: 4)
-        }
-        .buttonStyle(PressableButtonStyle())
-        .padding(.bottom, 4)
-    }
 
     /// The opening briefing stays reachable here, even once it has been
     /// dismissed for good — it is taught in whichever demigod is selected.
@@ -236,33 +178,6 @@ struct HeroSelectionView: View {
         .buttonStyle(PressableButtonStyle())
     }
 
-    /// Quick way into the personal leaderboard from the title screen.
-    private var recordsButton: some View {
-        Button {
-            showRecords = true
-            Haptics.light()
-        } label: {
-            HStack(spacing: 6) {
-                PharaohSWagerIcon(name: PharaohSWagerArt.utilityRecords, size: 15)
-                Text(bestLine)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.gold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Theme.bgCard.opacity(0.85), in: .capsule)
-            .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1))
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
-
-    private var bestLine: String {
-        guard let best = game.bestRecord else { return "No voyage recorded — make one" }
-        if best.sawDawn { return "Best: saw the dawn · \(best.className)" }
-        return "Best: \(Voyage.ordinal(best.hourReached)) Hour · \(best.className)"
-    }
 
     private var classPicker: some View {
         HStack(spacing: 6) {
@@ -277,7 +192,7 @@ struct HeroSelectionView: View {
                                fallback: entry.symbol,
                                size: 22,
                                tint: entry.accent)
-                        .frame(width: 54, height: 40)
+                        .frame(maxWidth: .infinity, minHeight: 40)
                         .background {
                             PharaohSWagerImage(name: PharaohSWagerArt.button(.secondary,
                                                            index == selectedIndex ? .selected : .normal),
@@ -321,25 +236,23 @@ struct TitleView: View {
                                        startPoint: .leading, endPoint: .trailing)
                             .allowsHitTesting(false)
                         ScrollView {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("THE TWELVE HOURS\nOF THE DUAT")
-                                    .font(.fantasy(27, weight: .black))
-                                    .foregroundStyle(Theme.gold)
-                                    .minimumScaleFactor(0.65)
-                                    .accessibilityAddTraits(.isHeader)
+                            VStack(alignment: .leading, spacing: 7) {
+                                PharaohWagerWordmark()
                                 Text("Four demigods. One night. Defy Apep.")
                                     .font(.paper(12)).foregroundStyle(Theme.parchmentDim)
                                 menuButton("Play Game", symbol: "play.fill", id: "title.play") { choosingHero = true }
-                                menuButton("Best Runs", symbol: "trophy.fill", id: "title.records") { showRecords = true }
-                                menuButton("Settings", symbol: "gearshape.fill", id: "title.settings") { showSettings = true }
                                 if let save = game.savedRun, save.version == RunSave.currentVersion {
                                     menuButton("Continue Voyage", symbol: "arrow.forward", id: "title.continue") { game.continueRun() }
                                 }
+                                HStack(spacing: 8) {
+                                    menuButton("Best Runs", symbol: "trophy.fill", id: "title.records") { showRecords = true }
+                                    menuButton("Settings", symbol: "gearshape.fill", id: "title.settings") { showSettings = true }
+                                }
                             }
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 8)
                             .padding(.horizontal, 16)
                         }
-                        .frame(width: min(320, max(235, proxy.size.width * 0.35)))
+                        .frame(width: min(380, max(270, proxy.size.width * 0.40)))
                     }
                 }
             }
@@ -354,7 +267,9 @@ struct TitleView: View {
             action()
         } label: {
             Label(title, systemImage: symbol)
-                .font(.fantasy(19, weight: .bold))
+                .font(.fantasy(id == "title.records" || id == "title.settings" ? 14 : 19, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .foregroundStyle(Theme.parchment)
                 .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
                 .padding(.horizontal, 15)
@@ -365,6 +280,29 @@ struct TitleView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityIdentifier(id)
+    }
+}
+
+private struct PharaohWagerWordmark: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("PHARAOH’S")
+                .font(.fantasy(39, weight: .black))
+                .kerning(2)
+            Text("WAGER")
+                .font(.fantasy(59, weight: .black))
+                .kerning(5)
+            WingedDivider(height: 20, opacity: 0.95)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .foregroundStyle(LinearGradient(colors: [Theme.parchment, Theme.sunGold, Theme.goldDeep],
+                                        startPoint: .top, endPoint: .bottom))
+        .shadow(color: .black, radius: 0, x: 2, y: 3)
+        .shadow(color: Theme.gold.opacity(0.3), radius: 12)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Pharaoh's Wager")
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -404,4 +342,3 @@ private struct TitleSettingsView: View {
     }
     .environment(GameManager())
 }
-

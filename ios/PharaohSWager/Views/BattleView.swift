@@ -312,13 +312,13 @@ private struct BattleContentView: View {
         GeometryReader { stage in
             let room = stage.size.height
             let foeCount = engine.stagedFoes.count
-            let boatWidth = min(stage.size.width * 0.99, 920)
+            let boatWidth = stage.size.width + 100
             // The usable fighting deck is inset from the prow and stern and
             // sits lower than the ornamental rail. The old lift put feet on
             // the rail itself; this value follows the broad central planks.
-            let deckInset = min(56, max(18, boatWidth * 0.075))
+            let deckInset: CGFloat = 24
             let combatWidth = max(280, stage.size.width - deckInset * 2)
-            let deckLift = min(62, max(28, boatWidth / 11.2))
+            let deckLift = min(62, max(40, boatWidth * 0.065))
             let fighterRoom = max(150, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.
