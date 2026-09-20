@@ -4,10 +4,17 @@ import SwiftUI
 
 @MainActor
 final class ScreenLayoutTests: XCTestCase {
+    // SwiftUI/CA can finish an animation transaction after an async capture
+    // returns. Keep hidden hosts alive across XCTest case-instance teardown;
+    // releasing a hosting window at that boundary crashed the simulator.
+    // This bounded collection exists only in the test process.
+    private static var captureWindows: [UIWindow] = []
+
     private func capture<V: View>(_ view: V, name: String, size: CGSize) async throws {
         let host = UIHostingController(rootView: view.frame(width: size.width, height: size.height).background(Theme.bg))
         let window = UIWindow(frame: CGRect(origin: .zero, size: size))
         window.rootViewController = host
+        Self.captureWindows.append(window)
         window.makeKeyAndVisible()
         defer { window.isHidden = true }
         host.view.frame = window.bounds
