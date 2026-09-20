@@ -32,16 +32,17 @@ struct RewardView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        GeometryReader { proxy in
             VStack(spacing: 8) {
-                FittingScrollColumn { rail }
+                rewardHeader
+                altar
                 actions
+                    .frame(height: 48)
             }
-            .frame(width: 200)
-            altar
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
         .background(
             ZStack {
                 RadialGradient(colors: [accent.opacity(0.20), .clear],
@@ -60,86 +61,41 @@ struct RewardView: View {
 
     // MARK: - Left rail
 
-    private var rail: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 7) {
-                PharaohSWagerSymbol(art: isForge ? PharaohSWagerArt.upgradeHammer
-                               : (game.isShrine ? StageKind.shrine.artName : deity?.artName),
-                           fallback: isForge ? "hammer.fill"
-                               : (game.isShrine ? "building.columns.fill" : "sparkles"),
-                           size: 20,
-                           tint: accent)
-                    .shadow(color: accent.opacity(0.6), radius: 9)
-
-                CarvedTitle(text: isForge
-                            ? "Ptah at the Bench"
-                            : (game.isShrine
-                               ? "Shrine on the Bank"
-                               : (deity == nil ? "Spoils on the Bank"
-                                 : (hasSeveralGods ? "The Gods Attend" : "A God Attends"))),
-                            size: 14, kerning: 1.8)
-            }
-
-            Text(isForge
-                 ? "The craftsman lays out three Chisels. One reshapes your whole weapon — your gods are untouched."
-                 : (game.isShrine
-                    ? "Choose one favour from the altar."
-                    : (game.statusMessage ?? (deity == nil
-                        ? "One of the river's own spoils may join the voyage."
-                        : "One blessing may join the voyage."))))
-                .font(.paper(10.5))
-                .italic()
-                .foregroundStyle(accent)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 6) {
-                RunStatusBar(game: game, compact: true)
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: 6) {
-                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
-                Spacer(minLength: 0)
-                PauseButton()
-            }
-
-            // Chisels of Ptah carried this run, struck in his copper.
-            if !game.ownedChisels.isEmpty {
-                HStack(spacing: 4) {
-                    ForEach(game.ownedChisels, id: \.self) { id in
-                        HStack(spacing: 3) {
-                            PharaohSWagerSymbol(art: PharaohSWagerArt.chisel(id),
-                                       fallback: ChiselCatalog.def(id)?.symbol ?? "hammer.fill",
-                                       size: 13,
-                                       tint: Theme.ptahCopper)
-                            Text(ChiselCatalog.def(id)?.name ?? "Chisel")
-                                .font(.system(size: 8.5, weight: .black))
-                                .foregroundStyle(Theme.ptahCopper)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                        }
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Theme.bg.opacity(0.7), in: .capsule)
-                        .overlay(Capsule().strokeBorder(Theme.ptahCopper.opacity(0.5), lineWidth: 1))
-                    }
+    private var rewardHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            if let deity { HaloedSigilView(deity: deity, diameter: 46) }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(isForge ? "Ptah at the Bench" : (deity?.name ?? "Spoils on the Bank"))
+                    .font(.fantasy(20, weight: .bold)).foregroundStyle(accent)
+                if let deity {
+                    Text(deity.domain.uppercased())
+                        .font(.system(size: 9, weight: .black)).foregroundStyle(accent)
+                    Text(deity.greeting)
+                        .font(.paper(11)).italic().foregroundStyle(Theme.parchmentDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(game.statusMessage ?? "Choose one favour for the voyage.")
+                        .font(.paper(11)).foregroundStyle(Theme.parchmentDim)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-
-            Spacer(minLength: 6)
-
-            sigil
-
-            Spacer(minLength: 6)
-
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let deity { patronStrip(deity).frame(width: 174) }
+            VStack(spacing: 4) {
+                RunStatusBar(game: game, compact: true)
+                HStack {
+                    NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+                    PauseButton()
+                }
+            }
+            .frame(width: 155)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(maxHeight: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
+
     private var actions: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: 12) {
             Button {
                 if let offer = game.rewardOffers.first(where: { $0.id == selectedID }) {
                     game.claimReward(offer)
@@ -162,7 +118,7 @@ struct RewardView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 44)
                     .background {
                         DeckButtonSurface(tone: .primary,
                                           state: selectedID == nil ? .disabled : .highlighted,
@@ -201,77 +157,28 @@ struct RewardView: View {
 
     // MARK: - The altar
 
-    /// Keep cards readable; smaller screens scroll the altar horizontally.
+    /// All offered choices share the available width; no carousel or nested scroll.
     private var altar: some View {
         GeometryReader { proxy in
             let count = max(offers.count, 1)
-            let width = max(180, min(230, (proxy.size.width - 8 - CGFloat(count - 1) * 10) / CGFloat(count)))
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: 10) {
+            let width = max(1, (proxy.size.width - 8 - CGFloat(count - 1) * 8) / CGFloat(count))
+                HStack(alignment: .top, spacing: 8) {
                     ForEach(Array(offers.enumerated()), id: \.element.id) { index, offer in
                         OfferCardView(offer: offer, isSelected: selectedID == offer.id,
-                                      affordable: true, width: width) {
+                                      affordable: true, width: width, fixedPresentation: true) {
                             withAnimation(.snappy(duration: 0.18)) { selectedID = offer.id }
                             Haptics.medium()
                         }
-                        .frame(height: max(240, min(334, proxy.size.height - 8)))
+                        .frame(height: max(1, proxy.size.height - 8))
                         .opacity(risen ? 1 : 0)
                         .offset(y: risen ? 0 : 12)
                         .animation(.easeOut(duration: 0.22).delay(Double(index) * 0.045), value: risen)
                     }
                 }
                 .padding(4)
-            }
-            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
     }
 
-    // MARK: - The god
-
-    @ViewBuilder
-    private var sigil: some View {
-        if let deity {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 9) {
-                    ZStack {
-                        // Shaft of light coming up off the water.
-                        Capsule()
-                            .fill(LinearGradient(colors: [accent.opacity(0.30), .clear],
-                                                 startPoint: .center, endPoint: .bottom))
-                            .frame(width: 64, height: 110)
-                            .blur(radius: 12)
-                            .offset(y: 26)
-
-                        HaloedSigilView(deity: deity, diameter: 80)
-                            .shadow(color: accent.opacity(shimmer ? 0.7 : 0.35), radius: shimmer ? 16 : 8)
-                    }
-                    .frame(width: 80, height: 80)
-                    .scaleEffect(risen ? 1 : 0.7)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        CartoucheView(text: deity.name, tint: accent, size: 13)
-
-                        Text(deity.domain.uppercased())
-                            .font(.system(size: 8.5, weight: .black))
-                            .kerning(1.8)
-                            .foregroundStyle(accent)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                }
-
-                Text(deity.greeting)
-                    .font(.paper(13))
-                    .italic()
-                    .foregroundStyle(Theme.parchmentDim)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                patronStrip(deity)
-            }
-            .opacity(risen ? 1 : 0)
-        }
-    }
 
     /// How much of this god you already carry: claimed dice, earned upgrades,
     /// and where their path stands.
