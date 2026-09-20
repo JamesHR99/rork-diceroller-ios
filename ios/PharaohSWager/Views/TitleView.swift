@@ -236,18 +236,20 @@ struct TitleView: View {
                                        startPoint: .leading, endPoint: .trailing)
                             .allowsHitTesting(false)
                         ScrollView {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 7) {
                                 PharaohWagerWordmark()
                                 Text("Four demigods. One night. Defy Apep.")
                                     .font(.paper(12)).foregroundStyle(Theme.parchmentDim)
                                 menuButton("Play Game", symbol: "play.fill", id: "title.play") { choosingHero = true }
-                                menuButton("Best Runs", symbol: "trophy.fill", id: "title.records") { showRecords = true }
-                                menuButton("Settings", symbol: "gearshape.fill", id: "title.settings") { showSettings = true }
                                 if let save = game.savedRun, save.version == RunSave.currentVersion {
                                     menuButton("Continue Voyage", symbol: "arrow.forward", id: "title.continue") { game.continueRun() }
                                 }
+                                HStack(spacing: 8) {
+                                    menuButton("Best Runs", symbol: "trophy.fill", id: "title.records") { showRecords = true }
+                                    menuButton("Settings", symbol: "gearshape.fill", id: "title.settings") { showSettings = true }
+                                }
                             }
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 8)
                             .padding(.horizontal, 16)
                         }
                         .frame(width: min(380, max(270, proxy.size.width * 0.40)))
@@ -265,7 +267,9 @@ struct TitleView: View {
             action()
         } label: {
             Label(title, systemImage: symbol)
-                .font(.fantasy(19, weight: .bold))
+                .font(.fantasy(id == "title.records" || id == "title.settings" ? 14 : 19, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .foregroundStyle(Theme.parchment)
                 .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
                 .padding(.horizontal, 15)
