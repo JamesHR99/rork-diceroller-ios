@@ -117,7 +117,8 @@ private struct ProjectileView: View {
                 tint: shot.tint,
                 progress: progress,
                 isCrit: shot.isCrit,
-                magnitude: shot.magnitude
+                magnitude: shot.magnitude,
+                sourceEnemyID: shot.sourceEnemyID
             )
             .rotationEffect(.degrees(holdsUpright ? spin : heading + pitch + spin))
         }
@@ -205,6 +206,7 @@ private struct ImpactMarkView: View {
     let span: CGFloat
 
     @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// A critical doubles the mark and washes everything gold.
     private var tint: Color { mark.isCrit ? Theme.gold : mark.tint }
@@ -215,6 +217,10 @@ private struct ImpactMarkView: View {
 
     var body: some View {
         Group {
+            if let image = InkWorldArt.cell("ink_impacts", index: InkWorldArt.impactIndex(mark.form, enemy: mark.sourceEnemyID)) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .rotationEffect(.degrees(mark.angle))
+            } else {
             switch mark.form {
             case .gashes(let count): gashes(count)
             case .puncture: puncture
@@ -229,14 +235,15 @@ private struct ImpactMarkView: View {
             case .poisonTick: poisonTick
             case .burnTick: burnTick
             }
+            }
         }
         .frame(width: span, height: span)
         .overlay { InkImpactFlare(tint: tint, magnitude: mark.magnitude, isCrit: mark.isCrit) }
-        .scaleEffect(shown ? scale : scale * 0.6)
+        .scaleEffect(reduceMotion ? scale : (shown ? scale : scale * 0.6))
         .opacity(shown ? 1 : 0)
-        .blendMode(.plusLighter)
+        .blendMode(.normal)
         .onAppear {
-            withAnimation(.spring(response: 0.16, dampingFraction: 0.6)) { shown = true }
+            withAnimation(reduceMotion ? nil : .spring(response: 0.16, dampingFraction: 0.6)) { shown = true }
             withAnimation(.easeOut(duration: mark.lifetime * 0.7).delay(mark.lifetime * 0.3)) {
                 shown = false
             }
@@ -489,4 +496,3 @@ private struct LatticeHex: InsettableShape {
         LatticeHex(insetAmount: insetAmount + amount)
     }
 }
-

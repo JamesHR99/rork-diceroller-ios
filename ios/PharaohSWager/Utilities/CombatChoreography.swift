@@ -94,6 +94,13 @@ struct CombatGuardGlyph: View {
 
     var body: some View {
         ZStack {
+            if pose == .block || pose == .dodge,
+               let image = InkWorldArt.cell("ink_impacts", index: pose == .block ? 13 : 14) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .frame(width: height * 0.8, height: height * 0.65)
+                    .offset(x: height * 0.15, y: height * 0.12)
+                    .opacity(0.8)
+            }
             if pose == .block {
                 ForEach(0..<min(3, max(1, (power + 1) / 2)), id: \.self) { index in
                     RoundedRectangle(cornerRadius: height * 0.14)

@@ -4595,6 +4595,7 @@ final class BattleEngine {
     ) {
         guard let foeID else { return }
         let landsOn: FighterAnchorID = fromPlayer ? .foe(foeID) : .player
+        let sourceEnemyID = fromPlayer ? nil : enemies.first(where: { $0.id == foeID })?.def.id
 
         for contact in BattleAnimationTiming.contacts(faces: faces) {
             let face = contact.face
@@ -4602,12 +4603,12 @@ final class BattleEngine {
                 if let cue = face.launchCue { Audio.shared.play(cue, after: contact.delay) }
                 if let cue = face.impactCue { Audio.shared.play(cue, after: contact.delay + 0.22) }
                 landMark(face: face, on: landsOn, after: contact.delay + 0.22,
-                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
+                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer, sourceEnemyID: sourceEnemyID)
                 continue
             }
             let shot = ProjectileShot(face: face, style: style, tint: face.tint,
                                       fromPlayer: fromPlayer, foeID: foeID,
-                                      magnitude: magnitude, isCrit: isCrit)
+                                      magnitude: magnitude, isCrit: isCrit, sourceEnemyID: sourceEnemyID)
             Task {
                 try? await Task.sleep(for: .seconds(contact.delay))
                 guard !Task.isCancelled, phase == .resolving else { return }
@@ -4615,7 +4616,7 @@ final class BattleEngine {
                 if let cue = face.launchCue { Audio.shared.play(cue) }
                 if let cue = face.impactCue { Audio.shared.play(cue, after: style.flight) }
                 landMark(face: face, on: landsOn, after: style.flight,
-                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer)
+                         magnitude: magnitude, isCrit: isCrit, fromPlayer: fromPlayer, sourceEnemyID: sourceEnemyID)
                 try? await Task.sleep(for: .seconds(style.flight + 0.2))
                 shots.removeAll { $0.id == shot.id }
             }
@@ -4630,7 +4631,8 @@ final class BattleEngine {
         after delay: Double,
         magnitude: Int,
         isCrit: Bool,
-        fromPlayer: Bool
+        fromPlayer: Bool,
+        sourceEnemyID: String? = nil
     ) {
         guard let form = face.impactForm else { return }
         let mark = ImpactMark(
@@ -4641,7 +4643,8 @@ final class BattleEngine {
             // come back the other way.
             angle: fromPlayer ? 0 : 180,
             isCrit: isCrit,
-            magnitude: magnitude
+            magnitude: magnitude,
+            sourceEnemyID: sourceEnemyID
         )
         Task {
             try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
@@ -4690,4 +4693,3 @@ final class BattleEngine {
         }
     }
 }
-

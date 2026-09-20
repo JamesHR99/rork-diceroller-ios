@@ -3,7 +3,8 @@ import SwiftUI
 /// The barque at rest on a still black river under a full star field: the
 /// game's name in carved gold on the left, the four demigods as tomb-wall
 /// panels on the right.
-struct TitleView: View {
+struct HeroSelectionView: View {
+    var onBack: () -> Void = {}
     @Environment(GameManager.self) private var game
     @State private var selectedIndex = 0
     @State private var glowPulse = false
@@ -67,6 +68,10 @@ struct TitleView: View {
 
     private var titleColumn: some View {
         VStack(spacing: 10) {
+            Button("Back to Menu", action: onBack)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Theme.gold)
+                .accessibilityIdentifier("heroSelect.back")
             Spacer(minLength: 0)
 
             // Ra's disc, low and burning inside its halo.
@@ -283,9 +288,112 @@ struct TitleView: View {
                         .clipShape(.rect(cornerRadius: 9))
                 }
                 .buttonStyle(PressableButtonStyle())
+                .accessibilityLabel(entry.name)
+                .accessibilityIdentifier("heroSelect.\(entry.id)")
+                .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
             }
         }
         .padding(.bottom, 6)
+    }
+}
+
+/// The opening menu is deliberately separate from choosing a demigod.
+struct TitleView: View {
+    @Environment(GameManager.self) private var game
+    @State private var choosingHero = false
+    @State private var showRecords = false
+    @State private var showSettings = false
+
+    var body: some View {
+        Group {
+            if choosingHero {
+                HeroSelectionView { choosingHero = false }
+            } else {
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Theme.bg.ignoresSafeArea()
+                        if let painting = UIImage(named: "ink_title_battle") {
+                            Image(uiImage: painting).resizable().scaledToFit()
+                                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .trailing)
+                                .accessibilityHidden(true)
+                        }
+                        LinearGradient(colors: [Theme.bg.opacity(0.96), Theme.bg.opacity(0.5), .clear],
+                                       startPoint: .leading, endPoint: .trailing)
+                            .allowsHitTesting(false)
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("THE TWELVE HOURS\nOF THE DUAT")
+                                    .font(.fantasy(27, weight: .black))
+                                    .foregroundStyle(Theme.gold)
+                                    .minimumScaleFactor(0.65)
+                                    .accessibilityAddTraits(.isHeader)
+                                Text("Four demigods. One night. Defy Apep.")
+                                    .font(.paper(12)).foregroundStyle(Theme.parchmentDim)
+                                menuButton("Play Game", symbol: "play.fill", id: "title.play") { choosingHero = true }
+                                menuButton("Best Runs", symbol: "trophy.fill", id: "title.records") { showRecords = true }
+                                menuButton("Settings", symbol: "gearshape.fill", id: "title.settings") { showSettings = true }
+                                if let save = game.savedRun, save.version == RunSave.currentVersion {
+                                    menuButton("Continue Voyage", symbol: "arrow.forward", id: "title.continue") { game.continueRun() }
+                                }
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 16)
+                        }
+                        .frame(width: min(320, max(235, proxy.size.width * 0.35)))
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showRecords) { RecordsSheetView() }
+        .sheet(isPresented: $showSettings) { TitleSettingsView() }
+    }
+
+    private func menuButton(_ title: String, symbol: String, id: String, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            Label(title, systemImage: symbol)
+                .font(.fantasy(19, weight: .bold))
+                .foregroundStyle(Theme.parchment)
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                .padding(.horizontal, 15)
+                .background {
+                    DeckButtonSurface(tone: id == "title.play" ? .primary : .secondary,
+                                      state: .normal, rim: Theme.gold, cornerRadius: 12)
+                }
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityIdentifier(id)
+    }
+}
+
+private struct TitleSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var audio = Audio.shared
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Audio") {
+                    Slider(value: Binding(get: { audio.musicVolume }, set: { audio.musicVolume = $0 }), in: 0...1) {
+                        Text("Music volume")
+                    }
+                    Text("Music: \(Int(audio.musicVolume * 100))%")
+                    Slider(value: Binding(get: { audio.effectsVolume }, set: { audio.effectsVolume = $0 }), in: 0...1,
+                           onEditingChanged: { editing in if !editing { audio.play(.uiTap) } }) {
+                        Text("Sound effects volume")
+                    }
+                    Text("Sound effects: \(Int(audio.effectsVolume * 100))%")
+                }
+                Section("Accessibility") {
+                    Text("The game follows your device's Reduce Motion setting. Change it in iOS Settings → Accessibility → Motion.")
+                }
+            }
+            .navigationTitle("Settings")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 
@@ -296,5 +404,4 @@ struct TitleView: View {
     }
     .environment(GameManager())
 }
-
 

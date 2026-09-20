@@ -14,9 +14,14 @@ struct ProjectileArtView: View {
     let progress: Double
     let isCrit: Bool
     var magnitude: Int = 1
+    var sourceEnemyID: String? = nil
 
     var body: some View {
         Group {
+            if let image = InkWorldArt.cell("ink_projectiles", index: InkWorldArt.projectileIndex(form, enemy: sourceEnemyID)) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .frame(width: size * 1.45, height: size)
+            } else {
             switch form {
             case .arrow: ArrowShot(size: size, tint: tint)
             case .crescent: CrescentShot(size: size, tint: tint, progress: progress)
@@ -27,6 +32,7 @@ struct ProjectileArtView: View {
             case .arcaneBolt: ArcaneBoltShot(size: size, tint: tint, progress: progress)
             case .lightning: LightningShot(size: size, tint: tint, progress: progress)
             case .venomFlask: VenomFlaskShot(size: size, tint: tint)
+            }
             }
         }
         .overlay {
@@ -466,4 +472,3 @@ struct Triangle: Shape {
         return path
     }
 }
-

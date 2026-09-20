@@ -103,6 +103,8 @@ struct ProjectileShot: Identifiable, Equatable {
     var magnitude: Int = 1
     /// True when the action it belongs to landed critical.
     var isCrit: Bool = false
+    /// Presentation-only creature identity; nil denotes a hero's effect.
+    var sourceEnemyID: String? = nil
 
     /// The drawn size once the feeding dice and a critical are taken in.
     var drawnSize: CGFloat {
@@ -153,6 +155,7 @@ struct ImpactMark: Identifiable, Equatable {
     let isCrit: Bool
     /// How big the blow was, for scaling the mark.
     let magnitude: Int
+    var sourceEnemyID: String? = nil
 
     /// How long the mark stays on the body.
     var lifetime: Double {

@@ -32,6 +32,24 @@ final class PharaohSWagerUITests: XCTestCase {
     }
 
     @MainActor
+    func testOpeningMenuAndHeroSelection() throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.buttons["title.play"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["title.records"].exists)
+        app.buttons["title.settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        app.buttons["Done"].tap()
+        app.buttons["title.play"].tap()
+        for hero in ["archer", "warrior", "rogue", "magician"] {
+            XCTAssertTrue(app.buttons["heroSelect.\(hero)"].waitForExistence(timeout: 3))
+            app.buttons["heroSelect.\(hero)"].tap()
+        }
+        app.buttons["heroSelect.back"].tap()
+        XCTAssertTrue(app.buttons["title.play"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

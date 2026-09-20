@@ -40,6 +40,13 @@ struct InkRiverView: View {
                             }
                         }
                     }
+                    if let foreground = InkWorldArt.cell("ink_foregrounds", index: gate.rawValue, columns: 1, rows: 3) {
+                        Image(uiImage: foreground).resizable().scaledToFill()
+                            .frame(width: proxy.size.width * 1.035, height: proxy.size.height * 0.32)
+                            .clipped()
+                            .offset(x: sin(time * 0.085) * proxy.size.width * 0.01,
+                                    y: proxy.size.height * 0.34)
+                    }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()
