@@ -37,13 +37,13 @@ struct DiceTrayView: View {
         let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
-        return max(52, min(ideal, free / CGFloat(count)))
+        return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
 
     private var leverWidth: CGFloat { maxRowWidth < 620 ? 72 : 88 }
     private var reelGap: CGFloat { 6 }
 
-    private var reelHeight: CGFloat { min(maxReelHeight, reelWidth * 1.3) }
+    private var reelHeight: CGFloat { reelWidth }
 
     var body: some View {
         VStack(spacing: compact ? 0 : 5) {
@@ -52,7 +52,7 @@ struct DiceTrayView: View {
             HStack(spacing: 8) {
                 leadingControl
 
-                ScrollView(.horizontal) {
+                HStack(spacing: 0) {
                     HStack(spacing: reelGap) {
                         ForEach(engine.slots) { slot in
                             DiceTrayReelView(
@@ -61,12 +61,20 @@ struct DiceTrayView: View {
                                 width: reelWidth,
                                 height: reelHeight
                             )
+                            .anchorPreference(key: RerollChargeAnchorKey.self, value: .bounds) {
+                                [slot.id.uuidString: $0]
+                            }
+                            .overlay {
+                                if engine.rerollChargeFlights.contains(slot.id) {
+                                    RoundedRectangle(cornerRadius: 12).stroke(Theme.gold, lineWidth: 3)
+                                        .shadow(color: Theme.gold, radius: 12)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                 }
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                 .frame(height: reelHeight + 12)
                 .background { reelBed }
             }
@@ -731,4 +739,5 @@ private struct DiceTrayReelView: View {
             .padding(.horizontal, 3)
     }
 }
+
 
