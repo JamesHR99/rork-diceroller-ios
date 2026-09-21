@@ -676,6 +676,7 @@ final class BattleEngine {
     private(set) var rerollsUsed = 0
     /// Integer half-charges avoid rounding losses and persist for this encounter.
     private(set) var rerollHalfCharges = 0
+    private(set) var rerollChargeFlights: [UUID] = []
     var rerollCapacity: Int { BattleRules.maximumRerolls }
     var selectingReroll = false
     private(set) var evadeAssignments: [UUID: String] = [:]
@@ -1204,6 +1205,45 @@ final class BattleEngine {
             if chiselBonus > 0 { parts.append("\(chiselBonus) Chisel") }
         }
         return parts.count > 1 ? parts.joined(separator: " + ") + " = \(total) damage" : "\(total) damage"
+    }
+
+    /// Native effects identify their recipient; boon previews remain explicitly
+    /// conditional because target state and earlier actions can change triggers.
+    func planEffectLines(for step: PlanStep) -> [String] {
+        let selfEffects = ["Shield", "HP", "Dodge", "Regen", "Next Attack", "Cleanse", "lifesteal", "counter"]
+        var lines = step.effects.map { effect in
+            if effect == "Wind-up → Release" { return effect }
+            return (selfEffects.contains(where: { effect.localizedCaseInsensitiveContains($0) }) ? "You: " : "Enemy: ") + effect
+        }
+        for boon in boons {
+            guard let def = boon.def, qualifies(step: step, for: def),
+                  def.kind != .duo || duoActive(def) else { continue }
+            var p = boon.payload
+            if p.perIngredient {
+                let count = min(step.faces.count, 6)
+                p.shield *= count; p.burn *= count; p.judgement *= count
+                if p.perIngredientCap > 0 {
+                    p.shield = min(p.shield, p.perIngredientCap)
+                    p.burn = min(p.burn, p.perIngredientCap)
+                    p.judgement = min(p.judgement, p.perIngredientCap)
+                }
+            }
+            var enemy: [String] = []
+            var player: [String] = []
+            if p.burn > 0 { enemy.append("Burn \(p.burn)") }
+            if p.bleed > 0 { enemy.append("Bleed \(p.bleed)") }
+            if p.poison > 0 { enemy.append("Poison \(p.poison)") }
+            if p.judgement > 0 { enemy.append("Judgement \(p.judgement)") }
+            if p.weakenPercent > 0 { enemy.append("Weaken \(p.weakenPercent)%") }
+            if p.markPercent > 0 { enemy.append("Marked +\(p.markPercent)%") }
+            if p.shield > 0 { player.append("Shield +\(p.shield)") }
+            if p.heal > 0 { player.append("HP +\(p.heal)") }
+            if p.dodgeCharges > 0 { player.append("Dodge +\(p.dodgeCharges)") }
+            if p.cleansesSelf { player.append("Cleanse") }
+            if !enemy.isEmpty { lines.append("If \(def.name) triggers — Enemy: " + enemy.joined(separator: ", ")) }
+            if !player.isEmpty { lines.append("If \(def.name) triggers — You: " + player.joined(separator: ", ")) }
+        }
+        return lines
     }
 
     /// One copper line naming what the armed Chisels and passives do to this
@@ -2266,6 +2306,10 @@ final class BattleEngine {
     func commitTurn() {
         guard canResolve else { return }
         let earned = pendingRerollHalfCharges
+        rerollChargeFlights = Array(slots.filter { slot in
+            if case .rolled(let face) = slot.state { return !playOrder.contains(face.id) }
+            return false
+        }.prefix(earned).map(\.id))
         // Pay reservations before refilling; a reserved charge cannot be spent
         // on a reroll too. Commitment locks the award, including an empty plan.
         rerollHalfCharges = max(0, rerollHalfCharges - reservedRerolls * 2)
@@ -2273,8 +2317,15 @@ final class BattleEngine {
         selectingReroll = false
         rerollSelection = []
         resetTargetingSelection()
+        committedPlan = buildPlan(from: playedFaces)
         phase = .resolving
-        Task { await resolveTurn() }
+        Task {
+            if !rerollChargeFlights.isEmpty {
+                try? await Task.sleep(for: .milliseconds(850))
+                rerollChargeFlights = []
+            }
+            await resolveTurn()
+        }
     }
 
     // MARK: - Turn resolution

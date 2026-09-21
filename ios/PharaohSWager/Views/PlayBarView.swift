@@ -143,88 +143,67 @@ struct PlayBarView: View {
     private var planRow: some View {
         let steps = engine.displayedPlan
         return GeometryReader { geometry in
-            let reserved = CGFloat(max(0, steps.count - 1)) * 6
-            let cardWidth = max(220, (geometry.size.width - reserved - 2) / CGFloat(max(1, steps.count)))
-            ScrollView(.horizontal, showsIndicators: true) {
-                HStack(spacing: 6) {
-                    if steps.isEmpty {
-                        Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
-                            .font(.fantasy(compact ? 13 : 17, weight: .bold))
-                            .foregroundStyle(Theme.parchment.opacity(0.75))
-                            .frame(width: max(0, geometry.size.width - 2), height: bodyHeight)
-                    }
-                    ForEach(steps) { step in
-                        combinedCard(step, width: cardWidth)
-                    }
+            let cardWidth = max(1, (geometry.size.width - CGFloat(max(0, steps.count - 1)) * 4) / CGFloat(max(1, steps.count)))
+            HStack(spacing: 4) {
+                if steps.isEmpty {
+                    Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
+                        .font(.fantasy(13, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                        .minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(.horizontal, 1)
-                .frame(minHeight: bodyHeight)
-                .padding(.bottom, 8)
+                ForEach(steps) { step in combinedCard(step, width: cardWidth) }
             }
         }
-        .frame(height: bodyHeight + 8)
-        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.72), value: engine.playOrder)
+        .frame(height: bodyHeight)
     }
 
     private func combinedCard(_ step: PlanStep, width: CGFloat) -> some View {
         let tint = step.tint
-        return ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(alignment: .top, spacing: 8) {
+        return FittedActionContent {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top, spacing: 4) {
                     Text(step.title.uppercased())
-                        .font(.fantasy(18, weight: .black))
+                        .font(.fantasy(16, weight: .black))
                         .foregroundStyle(Theme.parchment)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let face = step.faces.first {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 2) {
                             PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
-                                size: 20, tint: step.hasCritFace ? Theme.gold : face.matchFace.tint)
+                                size: 17, tint: step.hasCritFace ? Theme.gold : face.matchFace.tint)
                                 .draggable(face.id.uuidString)
-                            Text("× \(step.faces.count)")
-                                .font(.system(size: 12, weight: .bold))
+                            Text("×\(step.faces.count)").font(.system(size: 11, weight: .bold))
                         }
                         .foregroundStyle(Theme.gold)
                         .fixedSize()
-                        .accessibilityLabel("\(face.displayName), \(step.faces.count) dice")
+                    }
+                    if engine.phase == .player {
+                        Button {
+                            if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
+                        } label: {
+                            Image(systemName: "minus.circle.fill").foregroundStyle(Theme.gold)
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Return last die from \(step.title)")
                     }
                 }
                 if engine.displayedDamage(for: step) > 0 {
                     Text(engine.damageBreakdown(for: step))
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.gold)
+                        .font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.gold)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                ForEach(Array(step.effects.enumerated()), id: \.offset) { _, effect in
-                    Text(effect)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.parchment)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(engine.planEffectLines(for: step).joined(separator: " · "))
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.parchment)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let line = engine.chiselLine(for: step) {
-                    Text(line)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ptahCopper)
+                    Text(line).font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.ptahCopper)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-                if engine.phase == .player {
-                    Button {
-                        if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
-                    } label: {
-                        Label("Return die", systemImage: "minus.circle.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Theme.gold)
-                            .frame(minHeight: 32)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Return last die from \(step.title) to tray")
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .padding(7)
         .frame(width: width, height: bodyHeight)
         .background { TurnOrderPlaque(accent: tint) }
         .onTapGesture {
@@ -270,6 +249,15 @@ struct PlayBarView: View {
                     .font(.system(size: 12, weight: .black))
                 Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollChargeText)/\(engine.rerollCapacity) charges")
                     .font(.system(size: 9, weight: .semibold))
+                GeometryReader { proxy in
+                    Capsule().fill(Theme.gold.opacity(0.2))
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Theme.gold)
+                                .frame(width: proxy.size.width * CGFloat(engine.availableRerollHalfCharges) / CGFloat(max(1, engine.rerollCapacity * 2)))
+                        }
+                }
+                .frame(height: 4)
+                .animation(.easeOut(duration: 0.7), value: engine.rerollHalfCharges)
             }
             .foregroundStyle(Theme.gold)
             .paintedContentInsets()
@@ -281,6 +269,7 @@ struct PlayBarView: View {
         .buttonStyle(PressableButtonStyle())
         .disabled(!engine.canReroll)
         .accessibilityIdentifier("battle.reroll")
+        .anchorPreference(key: RerollChargeAnchorKey.self, value: .bounds) { ["reroll": $0] }
     }
 
     // MARK: - Commit

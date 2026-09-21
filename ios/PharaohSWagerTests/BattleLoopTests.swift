@@ -85,6 +85,23 @@ struct BattleLoopTests {
         #expect(engine.damageBreakdown(for: critical) == "\(base) base + \(criticalTotal - base) crit = \(criticalTotal) damage")
     }
 
+    @Test func chargeAnimationKeepsOnlyCreditedDiceAndLocksCommit() async throws {
+        let engine = battle(Array(repeating: .block, count: 6))
+        try await roll(engine)
+        let face = try #require(engine.rolled.first)
+        engine.placeInPlayBar(faceID: face.id)
+        engine.gainRerollHalfCharges(3)
+        engine.commitTurn()
+        #expect(engine.rerollChargeFlights.count == 1)
+        #expect(engine.rerollHalfCharges == 4)
+        #expect(engine.committedPlan.count == 1)
+        #expect(!engine.canCommit)
+        engine.commitTurn()
+        #expect(engine.rerollHalfCharges == 4)
+        try await Task.sleep(for: .seconds(1))
+        #expect(engine.rerollChargeFlights.isEmpty)
+    }
+
     @Test func halfChargesPersistRechargeAndResetPerEncounter() async throws {
         let engine = battle(Array(repeating: .block, count: 6))
         try await roll(engine)

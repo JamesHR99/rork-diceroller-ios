@@ -191,10 +191,10 @@ struct HeroSelectionView: View {
                 } label: {
                     PharaohSWagerSymbol(art: PharaohSWagerArt.classSigil(entry.id),
                                fallback: entry.symbol,
-                               size: 22,
+                               size: 20,
                                tint: entry.accent)
-                        .paintedContentInsets()
-                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
                         .background {
                             PharaohSWagerImage(name: PharaohSWagerArt.button(.secondary,
                                                            index == selectedIndex ? .selected : .normal),

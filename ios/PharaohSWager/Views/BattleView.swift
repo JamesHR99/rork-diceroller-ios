@@ -35,7 +35,7 @@ private struct BattleContentView: View {
     /// the fighters and the hull they are standing on. Aiming happens on the
     /// uncovered stage, so the deck is down for that too.
     private var deckUp: Bool {
-        engine.phase == .player
+        engine.phase == .player || !engine.rerollChargeFlights.isEmpty
     }
 
     var body: some View {
@@ -158,30 +158,47 @@ private struct BattleContentView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
         .sheet(isPresented: $showBoons) {
-            NavigationStack {
-                List {
-                    if game.equippedBoons.isEmpty {
-                        Text("No god boons equipped yet. Earn blessings during your voyage.")
-                    }
-                    ForEach(game.equippedBoons) { boon in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label(boon.def?.name ?? boon.defID,
-                                  systemImage: boon.def?.god.symbol ?? "sparkles")
-                                .font(.headline)
-                                .foregroundStyle(boon.def?.god.tint ?? Theme.gold)
-                            Text("\(boon.rarity.label) · Level \(boon.level)")
-                                .font(.caption).foregroundStyle(.secondary)
-                            Text(boon.text)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, 6)
-                    }
+            VStack(spacing: 12) {
+                HStack {
+                    Text("GOD BOONS").font(.fantasy(26, weight: .black)).foregroundStyle(Theme.gold)
+                    Spacer()
+                    Button("DONE") { showBoons = false }
+                        .font(.fantasy(14, weight: .bold)).foregroundStyle(Theme.parchment)
+                        .buttonStyle(PaintedButtonStyle(tone: .secondary))
+                        .frame(width: 110)
                 }
-                .navigationTitle("Equipped god boons")
-                .toolbar { ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { showBoons = false }
-                } }
+                GoldRule(height: 6)
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if game.equippedBoons.isEmpty {
+                            Text("No god boons equipped yet. Earn blessings during your voyage.")
+                                .foregroundStyle(Theme.parchment).padding(24)
+                        }
+                        ForEach(game.equippedBoons) { boon in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 10) {
+                                    PharaohSWagerSymbol(art: boon.def?.god.artName,
+                                        fallback: boon.def?.god.symbol ?? "sparkles", size: 30,
+                                        tint: boon.def?.god.tint ?? Theme.gold)
+                                    Text(boon.def?.name ?? boon.defID)
+                                        .font(.fantasy(20, weight: .bold)).foregroundStyle(Theme.gold)
+                                    Spacer()
+                                    Text("\(boon.rarity.label) · Level \(boon.level)")
+                                        .font(.system(size: 12, weight: .bold)).foregroundStyle(boon.rarity.tint)
+                                }
+                                Text(boon.text).font(.system(size: 15)).foregroundStyle(Theme.parchment)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+                            .background { TurnOrderPlaque(accent: boon.def?.god.tint ?? Theme.gold) }
+                        }
+                    }
+                    .padding(4)
+                }
             }
+            .padding(20)
+            .background { PapyrusSurface(ground: .panel, tint: Theme.bg, strength: 0.75, shade: 0.3).ignoresSafeArea() }
+            .preferredColorScheme(.dark)
         }
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
@@ -198,7 +215,7 @@ private struct BattleContentView: View {
     private func diceDeck(size: CGSize) -> some View {
         let metrics = BattleDeckMetrics(screenHeight: size.height,
                                         headerHeight: headerHeight > 0 ? headerHeight : 120)
-        return ScrollView(.vertical) {
+        return FittedActionContent {
             VStack(spacing: 6) {
                 DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
                              maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
@@ -209,8 +226,18 @@ private struct BattleContentView: View {
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .frame(height: metrics.height)
+        .frame(height: metrics.height, alignment: .top)
+        .disabled(!engine.rerollChargeFlights.isEmpty)
+        .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
+            GeometryReader { proxy in
+                if !engine.rerollChargeFlights.isEmpty, let target = anchors["reroll"] {
+                    RerollChargeFlight(
+                        sources: engine.rerollChargeFlights.compactMap { anchors[$0.uuidString].map { proxy[$0] } },
+                        destination: proxy[target])
+                }
+            }
+            .allowsHitTesting(false)
+        }
         .background {
             DeckShelfBackground(armed: engine.selectingReroll)
                 .ignoresSafeArea(edges: .bottom)
@@ -276,45 +303,30 @@ private struct BattleContentView: View {
     /// pack has several announced moves.
     private var enemyOrderStrip: some View {
         let actions = engine.timeline.filter { !$0.isPlayer }
+        let columns = actions.count > 3 ? (actions.count + 1) / 2 : max(1, actions.count)
         return HStack(spacing: 6) {
-            Text("ENEMY ORDER")
-                .font(.system(size: 8.5, weight: .black))
-                .kerning(0.8)
-                .foregroundStyle(Theme.blood)
+            Text("ENEMY\nORDER")
+                .font(.system(size: 8, weight: .black)).foregroundStyle(Theme.blood)
                 .fixedSize()
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                        HStack(spacing: 4) {
-                            Text("\(index + 1)")
-                                .font(.system(size: 8, weight: .black).monospacedDigit())
-                                .foregroundStyle(Theme.bg)
-                                .frame(width: 15, height: 15)
-                                .background(Theme.blood, in: .circle)
-                            Text(action.title)
-                                .font(.fantasy(9.5, weight: .bold))
-                                .foregroundStyle(Theme.parchment)
-                            Text(action.detail.uppercased())
-                                .font(.system(size: 7.5, weight: .black).monospacedDigit())
-                                .foregroundStyle(Theme.parchmentDim)
-                        }
-                        .lineLimit(1)
-                        .padding(.horizontal, 6)
-                        .frame(height: 24)
-                        .background(Theme.bgCard.opacity(0.82), in: .capsule)
-                        .overlay(Capsule().strokeBorder(Theme.blood.opacity(0.4), lineWidth: 1))
-
-                        if index < actions.count - 1 {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 7, weight: .black))
-                                .foregroundStyle(Theme.blood.opacity(0.75))
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: columns), spacing: 3) {
+                ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                    FittedActionContent {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(index + 1). \(action.title)")
+                                .font(.fantasy(10, weight: .bold)).foregroundStyle(Theme.parchment)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(action.detail)
+                                .font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.gold)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .frame(height: 34)
+                    .background(Theme.bgCard.opacity(0.9), in: .rect(cornerRadius: 7))
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.blood.opacity(0.4)))
                 }
             }
         }
-        .frame(height: 28)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Enemy action order")
     }
