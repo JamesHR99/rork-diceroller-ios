@@ -54,8 +54,10 @@ enum BattleRules {
     static func reducedHit(_ damage: Int, weaken: Double = 0, ward: Double = 0, evadePercent: Int = 0) -> Int {
         guard damage > 0 else { return 0 }
         let evade = Double(min(maximumEvadePercent, max(0, evadePercent))) / 100
-        return max(1, Int((Double(damage) * (1 - min(0.5, max(0, weaken)))
-            * (1 - min(0.5, max(0, ward))) * (1 - evade)).rounded(.up)))
+        let weakened: Double = Double(damage) * (1.0 - min(0.5, max(0.0, weaken)))
+        let warded: Double = weakened * (1.0 - min(0.5, max(0.0, ward)))
+        let remaining: Double = warded * (1.0 - evade)
+        return max(1, Int(remaining.rounded(.up)))
     }
 
     static func bonusRerollAward(currentHalfCharges: Int, alreadyAwarded: Int) -> Int {
@@ -75,5 +77,4 @@ struct EnemyStrike: Identifiable, Hashable {
 
     var id: String { "\(foeID.uuidString):\(moveIndex):\(hitIndex)" }
 }
-
 

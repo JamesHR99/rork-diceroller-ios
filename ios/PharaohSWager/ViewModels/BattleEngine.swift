@@ -2438,7 +2438,6 @@ final class BattleEngine {
                 // together long enough to read.
                 await raiseSpotlight(for: step, targetIndex: target)
 
-                let healthBefore = target.map { enemies[$0].hp } ?? 0
                 if let combo = step.combo {
                     let didCrit = step.hasCritFace
                     let power = min(6, max(1, step.faces.count))
@@ -2498,7 +2497,6 @@ final class BattleEngine {
                         await waitForAnimation(0.52)
                     }
                 }
-                let dealtHealthDamage = target.map { enemies[$0].hp < healthBefore } ?? false
                 if nativeAttackHPDamage > 0, pendingHealOnHit > 0,
                    let def = activeBoon("SO-A4")?.def, claimBoon(def) {
                     let previous = attributing; attributing = .divine
