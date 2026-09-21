@@ -182,7 +182,7 @@ struct PlanStep: Identifiable {
         func scaled(_ v: Int) -> Int { GameData.scaleUp(v, by: comboScale) }
         if combo.shield > 0 { parts.append("+\(scaled(combo.shield)) Shield") }
         if combo.heal > 0 { parts.append("+\(scaled(combo.heal)) HP") }
-        if combo.dodgeCharges > 0 { parts.append("\(combo.dodgeCharges) Dodge") }
+        if combo.dodgeCharges > 0 { parts.append("\(combo.dodgeCharges) Evade (50% base)") }
         if combo.burnAmount > 0 { parts.append("Burn \(combo.burnAmount)") }
         if combo.bleedAmount > 0 { parts.append("Bleed \(combo.bleedAmount)") }
         if combo.poisonAmount > 0 { parts.append("Poison \(min(8, scaled(combo.poisonAmount)))") }
@@ -551,6 +551,7 @@ final class BattleEngine {
     private(set) var playerShield = 0
     /// Guaranteed single-hit dodges, optionally reserved for announced strikes.
     var dodgeCharges: Int { dodgeReservations.count }
+    var evadeChargeReductions: [Int] { dodgeReductions }
     private(set) var reflectFraction = 0.0
     private(set) var playerBleedAmount = 0
     private(set) var playerBleedTurns = 0
@@ -928,19 +929,17 @@ final class BattleEngine {
         move: EnemyMove,
         spendingCharge: Bool = false
     ) -> (damage: Int, heal: Int, block: Int) {
-        var damage = 0
-        if move.damage > 0 {
-            damage = scaledDamage(move.damage, heat: heatDamage(for: foe))
-            damage = Int(Double(damage) * pressureMultiplier(for: foe))
-            if spendingCharge, foe.chargeBonus > 0 {
-                damage = Int(Double(damage) * foe.chargeBonus)
-            }
-            if foe.weaken > 0 {
-                damage = Int(Double(damage) * (1 - foe.weaken))
-            }
-            damage = max(0, damage)
-        }
+        let hits = projectedHitPowers(for: foe, move: move, spendingCharge: spendingCharge)
+        let damage = hits.reduce(0) { $0 + BattleRules.reducedHit($1, weaken: foe.weaken) }
         return (damage, move.heal, move.block)
+    }
+
+    private func projectedHitPowers(for foe: EnemyState, move: EnemyMove, spendingCharge: Bool) -> [Int] {
+        guard move.damage > 0 else { return [] }
+        var damage = scaledDamage(move.damage, heat: heatDamage(for: foe))
+        damage = Int(Double(damage) * pressureMultiplier(for: foe))
+        if spendingCharge, foe.chargeBonus > 0 { damage = Int(Double(damage) * foe.chargeBonus) }
+        return BattleRules.splitHits(damage, count: max(1, move.faces.filter(\.isAttack).count))
     }
 
     /// The opening blow of this foe's round, which is what the slim reads use.
@@ -1224,7 +1223,7 @@ final class BattleEngine {
     /// Native effects identify their recipient; boon previews remain explicitly
     /// conditional because target state and earlier actions can change triggers.
     func planEffectLines(for step: PlanStep) -> [String] {
-        let selfEffects = ["Shield", "HP", "Dodge", "Regen", "Next Attack", "Cleanse", "lifesteal", "counter"]
+        let selfEffects = ["Shield", "HP", "Dodge", "Evade", "Regen", "Next Attack", "Cleanse", "lifesteal", "counter"]
         var lines = step.effects.map { effect in
             if effect == "Wind-up → Release" { return effect }
             return (selfEffects.contains(where: { effect.localizedCaseInsensitiveContains($0) }) ? "You: " : "Enemy: ") + effect
@@ -1871,14 +1870,17 @@ final class BattleEngine {
     }
 
     var incomingStrikes: [EnemyStrike] {
-        livingFoes.flatMap { foe in
-            projectedRound(for: foe).enumerated().flatMap { moveIndex, entry -> [EnemyStrike] in
-                guard entry.strike.damage > 0 else { return [] }
-                let hits = max(1, entry.move.faces.filter(\.isAttack).count)
-                return (0..<hits).map { hitIndex in
+        livingFoes.flatMap { foe -> [EnemyStrike] in
+            var projected = foe
+            return foe.intents.enumerated().flatMap { moveIndex, move -> [EnemyStrike] in
+                let raw = projectedHitPowers(for: projected, move: move, spendingCharge: move.damage > 0)
+                let powers = raw.map { BattleRules.reducedHit($0, weaken: projected.weaken) }
+                if move.charge > 0 { projected.chargeBonus = move.charge }
+                if move.damage > 0 { projected.chargeBonus = 0; projected.weaken = 0 }
+                return powers.enumerated().map { hitIndex, damage in
                     EnemyStrike(foeID: foe.id, moveIndex: moveIndex, hitIndex: hitIndex,
-                        title: "\(foe.displayName) · \(entry.move.name) \(hitIndex + 1)/\(hits)",
-                        damage: entry.strike.damage / hits + (hitIndex == 0 ? entry.strike.damage % hits : 0))
+                        title: "\(foe.displayName) · \(move.name) \(hitIndex + 1)/\(powers.count)",
+                        damage: damage)
                 }
             }
         }
@@ -4333,8 +4335,7 @@ final class BattleEngine {
             let ward = nextHitReduction
             foe.weaken = 0
             nextHitReduction = 0
-            let perHit = total / attackFaces
-            var remainder = total - perHit * attackFaces
+            let rawHits = BattleRules.splitHits(total, count: attackFaces)
             for hitIndex in 0..<attackFaces {
                 guard foe.isAlive else { break }
                 let actionPower = min(5, max(1, move.faces.count))
@@ -4345,8 +4346,7 @@ final class BattleEngine {
                             choreography: CombatChoreography(faces: move.faces, moveID: move.id))
                 launchShots(faces: move.faces, fromPlayer: false, foeID: foe.id, magnitude: actionPower)
                 await waitForAnimation(BattleAnimationTiming.contactDelay(faces: move.faces))
-                var hit = perHit + remainder
-                remainder = 0
+                var hit = rawHits[hitIndex]
 
                 // One reservation reduces one chosen hit, never the whole move.
                 let evade = consumeDodge(foeID: foe.id, moveIndex: moveIndex, hitIndex: hitIndex) ?? 0

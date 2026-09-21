@@ -183,7 +183,7 @@ enum BoonTrigger: Hashable {
         case .firstKeptGuard: "First kept guard"
         case .firstEvade: "First evade"
         case .firstKeptAction: "First kept action"
-        case .onDodge: "On your first dodge"
+        case .onDodge: "When your first Evade prevents damage"
         case .onShieldAbsorb: "When your shield takes a hit"
         case .encounterStart: "At the start of the fight"
         case .roundStart: "At the start of the round"
@@ -436,4 +436,3 @@ struct EquippedBoon: Identifiable, Hashable, Codable {
         def?.text(rarity: rarity, level: level) ?? ""
     }
 }
-

@@ -39,23 +39,25 @@ struct BattleLoopTests {
 
 
 
-    @Test func ordinaryGuardExpiresOnBothSides() async throws {
+    @Test(arguments: [false, true])
+    func ordinaryGuardExpiresOnBothSidesExceptBesRetention(bes: Bool) async throws {
         let move = EnemyMove(id: "guard", name: "Guard", faces: [.block], weight: 1, block: 8)
         let foe = EnemyDef(id: "guard-test", name: "Guard", title: "Test", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
         let dice = (0..<6).map { Die(name: "Block \($0)", slot: .armor, faces: Array(repeating: .block, count: 6)) }
         let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
-            maxHP: 100, startHP: 100, critBonus: -1)
+            maxHP: 100, startHP: 100, critBonus: -1,
+            boons: bes ? [EquippedBoon(defID: "BE-U1", rarity: .common, level: 1)] : [])
         try await roll(engine)
         let face = try #require(engine.rolled.first)
         engine.placeInPlayBar(faceID: face.id)
         try await nextRound(engine)
-        #expect(engine.playerShield == 0)
+        #expect(engine.playerShield == (bes ? 8 : 0))
         let enemyGuard = engine.enemies[0].shield
         #expect(enemyGuard == 0)
         try await roll(engine)
         try await nextRound(engine)
-        #expect(engine.playerShield == 0)
+        #expect(engine.playerShield == (bes ? 8 : 0))
         #expect(engine.enemies[0].shield == 0)
         let fresh = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
             maxHP: 100, startHP: 100, critBonus: -1)
@@ -406,6 +408,8 @@ struct BattleLoopTests {
     }
 
     @Test func partialEvadeMultipliesWithOtherReductionsAndNeverBecomesImmunity() {
+        #expect(BattleRules.splitHits(25, count: 2) == [13, 12])
+        #expect(BattleRules.splitHits(26, count: 3) == [10, 8, 8])
         #expect(BattleRules.reducedHit(20, evadePercent: 50) == 10)
         #expect(BattleRules.reducedHit(20, weaken: 0.2, evadePercent: 50) == 8)
         #expect(BattleRules.reducedHit(100, weaken: 0.2, ward: 0.2, evadePercent: 50) == 32)
@@ -519,5 +523,40 @@ struct BattleLoopTests {
         #expect(engine.rerollHalfCharges == 1)
     }
 
-}
+    @Test(arguments: [5, 6])
+    func bankedEmbersRequiresAnUnusedDie(played: Int) async throws {
+        let engine = battle(Array(repeating: .arrow1, count: 6), boons: ["RA-U2"])
+        try await roll(engine)
+        for face in engine.rolled.prefix(played) { engine.placeInPlayBar(faceID: face.id) }
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == (played == 5 ? 2 : 0))
+    }
 
+    @Test func lastMeasureAddsJudgementWithoutRequiringAllSixDice() async throws {
+        let engine = battle([.arrow1, .arrow2, .block, .block, .block, .block], boons: ["AN-A2", "AN-U1"])
+        try await roll(engine)
+        for kind in [FaceKind.arrow1, .arrow2] {
+            let face = try #require(engine.rolled.first { $0.face == kind })
+            engine.placeInPlayBar(faceID: face.id)
+        }
+        try await nextRound(engine)
+        #expect(engine.enemies[0].judgementAmount == 6)
+    }
+
+    @Test func nativeHealingGetsOnlyOneSetOfSobekExtrasPerRound() async throws {
+        let engine = battle([.heal, .focus, .heal, .block, .block, .block],
+            startHP: 20, boons: ["SO-D3", "SO-U1"])
+        try await roll(engine)
+        let heals = engine.rolled.filter { $0.face == .heal }
+        let focus = try #require(engine.rolled.first { $0.face == .focus })
+        engine.placeInPlayBar(faceID: heals[0].id)
+        engine.placeInPlayBar(faceID: focus.id)
+        engine.placeInPlayBar(faceID: heals[1].id)
+        let damage = engine.projectedRoundTotals(for: engine.enemies[0]).damage
+        let hits = BattleRules.splitHits(damage, count: 2)
+        let softened = hits.reduce(0) { $0 + BattleRules.reducedHit($1, weaken: 0.2) }
+        try await nextRound(engine)
+        #expect(engine.playerHP == 20 + 8 + 7 - softened + 8)
+    }
+
+}

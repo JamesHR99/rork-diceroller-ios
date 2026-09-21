@@ -45,6 +45,12 @@ enum BattleRules {
     static let maximumEvadePercent = 75
     static let bonusRerollHalfChargeLimit = 1
 
+    static func splitHits(_ total: Int, count: Int) -> [Int] {
+        let hits = max(1, count)
+        let damage = max(0, total)
+        return (0..<hits).map { damage / hits + ($0 == 0 ? damage % hits : 0) }
+    }
+
     static func guardAfterRound(_ guardValue: Int, warrior: Bool = false, retention: Int = 0) -> Int {
         min(max(0, guardValue), max(0, retention))
     }
@@ -77,4 +83,3 @@ struct EnemyStrike: Identifiable, Hashable {
 
     var id: String { "\(foeID.uuidString):\(moveIndex):\(hitIndex)" }
 }
-

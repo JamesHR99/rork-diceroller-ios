@@ -223,6 +223,7 @@ struct LiveStatus: Identifiable {
     /// Turns left before a stored effect fires — Judgement's fuse on the
     /// scales. Distinct from `ticksLeft`, which counts repeating bites.
     let turnsLeft: Int?
+    let evadeReductions: [Int]
 
     var id: String { kind.rawValue + (onSelf ? ".self" : ".foe") }
 
@@ -233,7 +234,8 @@ struct LiveStatus: Identifiable {
         ticksLeft: Int? = nil,
         total: Int? = nil,
         percent: Int? = nil,
-        turnsLeft: Int? = nil
+        turnsLeft: Int? = nil,
+        evadeReductions: [Int] = []
     ) {
         self.kind = kind
         self.onSelf = onSelf
@@ -242,6 +244,7 @@ struct LiveStatus: Identifiable {
         self.total = total
         self.percent = percent
         self.turnsLeft = turnsLeft
+        self.evadeReductions = evadeReductions
     }
 
     /// The badge's own short label: "6" for a stack, "40%" for a chance,
@@ -258,6 +261,12 @@ struct LiveStatus: Identifiable {
     /// The live numbers, as lines the bubble prints under the description.
     var readout: [(label: String, value: String)] {
         var lines: [(String, String)] = []
+        if kind == .evade, !evadeReductions.isEmpty {
+            let groups = Dictionary(grouping: evadeReductions, by: { $0 })
+            for strength in groups.keys.sorted() {
+                lines.append(("\(strength)% reduction", "\(groups[strength]?.count ?? 0) charge(s)"))
+            }
+        }
         if let perTick, let ticksLeft {
             lines.append((kind == .regeneration ? "Restores" : "Takes", "\(perTick) per round"))
             lines.append(("Rounds left", "\(ticksLeft)"))
@@ -294,6 +303,5 @@ struct LiveStatus: Identifiable {
         return lines.map { (label: $0.0, value: $0.1) }
     }
 }
-
 
 
