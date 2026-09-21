@@ -134,6 +134,7 @@ struct HeroSelectionView: View {
                         .opacity(0.75)
                 }
                 .foregroundStyle(Theme.parchment)
+                .paintedContentInsets()
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 // The same carved slab the deck's FIGHT button is cut from, so
@@ -192,6 +193,7 @@ struct HeroSelectionView: View {
                                fallback: entry.symbol,
                                size: 22,
                                tint: entry.accent)
+                        .paintedContentInsets()
                         .frame(maxWidth: .infinity, minHeight: 40)
                         .background {
                             PharaohSWagerImage(name: PharaohSWagerArt.button(.secondary,
@@ -268,11 +270,12 @@ struct TitleView: View {
         } label: {
             Label(title, systemImage: symbol)
                 .font(.fantasy(id == "title.records" || id == "title.settings" ? 14 : 19, weight: .bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .lineLimit(2)
+                .minimumScaleFactor(0.65)
+                .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.parchment)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .padding(.horizontal, 15)
+                .paintedContentInsets()
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background {
                     DeckButtonSurface(tone: id == "title.play" ? .primary : .secondary,
                                       state: .normal, rim: Theme.gold, cornerRadius: 12)
@@ -342,3 +345,4 @@ private struct TitleSettingsView: View {
     }
     .environment(GameManager())
 }
+

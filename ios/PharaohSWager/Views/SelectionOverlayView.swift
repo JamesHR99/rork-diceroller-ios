@@ -223,6 +223,7 @@ struct SelectionOverlayView: View {
                     .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
+                    .paintedContentInsets()
                     .frame(maxWidth: 200)
                     .frame(height: 52)
                     .background {
@@ -247,6 +248,7 @@ struct SelectionOverlayView: View {
                     .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
+                    .paintedContentInsets()
                     .frame(maxWidth: 300)
                     .frame(height: 52)
                     .background {
@@ -628,4 +630,5 @@ struct SelectionOverlayView: View {
     }
 
 }
+
 

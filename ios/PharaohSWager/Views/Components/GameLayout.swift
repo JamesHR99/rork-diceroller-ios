@@ -30,7 +30,8 @@ struct BattleDeckMetrics {
     init(screenHeight: CGFloat, headerHeight: CGFloat) {
         height = max(0, screenHeight - headerHeight - 8)
         let content = max(0, height - (height < 240 ? 63 : 88))
-        planHeight = min(116, max(72, content * 0.48))
+        planHeight = min(180, max(116, content * 0.58))
         reelHeight = min(130, max(60, content - planHeight))
     }
 }
+

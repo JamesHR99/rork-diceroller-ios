@@ -42,7 +42,7 @@ enum BattleRules {
     }
 
     static func guardAfterRound(_ guardValue: Int, warrior: Bool) -> Int {
-        warrior ? min(warriorGuardCarry, max(0, guardValue)) : 0
+        max(0, guardValue)
     }
 }
 
@@ -57,4 +57,5 @@ struct EnemyStrike: Identifiable, Hashable {
 
     var id: String { "\(foeID.uuidString):\(moveIndex):\(hitIndex)" }
 }
+
 

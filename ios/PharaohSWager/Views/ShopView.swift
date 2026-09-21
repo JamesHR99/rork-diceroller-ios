@@ -81,6 +81,7 @@ struct ShopView: View {
                         .foregroundStyle(Theme.parchment)
                         .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                 }
+                .paintedContentInsets()
                 .frame(maxWidth: .infinity)
                 .frame(height: 42)
                 .background {
@@ -102,6 +103,7 @@ struct ShopView: View {
                                        startPoint: .top, endPoint: .bottom)
                     )
                     .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                    .paintedContentInsets()
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background {
@@ -181,4 +183,5 @@ struct ShopView: View {
         .allowsHitTesting(false)
     }
 }
+
 

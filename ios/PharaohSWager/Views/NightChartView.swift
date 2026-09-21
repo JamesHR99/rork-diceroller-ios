@@ -99,7 +99,8 @@ struct NightChartView: View {
                         .foregroundStyle(Theme.parchment)
                         .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                 }
-                .frame(width: 58, height: 52)
+                .paintedContentInsets()
+                .frame(width: 76, height: 52)
                 .background {
                     DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold,
                                       cornerRadius: 11)
@@ -302,5 +303,6 @@ struct NightChartView: View {
         Audio.shared.play(.diceLock)
     }
 }
+
 
 

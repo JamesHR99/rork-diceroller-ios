@@ -74,7 +74,7 @@ struct FighterView: View {
     private var stageBody: some View {
         VStack(spacing: 4) {
             nameRow
-            if side == .enemy, let foe, foe.armourMax > 0 {
+            if side == .enemy, let foe, foe.armour + foe.shield > 0 {
                 armourBar(foe, width: barWidth)
             }
             // The guard sits directly over health, the way armour does on a
@@ -157,7 +157,7 @@ struct FighterView: View {
                     badgeRow
                 }
 
-                if side == .enemy, let foe, foe.armourMax > 0 {
+                if side == .enemy, let foe, foe.armour + foe.shield > 0 {
                     armourBar(foe, width: tickerBarWidth)
                 }
 
@@ -499,9 +499,9 @@ struct FighterView: View {
     /// own shield's does, so both sides of the deck read the same way.
     private func armourBar(_ foe: EnemyState, width: CGFloat = 176) -> some View {
         let height: CGFloat = 13
-        let fraction = foe.armourMax > 0
-            ? CGFloat(foe.armour) / CGFloat(foe.armourMax)
-            : 0
+        let guardValue = foe.armour + foe.shield
+        let reference = max(foe.armourMax, max(20, foe.def.maxHP / 4))
+        let fraction = min(1, CGFloat(guardValue) / CGFloat(reference))
         return PharaohSWagerBar(
             kind: .armour,
             fraction: Double(fraction),
@@ -512,7 +512,7 @@ struct FighterView: View {
             HStack(spacing: 2.5) {
                 PharaohSWagerSymbol(art: PharaohSWagerArt.Status.armour, fallback: "shield.fill",
                            size: height * 0.85, tint: Theme.parchment)
-                Text("\(foe.armour)")
+                Text("\(guardValue)")
                     .font(.system(size: height * 0.78, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.parchment)
                     .contentTransition(.numericText())
@@ -520,7 +520,8 @@ struct FighterView: View {
             .shadow(color: .black, radius: 2)
             .allowsHitTesting(false)
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: foe.armour)
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: guardValue)
+        .accessibilityLabel("Armour and block: \(guardValue). Persists until consumed.")
     }
 
     /// Everything riding this fighter right now, each on its painted mark, and
@@ -566,7 +567,6 @@ struct FighterView: View {
                                        total: engine.playerJudgementAmount))
             }
         } else if let foe {
-            if foe.shield > 0 { list.append(LiveStatus(kind: .shield, onSelf: false, total: foe.shield)) }
             if foe.isTrialChampion, engine.trialAccepted {
                 list.append(LiveStatus(kind: .champion, onSelf: false))
             }
@@ -635,3 +635,4 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
+

@@ -39,6 +39,52 @@ struct BattleLoopTests {
 
 
 
+    @Test func bothSidesKeepUnbrokenGuardAcrossRounds() async throws {
+        let move = EnemyMove(id: "guard", name: "Guard", faces: [.block], weight: 1, block: 8)
+        let foe = EnemyDef(id: "guard-test", name: "Guard", title: "Test", maxHP: 500,
+            symbol: "circle", goldReward: 0, moves: [move])
+        let dice = (0..<6).map { Die(name: "Block \($0)", slot: .armor, faces: Array(repeating: .block, count: 6)) }
+        let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
+            maxHP: 100, startHP: 100, critBonus: -1)
+        try await roll(engine)
+        let face = try #require(engine.rolled.first)
+        engine.placeInPlayBar(faceID: face.id)
+        try await nextRound(engine)
+        #expect(engine.playerShield == 8)
+        let enemyGuard = engine.enemies[0].shield
+        #expect(enemyGuard > 0)
+        try await roll(engine)
+        try await nextRound(engine)
+        #expect(engine.playerShield == 8)
+        #expect(engine.enemies[0].shield > enemyGuard)
+        let fresh = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
+            maxHP: 100, startHP: 100, critBonus: -1)
+        #expect(fresh.playerShield == 0)
+        #expect(fresh.enemies[0].shield == 0)
+    }
+
+    @Test func criticalAndFocusDamageAreExplainedInPlanOrder() async throws {
+        let engine = battle([.focus, .arrow1, .arrow1, .block, .block, .block])
+        try await roll(engine)
+        let focus = try #require(engine.rolled.first { $0.face == .focus })
+        engine.placeInPlayBar(faceID: focus.id)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        for face in arrows { engine.placeInPlayBar(faceID: face.id) }
+        let attack = try #require(engine.displayedPlan.first { $0.damage > 0 })
+        let base = try #require(attack.combo?.damage)
+        let total = engine.displayedDamage(for: attack)
+        #expect(engine.damageBreakdown(for: attack) == "\(base) base + \(total - base) Focus = \(total) damage")
+        engine.returnToTray(faceID: focus.id)
+        let criticalFaces = arrows.map { face in
+            var result = face
+            result.isCrit = true
+            return result
+        }
+        let critical = PlanStep(faces: criticalFaces, combo: attack.combo)
+        let criticalTotal = engine.displayedDamage(for: critical)
+        #expect(engine.damageBreakdown(for: critical) == "\(base) base + \(criticalTotal - base) crit = \(criticalTotal) damage")
+    }
+
     @Test func halfChargesPersistRechargeAndResetPerEncounter() async throws {
         let engine = battle(Array(repeating: .block, count: 6))
         try await roll(engine)
@@ -65,11 +111,11 @@ struct BattleLoopTests {
         #expect(engine.rerollHalfCharges == 0)
         try await settled(engine)
         // An empty plan still resolves the enemy queue and caps the award.
-        let healthBefore = engine.playerHP
+        let protectionBefore = engine.playerHP + engine.playerShield
         #expect(engine.pendingRerollHalfCharges == 4)
         try await nextRound(engine)
         #expect(engine.rerollHalfCharges == 4)
-        #expect(engine.playerHP < healthBefore)
+        #expect(engine.playerHP + engine.playerShield < protectionBefore)
         let fresh = battle(Array(repeating: .block, count: 6))
         #expect(fresh.rerollHalfCharges == 0)
     }
@@ -343,3 +389,4 @@ struct BattleLoopTests {
     }
 
 }
+

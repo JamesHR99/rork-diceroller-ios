@@ -44,6 +44,7 @@ struct GameOverView: View {
                         Text(won ? "Sail Again Tonight" : "Try Again Tomorrow Night")
                             .font(.fantasy(17, weight: .bold))
                             .foregroundStyle(Theme.parchment)
+                            .paintedContentInsets()
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .background {
@@ -257,5 +258,6 @@ struct GameOverView: View {
         }
     }
 }
+
 
 

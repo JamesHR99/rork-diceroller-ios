@@ -48,6 +48,7 @@ struct RecordsSheetView: View {
                         .font(.fantasy(14, weight: .bold))
                         .foregroundStyle(confirmClear ? Theme.blood : Theme.parchment.opacity(0.75))
                         .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                        .paintedContentInsets()
                         .frame(width: 250, height: 42)
                         .background {
                             DeckButtonSurface(tone: .secondary, state: .normal,
@@ -65,3 +66,4 @@ struct RecordsSheetView: View {
         .presentationBackground(Theme.bg)
     }
 }
+

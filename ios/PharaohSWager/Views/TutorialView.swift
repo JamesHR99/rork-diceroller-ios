@@ -305,6 +305,7 @@ struct TutorialView: View {
                         LinearGradient(colors: [Theme.parchment, Theme.gold],
                                        startPoint: .top, endPoint: .bottom)
                     )
+                    .paintedContentInsets()
                     .frame(width: 190, height: 50)
                     .background {
                         DeckButtonSurface(tone: .primary, state: .highlighted,
@@ -706,4 +707,5 @@ private struct DemoFace: Identifiable {
     let id = UUID()
     let kind: FaceKind
 }
+
 

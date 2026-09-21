@@ -117,7 +117,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .regeneration:
             return "Restores health at round end."
         case .shield:
-            return "Absorbs direct damage across hits. Player guard expires at round end; Warriors retain up to 8."
+            return "Absorbs direct damage across hits. Guard persists throughout the battle until consumed."
         case .armour:
             return "Plate over health. Direct blows chip it first."
         case .champion:
@@ -167,7 +167,7 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .regeneration:
             "Strongest wins."
         case .shield:
-            "Adds together. Player guard expires at round end; Warriors retain up to 8."
+            "Adds together. Guard persists throughout the battle until consumed."
         case .armour:
             "Set when the creature rises."
         case .champion:
@@ -294,5 +294,6 @@ struct LiveStatus: Identifiable {
         return lines.map { (label: $0.0, value: $0.1) }
     }
 }
+
 
 

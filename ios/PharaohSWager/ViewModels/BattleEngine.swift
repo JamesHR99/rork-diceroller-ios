@@ -400,13 +400,10 @@ struct EnemyState: Identifiable {
     let id = UUID()
     let def: EnemyDef
     var hp: Int
-    /// The deepest this foe's guard has ever stood, which is what its bar is
-    /// drawn against. Raising guard mid-fight raises the mark with it.
+    /// Starting armour, used as a reference for the combined protection bar.
     var armourMax: Int
-    /// The one guard pool. Worn plate and a raised block are the same
-    /// resource: direct damage chips it before health, statuses seep under it,
-    /// and what is left stands until something breaks it — exactly like your
-    /// own shield.
+    /// Worn plate and raised block share a visual protection bar. Combat
+    /// consumes them separately; both persist until consumed or battle ends.
     var armour: Int
     var shield = 0
     var markExpires = 0
@@ -550,7 +547,7 @@ final class BattleEngine {
     // MARK: Player state
     private(set) var playerHP: Int
     /// The shield: block that soaks damage and stays until something breaks
-    /// it. Unused guard expires at round end; Warriors retain up to 8.
+    /// it. Unused guard persists until consumed or the encounter ends.
     private(set) var playerShield = 0
     /// Guaranteed single-hit dodges, optionally reserved for announced strikes.
     var dodgeCharges: Int { dodgeReservations.count }
@@ -1165,6 +1162,12 @@ final class BattleEngine {
     /// plan and the forecast print.
     func displayedDamage(for step: PlanStep) -> Int {
         guard let combo = step.combo, combo.roles.contains(.attack) else { return step.damage }
+        let focus = plannedFocus(for: step)
+        let percent = min(200, focus + Int(((armedDamageMultiplier(for: step) - 1) * 100).rounded()))
+        return Int((Double(combo.damage) * step.comboScale + Double(step.momentumBonus)) * (1 + Double(percent) / 100))
+    }
+
+    private func plannedFocus(for step: PlanStep) -> Int {
         var focus = focusPrime
         for previous in turnPlan {
             if previous.id == step.id { break }
@@ -1175,8 +1178,32 @@ final class BattleEngine {
                 focus = max(focus, amount)
             }
         }
-        let percent = min(200, focus + Int(((armedDamageMultiplier(for: step) - 1) * 100).rounded()))
-        return Int((Double(combo.damage) * step.comboScale + Double(step.momentumBonus)) * (1 + Double(percent) / 100))
+        return focus
+    }
+
+    /// Separate deterministic critical-face and Focus bonuses using the same
+    /// rounding as the planning forecast. Target-dependent boons remain in resolution.
+    func damageBreakdown(for step: PlanStep) -> String {
+        let total = displayedDamage(for: step)
+        guard total > 0 else { return "" }
+        let base = step.combo?.damage ?? step.faces.first?.matchFace.soloValue ?? 0
+        let native = step.combo.map { Double($0.damage) * step.comboScale }
+            ?? Double(step.damage - step.momentumBonus - step.focusBonus)
+        let critical = max(0, Int(native) - base)
+        let unboosted = Int(native + Double(step.momentumBonus))
+        let bonus = max(0, total - unboosted)
+        var parts = ["\(base) base"]
+        if critical > 0 { parts.append("\(critical) crit") }
+        if step.momentumBonus > 0 { parts.append("\(step.momentumBonus) momentum") }
+        if bonus > 0 {
+            let armedPercent = Int(((armedDamageMultiplier(for: step) - 1) * 100).rounded())
+            let chiselBonus = min(bonus, max(0,
+                Int((native + Double(step.momentumBonus)) * (1 + Double(min(200, armedPercent)) / 100)) - unboosted))
+            let focusBonus = bonus - chiselBonus
+            if focusBonus > 0 { parts.append("\(focusBonus) Focus") }
+            if chiselBonus > 0 { parts.append("\(chiselBonus) Chisel") }
+        }
+        return parts.count > 1 ? parts.joined(separator: " + ") + " = \(total) damage" : "\(total) damage"
     }
 
     /// One copper line naming what the armed Chisels and passives do to this
@@ -3760,7 +3787,6 @@ final class BattleEngine {
         applyRoundEndBoons()
         attributing = oldAttribution
         for index in enemies.indices {
-            enemies[index].shield = 0
             if turnNumber >= enemies[index].markExpires { enemies[index].markBonus = 0 }
             if turnNumber >= enemies[index].weakenExpires { enemies[index].weaken = 0 }
         }
@@ -4693,3 +4719,4 @@ final class BattleEngine {
         }
     }
 }
+
