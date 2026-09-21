@@ -722,16 +722,16 @@ struct InfoSheetView: View {
                     "There is no player stamina. Use all six dice or commit early.",
                     "Start each encounter with zero rerolls. Each unused die at commitment earns half a charge, up to two stored rerolls. Half-charges carry between rounds and reset after the encounter. Tap Reroll, then an unplayed die to spend one full charge immediately.",
                     "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
-                    "No results carry between rounds. The next round draws six fresh dice.",
+                    "No results carry between rounds. The next round draws six fresh dice. Boons and duos share one bonus half-charge per round, separate from unused-dice charging. Divine healing shares an 8 HP per-round limit; native Heal actions do not.",
                     "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming releases it; committing spends it. Boon rewards refill the same two-charge pool."
                 ]
             )
             ruleCard(
                 icon: "shield.fill", tint: Theme.frost, title: "PREPARE YOUR DEFENCE",
                 lines: [
-                    "Block resolves at its place in the action order. Shield persists throughout the battle until consumed.",
-                    "Evade grants guaranteed Dodges when it resolves, protecting later strikes. Choose an announced strike or Next strike.",
-                    "Evade cancels one hit of a multi-hit attack, never the entire move. Unused dodges expire at round end.",
+                    "Block resolves in action order. Unspent Guard expires at round end; Hearth Breath or Unbroken House retains up to 8, without stacking.",
+                    "Evade grants 50% reduction charges when it resolves. Choose an announced hit or Next strike. Boons can raise reduction to 75%.",
+                    "Each charge reduces one hit, never an entire multi-hit move. Weaken, defensive wards and Evade multiply before Guard absorbs damage. Unused charges expire at round end.",
                     "Focus and Channel prime the next separate Attack, through the end of next round. The strongest prime wins.",
                     "All actions share the alternating queue. Attacks of 4–6 dice wind up for one player event before release."
                 ]
@@ -905,7 +905,7 @@ struct InfoSheetView: View {
                 icon: "shield.fill", tint: Theme.bronze, title: "ENEMY GUARD",
                 lines: [
                     "A foe keeps one guard pool on a bronze channel over its health — plate it was born wearing and block it raises mid-fight are the same resource, so there is only ever one layer to chew through.",
-                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, Your own guard also persists until consumed.",
+                    "Direct hits consume Guard, then Plate, then HP. Guard expires at round end unless Bes retains it; Plate persists until consumed.",
                     "Pierce ignores part of the guard, measured against the deepest it has ever stood.",
                     "Poison, burn and bleed seep under it and tick health directly — damage over time is the answer to a heavy guard.",
                     "Guard never regenerates on its own, so breaking a plated brute is a real investment: they trade burst damage for staying power.",
@@ -1075,5 +1075,3 @@ struct InfoSheetView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 }
-
-

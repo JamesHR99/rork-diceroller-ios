@@ -4,14 +4,14 @@ import Testing
 
 @MainActor
 struct BattleLoopTests {
-    private func battle(_ faces: [FaceKind], classID: String = "archer", boons: [String] = [], chisels: Set<String> = [], patron: Deity? = nil) -> BattleEngine {
+    private func battle(_ faces: [FaceKind], classID: String = "archer", startHP: Int = 100, boons: [String] = [], chisels: Set<String> = [], patron: Deity? = nil) -> BattleEngine {
         let move = EnemyMove(id: "two-hits", name: "Two hits", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
         let enemy = EnemyDef(id: "test-foe", name: "Practice foe", title: "Tests", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
         let dice = faces.enumerated().map { index, face in
             Die(name: "Test \(index)", slot: face.isAttack ? .weapon : .armor, faces: Array(repeating: face, count: 6), patron: patron)
         }
-        return BattleEngine(enemies: [enemy], dice: dice, classID: classID, maxHP: 100, startHP: 100,
+        return BattleEngine(enemies: [enemy], dice: dice, classID: classID, maxHP: 100, startHP: startHP,
             critBonus: -1, boons: boons.map { EquippedBoon(defID: $0, rarity: .common, level: 1) }, chisels: chisels)
     }
 
@@ -39,7 +39,7 @@ struct BattleLoopTests {
 
 
 
-    @Test func bothSidesKeepUnbrokenGuardAcrossRounds() async throws {
+    @Test func ordinaryGuardExpiresOnBothSides() async throws {
         let move = EnemyMove(id: "guard", name: "Guard", faces: [.block], weight: 1, block: 8)
         let foe = EnemyDef(id: "guard-test", name: "Guard", title: "Test", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
@@ -50,13 +50,13 @@ struct BattleLoopTests {
         let face = try #require(engine.rolled.first)
         engine.placeInPlayBar(faceID: face.id)
         try await nextRound(engine)
-        #expect(engine.playerShield == 8)
+        #expect(engine.playerShield == 0)
         let enemyGuard = engine.enemies[0].shield
-        #expect(enemyGuard > 0)
+        #expect(enemyGuard == 0)
         try await roll(engine)
         try await nextRound(engine)
-        #expect(engine.playerShield == 8)
-        #expect(engine.enemies[0].shield > enemyGuard)
+        #expect(engine.playerShield == 0)
+        #expect(engine.enemies[0].shield == 0)
         let fresh = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
             maxHP: 100, startHP: 100, critBonus: -1)
         #expect(fresh.playerShield == 0)
@@ -403,6 +403,120 @@ struct BattleLoopTests {
         let restored = try JSONDecoder().decode(Voyage.self, from: oldData)
         let first = try #require(restored.nodes.first)
         #expect(restored.canReroll(first))
+    }
+
+    @Test func partialEvadeMultipliesWithOtherReductionsAndNeverBecomesImmunity() {
+        #expect(BattleRules.reducedHit(20, evadePercent: 50) == 10)
+        #expect(BattleRules.reducedHit(20, weaken: 0.2, evadePercent: 50) == 8)
+        #expect(BattleRules.reducedHit(100, weaken: 0.2, ward: 0.2, evadePercent: 50) == 32)
+        #expect(BattleRules.reducedHit(20, evadePercent: 100) == 5)
+        #expect(BattleRules.reducedHit(1, evadePercent: 75) == 1)
+        #expect(BattleRules.reducedHit(0, evadePercent: 75) == 0)
+    }
+
+    @Test func besRetentionPreservesButDoesNotGenerateGuard() {
+        #expect(BattleRules.guardAfterRound(72) == 0)
+        #expect(BattleRules.guardAfterRound(72, retention: 8) == 8)
+        #expect(BattleRules.guardAfterRound(3, retention: 8) == 3)
+        #expect(BattleRules.guardAfterRound(0, retention: 8) == 0)
+        #expect(BattleRules.guardAfterRound(72, warrior: true) == 0)
+    }
+
+    @Test func bonusRerollsHaveOneSharedHalfChargeBudget() {
+        #expect(BattleRules.bonusRerollAward(currentHalfCharges: 0, alreadyAwarded: 0) == 1)
+        #expect(BattleRules.bonusRerollAward(currentHalfCharges: 0, alreadyAwarded: 1) == 0)
+        #expect(BattleRules.bonusRerollAward(currentHalfCharges: 4, alreadyAwarded: 0) == 0)
+        #expect(BattleRules.bonusRerollAward(currentHalfCharges: 3, alreadyAwarded: 0) == 1)
+    }
+
+    @Test func changedCatalogueKeepsStableIDsAndHonestScaling() throws {
+        #expect(GodCatalog.regulars.count == 60)
+        #expect(GodCatalog.duos.count == 15)
+        #expect(GodCatalog.legendaries.count == 6)
+        #expect(Set(GodCatalog.all.map(\.id)).count == GodCatalog.all.count)
+        for id in ["HO-D2", "BA-D1", "LG-BA"] {
+            let def = try #require(GodCatalog.boon(id))
+            #expect(def.scales == .evadePercent)
+            #expect(def.resolved(rarity: .common, level: 1).evadePercent == 10)
+            #expect(def.resolved(rarity: .common, level: 3).evadePercent == 20)
+            #expect(def.resolved(rarity: .epic, level: 3).evadePercent == 30)
+            #expect(!def.text(rarity: .epic, level: 3).contains("%V"))
+        }
+        #expect(GodCatalog.boon("SO-D3")?.trigger == .onNativeHeal)
+        #expect(GodCatalog.boon("SO-U2")?.trigger == .onEffectiveHeal)
+        #expect(GodCatalog.boon("BE-A2")?.trigger == .onShieldAbsorb)
+        #expect(GodCatalog.boon("BA-A4")?.trigger == .onDodge)
+        #expect(GodCatalog.boon("AN-U1")?.requires == nil)
+    }
+
+    @Test func oneEvadeOnlyReducesItsAssignedHitAndExpires() async throws {
+        let engine = battle([.evade, .block, .block, .block, .block, .block])
+        try await roll(engine)
+        let evade = try #require(engine.rolled.first { $0.face == .evade })
+        engine.placeInPlayBar(faceID: evade.id)
+        let damage = engine.projectedRoundTotals(for: engine.enemies[0]).damage
+        let firstHit = damage - damage / 2
+        try await nextRound(engine)
+        #expect(engine.playerHP == 100 - damage + firstHit - BattleRules.reducedHit(firstHit, evadePercent: 50))
+        #expect(engine.dodgeCharges == 0)
+    }
+
+    @Test func riverSlipHealsAfterPartialDamage() async throws {
+        let engine = battle([.evade, .block, .block, .block, .block, .block], startHP: 50, boons: ["SO-D2"])
+        try await roll(engine)
+        let evade = try #require(engine.rolled.first { $0.face == .evade })
+        engine.placeInPlayBar(faceID: evade.id)
+        let damage = engine.projectedRoundTotals(for: engine.enemies[0]).damage
+        let firstHit = damage - damage / 2
+        try await nextRound(engine)
+        #expect(engine.playerHP == 50 - damage + firstHit - BattleRules.reducedHit(firstHit, evadePercent: 50) + 3)
+    }
+
+    @Test(arguments: [false, true])
+    func patientHunterRequiresActualHealing(wounded: Bool) async throws {
+        let engine = battle([.heal, .arrow1, .block, .block, .block, .block],
+            startHP: wounded ? 50 : 100, boons: ["SO-U2"])
+        try await roll(engine)
+        let heal = try #require(engine.rolled.first { $0.face == .heal })
+        let attack = try #require(engine.rolled.first { $0.face == .arrow1 })
+        engine.placeInPlayBar(faceID: heal.id)
+        engine.placeInPlayBar(faceID: attack.id)
+        let damage = try #require(engine.turnPlan.last).damage
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == 500 - damage - (wounded ? 6 : 0))
+    }
+
+    @Test(arguments: ["BE-A2", "BA-A4"])
+    func defensiveReactionsEmpowerTheFollowingAttack(boon: String) async throws {
+        let defence: FaceKind = boon == "BE-A2" ? .block : .evade
+        let engine = battle([defence, .arrow1, .focus, .focus, .focus, .focus], boons: [boon])
+        try await roll(engine)
+        let guardFace = try #require(engine.rolled.first { $0.face == defence })
+        let attack = try #require(engine.rolled.first { $0.face == .arrow1 })
+        engine.placeInPlayBar(faceID: guardFace.id)
+        engine.placeInPlayBar(faceID: attack.id)
+        let damage = try #require(engine.turnPlan.last).damage
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == 500 - damage - 6)
+    }
+
+    @Test func thermalAndLightFeetCannotDoubleTheBonusCharge() async throws {
+        let engine = battle([.evade, .arrow1, .arrow2, .arrow3, .block, .focus], boons: ["HO-U1", "BA-U1"])
+        try await roll(engine)
+        engine.gainRerollHalfCharges(2)
+        let focus = try #require(engine.slots.first { slot in
+            if case .rolled(let face) = slot.state { return face.face == .focus }
+            return false
+        })
+        engine.selectingReroll = true
+        engine.reroll(slotID: focus.id, reduceMotion: true)
+        try await settled(engine)
+        let evade = try #require(engine.rolled.first { $0.face == .evade })
+        engine.placeInPlayBar(faceID: evade.id)
+        for face in engine.rolled where face.id != evade.id { engine.placeInPlayBar(faceID: face.id) }
+        #expect(engine.pendingRerollHalfCharges == 0)
+        try await nextRound(engine)
+        #expect(engine.rerollHalfCharges == 1)
     }
 
 }

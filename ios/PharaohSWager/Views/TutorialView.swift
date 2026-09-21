@@ -385,7 +385,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "action-order",
                 title: "Who moves first",
-                body: "Block gives 8 shield; Evade gives one guaranteed dodge. Focus primes +50% damage for your next Attack. Each support action takes one event. Attacks using four to six matching dice take a wind-up event and a release event.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
+                body: "Block gives 8 Guard until round end; Evade halves one chosen hit. Heal restores missing HP. Bes can retain up to 8 Guard. Focus primes +50% damage for your next Attack. Each support action takes one event. Attacks using four to six matching dice take a wind-up event and a release event.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
@@ -707,5 +707,3 @@ private struct DemoFace: Identifiable {
     let id = UUID()
     let kind: FaceKind
 }
-
-

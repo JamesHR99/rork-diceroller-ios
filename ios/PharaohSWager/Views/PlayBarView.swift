@@ -220,7 +220,7 @@ struct PlayBarView: View {
             }
             if let action = step.combo, action.dodgeCharges > 0 {
                 ForEach(Array(step.faces.prefix(action.dodgeCharges).enumerated()), id: \.element.id) { index, face in
-                    Menu("Dodge \(index + 1): \(engine.evadeTargetLabel(faceID: face.id))") {
+                    Menu("Evade \(index + 1): \(engine.evadeTargetLabel(faceID: face.id))") {
                         Button("Next strike") { engine.assignEvade(faceID: face.id, strikeID: nil) }
                         ForEach(engine.incomingStrikes) { strike in
                             Button(strike.title) { engine.assignEvade(faceID: face.id, strikeID: strike.id) }
@@ -319,5 +319,3 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }
-
-

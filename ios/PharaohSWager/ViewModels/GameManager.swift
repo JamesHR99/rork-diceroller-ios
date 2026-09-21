@@ -1386,6 +1386,7 @@ final class GameManager {
         guard let loadout else { return false }
         let reachable = SameFaceCatalog.actions(for: classID).filter { GameData.isReachable($0, loadout: loadout) && $0.faceCount >= def.minimumDice }
         switch def.trigger {
+        case .onNativeHeal: return reachable.contains { $0.heal > 0 }
         case .firstEvade, .onDodge, .firstAttackAfterEvade: return reachable.contains { $0.roles.contains(.evade) }
         case .firstGuard, .everyGuard, .firstKeptGuard, .onShieldAbsorb, .firstAttackAfterGuard: return reachable.contains { $0.roles.contains(.guardian) }
         case .firstLargeCombo: return reachable.contains { $0.faceCount >= max(3, def.minimumDice) && $0.roles.contains(.attack) }

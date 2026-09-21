@@ -113,11 +113,11 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .mark:
             return "The next attack on \(you) hits harder, then it is spent."
         case .evade:
-            return "One charge dodges one chosen incoming hit."
+            return "One charge reduces one chosen incoming hit by 50%; boons can raise this to 75%."
         case .regeneration:
             return "Restores health at round end."
         case .shield:
-            return "Absorbs direct damage across hits. Guard persists throughout the battle until consumed."
+            return "Absorbs direct damage across hits. Unspent Guard expires at round end; Bes can retain up to 8."
         case .armour:
             return "Plate over health. Direct blows chip it first."
         case .champion:
@@ -163,11 +163,11 @@ enum StatusKind: String, CaseIterable, Identifiable {
         case .mark:
             "One at a time."
         case .evade:
-            "Each charge cancels one hit. Expires at round end."
+            "One charge per hit, never stacked on the same hit. Expires at round end."
         case .regeneration:
             "Strongest wins."
         case .shield:
-            "Adds together. Guard persists throughout the battle until consumed."
+            "Adds together during the round. Unspent Guard expires unless retained by Bes."
         case .armour:
             "Set when the creature rises."
         case .champion:
@@ -282,7 +282,7 @@ struct LiveStatus: Identifiable {
         }
         if let percent {
             switch kind {
-            case .evade: break
+            case .evade: lines.append(("Next charge reduction", "\(percent)%"))
             case .weaken: lines.append(("Next attack weaker by", "\(percent)%"))
             case .mark: lines.append(("Next attack harder by", "+\(percent)%"))
             default: lines.append(("Strength", "\(percent)%"))

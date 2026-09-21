@@ -547,7 +547,7 @@ final class BattleEngine {
     // MARK: Player state
     private(set) var playerHP: Int
     /// The shield: block that soaks damage and stays until something breaks
-    /// it. Unused guard persists until consumed or the encounter ends.
+    /// it. Unused Guard expires at round end unless a Bes boon retains it.
     private(set) var playerShield = 0
     /// Guaranteed single-hit dodges, optionally reserved for announced strikes.
     var dodgeCharges: Int { dodgeReservations.count }
@@ -715,6 +715,17 @@ final class BattleEngine {
     private var shieldBrokeThisRound = false
     private var pendingBoonEffects: [(payload: BoonPayload, target: Int?)] = []
     private var pendingHealOnHit = 0
+    private var nativeAttackHPDamage = 0
+    private var nativeHealingTriggeredThisRound = false
+    private var bonusRerollHalfChargesThisRound = 0
+    private var evadedDamageThisRound = 0
+    private var committedUnusedDice = 0
+    private var completedLargeAttack = false
+    private var actionEvadePercent = BattleRules.baseEvadePercent
+    private var dodgeReductions: [Int] = []
+    private var reactiveAttackBonuses: [String: (payload: BoonPayload, expires: Int)] = [:]
+    private var lastMeasureTargetID: UUID?
+    private let lastMeasureRequestID = UUID()
     private var healingFromDuo = false
     private var boonStartShield: Int?
     private var boonStartFoe: EnemyState?
@@ -1049,6 +1060,9 @@ final class BattleEngine {
         let roles = roles(for: step)
         let frozen = step.faces.contains { $0.wasKept }
         switch def.trigger {
+        case .firstEligibleAttack: return roles.contains(.attack)
+        case .onNativeHeal, .onEffectiveHeal:
+            return (step.combo?.heal ?? 0) > 0 || step.faces.first?.matchFace.soloKind == .heal
         case .firstFocusedAttack: return roles.contains(.attack) && actionFocus > 0
         case .firstAttackAfterGuard, .firstAttackAfterSupport, .firstAttackAfterEvade:
             return roles.contains(.attack)
@@ -1238,7 +1252,8 @@ final class BattleEngine {
             if p.markPercent > 0 { enemy.append("Marked +\(p.markPercent)%") }
             if p.shield > 0 { player.append("Shield +\(p.shield)") }
             if p.heal > 0 { player.append("HP +\(p.heal)") }
-            if p.dodgeCharges > 0 { player.append("Dodge +\(p.dodgeCharges)") }
+            if p.evadePercent > 0 { player.append("Evade +\(p.evadePercent) points (cap 75%)") }
+            if p.dodgeCharges > 0 { player.append("Partial Evade +\(p.dodgeCharges)") }
             if p.cleansesSelf { player.append("Cleanse") }
             if !enemy.isEmpty { lines.append("If \(def.name) triggers — Enemy: " + enemy.joined(separator: ", ")) }
             if !player.isEmpty { lines.append("If \(def.name) triggers — You: " + player.joined(separator: ", ")) }
@@ -1637,7 +1652,8 @@ final class BattleEngine {
     private func buildAimQueue() -> [AimRequest] {
         guard livingFoes.count > 1 else { return [] }
         var queue: [AimRequest] = []
-        for step in buildPlan(from: playedFaces) where step.targetsEnemy {
+        for step in buildPlan(from: playedFaces) where step.targetsEnemy
+            || (activeBoon("SO-D3") != nil && ((step.combo?.heal ?? 0) > 0 || step.faces.first?.matchFace.soloKind == .heal)) {
             queue.append(
                 AimRequest(stepID: step.id, isSecondary: false, title: step.title,
                            detail: step.valueLine, damage: mainDamage(for: step),
@@ -1652,6 +1668,11 @@ final class BattleEngine {
                                faces: step.faces.map(\.matchFace), tint: Theme.ptahCopper)
                 )
             }
+        }
+        if activeBoon("AN-U1") != nil, unusedDiceCount >= 2 {
+            queue.append(AimRequest(stepID: lastMeasureRequestID, isSecondary: false,
+                title: "Last Measure", detail: "+4 Judgement at round end if already Judged",
+                damage: 0, faces: [], tint: Deity.anubis.tint))
         }
         return queue
     }
@@ -2306,6 +2327,8 @@ final class BattleEngine {
     func commitTurn() {
         guard canResolve else { return }
         let earned = pendingRerollHalfCharges
+        committedUnusedDice = unusedDiceCount
+        lastMeasureTargetID = allocations[lastMeasureRequestID]
         rerollChargeFlights = Array(slots.filter { slot in
             if case .rolled(let face) = slot.state { return !playOrder.contains(face.id) }
             return false
@@ -2374,6 +2397,8 @@ final class BattleEngine {
             }
             activeTargetID = target.map { enemies[$0].id }
             boonPierceBonus = 0
+            nativeAttackHPDamage = 0
+            actionEvadePercent = BattleRules.baseEvadePercent
             actionFocus = roles(for: step).contains(.attack) ? focusPrime : 0
             if roles(for: step).contains(.attack) { focusPrime = 0 }
             counterweightPayment = 0
@@ -2386,6 +2411,7 @@ final class BattleEngine {
             // lands, so the combo's own evasion can never pay for it.
             if let combo = step.combo, assassinArmed.contains(step.id.uuidString), let available = dodgeReservations.firstIndex(where: { $0 == nil }) {
                 dodgeReservations.remove(at: available)
+                dodgeReductions.remove(at: available)
                 addFloat("Commitment −1 Dodge", color: Theme.ptahCopper, onEnemy: false)
             } else if let combo = step.combo {
                 assassinArmed.remove(step.id.uuidString)
@@ -2473,11 +2499,17 @@ final class BattleEngine {
                     }
                 }
                 let dealtHealthDamage = target.map { enemies[$0].hp < healthBefore } ?? false
-                if dealtHealthDamage && pendingHealOnHit > 0 { healPlayer(pendingHealOnHit, label: "Feeding Frenzy") }
+                if nativeAttackHPDamage > 0, pendingHealOnHit > 0,
+                   let def = activeBoon("SO-A4")?.def, claimBoon(def) {
+                    let previous = attributing; attributing = .divine
+                    healPlayer(pendingHealOnHit, label: "Feeding Frenzy")
+                    attributing = previous
+                }
                 pendingHealOnHit = 0
                 applyPendingBoonEffects()
                 finishSameFaceAction(step, target: target)
                 completedDice += step.faces.count
+                if roles(for: step).contains(.attack), step.faces.count >= 4 { completedLargeAttack = true }
                 if let combo = step.combo {
                     assassinArmed.remove(step.id.uuidString)
                     counterweightArmed.remove(step.id.uuidString)
@@ -2732,7 +2764,9 @@ final class BattleEngine {
                 let fraction = twinBowstringApplies(step) ? GameData.twinSplitFraction : 1
                 let total = boost(native * fraction + flat, marked: true)
                 let dealt = damageEnemy(total, pierce: pierce, targetIndex: target)
-                nativeHP += min(dealt, boost(native * fraction, marked: true))
+                let nativePortion = min(dealt, boost(native * fraction, marked: true))
+                nativeHP += nativePortion
+                nativeAttackHPDamage += nativePortion
                 if twinBowstringApplies(step) {
                     let secondary = secondaryTargetIndex(for: step, mainIndex: target)
                     _ = damageEnemy(boost(native * GameData.twinSplitFraction, marked: secondary == target),
@@ -2755,7 +2789,7 @@ final class BattleEngine {
         crownBurn = 0
         if !hasLivingFoes { return }
         if combo.lifesteal { healPlayer(min(combo.lifestealCap, nativeHP / 5), label: "Lifesteal") }
-        if combo.heal > 0 { healPlayer(scaled(combo.heal)) }
+        if combo.heal > 0 { healPlayer(scaled(combo.heal), nativeAction: true, targetIndex: target) }
         if combo.shield > 0 { gainShield(scaled(combo.shield)) }
         if combo.dodgeCharges > 0 {
             let before = dodgeReservations.count
@@ -2809,14 +2843,18 @@ final class BattleEngine {
                 returningKnifeUsedThisTurn = true; returningBladeReady = true
             }
         }
-        if thermalPending { primeBonus(percent: 15); thermalPending = false }
+        if thermalPending {
+            primeBonus(percent: 15)
+            if rerollsUsed > 0 { awardBonusReroll() }
+            thermalPending = false
+        }
     }
 
     private func preventLethalDamage() {
         guard playerHP <= 0, activeBoon("LG-BA") != nil, !nineLivesUsed else { return }
         nineLivesUsed = true
         playerHP = 1
-        gainDodges(2)
+        gainDodges(2, reduction: 75)
         addFloat("NINE LIVES UNBOUND", color: Deity.bastet.tint, onEnemy: false, big: true)
     }
 
@@ -2850,6 +2888,7 @@ final class BattleEngine {
                                      targetIndex: target)
             let dealt = damageEnemy(raw, pierce: attackPierce(comboBase: 0, step: soloStep, crit: face.isCrit, targetIndex: target),
                                     targetIndex: target)
+            nativeAttackHPDamage = min(dealt, value)
             firstFeastCheck(dealt)
             lastAction = face.isCrit
                 ? "\(face.displayName) crits for \(dealt)!"
@@ -2862,14 +2901,14 @@ final class BattleEngine {
 
         switch face.matchFace.soloKind {
         case .heal:
-            healPlayer(value)
+            healPlayer(value, nativeAction: true, targetIndex: target)
             lastAction = "You recover \(value) health."
         case .block:
             gainShield(value)
             lastAction = "Your shield grows by \(value)."
         case .evade:
             gainDodges(1)
-            lastAction = "One Dodge prepared for an incoming hit."
+            lastAction = "One Evade prepared: reduces a chosen hit by \(actionEvadePercent)%."
         case .poison:
             applyPoison(value, turns: 2, targetIndex: target)
             lastAction = "A drop of venom finds its mark."
@@ -3065,6 +3104,14 @@ final class BattleEngine {
         evaluatingBoons = true
         defer { evaluatingBoons = false; boonStartShield = nil; boonStartFoe = nil }
         if roles.contains(.attack) {
+            for id in reactiveAttackBonuses.keys.sorted() {
+                guard let reward = reactiveAttackBonuses.removeValue(forKey: id), turnNumber <= reward.expires else { continue }
+                primeBonus(damage: reward.payload.flatDamage, percent: reward.payload.percentDamage)
+                boonPierceBonus += Double(reward.payload.pierce) / 100
+                if reward.payload.shield > 0 { gainShield(reward.payload.shield) }
+                pendingDivineEntries.append(DivineFlashEntry(god: GodCatalog.boon(id)?.god ?? .sobek,
+                    name: GodCatalog.boon(id)?.name ?? "Recovery", effect: summary(of: reward.payload)))
+            }
             attacksThisRound += 1
             if !step.isCombo { soloAttacksThisRound += 1 }
         }
@@ -3079,7 +3126,9 @@ final class BattleEngine {
         for boon in boons {
             guard let def = boon.def else { continue }
             guard boonAnswers(def, step: step, roles: roles, frozen: frozen, targetIndex: target) else { continue }
-            guard claimBoon(def) else { continue }
+            // Feeding Frenzy is claimed only after native HP damage lands.
+            if def.id != "SO-A4", !claimBoon(def) { continue }
+            if def.id == "SO-A4", boonsFiredThisRound.contains(def.id) { continue }
             land(boon: boon, def: def, step: step, targetIndex: target)
         }
 
@@ -3111,6 +3160,8 @@ final class BattleEngine {
 
         let triggered: Bool
         switch def.trigger {
+        case .firstEligibleAttack: triggered = roles.contains(.attack)
+        case .onEffectiveHeal, .onNativeHeal: return false
         case .everyAttack: triggered = roles.contains(.attack)
         case .firstAttack: triggered = roles.contains(.attack) && attacksThisRound == 1
         case .firstFocusedAttack: triggered = roles.contains(.attack) && actionFocus > 0
@@ -3156,6 +3207,7 @@ final class BattleEngine {
     ) -> Bool {
         let foe = evaluatingBoons ? boonStartFoe : target.flatMap { enemies.indices.contains($0) ? enemies[$0] : nil }
         switch condition {
+        case .targetMarked: return (foe?.markBonus ?? 0) > 0
         case .targetBurning: return (foe?.burnAmount ?? 0) > 0
         case .targetBleeding: return (foe?.bleedAmount ?? 0) > 0
         case .targetJudged: return foe?.judgementPending == true
@@ -3185,8 +3237,8 @@ final class BattleEngine {
         switch def.trigger {
         case .everyAttack, .everyGuard, .firstTwoSoloAttacks:
             return true
-        case _ where def.id == "SO-U2" || def.id == "HO-U2":
-            // Patient Hunter is once per encounter, not per round.
+        case _ where def.id == "RA-U1" || def.id == "HO-U2":
+            // Dawn Breath and Perfect Timing answer once per encounter.
             guard !boonsFiredThisEncounter.contains(def.id) else { return false }
             boonsFiredThisEncounter.insert(def.id)
             return true
@@ -3251,6 +3303,13 @@ final class BattleEngine {
             if (boonStartFoe?.bleedAmount ?? 0) > 0 { payload.percentDamage += 15 }
         }
         if def.id == "HO-U1" { thermalPending = true }
+        if ["HO-D2", "BA-D1", "LG-BA"].contains(def.id) {
+            let extra = def.id == "HO-D2" ? (frozen ? 5 : 0) : (step.faces.count == 2 ? 5 : 0)
+            actionEvadePercent = min(BattleRules.maximumEvadePercent, actionEvadePercent + payload.evadePercent + extra)
+        }
+        if def.id == "AN-D3", enemies.contains(where: { $0.isAlive && $0.judgementAmount > 0 }) {
+            cleanseStatuses(count: 1)
+        }
         if def.id == "HO-D3", step.hasCritFace {
             let chosen = target ?? enemies.firstIndex(where: { $0.isAlive })
             pendingBoonEffects.append((BoonPayload(markPercent: 20), chosen))
@@ -3335,7 +3394,8 @@ final class BattleEngine {
         if payload.weakenPercent > 0 { parts.append("weaken \(payload.weakenPercent)%") }
         if payload.markPercent > 0 { parts.append("mark +\(payload.markPercent)%") }
         if payload.cleansesSelf { parts.append("cleansed") }
-        if payload.dodgeCharges > 0 { parts.append("+\(payload.dodgeCharges) Dodge") }
+        if payload.evadePercent > 0 { parts.append("+\(payload.evadePercent) points Evade (cap 75%)") }
+        if payload.dodgeCharges > 0 { parts.append("+\(payload.dodgeCharges) partial Evade") }
         if payload.rerollsNext > 0 { parts.append("+\(payload.rerollsNext) reroll next") }
         return parts.isEmpty ? "answers" : parts.joined(separator: " · ")
     }
@@ -3527,36 +3587,71 @@ final class BattleEngine {
         addFloat("+\(amount) Shield", color: Theme.steel, onEnemy: false)
     }
 
-    private func gainDodges(_ charges: Int) {
+    private func gainDodges(_ charges: Int, reduction: Int? = nil) {
         guard charges > 0 else { return }
+        let percent = min(BattleRules.maximumEvadePercent, reduction ?? actionEvadePercent)
         for _ in 0..<min(charges, max(0, BattleRules.maximumDodges - dodgeReservations.count)) {
             dodgeReservations.append(nil)
+            dodgeReductions.append(percent)
         }
 
         addFloat("+\(charges) Dodge", color: Theme.steel, onEnemy: false)
     }
 
-    private func consumeDodge(foeID: UUID, moveIndex: Int, hitIndex: Int) -> Bool {
+    private func consumeDodge(foeID: UUID, moveIndex: Int, hitIndex: Int) -> Int? {
         let key = "\(foeID.uuidString):\(moveIndex):\(hitIndex)"
-        return BattleRules.consumeDodge(reservations: &dodgeReservations, strikeID: key)
-
+        guard let index = dodgeReservations.firstIndex(where: { $0 == key })
+            ?? dodgeReservations.firstIndex(where: { $0 == nil }) else { return nil }
+        dodgeReservations.remove(at: index)
+        return dodgeReductions.remove(at: index)
     }
 
-    private func healPlayer(_ amount: Int, label: String? = nil) {
+    /// One shared half-charge budget across equipped gods and duos.
+    private func awardBonusReroll() {
+        let amount = BattleRules.bonusRerollAward(currentHalfCharges: rerollHalfCharges,
+            alreadyAwarded: bonusRerollHalfChargesThisRound)
         guard amount > 0 else { return }
-        guard playerHP > 0 else { return }
+        bonusRerollHalfChargesThisRound += amount
+        gainRerollHalfCharges(amount)
+        addFloat("+0.5 Reroll", color: Theme.gold, onEnemy: false)
+    }
+
+    private func bankReactiveAttack(_ id: String, payload: BoonPayload) {
+        reactiveAttackBonuses[id] = (payload, turnNumber + 1)
+    }
+
+    private func healPlayer(_ amount: Int, label: String? = nil, nativeAction: Bool = false, targetIndex target: Int? = nil) {
+        guard amount > 0, playerHP > 0 else { return }
+        let healthBefore = playerHP
         let allowed = attributing == .divine ? min(amount, max(0, 8 - divineHealingThisRound)) : amount
-        let healed = min(playerMaxHP, playerHP + allowed) - playerHP
+        var healed = min(playerMaxHP - playerHP, allowed)
+        guard healed > 0 else { return }
         if attributing == .divine { divineHealingThisRound += healed }
         playerHP += healed
-        if healed > 0, !healingFromDuo, let boon = activeBoon("DU-07"), let def = boon.def, claimBoon(def) {
+        // Native healing pays first. Divine extras share their own budget.
+        if nativeAction && !nativeHealingTriggeredThisRound {
+            nativeHealingTriggeredThisRound = true
+            var bonus = 0
+            if let boon = activeBoon("SO-D3") {
+                bonus += boon.payload.heal
+                applyWeaken(0.2, targetIndex: target)
+            }
+            if healthBefore * 2 <= playerMaxHP, activeBoon("SO-U1") != nil { bonus += 4 }
+            let extra = min(playerMaxHP - playerHP, min(bonus, max(0, 8 - divineHealingThisRound)))
+            playerHP += extra
+            divineHealingThisRound += extra
+            healed += extra
+            if activeBoon("BE-U2") != nil { gainShield(5) }
+        }
+        if let def = activeBoon("SO-U2")?.def, claimBoon(def) {
+            bankReactiveAttack("SO-U2", payload: BoonPayload(flatDamage: min(6, healed)))
+        }
+        if !healingFromDuo, label != "Regen",
+           let boon = activeBoon("DU-07"), let def = boon.def, claimBoon(def) {
             gainShield(boon.payload.shield)
         }
-        if healed > 0 {
-            addFloat("+\(healed)\(label.map { " \($0)" } ?? "")", color: Theme.forest, onEnemy: false)
-        }
-        // Pairing: Crocodile Hide — the first heal each turn hardens into shield.
-        if pairing?.id == "pair_sobek_bes", !healGivenThisTurn, healed > 0 {
+        addFloat("+\(healed)\(label.map { " \($0)" } ?? "")", color: Theme.forest, onEnemy: false)
+        if pairing?.id == "pair_sobek_bes", !healGivenThisTurn {
             healGivenThisTurn = true
             gainShield(5)
             addFloat("CROCODILE HIDE", color: Deity.sobek.tint, onEnemy: false, big: true)
@@ -3603,7 +3698,7 @@ final class BattleEngine {
             let old = attributing; attributing = .divine
             healingFromDuo = true; healPlayer(3, label: "The Crossing"); healingFromDuo = false
             attributing = old
-            nextRoundRerolls = 1
+            awardBonusReroll()
         }
         enemies[index].judgementAmount = 0; enemies[index].judgementPending = false
         announceVerdict(foe: foe, stored: stored, total: amount, scaleBonus: amount - stored)
@@ -3753,12 +3848,12 @@ final class BattleEngine {
         }
 
         guard raw > 0 else { return 0 }
+        var damage = max(0, raw)
         if foe.evadeCharges > 0 {
             foe.evadeCharges -= 1
-            addFloat("EVADED!", color: Deity.bastet.tint, onEnemy: true, foe: foe.id)
-            return 0
+            damage = BattleRules.reducedHit(damage, evadePercent: BattleRules.baseEvadePercent)
+            addFloat("EVADE 50%", color: Deity.bastet.tint, onEnemy: true, foe: foe.id)
         }
-        var damage = max(0, raw)
         let bypass = Int(Double(damage) * min(1, max(0, pierce)))
         var guarded = damage - bypass
         let shieldAbsorbed = min(foe.shield, guarded)
@@ -3840,6 +3935,7 @@ final class BattleEngine {
         for index in enemies.indices {
             if turnNumber >= enemies[index].markExpires { enemies[index].markBonus = 0 }
             if turnNumber >= enemies[index].weakenExpires { enemies[index].weaken = 0 }
+            enemies[index].shield = 0
         }
 
         // Capstone: Unbroken House — retaliate for half of what the shield
@@ -3857,14 +3953,16 @@ final class BattleEngine {
            shieldAbsorbedThisEnemyTurn > 0 || hardestHitFoeID != nil {
             nextRoundGuard += 6
         }
-        if activeBoon("BA-D3") != nil, incomingAttemptedThisRound, !lostHealthThisRound { nextRoundGuard += 4 }
+        if activeBoon("BA-D3") != nil, evadedDamageThisRound >= 8 { nextRoundGuard += 4 }
         shieldAbsorbedThisEnemyTurn = 0
         hardestHitFoeID = nil
         hardestHitAmount = 0
         tookHealthDamageThisEnemyTurn = false
-        playerShield = BattleRules.guardAfterRound(playerShield, warrior: classID == "warrior")
+        let retention = activeBoon("BE-U1") != nil || activeBoon("LG-BE") != nil ? 8 : 0
+        playerShield = BattleRules.guardAfterRound(playerShield, retention: retention)
         reflectFraction = 0
         dodgeReservations = []
+        dodgeReductions = []
 
         bastetEvadeUsed = false
         firstEvadeFired = false
@@ -3898,6 +3996,11 @@ final class BattleEngine {
             if onDodge, !claimBoon(def) { continue }
 
             let payload = boon.payload
+            if def.id == "BA-A4" {
+                bankReactiveAttack(def.id, payload: payload)
+                continue
+            }
+            if def.id == "BA-U1" { awardBonusReroll() }
             if def.id == "DU-09", let attackerIndex {
                 damageEnemyDirect(enemies[attackerIndex].id, enemies[attackerIndex].bleedAmount, label: "Bleed")
             }
@@ -3907,7 +4010,7 @@ final class BattleEngine {
             if payload.shield > 0 { gainShield(payload.shield) }
             if payload.heal > 0 { healPlayer(min(payload.heal, 8), label: def.god.name) }
             if payload.rerollsNext > 0 {
-                nextRoundRerolls = min(rerollCapacity, nextRoundRerolls + payload.rerollsNext)
+                awardBonusReroll()
                 addFloat("+\(payload.rerollsNext) Reroll Next", color: Theme.gold, onEnemy: false)
             }
             if payload.percentDamage > 0 { primeBonus(percent: payload.percentDamage) }
@@ -3939,6 +4042,10 @@ final class BattleEngine {
             if onAbsorb, !claimBoon(def) { continue }
 
             let payload = boon.payload
+            if def.id == "BE-A2" {
+                bankReactiveAttack(def.id, payload: payload)
+                continue
+            }
             addFloat(def.name.uppercased(), color: def.god.tint, onEnemy: true, foe: attacker.id)
             if payload.burn > 0 {
                 if def.id == "RA-D3" {
@@ -3997,6 +4104,19 @@ final class BattleEngine {
                !conditionHolds(requirement, step: nil, frozen: false, targetIndex: nil) { continue }
             guard claimBoon(def) else { continue }
 
+            if def.id == "BE-U1" { continue }
+            if def.id == "RA-U2" {
+                if completedLargeAttack && committedUnusedDice >= 1 { awardBonusReroll() }
+                continue
+            }
+            if def.id == "AN-U1" {
+                if committedUnusedDice >= 2 {
+                    let chosen = enemies.firstIndex { $0.isAlive && $0.judgementAmount > 0 && $0.id == lastMeasureTargetID }
+                        ?? enemies.firstIndex { $0.isAlive && $0.judgementAmount > 0 }
+                    applyJudgement(4, targetIndex: chosen)
+                }
+                continue
+            }
             // The legendary Unbroken House pays back half the shield the round
             // absorbed, at whoever consumed the most of it.
             if def.id == "LG-BE" {
@@ -4029,7 +4149,7 @@ final class BattleEngine {
             }
             if payload.heal > 0 { healPlayer(min(payload.heal, 8), label: def.god.name) }
             if payload.rerollsNext > 0 {
-                nextRoundRerolls = min(rerollCapacity, nextRoundRerolls + payload.rerollsNext)
+                awardBonusReroll()
                 addFloat("+\(payload.rerollsNext) Reroll Next", color: Theme.gold, onEnemy: false)
             }
         }
@@ -4118,6 +4238,7 @@ final class BattleEngine {
     /// its round on three actions comes through here three times, each on its
     /// own beat of the shared clock. Returns true when the player died.
     private func foeActs(index: Int, moveIndex: Int = 0) async -> Bool {
+        actionEvadePercent = BattleRules.baseEvadePercent
         var foe: EnemyState {
             get { enemies[index] }
             set { enemies[index] = newValue }
@@ -4211,7 +4332,9 @@ final class BattleEngine {
                 return livingIDs.contains(String(reservation.prefix(36))) ? reservation : nil
             }
             let weakness = foe.weaken
-            var actionReduction: Double? = nil
+            let ward = nextHitReduction
+            foe.weaken = 0
+            nextHitReduction = 0
             let perHit = total / attackFaces
             var remainder = total - perHit * attackFaces
             for hitIndex in 0..<attackFaces {
@@ -4227,24 +4350,22 @@ final class BattleEngine {
                 var hit = perHit + remainder
                 remainder = 0
 
-                // One reservation cancels one hit; a selected later hit waits.
-                if consumeDodge(foeID: foe.id, moveIndex: moveIndex, hitIndex: hitIndex) {
+                // One reservation reduces one chosen hit, never the whole move.
+                let evade = consumeDodge(foeID: foe.id, moveIndex: moveIndex, hitIndex: hitIndex) ?? 0
+                let withoutEvade = BattleRules.reducedHit(hit, weaken: weakness, ward: ward)
+                hit = BattleRules.reducedHit(hit, weaken: weakness, ward: ward, evadePercent: evade)
+                let prevented = withoutEvade - hit
+                if prevented > 0 {
+                    evadedDamageThisRound += prevented
                     animatePlayer(.dodge)
-                    addFloat("Evaded!", color: Theme.steel, onEnemy: false)
+                    addFloat("Evade −\(prevented)", color: Theme.steel, onEnemy: false)
                     Haptics.light()
                     Audio.shared.play(.evade)
-                    firstEvadeRewards(attacker: foe)
-                    try? await Task.sleep(for: .milliseconds(BattleBeat.deflect))
-                    resetPoses()
-                    continue
                 }
-
-                if actionReduction == nil {
-                    actionReduction = min(0.5, weakness + nextHitReduction)
-                    foe.weaken = 0
-                    nextHitReduction = 0
+                // Pay reactions after the remaining damage, only if alive.
+                defer {
+                    if prevented > 0 && playerHP > 0 { firstEvadeRewards(attacker: foe) }
                 }
-                hit = Int(Double(hit) * (1 - (actionReduction ?? 0)))
                 if playerShield > 0 {
                     // Horus's trial blow ignores half of the guard.
                     var usableShield = playerShield
@@ -4421,6 +4542,12 @@ final class BattleEngine {
         returningBladeReady = false
         conversionUsed = false
         divineHealingThisRound = 0
+        nativeHealingTriggeredThisRound = false
+        bonusRerollHalfChargesThisRound = 0
+        evadedDamageThisRound = 0
+        completedLargeAttack = false
+        actionEvadePercent = BattleRules.baseEvadePercent
+        reactiveAttackBonuses = reactiveAttackBonuses.filter { turnNumber <= $0.value.expires }
         completedDice = 0
         nativeReflectCap = 0
         // Every "first/second/third" counter in the catalogue is per round.
@@ -4770,4 +4897,3 @@ final class BattleEngine {
         }
     }
 }
-

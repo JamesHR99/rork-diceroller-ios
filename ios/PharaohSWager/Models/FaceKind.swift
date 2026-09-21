@@ -225,7 +225,7 @@ enum FaceKind: String, CaseIterable, Hashable, Codable {
         case .damage: return "\(soloValue) dmg"
         case .block: return "+\(soloValue) shield"
         case .heal: return "+\(soloValue) hp"
-        case .evade: return "1 Dodge"
+        case .evade: return "Evade 50%"
         case .poison: return "\(soloValue) psn"
 
         case .focus: return "+50% next hit"
