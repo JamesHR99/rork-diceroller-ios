@@ -422,7 +422,8 @@ private struct DiceTrayReelView: View {
                     .font(.system(size: tagSize, weight: .black).monospacedDigit())
                     .foregroundStyle(bottomTagTint(face))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
+                    .frame(width: max(1, width * 0.66))
             }
             .padding(.horizontal, max(8, width * 0.1))
             .padding(.vertical, max(9, height * 0.075))
