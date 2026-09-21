@@ -21,7 +21,6 @@ struct PlayBarView: View {
 
     var body: some View {
         HStack(spacing: 7) {
-            diceRail
             planSection
             VStack(spacing: 6) {
                 rerollButton
@@ -56,22 +55,6 @@ struct PlayBarView: View {
     }
 
     // MARK: - Combining
-
-    private var diceRail: some View {
-        VStack(spacing: 5) {
-            Image(systemName: "dice.fill")
-            Text("\(planFaces.count)/\(BattleRules.handSize)")
-                .font(.system(size: 13, weight: .black).monospacedDigit())
-            Text("DICE").font(.system(size: 8, weight: .bold))
-            Spacer(minLength: 0)
-            Image(systemName: "arrow.triangle.2.circlepath")
-            Text(engine.rerollChargeText).font(.system(size: 13, weight: .black))
-        }
-        .foregroundStyle(Theme.gold)
-        .padding(.vertical, 8)
-        .frame(width: 42, height: columnHeight)
-        .background(Theme.bg.opacity(0.7), in: .rect(cornerRadius: 12))
-    }
 
     // MARK: - Turn plan
 
@@ -161,9 +144,8 @@ struct PlayBarView: View {
         let steps = engine.displayedPlan
         return GeometryReader { geometry in
             let reserved = CGFloat(max(0, steps.count - 1)) * 6
-            let diceCount = max(1, steps.reduce(0) { $0 + $1.faces.count })
-            let share = max(78, (geometry.size.width - reserved - 2) / CGFloat(diceCount))
-            ScrollView(.horizontal, showsIndicators: false) {
+            let cardWidth = max(220, (geometry.size.width - reserved - 2) / CGFloat(max(1, steps.count)))
+            ScrollView(.horizontal, showsIndicators: true) {
                 HStack(spacing: 6) {
                     if steps.isEmpty {
                         Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
@@ -172,79 +154,77 @@ struct PlayBarView: View {
                             .frame(width: max(0, geometry.size.width - 2), height: bodyHeight)
                     }
                     ForEach(steps) { step in
-                        combinedCard(step, width: share * CGFloat(step.faces.count))
+                        combinedCard(step, width: cardWidth)
                     }
                 }
                 .padding(.horizontal, 1)
                 .frame(minHeight: bodyHeight)
+                .padding(.bottom, 8)
             }
         }
-        .frame(height: bodyHeight)
+        .frame(height: bodyHeight + 8)
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.72), value: engine.playOrder)
     }
 
     private func combinedCard(_ step: PlanStep, width: CGFloat) -> some View {
-        let roomy = width >= 350
         let tint = step.tint
-        let titleSize = min(34, min(bodyHeight * 0.29, max(12, width * 0.085)))
-        let iconSize = min(bodyHeight * (roomy ? 0.42 : 0.2), max(12, (width - 28) / CGFloat(step.faces.count + 2)))
-        let content = roomy ? AnyLayout(HStackLayout(alignment: .center, spacing: 18))
-                            : AnyLayout(VStackLayout(alignment: .leading, spacing: 3))
-        return content {
-            HStack(spacing: 3) {
-                ForEach(step.faces) { face in
-                    PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
-                        size: iconSize, tint: face.isCrit ? Theme.gold : face.matchFace.tint)
-                        .draggable(face.id.uuidString)
-                        .accessibilityLabel(face.displayName + (face.isCrit ? ", critical" : ""))
+        return ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(step.title.uppercased())
+                        .font(.fantasy(18, weight: .black))
+                        .foregroundStyle(Theme.parchment)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let face = step.faces.first {
+                        HStack(spacing: 3) {
+                            PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
+                                size: 20, tint: step.hasCritFace ? Theme.gold : face.matchFace.tint)
+                                .draggable(face.id.uuidString)
+                            Text("× \(step.faces.count)")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundStyle(Theme.gold)
+                        .fixedSize()
+                        .accessibilityLabel("\(face.displayName), \(step.faces.count) dice")
+                    }
                 }
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .top, spacing: 3) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(step.title.uppercased())
-                            .font(.fantasy(titleSize, weight: .black))
-                            .foregroundStyle(Theme.parchment)
-                            .lineLimit(2).minimumScaleFactor(0.65)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(step.isCombo ? "\(step.faces.count) DICE COMBO" : "1 DIE")
-                            .font(.system(size: max(9, titleSize * 0.46), weight: .black))
+                if engine.displayedDamage(for: step) > 0 {
+                    Text(engine.damageBreakdown(for: step))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Theme.gold)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                ForEach(Array(step.effects.enumerated()), id: \.offset) { _, effect in
+                    Text(effect)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.parchment)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let line = engine.chiselLine(for: step) {
+                    Text(line)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.ptahCopper)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if engine.phase == .player {
+                    Button {
+                        if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
+                    } label: {
+                        Label("Return die", systemImage: "minus.circle.fill")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(Theme.gold)
+                            .frame(minHeight: 32)
                     }
-                    if engine.phase == .player {
-                        Button {
-                            if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: max(16, titleSize * 0.65)))
-                                .foregroundStyle(Theme.gold)
-                                .frame(minWidth: 30, minHeight: 30)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Return last die from \(step.title) to tray")
-                    }
-                }
-                ScrollView(.vertical, showsIndicators: false) {
-                    let labels = (engine.displayedDamage(for: step) > 0 ? ["\(engine.displayedDamage(for: step)) DAMAGE"] : []) + step.effects
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: min(max(60, width - 24), roomy ? 150 : 100)), spacing: 4)], alignment: .leading, spacing: 3) {
-                        ForEach(labels, id: \.self) { label in
-                            Text(label.uppercased())
-                                .font(.system(size: min(20, max(10, min(bodyHeight * 0.18, width / 15))), weight: .bold))
-                                .foregroundStyle(label.contains("DAMAGE") ? Theme.gold : Theme.parchment)
-                                .lineLimit(1).minimumScaleFactor(0.7)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 5).padding(.vertical, 2)
-                                .background(tint.opacity(0.13), in: .rect(cornerRadius: 3))
-                        }
-                    }
-                    if let line = engine.chiselLine(for: step) {
-                        Text(line).font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.ptahCopper)
-                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Return last die from \(step.title) to tray")
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, roomy ? 18 : 8).padding(.vertical, 7)
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .frame(width: width, height: bodyHeight)
         .background { TurnOrderPlaque(accent: tint) }
         .onTapGesture {
@@ -292,6 +272,7 @@ struct PlayBarView: View {
                     .font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Theme.gold)
+            .paintedContentInsets()
             .frame(width: controlWidth, height: rerollHeight)
             .background {
                 DeckButtonSurface(tone: .secondary, state: engine.selectingReroll ? .selected : .normal, rim: Theme.gold)
@@ -330,6 +311,7 @@ struct PlayBarView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
+            .paintedContentInsets()
             .frame(width: controlWidth, height: commitHeight)
             .background {
                 DeckButtonSurface(
@@ -348,4 +330,5 @@ struct PlayBarView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
     }
 }
+
 

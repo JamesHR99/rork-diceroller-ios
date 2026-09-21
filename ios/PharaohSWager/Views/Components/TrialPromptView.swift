@@ -80,6 +80,7 @@ struct TrialPromptView: View {
                                             .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                                             .lineLimit(1)
                                             .minimumScaleFactor(0.7)
+                                            .paintedContentInsets()
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 52)
                                             .background {
@@ -104,6 +105,7 @@ struct TrialPromptView: View {
                                             .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                                             .lineLimit(1)
                                             .minimumScaleFactor(0.7)
+                                            .paintedContentInsets()
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 52)
                                             .background {
@@ -150,4 +152,5 @@ struct TrialPromptView: View {
         .frame(width: 150)
     }
 }
+
 

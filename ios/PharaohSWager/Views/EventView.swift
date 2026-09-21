@@ -94,6 +94,7 @@ struct EventView: View {
                                                startPoint: .top, endPoint: .bottom)
                             )
                             .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+                            .paintedContentInsets()
                             .frame(maxWidth: 240)
                             .frame(height: 52)
                             .background {
@@ -148,4 +149,5 @@ struct EventView: View {
         .disabled(!affordable)
     }
 }
+
 

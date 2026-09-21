@@ -729,7 +729,7 @@ struct InfoSheetView: View {
             ruleCard(
                 icon: "shield.fill", tint: Theme.frost, title: "PREPARE YOUR DEFENCE",
                 lines: [
-                    "Block resolves at its place in the action order. Shield expires at round end; Warriors carry up to 8.",
+                    "Block resolves at its place in the action order. Shield persists throughout the battle until consumed.",
                     "Evade grants guaranteed Dodges when it resolves, protecting later strikes. Choose an announced strike or Next strike.",
                     "Evade cancels one hit of a multi-hit attack, never the entire move. Unused dodges expire at round end.",
                     "Focus and Channel prime the next separate Attack, through the end of next round. The strongest prime wins.",
@@ -905,7 +905,7 @@ struct InfoSheetView: View {
                 icon: "shield.fill", tint: Theme.bronze, title: "ENEMY GUARD",
                 lines: [
                     "A foe keeps one guard pool on a bronze channel over its health — plate it was born wearing and block it raises mid-fight are the same resource, so there is only ever one layer to chew through.",
-                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, Your own guard expires at round end; Warriors carry up to 8.",
+                    "Your hits chip the guard first; only when it is gone can health be touched. What survives your turn stands until something breaks it, Your own guard also persists until consumed.",
                     "Pierce ignores part of the guard, measured against the deepest it has ever stood.",
                     "Poison, burn and bleed seep under it and tick health directly — damage over time is the answer to a heavy guard.",
                     "Guard never regenerates on its own, so breaking a plated brute is a real investment: they trade burst damage for staying power.",
@@ -1075,4 +1075,5 @@ struct InfoSheetView: View {
         .background(Theme.bgCard, in: .rect(cornerRadius: 14))
     }
 }
+
 

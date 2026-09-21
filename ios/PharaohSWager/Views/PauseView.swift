@@ -170,7 +170,7 @@ struct PauseView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 14)
+            .paintedContentInsets()
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background {
@@ -202,6 +202,7 @@ struct PauseView: View {
                     Text("Keep Going")
                         .font(.fantasy(16, weight: .bold))
                         .foregroundStyle(Theme.parchment)
+                        .paintedContentInsets()
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
                         .background {
@@ -216,6 +217,7 @@ struct PauseView: View {
                     Text("Abandon It")
                         .font(.fantasy(16, weight: .bold))
                         .foregroundStyle(Theme.parchment)
+                        .paintedContentInsets()
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
                         .background {
@@ -321,3 +323,4 @@ struct PauseButton: View {
         .accessibilityLabel("Pause")
     }
 }
+

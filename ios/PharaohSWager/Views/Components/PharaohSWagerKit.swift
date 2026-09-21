@@ -270,6 +270,7 @@ struct PaintedButtonLabel<Content: View>: View {
 
     var body: some View {
         content()
+            .paintedContentInsets()
             .frame(width: width, height: height)
             .frame(maxWidth: width == nil ? .infinity : nil)
             .background {
@@ -343,6 +344,7 @@ struct PaintedButtonStyle: ButtonStyle {
             ? .disabled
             : (configuration.isPressed ? .pressed : (isSelected ? .selected : .normal))
         return configuration.label
+            .paintedContentInsets()
             .frame(height: height)
             .frame(maxWidth: .infinity)
             .background {
@@ -517,3 +519,35 @@ struct PharaohSWagerStaminaPip: View {
     }
 }
 
+
+
+/// End ornaments occupy 14% of a painted plate on either side. Reserve that
+/// space inside the proposed frame, so icons and text share the usable centre.
+private struct PaintedContentLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        let natural = content.sizeThatFits(.unspecified)
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? (natural.width + 24) / 0.72
+        let inset = max(12, width * 0.14)
+        let inner = ProposedViewSize(width: max(0, width - inset * 2),
+                                    height: proposal.height.map { max(0, $0 - 12) })
+        let measured = content.sizeThatFits(inner)
+        return CGSize(width: width, height: proposal.height ?? measured.height + 12)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let inset = max(12, bounds.width * 0.14)
+        subviews.first?.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center,
+            proposal: ProposedViewSize(width: max(0, bounds.width - inset * 2),
+                                       height: max(0, bounds.height - 12)))
+    }
+}
+
+extension View {
+    func paintedContentInsets() -> some View {
+        PaintedContentLayout { self }
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.65)
+    }
+}

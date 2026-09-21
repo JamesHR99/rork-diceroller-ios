@@ -117,6 +117,7 @@ struct RewardView: View {
                     .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .paintedContentInsets()
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .background {
@@ -144,6 +145,7 @@ struct RewardView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
+                .paintedContentInsets()
                 .frame(maxWidth: .infinity)
                 .frame(height: 42)
                 .background {
@@ -224,3 +226,4 @@ struct RewardView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(accent.opacity(0.3), lineWidth: 1))
     }
 }
+

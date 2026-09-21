@@ -20,6 +20,7 @@ private struct BattleContentView: View {
     @Environment(GameManager.self) private var game
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showInfo = false
+    @State private var showBoons = false
     @State private var arrivalShown = true
     /// Where the run's heading and the health rail actually end. The deck is
     /// hung off this rather than off the bottom of the screen, so it rises to
@@ -156,6 +157,32 @@ private struct BattleContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
+        .sheet(isPresented: $showBoons) {
+            NavigationStack {
+                List {
+                    if game.equippedBoons.isEmpty {
+                        Text("No god boons equipped yet. Earn blessings during your voyage.")
+                    }
+                    ForEach(game.equippedBoons) { boon in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label(boon.def?.name ?? boon.defID,
+                                  systemImage: boon.def?.god.symbol ?? "sparkles")
+                                .font(.headline)
+                                .foregroundStyle(boon.def?.god.tint ?? Theme.gold)
+                            Text("\(boon.rarity.label) · Level \(boon.level)")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Text(boon.text)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+                .navigationTitle("Equipped god boons")
+                .toolbar { ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showBoons = false }
+                } }
+            }
+        }
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus,
@@ -538,6 +565,21 @@ private struct BattleContentView: View {
             .background(Theme.bgElevated, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1))
 
+            Button {
+                showBoons = true
+                Haptics.light()
+            } label: {
+                Label("BOONS \(game.equippedBoons.count)", systemImage: "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.gold)
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 36)
+                    .background(Theme.bgElevated, in: .capsule)
+            }
+            .buttonStyle(PressableButtonStyle())
+            .accessibilityIdentifier("battle.boons")
+            .accessibilityLabel("Equipped god boons, \(game.equippedBoons.count)")
+
             // Chisels of Ptah: the copper marks beside the turn. The optional
             // ones are controls — tap a mark to pick the Chisel up, then tap
             // the chain in your plan you want it to ride. Tap it again to put
@@ -574,6 +616,7 @@ private struct BattleContentView: View {
                         .kerning(1)
                         .foregroundStyle(Theme.parchment)
                 }
+                .paintedContentInsets()
                 .frame(width: 84, height: 44)
                 .background {
                     PharaohSWagerImage(name: PharaohSWagerArt.button(.secondary, .normal), fit: .stretch)
@@ -738,6 +781,7 @@ private struct BattleContentView: View {
                         Text(foes[0].def.isBoss ? "Stand Between It and Ra" : "Take Up Your Dice")
                             .font(.fantasy(16, weight: .bold))
                             .foregroundStyle(Theme.parchment)
+                            .paintedContentInsets()
                             .frame(width: 260, height: 48)
                             .background {
                                 PharaohSWagerImage(name: PharaohSWagerArt.button(.primary, .normal), fit: .stretch)
@@ -777,6 +821,7 @@ private struct BattleContentView: View {
                     Text(won ? "Take the Spoils" : "See the Tale")
                         .font(.fantasy(16, weight: .bold))
                         .foregroundStyle(Theme.parchment)
+                        .paintedContentInsets()
                         .frame(width: 220, height: 48)
                         .background {
                             PharaohSWagerImage(name: PharaohSWagerArt.button(won ? .primary : .secondary, .normal),
@@ -831,4 +876,5 @@ private struct DeckShelfBackground: View {
         .allowsHitTesting(false)
     }
 }
+
 
