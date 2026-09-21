@@ -215,7 +215,7 @@ private struct BattleContentView: View {
     private func diceDeck(size: CGSize) -> some View {
         let metrics = BattleDeckMetrics(screenHeight: size.height,
                                         headerHeight: headerHeight > 0 ? headerHeight : 120)
-        return VStack(spacing: 0) {
+        return FittedActionContent {
             VStack(spacing: 6) {
                 DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
                              maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
