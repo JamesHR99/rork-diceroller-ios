@@ -111,11 +111,11 @@ struct BattleLoopTests {
         #expect(engine.rerollHalfCharges == 0)
         try await settled(engine)
         // An empty plan still resolves the enemy queue and caps the award.
-        let healthBefore = engine.playerHP
+        let protectionBefore = engine.playerHP + engine.playerShield
         #expect(engine.pendingRerollHalfCharges == 4)
         try await nextRound(engine)
         #expect(engine.rerollHalfCharges == 4)
-        #expect(engine.playerHP < healthBefore)
+        #expect(engine.playerHP + engine.playerShield < protectionBefore)
         let fresh = battle(Array(repeating: .block, count: 6))
         #expect(fresh.rerollHalfCharges == 0)
     }
