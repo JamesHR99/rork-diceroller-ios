@@ -41,8 +41,34 @@ enum BattleRules {
         return true
     }
 
-    static func guardAfterRound(_ guardValue: Int, warrior: Bool) -> Int {
-        max(0, guardValue)
+    static let baseEvadePercent = 50
+    static let maximumEvadePercent = 75
+    static let bonusRerollHalfChargeLimit = 1
+
+    static func splitHits(_ total: Int, count: Int) -> [Int] {
+        let hits = max(1, count)
+        let damage = max(0, total)
+        return (0..<hits).map { damage / hits + ($0 == 0 ? damage % hits : 0) }
+    }
+
+    static func guardAfterRound(_ guardValue: Int, warrior: Bool = false, retention: Int = 0) -> Int {
+        min(max(0, guardValue), max(0, retention))
+    }
+
+    /// Reductions multiply; round only once, keeping at least one damage
+    /// from a positive hit. Partial evasion never becomes full immunity.
+    static func reducedHit(_ damage: Int, weaken: Double = 0, ward: Double = 0, evadePercent: Int = 0) -> Int {
+        guard damage > 0 else { return 0 }
+        let evade = Double(min(maximumEvadePercent, max(0, evadePercent))) / 100
+        let weakened: Double = Double(damage) * (1.0 - min(0.5, max(0.0, weaken)))
+        let warded: Double = weakened * (1.0 - min(0.5, max(0.0, ward)))
+        let remaining: Double = warded * (1.0 - evade)
+        return max(1, Int(remaining.rounded(.up)))
+    }
+
+    static func bonusRerollAward(currentHalfCharges: Int, alreadyAwarded: Int) -> Int {
+        min(max(0, bonusRerollHalfChargeLimit - alreadyAwarded),
+            max(0, maximumRerolls * 2 - currentHalfCharges))
     }
 }
 
@@ -57,5 +83,3 @@ struct EnemyStrike: Identifiable, Hashable {
 
     var id: String { "\(foeID.uuidString):\(moveIndex):\(hitIndex)" }
 }
-
-

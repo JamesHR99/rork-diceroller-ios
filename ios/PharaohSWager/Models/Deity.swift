@@ -71,12 +71,12 @@ enum Deity: String, CaseIterable, Identifiable, Hashable, Codable {
     /// One-line pitch for offer cards and the codex.
     var pitch: String {
         switch self {
-        case .ra: "Sets the world alight — burn that bites every turn, answers for every face you play."
-        case .sobek: "Opens veins and feeds on them — bleed that refreshes, and health for every wound."
+        case .ra: "Ignite, sustain the flame, then detonate it with a decisive solar attack."
+        case .sobek: "Bleed your prey, feed on wounds, and turn healing into your next attack."
         case .anubis: "Weighs every blow — judgement that stores up and detonates against health."
-        case .bes: "Stands in the doorway — shield that stays until it breaks, and the swing that follows."
-        case .horus: "Never misses — piercing attacks, kept-die rewards, and primed precision."
-        case .bastet: "Lands on its feet — evade upon evade, and counters for every escape."
+        case .bes: "Retain Guard, absorb a blow, then answer with a crushing counterattack."
+        case .horus: "Earn rerolls, keep the right dice Prepared, and pierce defences with precision."
+        case .bastet: "Soften dangerous hits, mark your prey, and answer with swift counterattacks."
         }
     }
 }

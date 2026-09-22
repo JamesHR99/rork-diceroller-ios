@@ -127,6 +127,9 @@ enum BoonKind: Hashable {
 /// primary player actions in that round — never ingredient count or animation
 /// hits.
 enum BoonTrigger: Hashable {
+    case firstEligibleAttack
+    case onEffectiveHeal
+    case onNativeHeal
     case everyAttack
     case firstAttack
     case firstSoloAttack
@@ -157,6 +160,9 @@ enum BoonTrigger: Hashable {
     /// Human-readable lead-in used on cards that do not print their own.
     var label: String {
         switch self {
+        case .firstEligibleAttack: "First qualifying attack"
+        case .onEffectiveHeal: "First effective heal"
+        case .onNativeHeal: "First effective native healing action"
         case .everyAttack: "Every attack"
         case .firstAttack: "First attack"
         case .firstSoloAttack: "First individual attack"
@@ -177,7 +183,7 @@ enum BoonTrigger: Hashable {
         case .firstKeptGuard: "First kept guard"
         case .firstEvade: "First evade"
         case .firstKeptAction: "First kept action"
-        case .onDodge: "On your first dodge"
+        case .onDodge: "When your first Evade prevents damage"
         case .onShieldAbsorb: "When your shield takes a hit"
         case .encounterStart: "At the start of the fight"
         case .roundStart: "At the start of the round"
@@ -189,6 +195,7 @@ enum BoonTrigger: Hashable {
 
 /// An extra clause tested before the action changes anything.
 enum BoonCondition: Hashable {
+    case targetMarked
     case targetBurning
     case targetBleeding
     case targetJudged
@@ -207,6 +214,7 @@ enum BoonCondition: Hashable {
 /// Which number on a card the level and rarity move. Everything else on the
 /// card is fixed and never grows quietly.
 enum BoonScalingField: Hashable {
+    case evadePercent
     case flatDamage
     case percentDamage
     case pierce
@@ -224,6 +232,7 @@ enum BoonScalingField: Hashable {
 
 /// What a power actually does when it answers.
 struct BoonPayload: Hashable {
+    var evadePercent = 0
     var flatDamage = 0
     var percentDamage = 0
     /// Pierce in percentage points.
@@ -324,6 +333,7 @@ struct GodBoonDef: Identifiable, Hashable {
         var result = payload
         let live = value(rarity: rarity, level: level)
         switch scales {
+        case .evadePercent: result.evadePercent = live
         case .flatDamage: result.flatDamage = live
         case .percentDamage: result.percentDamage = live
         case .pierce: result.pierce = live
@@ -384,9 +394,9 @@ enum BoonSourceGroup: String, Hashable {
         case .raBurn:
             ["RA-A1", "RA-A2", "RA-A3", "RA-A4", "RA-A5", "RA-D1", "RA-D2", "RA-D3"]
         case .sobekBleed:
-            ["SO-A1", "SO-A2", "SO-A4", "SO-A5", "SO-D1"]
+            ["SO-A1", "SO-A2", "SO-A5", "SO-D1"]
         case .sobekHealing:
-            ["SO-A4", "SO-D2", "SO-D3", "SO-U2"]
+            ["SO-A4", "SO-D2", "SO-D3", "SO-U1", "SO-U2"]
         case .anubisJudgement:
             ["AN-A1", "AN-A2", "AN-A3", "AN-A4", "AN-A5", "AN-D1", "AN-D2"]
         case .besShield:
@@ -426,5 +436,3 @@ struct EquippedBoon: Identifiable, Hashable, Codable {
         def?.text(rarity: rarity, level: level) ?? ""
     }
 }
-
-

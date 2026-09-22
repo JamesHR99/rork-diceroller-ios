@@ -78,13 +78,14 @@ enum GodCatalog {
             god: .ra,
             slot: .attack,
             name: "Sun's Wrath",
-            effect: "First Prepared Attack: +%V damage and 2 Burn.",
+            effect: "First Attack against an already Burning enemy: +%V damage.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstKeptAttack,
-            payload: BoonPayload(burn: 2),
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(),
             scales: .flatDamage,
-            values: [6, 8, 10]
+            values: [6, 8, 10],
+            requires: .targetBurning
         ),
         GodBoonDef(
             id: "RA-A4",
@@ -104,7 +105,7 @@ enum GodCatalog {
             god: .ra,
             slot: .attack,
             name: "Sun's Edge",
-            effect: "All Attacks against an already Burning primary target gain +%V% damage. Each Attack adds 1 Burn per ingredient, stored charge maximum 2 per action.",
+            effect: "All Attacks against an already Burning primary gain +%V% damage. Each Attack adds 1 Burn per ingredient, maximum 3 per action.",
             function: "Same-face attack",
             kind: .regular,
             trigger: .everyAttack,
@@ -130,7 +131,7 @@ enum GodCatalog {
             god: .ra,
             slot: .defence,
             name: "Cinder Step",
-            effect: "First Evade action arms the next successful Dodge this round to apply %V Burn to its attacker.",
+            effect: "First Evade action arms the next Evade that prevents damage this round to apply %V Burn to its attacker.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
@@ -157,22 +158,22 @@ enum GodCatalog {
             god: .ra,
             slot: .utility,
             name: "Dawn Breath",
-            effect: "Start each encounter with 8 Shield. Fixed.",
+            effect: "First Attack each encounter applies 4 additional Burn. Fixed.",
             function: "Same-face utility",
             kind: .regular,
-            trigger: .encounterStart,
-            payload: BoonPayload(shield: 8)
+            trigger: .firstAttack,
+            payload: BoonPayload(burn: 4)
         ),
         GodBoonDef(
             id: "RA-U2",
             god: .ra,
             slot: .utility,
             name: "Banked Embers",
-            effect: "Resolve a 4–6 die Attack to gain one extra reroll pass next round, once per round; stored charge maximum 2. Fixed.",
+            effect: "Resolve a 4–6 die Attack and leave a die unused: +0.5 reroll at round end. All boons/duos share a +0.5 per-round limit; storage cap 2. Fixed.",
             function: "Same-face utility",
             kind: .regular,
-            trigger: .firstLargeCombo,
-            payload: BoonPayload(rerollsNext: 1),
+            trigger: .roundEnd,
+            payload: BoonPayload(),
             minimumDice: 4
         ),
     ]
@@ -211,26 +212,28 @@ enum GodCatalog {
             god: .sobek,
             slot: .attack,
             name: "Death Grip",
-            effect: "First Prepared Attack: +%V damage and 2 Poison.",
+            effect: "First Attack against an already Bleeding enemy: +%V damage; apply 20 Weaken after damage.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstKeptAttack,
-            payload: BoonPayload(poison: 2),
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(weakenPercent: 20),
             scales: .flatDamage,
-            values: [5, 7, 9]
+            values: [5, 7, 9],
+            requires: .targetBleeding
         ),
         GodBoonDef(
             id: "SO-A4",
             god: .sobek,
             slot: .attack,
             name: "Feeding Frenzy",
-            effect: "Second Attack applies 3 Bleed; if its native direct damage removes any HP, heal %V.",
+            effect: "First Attack that removes HP from an already Bleeding enemy heals %V. Divine healing shares an 8 HP per-round limit.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .secondAttack,
-            payload: BoonPayload(bleed: 3),
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(),
             scales: .heal,
-            values: [3, 4, 5]
+            values: [3, 4, 5],
+            requires: .targetBleeding
         ),
         GodBoonDef(
             id: "SO-A5",
@@ -263,7 +266,7 @@ enum GodCatalog {
             god: .sobek,
             slot: .defence,
             name: "River Slip",
-            effect: "First Evade arms the next successful Dodge this round to heal %V.",
+            effect: "First Evade arms the next Evade that prevents damage this round to heal %V.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
@@ -276,36 +279,35 @@ enum GodCatalog {
             god: .sobek,
             slot: .defence,
             name: "Blood Shelter",
-            effect: "First Prepared Guard: +%V Shield, and 3 healing.",
+            effect: "First native healing action that restores HP heals %V extra and applies 20 Weaken to your chosen foe. Divine healing cap 8 per round.",
             function: "Same-face defence",
             kind: .regular,
-            trigger: .firstKeptGuard,
-            payload: BoonPayload(heal: 3),
-            scales: .shield,
-            values: [5, 7, 9]
+            trigger: .onNativeHeal,
+            payload: BoonPayload(weakenPercent: 20),
+            scales: .heal,
+            values: [3, 4, 5]
         ),
         GodBoonDef(
             id: "SO-U1",
             god: .sobek,
             slot: .utility,
             name: "Blood Reserve",
-            effect: "Start a round at half HP or less to gain 6 Shield. Fixed.",
+            effect: "If your first effective native healing action begins at half HP or below, heal 4 extra. Divine healing cap 8 per round. Fixed.",
             function: "Same-face utility",
             kind: .regular,
-            trigger: .roundStart,
-            payload: BoonPayload(shield: 6),
-            requires: .healthAtHalf
+            trigger: .onNativeHeal,
+            payload: BoonPayload(heal: 4)
         ),
         GodBoonDef(
             id: "SO-U2",
             god: .sobek,
             slot: .utility,
             name: "Patient Hunter",
-            effect: "First Prepared action each encounter heals 4 and grants 6 Shield. Fixed.",
+            effect: "First effective heal each round empowers your next separate Attack by HP restored, up to +6 damage. Expires end of next round. Fixed.",
             function: "Same-face utility",
             kind: .regular,
-            trigger: .firstKeptAction,
-            payload: BoonPayload(shield: 6, heal: 4)
+            trigger: .onEffectiveHeal,
+            payload: BoonPayload()
         ),
     ]
 
@@ -343,13 +345,14 @@ enum GodCatalog {
             god: .anubis,
             slot: .attack,
             name: "Sealed Fate",
-            effect: "First Prepared Attack: +%V damage and 5 Judgement.",
+            effect: "First Attack against an already Judged enemy adds %V Judgement and applies 20 Weaken after damage.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstKeptAttack,
-            payload: BoonPayload(judgement: 5),
-            scales: .flatDamage,
-            values: [5, 7, 9]
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(weakenPercent: 20),
+            scales: .judgement,
+            values: [5, 7, 9],
+            requires: .targetJudged
         ),
         GodBoonDef(
             id: "AN-A4",
@@ -395,7 +398,7 @@ enum GodCatalog {
             god: .anubis,
             slot: .defence,
             name: "Passing Shadow",
-            effect: "First Evade arms the next successful Dodge this round to add %V Judgement to its attacker.",
+            effect: "First Evade arms the next Evade that prevents damage this round to add %V Judgement to its attacker.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
@@ -408,11 +411,11 @@ enum GodCatalog {
             god: .anubis,
             slot: .defence,
             name: "Burial Cloth",
-            effect: "First Prepared Guard: +%V Shield and cleanse one status.",
+            effect: "First Guard: +%V Guard. If a living enemy already has Judgement, cleanse one harmful status.",
             function: "Same-face defence",
             kind: .regular,
-            trigger: .firstKeptGuard,
-            payload: BoonPayload(cleansesSelf: true),
+            trigger: .firstGuard,
+            payload: BoonPayload(),
             scales: .shield,
             values: [5, 7, 9]
         ),
@@ -421,12 +424,11 @@ enum GodCatalog {
             god: .anubis,
             slot: .utility,
             name: "Last Measure",
-            effect: "Resolve actions using all six physical dice this round to earn one extra reroll pass next round, stored charge maximum 2. Wind-up alone is insufficient. Fixed.",
+            effect: "Leave at least two dice unused: at round end add 4 Judgement to your chosen already Judged living foe (or first eligible foe if unavailable). Fixed.",
             function: "Same-face utility",
             kind: .regular,
             trigger: .roundEnd,
-            payload: BoonPayload(rerollsNext: 1),
-            requires: .usedAllDice
+            payload: BoonPayload()
         ),
         GodBoonDef(
             id: "AN-U2",
@@ -462,10 +464,10 @@ enum GodCatalog {
             god: .bes,
             slot: .attack,
             name: "Counter-Swing",
-            effect: "First Attack after a separate Guard this round: +%V damage and 4 Shield.",
+            effect: "First time Guard absorbs damage each round, empower your next Attack with +%V damage and 4 Guard. Expires end of next round.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstAttackAfterGuard,
+            trigger: .onShieldAbsorb,
             payload: BoonPayload(shield: 4),
             scales: .flatDamage,
             values: [6, 8, 10]
@@ -475,13 +477,14 @@ enum GodCatalog {
             god: .bes,
             slot: .attack,
             name: "Guardian's Hand",
-            effect: "First Prepared Attack: +%V damage and 5 Shield.",
+            effect: "First Attack starting with at least 8 Guard: +%V damage and apply 20 Weaken after damage.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstKeptAttack,
-            payload: BoonPayload(shield: 5),
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(weakenPercent: 20),
             scales: .flatDamage,
-            values: [5, 7, 9]
+            values: [5, 7, 9],
+            requires: .hadEightShield
         ),
         GodBoonDef(
             id: "BE-A4",
@@ -553,22 +556,21 @@ enum GodCatalog {
             god: .bes,
             slot: .utility,
             name: "Hearth Breath",
-            effect: "End a round with at least 8 Shield to start the next with 6 Shield in addition to native carry, shield cap 100. Fixed.",
+            effect: "Retain up to 8 unspent Guard between rounds. Does not generate Guard or stack with Unbroken House retention. Fixed.",
             function: "Same-face utility",
             kind: .regular,
             trigger: .roundEnd,
-            payload: BoonPayload(guardNext: 6),
-            requires: .endedWithEightShield
+            payload: BoonPayload()
         ),
         GodBoonDef(
             id: "BE-U2",
             god: .bes,
             slot: .utility,
             name: "Safe Keeping",
-            effect: "First Prepared Guard each round gains 5 Shield. Fixed.",
+            effect: "First native healing action that restores HP also grants 5 Guard. Fixed.",
             function: "Same-face utility",
             kind: .regular,
-            trigger: .firstKeptGuard,
+            trigger: .onNativeHeal,
             payload: BoonPayload(shield: 5)
         ),
     ]
@@ -648,7 +650,7 @@ enum GodCatalog {
             god: .horus,
             slot: .defence,
             name: "Watchful Guard",
-            effect: "First Prepared Guard: +%V Shield and arm 20% reduction on the next non-dodged enemy damage action, expiring this round.",
+            effect: "First Prepared Guard: +%V Guard; reduce the next enemy damage action by 20% this round. Multiplies with Weaken and Evade.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstKeptGuard,
@@ -661,13 +663,13 @@ enum GodCatalog {
             god: .horus,
             slot: .defence,
             name: "Feather Step",
-            effect: "First Evade: +%V Shield; if Prepared, gain another 3 Shield.",
+            effect: "First Evade action gains +%V percentage points reduction; Prepared adds 5 more. Total reduction capped at 75%.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
-            payload: BoonPayload(bonusCondition: .usesKeptFace, bonusShield: 3),
-            scales: .shield,
-            values: [3, 5, 7]
+            payload: BoonPayload(),
+            scales: .evadePercent,
+            values: [10, 15, 20]
         ),
         GodBoonDef(
             id: "HO-D3",
@@ -687,7 +689,7 @@ enum GodCatalog {
             god: .horus,
             slot: .utility,
             name: "Thermal",
-            effect: "First Prepared action each round primes +15% damage for the next separate Attack; expires at end of next round. Fixed.",
+            effect: "First Prepared action primes +15% damage for the next separate Attack, expiring end of next round. After a paid reroll it also returns 0.5 charge; all boons/duos share +0.5 per round, storage cap 2. Fixed.",
             function: "Same-face utility",
             kind: .regular,
             trigger: .firstKeptAction,
@@ -714,7 +716,7 @@ enum GodCatalog {
             god: .bastet,
             slot: .attack,
             name: "Pounce",
-            effect: "First two-die Attack: +%V damage and 1 Dodge.",
+            effect: "First two-die Attack: +%V damage and 1 partial Evade charge.",
             function: "Same-face attack",
             kind: .regular,
             trigger: .firstTwoFaceCombo,
@@ -740,23 +742,24 @@ enum GodCatalog {
             god: .bastet,
             slot: .attack,
             name: "Silent Approach",
-            effect: "First Prepared Attack: +%V damage; apply 20 Marked after damage.",
+            effect: "First Attack against a Marked enemy: +%V damage.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstKeptAttack,
-            payload: BoonPayload(markPercent: 20),
+            trigger: .firstEligibleAttack,
+            payload: BoonPayload(),
             scales: .flatDamage,
-            values: [5, 7, 9]
+            values: [5, 7, 9],
+            requires: .targetMarked
         ),
         GodBoonDef(
             id: "BA-A4",
             god: .bastet,
             slot: .attack,
             name: "Dancing Blades",
-            effect: "First Attack after a separate Evade this round: +%V damage and +30 percentage points Pierce.",
+            effect: "First Evade that prevents damage empowers your next Attack with +%V damage and +30 points Pierce. Expires end of next round.",
             function: "Same-face attack",
             kind: .regular,
-            trigger: .firstAttackAfterEvade,
+            trigger: .onDodge,
             payload: BoonPayload(pierce: 30),
             scales: .flatDamage,
             values: [6, 8, 10]
@@ -766,7 +769,7 @@ enum GodCatalog {
             god: .bastet,
             slot: .attack,
             name: "Ninefold Flurry",
-            effect: "Third Attack action this round: +%V damage and 1 Dodge. One six-die group counts as one action.",
+            effect: "Third Attack action this round: +%V damage and 1 partial Evade charge. One six-die group counts as one action.",
             function: "Same-face attack",
             kind: .regular,
             trigger: .thirdAttack,
@@ -779,20 +782,20 @@ enum GodCatalog {
             god: .bastet,
             slot: .defence,
             name: "Hunting Step",
-            effect: "First Evade: +%V Shield. If it uses exactly two dice, gain another 3 Shield.",
+            effect: "First Evade action gains +%V percentage points reduction; exactly two dice adds 5 more. Total reduction capped at 75%.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
-            payload: BoonPayload(bonusCondition: .isTwoFaceCombo, bonusShield: 3),
-            scales: .shield,
-            values: [3, 5, 7]
+            payload: BoonPayload(),
+            scales: .evadePercent,
+            values: [10, 15, 20]
         ),
         GodBoonDef(
             id: "BA-D2",
             god: .bastet,
             slot: .defence,
             name: "Light Landing",
-            effect: "First Evade arms the next successful Dodge this round to grant %V Shield.",
+            effect: "First Evade arms the next Evade that prevents damage this round to grant %V Shield.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .firstEvade,
@@ -805,7 +808,7 @@ enum GodCatalog {
             god: .bastet,
             slot: .defence,
             name: "Unscathed",
-            effect: "Encounter start: %V Shield. If at least one enemy strike was attempted and the hero lost no HP from any source that round, begin the next with 4 Shield.",
+            effect: "Encounter start: %V Guard. If Evade prevents at least 8 damage this round, begin the next with 4 Guard.",
             function: "Same-face defence",
             kind: .regular,
             trigger: .encounterStart,
@@ -818,22 +821,22 @@ enum GodCatalog {
             god: .bastet,
             slot: .utility,
             name: "Light Feet",
-            effect: "First successful Dodge each round earns one extra reroll pass next round, stored charge maximum 2. Fixed.",
+            effect: "First Evade that prevents damage each round earns 0.5 reroll. All boons/duos share +0.5 per round; storage cap 2. Fixed.",
             function: "Same-face utility",
             kind: .regular,
             trigger: .onDodge,
-            payload: BoonPayload(rerollsNext: 1)
+            payload: BoonPayload()
         ),
         GodBoonDef(
             id: "BA-U2",
             god: .bastet,
             slot: .utility,
             name: "Slip Through",
-            effect: "First solo Attack each round gains +4 damage. Combos do not consume the benefit. Fixed.",
+            effect: "First solo Attack each round applies 20 Marked after damage. Fixed.",
             function: "Same-face utility",
             kind: .regular,
             trigger: .firstSoloAttack,
-            payload: BoonPayload(flatDamage: 4)
+            payload: BoonPayload(markPercent: 20)
         ),
     ]
 
@@ -868,15 +871,15 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-05", god: .ra, slot: .defence, name: "Dancing Flame",
-            effect: "First successful Dodge applies 3 Burn to its attacker and grants 3 Shield.",
+            effect: "First Evade that prevents damage applies 3 Burn to its attacker and grants 3 Shield.",
             function: "Ra + Bastet", kind: .duo, trigger: .onDodge,
             payload: BoonPayload(burn: 3, shield: 3), sources: [.raBurn, .bastetEvade]
         ),
         GodBoonDef(
             id: "DU-06", god: .sobek, slot: .utility, name: "The Crossing",
-            effect: "First Judgement release on an already Bleeding foe heals 3 and earns one reroll pass next round, stored charge maximum 2. Evaluate Bleed before the verdict even if it kills.",
+            effect: "First Judgement release on an already Bleeding foe heals 3 and earns 0.5 reroll. All boons/duos share +0.5 per round; storage cap 2. Evaluate Bleed before release.",
             function: "Sobek + Anubis", kind: .duo, trigger: .everyAttack,
-            payload: BoonPayload(heal: 3, rerollsNext: 1), sources: [.sobekBleed, .anubisJudgement]
+            payload: BoonPayload(heal: 3), sources: [.sobekBleed, .anubisJudgement]
         ),
         GodBoonDef(
             id: "DU-07", god: .sobek, slot: .defence, name: "Crocodile Hide",
@@ -892,7 +895,7 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-09", god: .sobek, slot: .defence, name: "Death Roll",
-            effect: "First Dodge against a Bleeding attacker pays one early Bleed tick on it and heals 2.",
+            effect: "First Evade that prevents damage against a Bleeding attacker pays one early Bleed tick on it and heals 2.",
             function: "Sobek + Bastet", kind: .duo, trigger: .onDodge,
             payload: BoonPayload(heal: 2), sources: [.sobekBleed, .bastetEvade]
         ),
@@ -911,25 +914,25 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "DU-12", god: .anubis, slot: .defence, name: "Borrowed Life",
-            effect: "First successful Dodge adds 5 Judgement to its attacker and heals 2.",
+            effect: "First Evade that prevents damage adds 5 Judgement to its attacker and heals 2.",
             function: "Anubis + Bastet", kind: .duo, trigger: .onDodge,
             payload: BoonPayload(judgement: 5, heal: 2), sources: [.anubisJudgement, .bastetEvade]
         ),
         GodBoonDef(
             id: "DU-13", god: .bes, slot: .defence, name: "Watchful Guardian",
-            effect: "First Prepared action grants 6 Shield. If natively Guard, arm 20% reduction for the next non-dodged enemy damage action this round.",
+            effect: "First Prepared action grants 6 Guard. A native Guard also reduces the next enemy damage action by 20% this round, multiplying with Weaken and Evade.",
             function: "Bes + Horus", kind: .duo, trigger: .firstKeptAction,
             payload: BoonPayload(shield: 6), sources: [.besShield, .horusKept]
         ),
         GodBoonDef(
             id: "DU-14", god: .bes, slot: .defence, name: "Warm Doorstep",
-            effect: "First successful Dodge grants 5 Shield. If shield later breaks this round, gain 1 Dodge after the hit, once.",
+            effect: "First Evade that prevents damage grants 5 Shield. If shield later breaks this round, gain 1 partial Evade charge after the hit, once.",
             function: "Bes + Bastet", kind: .duo, trigger: .onDodge,
             payload: BoonPayload(shield: 5), sources: [.besShield, .bastetEvade]
         ),
         GodBoonDef(
             id: "DU-15", god: .horus, slot: .attack, name: "Silent Descent",
-            effect: "First successful Dodge primes next separate Attack for +20% damage and +50 percentage points Pierce; expires end of next round.",
+            effect: "First Evade that prevents damage primes next separate Attack for +20% damage and +50 percentage points Pierce; expires end of next round.",
             function: "Horus + Bastet", kind: .duo, trigger: .onDodge,
             payload: BoonPayload(percentDamage: 20, pierce: 50), sources: [.horusPierce, .bastetEvade]
         ),
@@ -966,7 +969,7 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "LG-BE", god: .bes, slot: .attack, name: "Unbroken House",
-            effect: "Keeps Sheltering Blow. Round end: strike back for half the shield spent that round, up to 15.",
+            effect: "Keeps Sheltering Blow. Round end: retaliate for half the Guard absorbed, up to 15. Retain up to 8 unused Guard; does not stack with Hearth Breath.",
             function: "Evolves Sheltering Blow", kind: .legendary, trigger: .roundEnd,
             payload: BoonPayload(perIngredient: true, perIngredientCap: 8), evolves: "BE-A1"
         ),
@@ -979,10 +982,10 @@ enum GodCatalog {
         ),
         GodBoonDef(
             id: "LG-BA", god: .bastet, slot: .defence, name: "Nine Lives Unbound",
-            effect: "First Evade: +%V Guard, plus 3 if it is a two-die combo. Once a fight, a killing blow leaves you at 1 HP and prepares 2 Dodges.",
+            effect: "First Evade gains +%V points reduction, plus 5 with exactly two dice (cap 75%). Once a fight, a killing blow leaves 1 HP and readies two 75% Evade charges.",
             function: "Evolves Hunting Step", kind: .legendary, trigger: .firstEvade,
-            payload: BoonPayload(bonusCondition: .isTwoFaceCombo, bonusShield: 3),
-            scales: .shield, values: [3, 5, 7], evolves: "BA-D1"
+            payload: BoonPayload(),
+            scales: .evadePercent, values: [10, 15, 20], evolves: "BA-D1"
         ),
     ]
 }

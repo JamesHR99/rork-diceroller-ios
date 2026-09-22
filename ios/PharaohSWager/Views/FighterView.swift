@@ -546,7 +546,7 @@ struct FighterView: View {
         if side == .player {
             if engine.dodgeCharges > 0 {
                 list.append(LiveStatus(kind: .evade, onSelf: true,
-                                       total: engine.dodgeCharges))
+                                       total: engine.dodgeCharges, evadeReductions: engine.evadeChargeReductions))
             }
             if engine.regenTurns > 0 {
                 list.append(LiveStatus(kind: .regeneration, onSelf: true,
@@ -571,7 +571,8 @@ struct FighterView: View {
                 list.append(LiveStatus(kind: .champion, onSelf: false))
             }
             if foe.evadeCharges > 0 {
-                list.append(LiveStatus(kind: .evade, onSelf: false, total: foe.evadeCharges))
+                list.append(LiveStatus(kind: .evade, onSelf: false, total: foe.evadeCharges,
+                    evadeReductions: Array(repeating: BattleRules.baseEvadePercent, count: foe.evadeCharges)))
             }
             if foe.judgementPending {
                 // The pile shows its weight; nothing counts down any more,
@@ -635,4 +636,3 @@ struct FighterView: View {
         .tooltipAnchor(id: tooltipID, payload: isOpen ? .status(status) : nil)
     }
 }
-

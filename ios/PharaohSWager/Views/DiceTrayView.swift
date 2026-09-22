@@ -713,7 +713,7 @@ private struct DiceTrayReelView: View {
         case .heal: return "+\(value) hp"
         case .poison: return "\(value) psn"
 
-        case .evade: return "1 Dodge"
+        case .evade: return "Evade 50%"
         case .focus: return "+50% next hit"
         }
     }
@@ -740,5 +740,3 @@ private struct DiceTrayReelView: View {
             .padding(.horizontal, 3)
     }
 }
-
-
