@@ -138,7 +138,8 @@ final class TurnOrderRenderingTests: XCTestCase {
         let kinds: [FaceKind] = [.arrow1, .arrow2, .arrow3, .block, .evade, .focus]
         let dice = kinds.map { Die(name: "Layout", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
-            dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+            dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1,
+            boons: ["RA-A1", "BE-A2", "BA-A4"].map { EquippedBoon(defID: $0, rarity: .common, level: 1) })
         engine.rollAll(reduceMotion: true)
         while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
         for width in [660.0, 850.0] {
@@ -148,8 +149,11 @@ final class TurnOrderRenderingTests: XCTestCase {
         for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
         XCTAssertEqual(engine.displayedPlan.count, 6)
         for width in [660.0, 850.0] {
-            try await capture(PlayBarView(engine: engine, bodyHeight: 80),
-                name: "Six-visible-actions-\(width)", size: CGSize(width: width, height: 122))
+            try await capture(HStack(alignment: .top, spacing: 4) {
+                DiceTrayView(engine: engine, maxReelHeight: 44, maxRowWidth: 120, compact: true, compactGrid: true)
+                    .frame(width: 120)
+                PlayBarView(engine: engine, bodyHeight: 160)
+            }, name: "Six-visible-actions-\(width)", size: CGSize(width: width, height: 202))
         }
     }
 
@@ -171,4 +175,3 @@ final class TurnOrderRenderingTests: XCTestCase {
         try await capture(VStack(spacing: 30) { VerdictBanner(title: "THE WAY IS CLEAR", won: true); VerdictBanner(title: "DAWN", won: true) }, name: "Victory-contrast", size: CGSize(width: 960, height: 414))
     }
 }
-

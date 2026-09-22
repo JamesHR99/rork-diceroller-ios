@@ -27,11 +27,11 @@ struct BattleDeckMetrics {
     let planHeight: CGFloat
     var isCompact: Bool { height < 240 }
 
-    init(screenHeight: CGFloat, headerHeight: CGFloat) {
+    init(screenHeight: CGFloat, headerHeight: CGFloat, planCount: Int = 0) {
         height = max(0, screenHeight - headerHeight - 8)
-        let content = max(0, height - (height < 240 ? 63 : 88))
-        planHeight = min(110, max(72, content * 0.40))
-        reelHeight = min(160, max(60, content - planHeight))
+        let content = max(0, height - 58)
+        planHeight = planCount > 3 ? max(140, min(180, height - 42)) : min(112, max(82, content * 0.53))
+        reelHeight = min(124, max(44, content - planHeight))
     }
 }
 

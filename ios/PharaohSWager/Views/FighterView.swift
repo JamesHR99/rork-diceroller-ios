@@ -149,11 +149,10 @@ struct FighterView: View {
             VStack(alignment: side == .player ? .leading : .trailing, spacing: 3) {
                 HStack(spacing: 5) {
                     Text(side == .player ? heroName : (foe?.displayName ?? ""))
-                        .font(.fantasy(tickerCompact ? 13 : 15, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    actionChip(scale: 0.9)
                     badgeRow
                 }
 
@@ -165,7 +164,7 @@ struct FighterView: View {
                     shieldBar(width: tickerBarWidth, height: 11)
                 }
 
-                healthBar(width: tickerBarWidth, height: 15)
+                healthBar(width: tickerBarWidth, height: 23)
             }
             .frame(maxWidth: .infinity, alignment: side == .player ? .leading : .trailing)
 
