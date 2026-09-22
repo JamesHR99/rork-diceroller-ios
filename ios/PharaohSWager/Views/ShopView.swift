@@ -50,7 +50,7 @@ struct ShopView: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Stock rolled for a \(game.heroClass?.name ?? "demigod").")
+            Text("Path rerolls: \(game.pathRerolls)/3")
                 .font(.system(size: 11.5, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim.opacity(0.85))
                 .lineLimit(1)
@@ -140,7 +140,7 @@ struct ShopView: View {
                         OfferCardView(
                             offer: offer,
                             isSelected: false,
-                            affordable: game.gold >= offer.price,
+                            affordable: game.canPurchase(offer),
                             width: 190
                         ) {
                             game.purchase(offer)
@@ -183,5 +183,6 @@ struct ShopView: View {
         .allowsHitTesting(false)
     }
 }
+
 
 

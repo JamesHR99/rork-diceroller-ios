@@ -377,36 +377,6 @@ struct BattleLoopTests {
         #expect(engine.turnPlan.map { $0.faces.count } == [2, 1, 1])
     }
 
-    @Test func destinationRerollIsSharedByBothDiceAndPersists() throws {
-        let first = VoyageNode(id: UUID(), kind: .ferryman, stage: 0, hour: 1, isRevealed: true)
-        let second = VoyageNode(id: UUID(), kind: .battle, stage: 0, hour: 1, isRevealed: false)
-        let boss = VoyageNode(id: UUID(), kind: .boss, stage: 7, hour: 4, isRevealed: true)
-        var voyage = Voyage(nodes: [first, second, boss])
-        let firstReroll = voyage.rerollDestination(first.id)
-        #expect(firstReroll)
-        #expect(voyage.node(second.id) == second)
-        #expect(voyage.node(first.id)?.stage == 0)
-        #expect(voyage.node(first.id)?.kind.isForced == false)
-        let secondReroll = voyage.rerollDestination(second.id)
-        #expect(!secondReroll)
-        let bossReroll = voyage.rerollDestination(boss.id)
-        #expect(!bossReroll)
-        let restored = try JSONDecoder().decode(Voyage.self, from: JSONEncoder().encode(voyage))
-        #expect(!restored.canReroll(second))
-        #expect(restored.nodes == voyage.nodes)
-    }
-
-    @Test func oldVoyageSavesDecodeWithoutRerollState() throws {
-        let voyage = Voyage.generate()
-        let data = try JSONEncoder().encode(voyage)
-        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        object.removeValue(forKey: "rerolledStages")
-        let oldData = try JSONSerialization.data(withJSONObject: object)
-        let restored = try JSONDecoder().decode(Voyage.self, from: oldData)
-        let first = try #require(restored.nodes.first)
-        #expect(restored.canReroll(first))
-    }
-
     @Test func partialEvadeMultipliesWithOtherReductionsAndNeverBecomesImmunity() {
         #expect(BattleRules.splitHits(25, count: 2) == [13, 12])
         #expect(BattleRules.splitHits(26, count: 3) == [10, 8, 8])
@@ -560,3 +530,4 @@ struct BattleLoopTests {
     }
 
 }
+

@@ -779,6 +779,8 @@ extension Offer {
             return PharaohSWagerArt.resolve(PharaohSWagerArt.Status.health)
         case .maxHP:
             return PharaohSWagerArt.resolve(PharaohSWagerArt.Status.health)
+        case .pathRerolls:
+            return PharaohSWagerArt.resolve(PharaohSWagerArt.interactionRoll)
         case .gold:
             return PharaohSWagerArt.resolve(PharaohSWagerArt.currency)
         case .chiselPick(let chisel):
@@ -786,4 +788,5 @@ extension Offer {
         }
     }
 }
+
 
