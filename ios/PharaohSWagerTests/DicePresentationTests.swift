@@ -71,7 +71,7 @@ struct DicePresentationTests {
             #expect(metrics.height >= 0)
             #expect(metrics.height <= CGFloat(max(0, height - header)))
             #expect(metrics.planHeight >= 72)
-            #expect(metrics.reelHeight >= 60)
+            #expect(metrics.reelHeight >= 44)
         }
     }
 

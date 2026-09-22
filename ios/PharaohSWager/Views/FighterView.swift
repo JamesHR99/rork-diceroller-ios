@@ -149,23 +149,25 @@ struct FighterView: View {
             VStack(alignment: side == .player ? .leading : .trailing, spacing: 3) {
                 HStack(spacing: 5) {
                     Text(side == .player ? heroName : (foe?.displayName ?? ""))
-                        .font(.fantasy(tickerCompact ? 13 : 15, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    actionChip(scale: 0.9)
                     badgeRow
                 }
 
                 if side == .enemy, let foe, foe.armour + foe.shield > 0 {
-                    armourBar(foe, width: tickerBarWidth)
+                    Text([foe.shield > 0 ? "Guard \(foe.shield)" : nil,
+                          foe.armour > 0 ? "Plate \(foe.armour)" : nil].compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.gold)
                 }
 
                 if shieldValue > 0 {
-                    shieldBar(width: tickerBarWidth, height: 11)
+                    Text("Guard \(shieldValue)").font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.frost)
                 }
 
-                healthBar(width: tickerBarWidth, height: 15)
+                healthBar(width: tickerBarWidth, height: 23)
             }
             .frame(maxWidth: .infinity, alignment: side == .player ? .leading : .trailing)
 

@@ -15,7 +15,7 @@ struct BattleView: View {
     }
 }
 
-private struct BattleContentView: View {
+struct BattleContentView: View {
     let engine: BattleEngine
     @Environment(GameManager.self) private var game
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -27,6 +27,11 @@ private struct BattleContentView: View {
     /// meet the health bars instead of leaving a band of empty river between
     /// them and pushing its own last row off the bottom edge.
     @State private var headerHeight: CGFloat = 0
+
+    init(engine: BattleEngine, showArrival: Bool = true) {
+        self.engine = engine
+        _arrivalShown = State(initialValue: showArrival)
+    }
 
     private var gate: Gate { game.gate }
 
@@ -214,8 +219,20 @@ private struct BattleContentView: View {
 
     private func diceDeck(size: CGSize) -> some View {
         let metrics = BattleDeckMetrics(screenHeight: size.height,
-                                        headerHeight: headerHeight > 0 ? headerHeight : 120)
-        return FittedActionContent {
+                                        headerHeight: headerHeight > 0 ? headerHeight : 120,
+                                        planCount: engine.displayedPlan.count)
+        return Group {
+            if engine.displayedPlan.count > 3 || metrics.height < 210 {
+                HStack(alignment: .top, spacing: 4) {
+                    if engine.playedFaces.count < engine.slots.count {
+                    DiceTrayView(engine: engine, maxReelHeight: 44,
+                                 maxRowWidth: 120, compact: true, compactGrid: true)
+                        .frame(width: 120)
+                    }
+                    PlayBarView(engine: engine, bodyHeight: metrics.planHeight)
+                }
+                .padding(.horizontal, 8)
+            } else {
             VStack(spacing: 6) {
                 DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
                              maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
@@ -225,6 +242,7 @@ private struct BattleContentView: View {
             }
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
+            }
         }
         .frame(height: metrics.height, alignment: .top)
         .disabled(!engine.rerollChargeFlights.isEmpty)
@@ -306,22 +324,20 @@ private struct BattleContentView: View {
         let columns = actions.count > 3 ? (actions.count + 1) / 2 : max(1, actions.count)
         return HStack(spacing: 6) {
             Text("ENEMY\nORDER")
-                .font(.system(size: 8, weight: .black)).foregroundStyle(Theme.blood)
+                .font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.blood)
                 .fixedSize()
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: columns), spacing: 3) {
                 ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                    FittedActionContent {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(index + 1). \(action.title)")
-                                .font(.fantasy(10, weight: .bold)).foregroundStyle(Theme.parchment)
+                            Text("\(action.beat). \(action.title.components(separatedBy: " · ").first ?? action.title)")
+                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.parchment)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(action.detail)
-                                .font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.gold)
+                                .font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.gold)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                    }
                     .padding(.horizontal, 6).padding(.vertical, 3)
-                    .frame(height: 34)
+                    .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
                     .background(Theme.bgCard.opacity(0.9), in: .rect(cornerRadius: 7))
                     .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.blood.opacity(0.4)))
                 }
@@ -888,5 +904,3 @@ private struct DeckShelfBackground: View {
         .allowsHitTesting(false)
     }
 }
-
-

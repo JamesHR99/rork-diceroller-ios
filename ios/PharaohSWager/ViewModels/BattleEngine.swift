@@ -1222,12 +1222,35 @@ final class BattleEngine {
 
     /// Native effects identify their recipient; boon previews remain explicitly
     /// conditional because target state and earlier actions can change triggers.
-    func planEffectLines(for step: PlanStep) -> [String] {
+    func nativePlanEffectLines(for step: PlanStep) -> [String] {
         let selfEffects = ["Shield", "HP", "Dodge", "Evade", "Regen", "Next Attack", "Cleanse", "lifesteal", "counter"]
-        var lines = step.effects.map { effect in
+        return step.effects.map { effect in
             if effect == "Wind-up → Release" { return effect }
-            return (selfEffects.contains(where: { effect.localizedCaseInsensitiveContains($0) }) ? "You: " : "Enemy: ") + effect
+            return (selfEffects.contains(where: { effect.localizedCaseInsensitiveContains($0) }) ? "You: " : "Enemy: ") + effect.replacingOccurrences(of: "Shield", with: "Guard")
         }
+    }
+
+    /// A candidate, not a promise: targets, healing and once-per-round claims
+    /// are settled during combat. Keep the full catalogue condition available.
+    func comboBoonCandidates(for step: PlanStep) -> [EquippedBoon] {
+        boons.filter { boon in
+            guard let def = boon.def, step.faces.count >= def.minimumDice,
+                  def.kind != .duo || duoActive(def) else { return false }
+            if ["RA-U1", "HO-U2"].contains(def.id), boonsFiredThisEncounter.contains(def.id) { return false }
+            if def.trigger != .everyAttack && def.trigger != .everyGuard && def.trigger != .firstTwoSoloAttacks,
+               boonsFiredThisRound.contains(def.id) { return false }
+            if def.id == "HO-A2", boonsFiredThisRound.contains(def.id) { return false }
+            if def.trigger == .onDodge { return roles(for: step).contains(.evade) }
+            if def.trigger == .onShieldAbsorb { return roles(for: step).contains(.guardian) }
+            if def.trigger == .firstFocusedAttack {
+                return roles(for: step).contains(.attack) && plannedFocus(for: step) > 0
+            }
+            return qualifies(step: step, for: def)
+        }
+    }
+
+    func planEffectLines(for step: PlanStep) -> [String] {
+        var lines = nativePlanEffectLines(for: step)
         for boon in boons {
             guard let def = boon.def, qualifies(step: step, for: def),
                   def.kind != .duo || duoActive(def) else { continue }

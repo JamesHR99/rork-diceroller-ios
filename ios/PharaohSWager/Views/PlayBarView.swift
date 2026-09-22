@@ -7,6 +7,7 @@ struct PlayBarView: View {
     @State private var impactSize = 2
 
     @State private var showingOrder = false
+    @State private var detailStep: PlanStep?
     @State private var burstStepID: UUID?
     @State private var burstProgress: CGFloat = 0
 
@@ -14,8 +15,8 @@ struct PlayBarView: View {
 
     private var compact: Bool { bodyHeight < 104 }
 
-    private var columnHeight: CGFloat { max(94, bodyHeight + (compact ? 22 : 28)) }
-    private var rerollHeight: CGFloat { 44 }
+    private var columnHeight: CGFloat { max(110, bodyHeight + 28) }
+    private var rerollHeight: CGFloat { 52 }
     private var commitHeight: CGFloat { columnHeight - rerollHeight - 6 }
     private var controlWidth: CGFloat { compact ? 108 : 120 }
 
@@ -52,6 +53,40 @@ struct PlayBarView: View {
             }
         }
         .onDisappear { impactTask?.cancel() }
+        .sheet(item: $detailStep) { step in
+            NavigationStack {
+                List {
+                    Section("Action") {
+                        Text(engine.damageBreakdown(for: step))
+                        ForEach(engine.nativePlanEffectLines(for: step), id: \.self) { Text($0) }
+                        if let line = engine.chiselLine(for: step) { Text(line) }
+                        ForEach(step.faces) { face in
+                            Button("Return \(face.displayName) to tray") {
+                                engine.returnToTray(faceID: face.id)
+                                detailStep = nil
+                            }
+                            .disabled(engine.phase != .player)
+                        }
+                    }
+                    Section("God boons · conditional") {
+                        ForEach(engine.comboBoonCandidates(for: step)) { boon in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label("\(boon.def?.god.name ?? "God") · \(boon.def?.name ?? boon.defID)",
+                                      systemImage: boon.def?.god.symbol ?? "sparkles")
+                                    .foregroundStyle(boon.def?.god.tint ?? Theme.gold)
+                                Text(boon.text)
+                            }
+                        }
+                        Text("These powers can answer this action. Target, action order, actual healing and activation limits are checked when it resolves.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .navigationTitle(step.title)
+                .toolbar { Button("Done") { detailStep = nil } }
+            }
+            .tint(Theme.gold)
+            .preferredColorScheme(.dark)
+        }
     }
 
     // MARK: - Combining
@@ -82,7 +117,7 @@ struct PlayBarView: View {
         HStack(spacing: 8) {
             Button { showingOrder = true } label: {
                 Label(compact ? "ORDER" : "TURN ORDER", systemImage: "list.number")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.gold)
             }
             .sheet(isPresented: $showingOrder) {
@@ -106,10 +141,9 @@ struct PlayBarView: View {
             }
             if engine.pendingRerollHalfCharges > 0 {
                 Text("+\(BattleEngine.chargeText(engine.pendingRerollHalfCharges)) REROLL ON COMMIT")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.frost)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
             }
             // The header is a title, not a narrator. The only line that earns
             // its place is the held Chisel prompt, which is an instruction.
@@ -136,15 +170,18 @@ struct PlayBarView: View {
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
-        .frame(height: compact ? 14 : 16)
+        .frame(minHeight: 22)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: planFaces.count)
     }
 
     private var planRow: some View {
         let steps = engine.displayedPlan
         return GeometryReader { geometry in
-            let cardWidth = max(1, (geometry.size.width - CGFloat(max(0, steps.count - 1)) * 4) / CGFloat(max(1, steps.count)))
-            HStack(spacing: 4) {
+            let columns = min(3, max(1, steps.count))
+            let rows = max(1, (steps.count + columns - 1) / columns)
+            let cardWidth = max(1, (geometry.size.width - CGFloat(columns - 1) * 6) / CGFloat(columns))
+            let cardHeight = (bodyHeight - CGFloat(rows - 1) * 6) / CGFloat(rows)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
                 if steps.isEmpty {
                     Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
                         .font(.fantasy(13, weight: .bold))
@@ -152,23 +189,23 @@ struct PlayBarView: View {
                         .minimumScaleFactor(0.5)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                ForEach(steps) { step in combinedCard(step, width: cardWidth) }
+                ForEach(steps) { step in combinedCard(step, width: cardWidth, height: cardHeight) }
             }
         }
         .frame(height: bodyHeight)
     }
 
-    private func combinedCard(_ step: PlanStep, width: CGFloat) -> some View {
+    private func combinedCard(_ step: PlanStep, width: CGFloat, height: CGFloat) -> some View {
         let tint = step.tint
-        return FittedActionContent {
-            VStack(alignment: .leading, spacing: 4) {
+        let boons = engine.comboBoonCandidates(for: step)
+        return VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .top, spacing: 4) {
-                    Text(step.title.uppercased())
-                        .font(.fantasy(16, weight: .black))
+                    Text("\(engine.beat(for: step).map { "\($0). " } ?? "")\(step.title)")
+                        .font(.system(size: height < 70 ? 13 : 14, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    if let face = step.faces.first {
+                    if let face = step.faces.first, width > 240 {
                         HStack(spacing: 2) {
                             PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
                                 size: 17, tint: step.hasCritFace ? Theme.gold : face.matchFace.tint)
@@ -178,37 +215,27 @@ struct PlayBarView: View {
                         .foregroundStyle(Theme.gold)
                         .fixedSize()
                     }
-                    if engine.phase == .player {
-                        Button {
-                            if let face = step.faces.last { engine.returnToTray(faceID: face.id) }
-                        } label: {
-                            Image(systemName: "minus.circle.fill").foregroundStyle(Theme.gold)
-                                .frame(width: 22, height: 22)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Return last die from \(step.title)")
-                    }
                 }
-                if engine.displayedDamage(for: step) > 0 {
-                    Text(engine.damageBreakdown(for: step))
-                        .font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.gold)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Text(engine.planEffectLines(for: step).joined(separator: " · "))
-                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.parchment)
+                Text(([engine.displayedDamage(for: step) > 0 ? "\(engine.displayedDamage(for: step)) dmg" : ""]
+                    + step.effects.map { $0.replacingOccurrences(of: "Shield", with: "Guard")
+                        .replacingOccurrences(of: "Evade (50% base)", with: "Evade 50%") }).filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.parchment)
                     .fixedSize(horizontal: false, vertical: true)
-                if let line = engine.chiselLine(for: step) {
-                    Text(line).font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.ptahCopper)
-                        .fixedSize(horizontal: false, vertical: true)
+                if !boons.isEmpty {
+                    Label(width < 175 ? "\(boons.count) boon\(boons.count == 1 ? "" : "s") · if eligible" : boonLabel(boons), systemImage: "sparkles")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.gold)
                 }
-            }
         }
-        .padding(7)
-        .frame(width: width, height: bodyHeight)
+        .padding(height < 70 ? 4 : 6)
+        .frame(width: width, height: height, alignment: .topLeading)
         .background { TurnOrderPlaque(accent: tint) }
+        .contentShape(Rectangle())
         .onTapGesture {
             if engine.armingChiselID != nil, let face = step.faces.first { _ = engine.armHeldChisel(ontoFace: face.id) }
+            else { detailStep = step }
         }
+        .accessibilityAction(named: "Action and god boon details") { detailStep = step }
+        .draggable(step.faces.first?.id.uuidString ?? "")
         .dropDestination(for: String.self) { items, _ in
             guard let value = items.first, let id = UUID(uuidString: value), let first = step.faces.first else { return false }
             engine.placeInPlayBar(faceID: id, before: first.id)
@@ -239,6 +266,12 @@ struct PlayBarView: View {
         .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.92)))
     }
 
+    private func boonLabel(_ boons: [EquippedBoon]) -> String {
+        let names = Array(Set(boons.compactMap { $0.def?.god.name })).sorted()
+        if names.count > 2 { return "\(boons.count) boons · conditional" }
+        return names.joined(separator: "/") + " · if eligible"
+    }
+
     private var rerollButton: some View {
         Button {
             engine.selectingReroll.toggle()
@@ -248,7 +281,7 @@ struct PlayBarView: View {
                 Label(engine.selectingReroll ? "CANCEL" : "REROLL", systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
                 Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollChargeText)/\(engine.rerollCapacity) charges")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                 GeometryReader { proxy in
                     Capsule().fill(Theme.gold.opacity(0.2))
                         .overlay(alignment: .leading) {
