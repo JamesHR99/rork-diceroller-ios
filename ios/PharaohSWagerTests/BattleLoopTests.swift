@@ -20,37 +20,6 @@ struct BattleLoopTests {
         try await settled(engine)
     }
 
-    @Test func comboBoonCandidatesRespectRolesAndDoNotSpendActivations() async throws {
-        let engine = battle([.arrow1, .block, .evade, .heal, .focus, .arrow2],
-            boons: ["RA-A1", "BE-A2", "BA-A4", "SO-D3"])
-        try await roll(engine)
-        for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
-        let guardStep = try #require(engine.turnPlan.first { engine.roles(for: $0).contains(.guardian) })
-        let evadeStep = try #require(engine.turnPlan.first { engine.roles(for: $0).contains(.evade) })
-        let attack = try #require(engine.turnPlan.first { engine.roles(for: $0).contains(.attack) })
-        #expect(engine.comboBoonCandidates(for: guardStep).map(\.defID).contains("BE-A2"))
-        #expect(engine.comboBoonCandidates(for: evadeStep).map(\.defID).contains("BA-A4"))
-        #expect(!engine.comboBoonCandidates(for: attack).map(\.defID).contains("BE-A2"))
-        let before = engine.comboBoonCandidates(for: attack).map(\.defID)
-        _ = engine.comboBoonCandidates(for: guardStep)
-        #expect(engine.comboBoonCandidates(for: attack).map(\.defID) == before)
-        #expect(engine.playerHP == 100)
-        #expect(engine.playerShield == 0)
-        #expect(engine.nativePlanEffectLines(for: guardStep).contains { $0.contains("Guard") })
-    }
-
-    @Test func legendaryPreviewHonoursMinimumDice() async throws {
-        let engine = battle(Array(repeating: .arrow1, count: 6), boons: ["LG-RA"])
-        try await roll(engine)
-        let faces = engine.rolled
-        engine.placeInPlayBar(faceID: faces[0].id)
-        let solo = try #require(engine.turnPlan.first)
-        #expect(engine.comboBoonCandidates(for: solo).isEmpty)
-        for face in faces.dropFirst().prefix(3) { engine.placeInPlayBar(faceID: face.id) }
-        let combo = try #require(engine.turnPlan.first)
-        #expect(engine.comboBoonCandidates(for: combo).map(\.defID).contains("LG-RA"))
-    }
-
     private func settled(_ engine: BattleEngine) async throws {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(15))

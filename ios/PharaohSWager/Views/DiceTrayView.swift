@@ -16,7 +16,6 @@ struct DiceTrayView: View {
     /// side of the screen.
     var maxRowWidth: CGFloat = 690
     var compact = false
-    var compactGrid = false
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
@@ -29,34 +28,32 @@ struct DiceTrayView: View {
     /// cutting the reels from the measured width is what keeps the outermost
     /// die on screen when it does.
     private var reelWidth: CGFloat {
-        let count = compactGrid ? 2 : max(engine.slots.count, 1)
+        let count = max(engine.slots.count, 1)
         let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
         // The lever's lane is reserved whether or not ROLL is showing, so the
         // dice keep one size for the whole turn instead of jumping wider the
         // moment the lever is pulled.
-        let leverLane = showsRollControl ? leverWidth + 8 : 0
+        let leverLane = leverWidth + 8
         let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
         return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
 
-    private var showsRollControl: Bool { !compactGrid && (engine.canRoll || engine.isRolling) }
-    private var leverWidth: CGFloat { 52 }
+    private var leverWidth: CGFloat { maxRowWidth < 620 ? 72 : 88 }
     private var reelGap: CGFloat { 6 }
 
     private var reelHeight: CGFloat { reelWidth }
 
     var body: some View {
         VStack(spacing: compact ? 0 : 5) {
-            if !compact && !compactGrid { header }
+            if !compact { header }
 
             HStack(spacing: 8) {
-                if showsRollControl { leadingControl }
+                leadingControl
 
                 HStack(spacing: 0) {
-                    let columns = compactGrid ? 2 : max(1, engine.slots.count)
-                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(reelWidth), spacing: reelGap), count: columns), spacing: reelGap) {
+                    HStack(spacing: reelGap) {
                         ForEach(engine.slots) { slot in
                             DiceTrayReelView(
                                 slot: slot,
@@ -78,11 +75,11 @@ struct DiceTrayView: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                 }
-                .frame(height: compactGrid ? CGFloat((engine.slots.count + 1) / 2) * (reelHeight + reelGap) + 6 : reelHeight + 12)
+                .frame(height: reelHeight + 12)
                 .background { reelBed }
             }
         }
-        .padding(.horizontal, compactGrid ? 0 : 8)
+        .padding(.horizontal, 14)
         .padding(.top, compact ? 2 : 6)
         .padding(.bottom, 2)
         // The tray takes its height from its content but never more width than
@@ -91,13 +88,6 @@ struct DiceTrayView: View {
         // the FIGHT slab off both edges.
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
-        .overlay {
-            if compactGrid && engine.canRoll {
-                RollLeverButton(height: 72, width: 88, isEnabled: true, isRolling: false) {
-                    engine.rollAll(reduceMotion: reduceMotion)
-                }
-            }
-        }
         .offset(y: reduceMotion ? 0 : slamKick)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
         .onChange(of: engine.slamPulse) { _, _ in
@@ -199,9 +189,11 @@ struct DiceTrayView: View {
 
             Spacer(minLength: 6)
 
-            if selectingReroll {
-                Text("TAP A DIE").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.gold)
-            }
+            Text(selectingReroll
+                 ? "TAP A DIE"
+                 : "\(engine.rerollChargeText)/\(engine.rerollCapacity) REROLL CHARGES")
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(Theme.gold)
 
         }
         .lineLimit(1)
@@ -286,11 +278,11 @@ private struct DiceTrayReelView: View {
     private var iconSize: CGFloat {
         max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
     }
-    private var labelSize: CGFloat { 12 }
+    private var labelSize: CGFloat { max(8.5, min(10.5, width * 0.105)) }
     private func labelSize(for face: RolledFace) -> CGFloat {
         face.patron == nil ? labelSize : min(10.5, labelSize + 0.75)
     }
-    private var tagSize: CGFloat { width < 60 ? 11 : 15 }
+    private var tagSize: CGFloat { max(8, min(9.5, width * 0.095)) }
 
     var body: some View {
         Group {
@@ -404,7 +396,7 @@ private struct DiceTrayReelView: View {
             }
         } label: {
             VStack(spacing: 1) {
-                if height >= 70 { PharaohSWagerSymbol(art: face.matchFace.artName,
+                PharaohSWagerSymbol(art: face.matchFace.artName,
                            fallback: face.matchFace.symbol,
                            size: iconSize,
                            tint: iconTint(face))
@@ -413,37 +405,32 @@ private struct DiceTrayReelView: View {
                     // change is something you watch happen.
                     .offset(y: nockNudge)
                     .id(face.matchFace)
-                    .transition(.scale(scale: 0.7).combined(with: .opacity)) }
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
                 // The face that actually landed always keeps its name — a crit
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
                 // tier the engine will use, in Ptah's copper.
-                if height >= 60 { Text(reelLabel(face))
+                Text(reelLabel(face))
                     .font(.system(size: labelSize(for: face), weight: .heavy))
                     .kerning(0.2)
                     .foregroundStyle(face.isCrit
                                      ? Theme.gold
                                      : ((face.patron?.tint ?? face.matchFace.tint)))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9) }
-                if height < 60 {
-                    PharaohSWagerSymbol(art: face.matchFace.artName, fallback: face.matchFace.symbol,
-                                       size: 16, tint: iconTint(face))
-                }
-                Text(height < 60 ? shortValue(face) : bottomTag(face))
+                    .minimumScaleFactor(0.6)
+                Text(bottomTag(face))
                     .font(.system(size: tagSize, weight: .black).monospacedDigit())
                     .foregroundStyle(bottomTagTint(face))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-                    .frame(width: max(1, width - 10))
+                    .minimumScaleFactor(0.5)
+                    .frame(width: max(1, width * 0.66))
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 4)
+            .padding(.horizontal, max(8, width * 0.1))
+            .padding(.vertical, max(9, height * 0.075))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { reelGround(opacity: 1) }
             .clipShape(.rect(cornerRadius: corner))
-            .overlay { RoundedRectangle(cornerRadius: corner).strokeBorder(frameTint(face) ?? Theme.gold, lineWidth: face.isCrit ? 2 : 1) }
-            .goldCorners(size: 8, inset: 2, opacity: 0.7)
+            .dieFrame(settledFrame(face), tint: frameTint(face))
             .overlay { armedHalo }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
@@ -491,8 +478,6 @@ private struct DiceTrayReelView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .draggable(face.id.uuidString)
-        .accessibilityLabel("\(reelLabel(face)), \(bottomTag(face))")
-        .accessibilityHint(selectingReroll ? "Spend one charge to reroll" : "Add to your combo plan")
         .onAppear {
             // The reel drops the last inch and slams into its detent.
             flash = reduceMotion ? 0 : 0.55
@@ -724,12 +709,12 @@ private struct DiceTrayReelView: View {
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
         case .damage: return "\(value) dmg"
-        case .block: return "+\(value) Guard"
+        case .block: return "+\(value) shield"
         case .heal: return "+\(value) hp"
         case .poison: return "\(value) psn"
 
         case .evade: return "Evade 50%"
-        case .focus: return "+50% next"
+        case .focus: return "+50% next hit"
         }
     }
 
@@ -742,19 +727,8 @@ private struct DiceTrayReelView: View {
                 if spent {
                     PharaohSWagerIcon(name: PharaohSWagerArt.interactionSpent, size: 26)
                         .opacity(0.65)
-                } else {
-                    Image(systemName: "checkmark").font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Theme.gold.opacity(0.7))
                 }
             }
-    }
-
-    private func shortValue(_ face: RolledFace) -> String {
-        switch face.matchFace.soloKind {
-        case .evade: return "50%"
-        case .focus: return "+50%"
-        default: return "\(face.matchFace.soloValue)"
-        }
     }
 
     private var reelName: some View {
