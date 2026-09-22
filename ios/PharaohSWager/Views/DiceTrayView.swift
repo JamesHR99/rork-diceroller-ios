@@ -91,6 +91,13 @@ struct DiceTrayView: View {
         // the FIGHT slab off both edges.
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
+        .overlay {
+            if compactGrid && engine.canRoll {
+                RollLeverButton(height: 72, width: 88, isEnabled: true, isRolling: false) {
+                    engine.rollAll(reduceMotion: reduceMotion)
+                }
+            }
+        }
         .offset(y: reduceMotion ? 0 : slamKick)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
         .onChange(of: engine.slamPulse) { _, _ in
@@ -484,6 +491,8 @@ private struct DiceTrayReelView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .draggable(face.id.uuidString)
+        .accessibilityLabel("\(reelLabel(face)), \(bottomTag(face))")
+        .accessibilityHint(selectingReroll ? "Spend one charge to reroll" : "Add to your combo plan")
         .onAppear {
             // The reel drops the last inch and slams into its detent.
             flash = reduceMotion ? 0 : 0.55

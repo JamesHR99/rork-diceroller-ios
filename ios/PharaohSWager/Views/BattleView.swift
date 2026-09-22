@@ -217,7 +217,7 @@ private struct BattleContentView: View {
                                         headerHeight: headerHeight > 0 ? headerHeight : 120,
                                         planCount: engine.displayedPlan.count)
         return Group {
-            if engine.displayedPlan.count > 3 {
+            if engine.displayedPlan.count > 3 || metrics.height < 210 {
                 HStack(alignment: .top, spacing: 4) {
                     DiceTrayView(engine: engine, maxReelHeight: 44,
                                  maxRowWidth: 120, compact: true, compactGrid: true)
@@ -897,4 +897,3 @@ private struct DeckShelfBackground: View {
         .allowsHitTesting(false)
     }
 }
-

@@ -200,7 +200,7 @@ struct PlayBarView: View {
         let boons = engine.comboBoonCandidates(for: step)
         return VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .top, spacing: 4) {
-                    Text(step.title)
+                    Text("\(engine.beat(for: step).map { "\($0). " } ?? "")\(step.title)")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .fixedSize(horizontal: false, vertical: true)
@@ -221,7 +221,7 @@ struct PlayBarView: View {
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.parchment)
                     .fixedSize(horizontal: false, vertical: true)
                 if !boons.isEmpty {
-                    Label(boonLabel(boons), systemImage: "sparkles")
+                    Label(width < 175 && boons.count > 1 ? "\(boons.count) boons · if" : boonLabel(boons), systemImage: "sparkles")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.gold)
                 }
         }
@@ -268,7 +268,7 @@ struct PlayBarView: View {
     private func boonLabel(_ boons: [EquippedBoon]) -> String {
         let names = Array(Set(boons.compactMap { $0.def?.god.name })).sorted()
         if names.count > 2 { return "\(boons.count) boons · conditional" }
-        return names.joined(separator: "/") + " · if triggered"
+        return names.joined(separator: "/") + " · if eligible"
     }
 
     private var rerollButton: some View {

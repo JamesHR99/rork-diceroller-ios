@@ -157,11 +157,14 @@ struct FighterView: View {
                 }
 
                 if side == .enemy, let foe, foe.armour + foe.shield > 0 {
-                    armourBar(foe, width: tickerBarWidth)
+                    Text([foe.shield > 0 ? "Guard \(foe.shield)" : nil,
+                          foe.armour > 0 ? "Plate \(foe.armour)" : nil].compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.gold)
                 }
 
                 if shieldValue > 0 {
-                    shieldBar(width: tickerBarWidth, height: 11)
+                    Text("Guard \(shieldValue)").font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.frost)
                 }
 
                 healthBar(width: tickerBarWidth, height: 23)
