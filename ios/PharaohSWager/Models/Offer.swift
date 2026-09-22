@@ -35,6 +35,8 @@ enum OfferKind: Hashable {
     case maxHP(Int)
     /// Pure gold, from events.
     case gold(Int)
+    /// Consumable encounter-wheel spins, separate from combat rerolls.
+    case pathRerolls(Int)
     /// One of Ptah's Chisels, offered directly the way a god offers a boon:
     /// three laid out, one taken.
     case chiselPick(ChiselDef)
@@ -107,3 +109,4 @@ struct Offer: Identifiable, Hashable {
         return false
     }
 }
+

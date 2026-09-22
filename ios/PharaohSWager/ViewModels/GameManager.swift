@@ -98,6 +98,7 @@ final class GameManager {
     private var usedEventIDs: Set<String> = []
     private var returnToChartAfterSelection = false
     private var selectionQueue: [PendingSelection] = []
+    private var pendingShopPurchase: Offer?
 
     // MARK: Pantheon
     /// The god presiding over the current spoils screen or shrine, if any.
@@ -159,8 +160,7 @@ final class GameManager {
         return max(0.18, min(1, 0.35 + health * 0.65) * gate.discBrightness)
     }
 
-    /// The stop the barque is sailing into next. An ordinary stop offers two
-    /// channels; a herald or a serpent-lord is the only water there is.
+    /// The next stop. Legacy forks collapse to one destination on their first spin.
     var availableNodes: [VoyageNode] {
         voyage.nodes(inStage: nextStage)
     }
@@ -320,10 +320,25 @@ final class GameManager {
             totalDamage: totalDamage,
             totalCombos: totalCombos,
             totalCrits: totalCrits,
+            encounter: encounterSave,
             savedAt: Date()
         )
         RunSaveStore.save(save)
         savedRun = save
+    }
+
+    private var encounterSave: EncounterSave? {
+        guard screen == .shop || screen == .event, let currentNodeID else { return nil }
+        return EncounterSave(nodeID: currentNodeID,
+            shopStock: shopStock.compactMap(MarketOfferSave.init),
+            pendingPurchase: pendingShopPurchase.flatMap(MarketOfferSave.init),
+            event: currentEvent, outcome: eventOutcome,
+            selection: pendingSelection.flatMap(EncounterSelectionSave.init))
+    }
+
+    private func saveQuietEncounter() {
+        guard screen == .shop || screen == .event else { return }
+        saveRun(resumingAt: nil)
     }
 
     /// The autosave taken every time the barque returns to open water: after a
@@ -410,9 +425,20 @@ final class GameManager {
         statusMessage = "The night takes you back — \(save.placeLabel)."
         Haptics.success()
 
-        // A fight that was underway is re-entered from its doorstep; anything
-        // quiet simply hands the chart back.
-        if let nodeID = save.currentNodeID, let node = voyage.node(nodeID) {
+        // Quiet encounters resume their saved stock, sealed gifts and targeting.
+        // A fight resumes from its doorstep.
+        returnToChartAfterSelection = false
+        pendingShopPurchase = nil
+        if let encounter = save.encounter, let node = voyage.node(encounter.nodeID),
+           node.kind == .ferryman || node.kind == .omen {
+            currentNodeID = node.id
+            shopStock = encounter.shopStock.compactMap(\.offer)
+            pendingShopPurchase = encounter.pendingPurchase?.offer
+            currentEvent = encounter.event
+            eventOutcome = encounter.outcome
+            pendingSelection = encounter.selection?.selection
+            screen = node.kind == .ferryman ? .shop : .event
+        } else if let nodeID = save.currentNodeID, let node = voyage.node(nodeID) {
             currentNodeID = node.id
             deepestHour = max(deepestHour, node.hour)
             enterBattle()
@@ -442,6 +468,9 @@ final class GameManager {
         isPtahForge = false
         trialUsed = false
         voyage = Voyage.generate()
+        eventOutcome = nil
+        pendingShopPurchase = nil
+        returnToChartAfterSelection = false
         clearedNodeIDs = []
         lastClearedNodeID = nil
         currentNodeID = nil
@@ -484,21 +513,34 @@ final class GameManager {
         }
     }
 
-    /// Sail into a stage of the river and take whatever waits there.
+    var pathRerolls: Int { voyage.rerollsRemaining }
+    var wheelResult: Int? { voyage.result(inStage: nextStage) }
+    var needsWheelSpin: Bool {
+        nextStage > 0 && !Voyage.spine(ofStage: nextStage).isForced && wheelResult == nil
+    }
     var canRerollDestination: Bool {
-        availableNodes.contains { voyage.canReroll($0) }
+        screen == .chart && availableNodes.contains { voyage.canReroll($0) }
+    }
+
+    @discardableResult
+    func spinEncounterWheel(usingReroll: Bool = false) -> Int? {
+        guard screen == .chart, !isPaused,
+              let result = voyage.spin(stage: nextStage, usingReroll: usingReroll) else { return nil }
+        autosave()
+        return result
     }
 
     @discardableResult
     func rerollDestination(_ nodeID: UUID) -> Bool {
-        guard screen == .chart, availableNodes.contains(where: { $0.id == nodeID }),
-              voyage.rerollDestination(nodeID) else { return false }
-        autosave()
-        return true
+        guard availableNodes.first?.id == nodeID else { return false }
+        return spinEncounterWheel(usingReroll: true) != nil
     }
 
     func enter(_ proposedNode: VoyageNode) {
-        guard let node = availableNodes.first(where: { $0.id == proposedNode.id }) else { return }
+        guard screen == .chart || screen == .tutorial || screen == .title,
+              !needsWheelSpin,
+              let node = availableNodes.first(where: { $0.id == proposedNode.id }) else { return }
+        statusMessage = nil
         currentNodeID = node.id
         deepestHour = max(deepestHour, node.hour)
         Haptics.medium()
@@ -517,6 +559,7 @@ final class GameManager {
         case .shrine:
             enterShrine()
         }
+        saveQuietEncounter()
     }
 
     /// A god holds court on the bank. Shrines are the reliable place to
@@ -801,6 +844,7 @@ final class GameManager {
     }
 
     func leaveEncounter() {
+        guard pendingSelection == nil else { return }
         completeEncounter()
         // Back on open water with nothing in flight: the honest moment to
         // write the night down.
@@ -861,20 +905,34 @@ final class GameManager {
         leaveEncounter()
     }
 
-    /// Buy something from the Ferryman's boat.
+    func canPurchase(_ offer: Offer) -> Bool {
+        guard screen == .shop, pendingSelection == nil,
+              shopStock.contains(where: { $0 == offer }), gold >= offer.price else { return false }
+        switch offer.kind {
+        case .pathRerolls: return pathRerolls < Voyage.pathRerollCap
+        case .heal: return currentHP < maxHP
+        default: return true
+        }
+    }
+
+    /// Validate the actual shelf card and debit once. Unfinished face/boon
+    /// targeting is saved; cancelling it returns the card and refunds its cost.
     func purchase(_ offer: Offer) {
-        guard gold >= offer.price else {
-            statusMessage = "Not enough gold."
+        guard canPurchase(offer) else {
+            statusMessage = "Cannot buy: check your gold, health or path reroll cap."
             Haptics.warning()
             return
         }
         gold -= offer.price
         shopStock.removeAll { $0.id == offer.id }
         returnToChartAfterSelection = false
+        pendingShopPurchase = offer
         apply(offer)
         if pendingSelection == nil {
+            pendingShopPurchase = nil
             statusMessage = "\(offer.name) acquired."
         }
+        saveQuietEncounter()
     }
 
     // MARK: - Applying an offer
@@ -912,6 +970,9 @@ final class GameManager {
             maxHP += amount
             currentHP = min(maxHP, currentHP + amount)
             statusMessage = "+\(amount) max health"
+        case .pathRerolls(let amount):
+            let gained = voyage.grantPathRerolls(amount)
+            statusMessage = "+\(gained) path reroll · \(pathRerolls)/3"
         case .gold(let amount):
             gold += amount
             statusMessage = "+\(amount) gold"
@@ -1158,12 +1219,19 @@ final class GameManager {
     }
 
     func cancelSelection() {
+        if let offer = pendingShopPurchase {
+            gold += offer.price
+            shopStock.append(offer)
+            pendingShopPurchase = nil
+            statusMessage = "Purchase cancelled — gold returned."
+        }
         pendingSelection = nil
         selectionQueue = []
         if returnToChartAfterSelection {
             returnToChartAfterSelection = false
             leaveEncounter()
         }
+        saveQuietEncounter()
     }
 
     private func finishSelection(_ message: String) {
@@ -1174,21 +1242,26 @@ final class GameManager {
             return
         }
         pendingSelection = nil
+        pendingShopPurchase = nil
         if returnToChartAfterSelection {
             returnToChartAfterSelection = false
             leaveEncounter()
         }
+        saveQuietEncounter()
     }
 
     // MARK: - Omens
 
     func choose(_ choice: EventChoice) {
-        guard let event = currentEvent else { return }
+        guard screen == .event, eventOutcome == nil, pendingSelection == nil,
+              let event = currentEvent, event.choices.contains(choice) else { return }
         if choice.goldCost > gold {
             statusMessage = "You cannot afford that."
             Haptics.warning()
             return
         }
+        // Lock before applying any reward (which may itself save or open a target).
+        eventOutcome = "The seal opens…"
         gold -= choice.goldCost
         if choice.maxHPChange != 0 {
             maxHP = max(20, maxHP + choice.maxHPChange)
@@ -1204,21 +1277,33 @@ final class GameManager {
         if choice.hpCost > 0 { lines.append("-\(choice.hpCost) health") }
         if choice.maxHPChange != 0 { lines.append("\(choice.maxHPChange > 0 ? "+" : "")\(choice.maxHPChange) max health") }
 
-        returnToChartAfterSelection = true
+        returnToChartAfterSelection = false
         switch choice.reward {
         case .none:
             break
         case .gold(let amount):
             gold += amount
             lines.append("+\(amount) gold")
+        case .pathRerolls(let amount):
+            let gained = voyage.grantPathRerolls(amount)
+            if gained > 0 {
+                lines.append("+\(gained) path reroll · \(pathRerolls)/3 held")
+            } else {
+                gold += 25
+                lines.append("Path rerolls full (3/3) — +25 gold instead")
+            }
         case .heal(let amount):
-            currentHP = min(maxHP, currentHP + amount)
-            lines.append("+\(amount) health")
+            let restored = min(amount, maxHP - currentHP)
+            currentHP += restored
+            lines.append("+\(restored) health")
         case .reforge:
             let pick = GameData.faceOffers(classID, rarity).randomElement()
-            pendingSelection = .reforge(pick?.face ?? .heal, title: event.title)
+            let face = pick?.face ?? SameFaceCatalog.palette(for: classID)[0]
+            pendingSelection = .reforge(face, title: event.title)
+            lines.append("Face change: choose a die face to become \(face.label)")
         case .imbue:
             pendingSelection = .imbue(SharedContent.imbueAmount(rarity), title: event.title)
+            lines.append("A crit blessing: choose the face to strengthen")
         case .die:
             if let pick = GameData.diceOffers(classID, rarity).randomElement() {
                 grant(die: pick.die.instantiated())
@@ -1228,7 +1313,7 @@ final class GameManager {
             // Gods no longer claim dice — an omen hands over one of their
             // powers instead, at a rarity rolled for this point in the night.
             let deity = Deity.allCases.randomElement() ?? .ra
-            let pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) }
+            let pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) && usableBoon($0) }
             if let def = pool.randomElement() {
                 let rarity = BoonRarity.roll(progress: progress)
                 equip(boon: def, rarity: rarity)
@@ -1252,9 +1337,7 @@ final class GameManager {
         }
 
         eventOutcome = lines.isEmpty ? "The river carries you on, unchanged." : lines.joined(separator: " · ")
-        if pendingSelection == nil {
-            returnToChartAfterSelection = false
-        }
+        saveQuietEncounter()
     }
 
     // MARK: - Offer generation
@@ -1562,22 +1645,34 @@ final class GameManager {
     }
 
     private func makeShopStock() -> [Offer] {
-        var stock = makeOffers(count: 5, progress: progress, priced: true)
-        // Roughly one crossing in three, the deep whetstone is out: a whole
-        // die's unclaimed faces rolled anew.
-        if Int.random(in: 0..<100) < 35 {
-            stock.insert(makeReforgeDieOffer(), at: 0)
-        }
         let healAmount = 30 + Int(progress * 30)
-        stock.append(Offer(
-            name: "Ferryman's Flask",
-            detail: "Restore \(healAmount) health.",
-            symbol: "cup.and.saucer.fill",
-            rarity: .common,
-            comboHint: "Straight to the bones",
-            price: GameData.price(base: 22, rarity: .common),
-            kind: .heal(healAmount)
-        ))
+        var stock = [
+            Offer(name: "Ferryman's Flask", detail: "Restore \(healAmount) health.",
+                symbol: "cup.and.saucer.fill", rarity: .common,
+                comboHint: "Immediate healing", price: 22, kind: .heal(healAmount)),
+            Offer(name: "Turn of Fate", detail: "Gain 1 path reroll. Spent on the encounter wheel; carry up to 3.",
+                symbol: "arrow.triangle.2.circlepath", rarity: .uncommon,
+                comboHint: "Lasts until used · maximum 3", price: 35, kind: .pathRerolls(1))
+        ]
+        for face in SameFaceCatalog.palette(for: classID).shuffled().prefix(2) {
+            stock.append(Offer(name: "Reforge → \(face.label)",
+                detail: "Change one chosen die face into \(face.label). \(face.soloEffect).",
+                symbol: face.symbol, rarity: .uncommon,
+                comboHint: "Choose the die and face · maximum 3 matching sides",
+                price: 40, kind: .reforge(face)))
+        }
+        // One visit in four carries an eligible, unowned god power.
+        if Int.random(in: 0..<4) == 0 {
+            let pool = Deity.allCases.flatMap { GodCatalog.regulars(of: $0) }
+                .filter { !owns(boon: $0.id) && usableBoon($0) }
+            if let def = pool.randomElement() {
+                let rarity = BoonRarity.roll(progress: progress)
+                let offer = makeBoonOffer(def, rarity: rarity)
+                stock.append(Offer(name: offer.name, detail: offer.detail, symbol: offer.symbol,
+                    rarity: offer.rarity, comboHint: offer.comboHint,
+                    price: 90 + Int(progress * 40), kind: offer.kind, deity: offer.deity))
+            }
+        }
         return stock
     }
 
@@ -1590,5 +1685,6 @@ final class GameManager {
             .joined(separator: ", ")
     }
 }
+
 
 

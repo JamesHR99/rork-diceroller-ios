@@ -109,27 +109,36 @@ struct EventView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .duatPanel(tint: Theme.gold, cornerRadius: 18)
             } else {
-                ForEach(event.choices) { choice in
-                    choiceRow(choice)
+                Text("THREE SEALED OMENS · CHOOSE ONE")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Theme.duskViolet)
+                Text("Your gift is hidden until you choose. The other seals stay closed.")
+                    .font(.paper(13))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .multilineTextAlignment(.center)
+                ForEach(Array(event.choices.enumerated()), id: \.element.id) { index, choice in
+                    choiceRow(choice, number: index + 1)
                 }
             }
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func choiceRow(_ choice: EventChoice) -> some View {
-        let affordable = choice.goldCost <= game.gold
+    private func choiceRow(_ choice: EventChoice, number: Int) -> some View {
         return Button {
             game.choose(choice)
         } label: {
             HStack(spacing: 12) {
+                Image(systemName: "eye.slash.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Theme.duskViolet)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(choice.label)
+                    Text("Sealed Omen \(number)")
                         .font(.fantasy(15, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    Text(choice.detail)
+                    Text("Tap to break the seal")
                         .font(.system(size: 12.5))
                         .foregroundStyle(Theme.parchment.opacity(0.8))
                         .lineLimit(3)
@@ -143,11 +152,12 @@ struct EventView: View {
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
             .duatPanel(tint: Theme.duskViolet, cornerRadius: 14, showsBand: false)
-            .opacity(affordable ? 1 : 0.45)
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(!affordable)
+        .disabled(game.eventOutcome != nil || game.pendingSelection != nil)
+        .accessibilityLabel("Sealed omen \(number). Choose to reveal your gift.")
     }
 }
+
 
 

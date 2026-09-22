@@ -1,50 +1,43 @@
 import SwiftUI
 
-/// The Night Chart. The river runs straight now: at every stop the water forks
-/// into two channels and you commit to one. A gate is eight stops — three
-/// encounters, its herald, three more, then its serpent-lord — and the ribbon
-/// along the top shows exactly where in that shape the barque is sitting.
-///
-/// Channels are often dark. A dark channel says nothing about what is in it
-/// until you sail in, which is what makes the fork a real decision rather than
-/// a menu.
+/// The river's wheel of fate. A fixed pointer chooses one visible encounter.
 struct NightChartView: View {
     @Environment(GameManager.self) private var game
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var rollingIDs: Set<UUID> = []
-    @State private var rollFrame = 0
+    @State private var rotation = 0.0
+    @State private var isSpinning = false
     @State private var rerollTask: Task<Void, Never>?
     @State private var pulse = false
     @State private var showInfo = false
 
     private var gate: Gate { game.gate }
 
-    /// The channels open right now — two at an ordinary stop, one at a herald
-    /// or a serpent-lord.
+    /// One destination after spinning, or the next fixed milestone.
     private var options: [VoyageNode] { game.availableNodes }
 
     /// Where the next stop sits inside its gate, 0 through 7.
     private var indexInGate: Int { game.nextStage % Voyage.stagesPerGate }
 
     var body: some View {
-        FittingScrollColumn {
+        GeometryReader { proxy in
             VStack(spacing: 0) {
                 header
                 gateRibbon
-                Spacer(minLength: 0)
-                channels
-                Spacer(minLength: 0)
+                wheelArea(diameter: min(280, max(160, proxy.size.height - 118)))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 footer
             }
         }
-        .animation(.easeInOut(duration: 0.7), value: gate)
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { pulse = true }
+            rotation = Voyage.rotation(for: game.wheelResult ?? 0)
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { pulse = true }
+            }
         }
-        .task(id: game.nextStage) {
-            if options.count == 2 { await animateDestinations(Set(options.map(\.id))) }
+        .onDisappear {
+            rerollTask?.cancel()
+            isSpinning = false
         }
-        .onDisappear { rerollTask?.cancel() }
         .sheet(isPresented: $showInfo) {
             if let loadout = game.loadout {
                 InfoSheetView(loadout: loadout, classID: game.classID, critBonus: game.critBonus, drawnDieIDs: [],
@@ -116,35 +109,24 @@ struct NightChartView: View {
     }
 
     private var instruction: String {
-        guard let first = options.first else { return gate.region }
-        if options.count == 1 { return "\(first.kind.label) ahead · This encounter cannot be rerolled." }
-        if !rollingIDs.isEmpty { return "The river dice are rolling…" }
-        return game.canRerollDestination ? "Two destinations · Reroll either die once, or choose your route."
-            : "Reroll spent · Choose one die to sail onward."
+        if options.first?.kind.isForced == true { return "A fixed milestone on the river." }
+        if isSpinning { return "The wheel of fate is turning…" }
+        return game.needsWheelSpin ? "Spin to discover your next encounter." : "Accept your fate, or spend a path reroll."
     }
 
     private var footer: some View {
-        HStack(spacing: 12) {
-            ForEach([StageKind.battle, .shrine, .ferryman, .omen, .herald], id: \.self) { kind in
-                HStack(spacing: 4) {
-                    PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol, size: 20, tint: kind.tint)
-                    Text(kind.label)
-                        .font(.system(size: 9.5, weight: .bold))
-                        .foregroundStyle(Theme.parchment.opacity(0.85))
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Theme.bg.opacity(0.6), in: .capsule)
+        HStack(spacing: 10) {
+            ForEach([StageKind.battle, .omen, .shrine, .ferryman], id: \.self) { kind in
+                Label(kind.label, systemImage: kind.symbol)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(kind.tint)
             }
-            Spacer()
-            if let message = game.statusMessage {
-                Text(message)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.gold)
-                    .lineLimit(1)
-            }
+            Spacer(minLength: 0)
+            Text("8 guardians · 2 omens · 1 shrine · 1 shop")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.parchmentDim)
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 20)
         .padding(.bottom, 6)
     }
 
@@ -206,103 +188,175 @@ struct NightChartView: View {
         }
     }
 
-    // MARK: - The fork
+    // MARK: - Wheel and locked result
 
-    private var channels: some View {
-        HStack(spacing: 18) {
-            ForEach(options) { node in
-                channelCard(node)
+    private func wheelArea(diameter: CGFloat) -> some View {
+        HStack(spacing: 24) {
+            if let node = options.first, node.kind.isForced || game.nextStage == 0 {
+                PharaohSWagerSymbol(art: node.kind.artName, fallback: node.kind.symbol,
+                    size: diameter * 0.55, tint: node.kind.tint)
+                    .frame(width: diameter, height: diameter)
+                    .duatPanel(tint: node.kind.tint, cornerRadius: 24)
+            } else {
+                EncounterWheelView(rotation: rotation, diameter: diameter, isSpinning: isSpinning)
             }
+            FittingScrollColumn {
+                resultControls
+                    .frame(maxWidth: 340)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(maxWidth: 360)
         }
-        .padding(.horizontal, 24)
-        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: options.map(\.id))
+        .padding(.horizontal, 26)
     }
 
-    /// One channel. A revealed channel says what it is; a dark one only says
-    /// that it is dark, and finding out costs you the choice.
-    private func channelCard(_ node: VoyageNode) -> some View {
-        let solo = options.count == 1
-        let known = node.isRevealed || node.kind.isForced
-        let rolling = rollingIDs.contains(node.id)
-        let tint = known ? node.kind.tint : Theme.duskViolet
-        let faces: [StageKind] = [.battle, .ferryman, .omen, .shrine, .battle, .omen]
-        let rollingFace = faces[rollFrame % faces.count]
-        let face = rolling ? rollingFace : node.kind
-        return VStack(spacing: 7) {
-            Button {
-                guard rollingIDs.isEmpty else { return }
-                game.enter(node)
-            } label: {
-                VStack(spacing: 5) {
-                    ZStack {
-                        TurnOrderPlaque(accent: tint)
-                        VStack(spacing: 4) {
-                            PharaohSWagerSymbol(art: rolling || known ? face.artName : PharaohSWagerArt.interactionRoll,
-                                fallback: rolling || known ? face.symbol : "questionmark", size: 47,
-                                tint: rolling ? Theme.gold : tint)
-                            Text(rolling ? "ROLLING" : known ? node.kind.label.uppercased() : "DARK WATER")
-                                .font(.fantasy(14, weight: .black))
-                                .foregroundStyle(Theme.parchment)
-                                .lineLimit(1).minimumScaleFactor(0.7)
-                        }.padding(10)
-                        VStack {
-                            HStack { Circle().frame(width: 4, height: 4); Spacer(); Circle().frame(width: 4, height: 4) }
-                            Spacer()
-                            HStack { Circle().frame(width: 4, height: 4); Spacer(); Circle().frame(width: 4, height: 4) }
-                        }.foregroundStyle(Theme.gold).padding(10)
+    private var resultControls: some View {
+        VStack(spacing: 8) {
+            Text("PATH REROLLS  \(game.pathRerolls)/3")
+                .font(.system(size: 12, weight: .black))
+                .kerning(1.2)
+                .foregroundStyle(Theme.gold)
+            if isSpinning {
+                Text("Fate is turning…")
+                    .font(.fantasy(22, weight: .bold))
+                    .foregroundStyle(Theme.parchment)
+                Text("Wait for the wheel to lock.")
+                    .font(.paper(14)).foregroundStyle(Theme.parchmentDim)
+            } else if game.needsWheelSpin {
+                Text("Wheel of Fate")
+                    .font(.fantasy(24, weight: .bold))
+                    .foregroundStyle(Theme.parchment)
+                wheelButton("SPIN THE WHEEL", symbol: "sparkles") { spin() }
+            } else if let node = options.first {
+                Text(node.kind.title)
+                    .font(.fantasy(22, weight: .bold))
+                    .foregroundStyle(node.kind.tint)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(node.kind.blurb)
+                    .font(.paper(14)).foregroundStyle(Theme.parchmentDim)
+                    .multilineTextAlignment(.center)
+                HStack(spacing: 8) {
+                    wheelButton("SAIL ONWARD", symbol: "arrow.right") { game.enter(node) }
+                    if !node.kind.isForced && game.nextStage > 0 {
+                        wheelButton(game.pathRerolls > 0 ? "REROLL · 1" : "NO REROLLS",
+                            symbol: "arrow.triangle.2.circlepath", enabled: game.canRerollDestination) {
+                            spin(usingReroll: true)
+                        }
                     }
-                    .frame(width: solo ? 112 : 104, height: solo ? 112 : 104)
-                    .rotation3DEffect(.degrees(rolling && !reduceMotion ? Double(rollFrame) * 180 : 0), axis: (x: 1, y: 0.4, z: 0))
-                    .rotationEffect(.degrees(rolling && !reduceMotion ? (rollFrame.isMultiple(of: 2) ? -9 : 9) : 0))
-                    .scaleEffect(rolling && !reduceMotion ? 0.9 : 1)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.11), value: rollFrame)
-                    Text(rolling ? "Reading the river…" : known ? node.kind.blurb : "A hidden destination. Discover it when you arrive.")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Theme.parchment)
-                        .multilineTextAlignment(.center).lineLimit(2)
-                        .frame(height: 28)
-                    Text(solo ? "SAIL ONWARD" : "CHOOSE THIS DIE")
-                        .font(.fantasy(12, weight: .bold)).foregroundStyle(Theme.gold)
                 }
-                .frame(maxWidth: solo ? 360 : .infinity)
-                .padding(.horizontal, 14).padding(.vertical, 9)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(!rollingIDs.isEmpty)
-            .accessibilityLabel(known ? "Choose \(node.kind.label)" : "Choose Dark Water, a hidden destination")
-            if !solo {
-                Button {
-                    guard rollingIDs.isEmpty, game.rerollDestination(node.id) else { return }
-                    rerollTask = Task { await animateDestinations([node.id]) }
-                } label: {
-                    Label(game.canRerollDestination ? "REROLL THIS DIE" : "REROLL SPENT", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundStyle(game.canRerollDestination ? Theme.gold : Theme.parchmentDim)
-                        .frame(maxWidth: .infinity, minHeight: 34)
-                        .background { TurnOrderPlaque(accent: Theme.gold) }
-                }
-                .buttonStyle(.plain)
-                .disabled(!game.canRerollDestination || !rollingIDs.isEmpty)
-                .accessibilityLabel("Reroll \(known ? node.kind.label : "Dark Water") destination")
+            if !isSpinning {
+                Text("Gain path rerolls from omens and the Ferryman.")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.parchmentDim)
+                    .multilineTextAlignment(.center)
             }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
     }
 
-    @MainActor
-    private func animateDestinations(_ ids: Set<UUID>) async {
-        rollingIDs = ids
-        defer { rollingIDs = [] }
-        Audio.shared.play(.diceRoll)
-        for frame in 0..<(reduceMotion ? 2 : 8) {
-            rollFrame = frame
-            do { try await Task.sleep(for: .milliseconds(reduceMotion ? 70 : 95)) } catch { return }
+    private func wheelButton(_ title: String, symbol: String, enabled: Bool = true,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.fantasy(14, weight: .bold))
+                .foregroundStyle(Theme.parchment)
+                .paintedContentInsets()
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background {
+                    DeckButtonSurface(tone: .primary, state: .normal, rim: Theme.gold,
+                        cornerRadius: 12, emphasis: 0.6)
+                }
+                .opacity(enabled ? 1 : 0.45)
         }
-        Haptics.medium()
-        Audio.shared.play(.diceLock)
+        .buttonStyle(PressableButtonStyle())
+        .disabled(!enabled || isSpinning)
+    }
+
+    private func spin(usingReroll: Bool = false) {
+        guard !isSpinning, let index = game.spinEncounterWheel(usingReroll: usingReroll) else { return }
+        isSpinning = true
+        let normalized = rotation.truncatingRemainder(dividingBy: 360)
+        let landing = (Voyage.rotation(for: index) - normalized + 720)
+            .truncatingRemainder(dividingBy: 360)
+        let target = rotation + 360 * 5 + landing
+        let duration = reduceMotion ? 0.25 : 3.4
+        Audio.shared.play(.diceRoll)
+        withAnimation(reduceMotion ? nil : .timingCurve(0.12, 0.78, 0.18, 1, duration: duration)) {
+            rotation = reduceMotion ? Voyage.rotation(for: index) : target
+        }
+        rerollTask = Task { @MainActor in
+            do { try await Task.sleep(for: .seconds(duration)) } catch { return }
+            guard !Task.isCancelled else { return }
+            isSpinning = false
+            Haptics.success()
+            Audio.shared.play(.diceLock)
+        }
     }
 }
 
+/// The pointer remains fixed while every wedge rotates under it. Wedge zero
+/// is centred on twelve o'clock, matching Voyage.rotation(for:).
+struct EncounterWheelView: View {
+    let rotation: Double
+    let diameter: CGFloat
+    let isSpinning: Bool
 
+    var body: some View {
+        ZStack {
+            ZStack {
+                ForEach(Voyage.wheelKinds.indices, id: \.self) { index in
+                    let kind = Voyage.wheelKinds[index]
+                    WheelWedge(index: index)
+                        .fill(kind.tint.opacity(index.isMultiple(of: 2) ? 0.6 : 0.38))
+                    WheelWedge(index: index)
+                        .stroke(Theme.gold.opacity(0.8), lineWidth: 1)
+                    Image(systemName: kind.symbol)
+                        .font(.system(size: diameter * 0.075, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                        .shadow(color: .black, radius: 2)
+                        .offset(y: -diameter * 0.36)
+                        .rotationEffect(.degrees(Double(index) * Voyage.wedgeDegrees))
+                }
+            }
+            .background(Theme.bg, in: Circle())
+            .clipShape(Circle())
+            .rotationEffect(.degrees(rotation))
+            Circle().strokeBorder(Theme.gold, lineWidth: 5)
+            Circle().strokeBorder(Theme.parchment.opacity(0.45), lineWidth: 1).padding(7)
+            Circle().fill(Theme.bg).frame(width: diameter * 0.27, height: diameter * 0.27)
+                .overlay(Circle().strokeBorder(Theme.gold, lineWidth: 3))
+            Image(systemName: "eye.fill")
+                .font(.system(size: diameter * 0.12, weight: .bold))
+                .foregroundStyle(Theme.gold)
+            Image(systemName: "triangle.fill")
+                .font(.system(size: 23, weight: .black))
+                .rotationEffect(.degrees(180))
+                .foregroundStyle(Theme.gold)
+                .shadow(color: .black, radius: 2)
+                .offset(y: -diameter / 2 + 3)
+        }
+        .frame(width: diameter, height: diameter)
+        .shadow(color: Theme.gold.opacity(isSpinning ? 0.5 : 0.2), radius: 12)
+        .accessibilityLabel("Encounter wheel: eight guardian wedges, two omens, one shrine, one Ferryman")
+        .accessibilityValue(isSpinning ? "Spinning" : "Stopped")
+        .accessibilityElement(children: .ignore)
+    }
+}
 
+private struct WheelWedge: Shape {
+    let index: Int
+    func path(in rect: CGRect) -> Path {
+        let centre = CGPoint(x: rect.midX, y: rect.midY)
+        let angle = Double(index) * Voyage.wedgeDegrees - 90
+        var path = Path()
+        path.move(to: centre)
+        path.addArc(center: centre, radius: min(rect.width, rect.height) / 2,
+            startAngle: .degrees(angle - Voyage.wedgeDegrees / 2),
+            endAngle: .degrees(angle + Voyage.wedgeDegrees / 2), clockwise: false)
+        path.closeSubpath()
+        return path
+    }
+}

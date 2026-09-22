@@ -71,7 +71,7 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
 }
 
 /// One stop on the river. The night is a straight run of stages; at each one
-/// the water forks into two channels and you commit to a side.
+/// a wheel chooses the encounter, with fixed herald and lord milestones.
 struct VoyageNode: Identifiable, Hashable, Codable {
     let id: UUID
     let kind: StageKind
@@ -91,55 +91,81 @@ struct VoyageNode: Identifiable, Hashable, Codable {
     var indexInGate: Int { stage % Voyage.stagesPerGate }
 }
 
-/// The whole night as a straight run of forks, generated fresh for every run.
-///
-/// A gate is eight stops: three ordinary encounters, the gate's herald, three
-/// more encounters, then its serpent-lord. Every ordinary stop offers two
-/// channels — sometimes both named, often one or both dark — and the herald
-/// and the serpent-lord stand alone, because a gate has to be fought through
-/// rather than sailed around.
+/// Twenty-four stops: an opening guardian, ordinary wheel spins, and fixed
+/// herald/lord milestones. The result and reroll purse belong to the voyage.
 struct Voyage: Hashable, Codable {
     static let totalHours = 12
-    /// Two stops to an hour, so twelve hours still read as twelve hours.
     static let stagesPerHour = 2
-    /// Eight stops to a gate: 3 · herald · 3 · serpent-lord.
     static let stagesPerGate = 8
     static var totalStages: Int { totalHours * stagesPerHour }
-
-    /// Where the herald and the serpent-lord stand inside every gate.
     static let heraldIndex = 3
     static let lordIndex = 7
+    static let pathRerollCap = 3
+
+    /// Equal-sized wedges: eight guardians, two omens, a shrine and a shop.
+    static let wheelKinds: [StageKind] = [
+        .battle, .omen, .battle, .shrine, .battle, .battle,
+        .omen, .battle, .ferryman, .battle, .battle, .battle
+    ]
+    static var wedgeDegrees: Double { 360 / Double(wheelKinds.count) }
+    static func rotation(for index: Int) -> Double { -Double(index) * wedgeDegrees }
 
     var nodes: [VoyageNode]
-    var rerolledStages: Set<Int>? = nil
+    // Optional for compatibility with existing version-4 runs.
+    var pathRerolls: Int? = nil
+    var wheelResults: [Int: Int]? = nil
+
+    var rerollsRemaining: Int { min(Self.pathRerollCap, max(0, pathRerolls ?? 1)) }
+
+    @discardableResult
+    mutating func grantPathRerolls(_ amount: Int) -> Int {
+        let before = rerollsRemaining
+        pathRerolls = min(Self.pathRerollCap, before + min(Self.pathRerollCap, max(0, amount)))
+        return rerollsRemaining - before
+    }
+
+    func result(inStage stage: Int) -> Int? { wheelResults?[stage] }
 
     func canReroll(_ node: VoyageNode) -> Bool {
-        nodes.contains(where: { $0.id == node.id }) && !node.kind.isForced
-            && nodes(inStage: node.stage).count == 2
-            && !(rerolledStages ?? []).contains(node.stage)
+        nodes.contains(where: { $0.id == node.id }) && node.stage > 0
+            && !Self.spine(ofStage: node.stage).isForced
+            && result(inStage: node.stage) != nil && rerollsRemaining > 0
+    }
+
+    /// Commit before the animation: relaunching cannot undo a spend or fish
+    /// for another first spin. An old two-channel stage collapses to one node.
+    @discardableResult
+    mutating func spin(stage: Int, usingReroll: Bool = false) -> Int? {
+        guard stage > 0, !Self.spine(ofStage: stage).isForced,
+              let old = nodes(inStage: stage).first else { return nil }
+        if usingReroll {
+            guard canReroll(old) else { return nil }
+            pathRerolls = rerollsRemaining - 1
+        } else {
+            guard result(inStage: stage) == nil else { return nil }
+        }
+        let index = Int.random(in: Self.wheelKinds.indices)
+        nodes.removeAll { $0.stage == stage && $0.id != old.id }
+        if let position = nodes.firstIndex(where: { $0.id == old.id }) {
+            nodes[position] = VoyageNode(id: old.id, kind: Self.wheelKinds[index],
+                stage: stage, hour: old.hour, isRevealed: true)
+        }
+        if wheelResults == nil { wheelResults = [:] }
+        wheelResults?[stage] = index
+        return index
     }
 
     @discardableResult
     mutating func rerollDestination(_ id: UUID) -> Bool {
-        guard let index = nodes.firstIndex(where: { $0.id == id }), canReroll(nodes[index]) else { return false }
-        let old = nodes[index]
-        nodes[index] = VoyageNode(id: old.id, kind: Self.rolledKind(), stage: old.stage,
-            hour: old.hour, isRevealed: Double.random(in: 0..<1) < Self.revealChance)
-        if rerolledStages == nil { rerolledStages = [] }
-        rerolledStages?.insert(old.stage)
-        return true
+        guard let node = node(id), canReroll(node) else { return false }
+        return spin(stage: node.stage, usingReroll: true) != nil
     }
 
     func node(_ id: UUID) -> VoyageNode? { nodes.first { $0.id == id } }
-
     func nodes(inStage stage: Int) -> [VoyageNode] { nodes.filter { $0.stage == stage } }
-
     func nodes(inHour hour: Int) -> [VoyageNode] { nodes.filter { $0.hour == hour } }
-
     var entryNode: VoyageNode? { nodes.first { $0.stage == 0 } }
 
-    /// What kind of stop stage `n` is, before its channels are rolled. Read by
-    /// the chart's gate ribbon so the shape of a gate is legible up front.
     static func spine(ofStage stage: Int) -> StageKind {
         switch stage % stagesPerGate {
         case heraldIndex: .herald
@@ -148,73 +174,11 @@ struct Voyage: Hashable, Codable {
         }
     }
 
-    // MARK: - Generation
-
     static func generate() -> Voyage {
-        var nodes: [VoyageNode] = []
-
-        for stage in 0..<totalStages {
-            let hour = stage / stagesPerHour + 1
-            let spineKind = spine(ofStage: stage)
-
-            if spineKind.isForced {
-                // A herald or a serpent-lord is the one channel there is, and
-                // you always see it coming.
-                nodes.append(VoyageNode(id: UUID(), kind: spineKind, stage: stage,
-                                        hour: hour, isRevealed: true))
-                continue
-            }
-
-            for kind in optionPair() {
-                nodes.append(VoyageNode(id: UUID(), kind: kind, stage: stage, hour: hour,
-                                        isRevealed: Double.random(in: 0..<1) < revealChance))
-            }
-        }
-
-        return Voyage(nodes: nodes)
-    }
-
-    /// How often a channel tells you what is in it. The rest of the time the
-    /// water is dark and the choice is a genuine gamble.
-    private static let revealChance = 0.55
-
-    /// The two channels at one ordinary stop. Two identical quiet stops would
-    /// be a choice in name only, so the pair is nudged apart — but two fights
-    /// are left to stand, because which creature rises is its own difference.
-    private static func optionPair() -> [StageKind] {
-        let first = rolledKind()
-        var second = rolledKind()
-        if first == second {
-            if first == .battle {
-                // Half of the double-fight forks open one quieter channel, so
-                // the run still breathes without handing out a stop every time.
-                if Bool.random() { second = quietKind() }
-            } else {
-                second = .battle
-            }
-        }
-        return [first, second]
-    }
-
-    /// What ordinary water holds. The river is dangerous: three channels in
-    /// four are something that has to be fought. A god's altar and the
-    /// Ferryman are deliberately scarce — finding one should feel like luck.
-    private static func rolledKind() -> StageKind {
-        switch Int.random(in: 0..<100) {
-        case 0..<76: .battle
-        case 76..<88: .omen
-        case 88..<95: .shrine
-        default: .ferryman
-        }
-    }
-
-    /// The quiet stops, for when a fork needs one.
-    private static func quietKind() -> StageKind {
-        switch Int.random(in: 0..<100) {
-        case 0..<56: .omen
-        case 56..<83: .shrine
-        default: .ferryman
-        }
+        Voyage(nodes: (0..<totalStages).map { stage in
+            VoyageNode(id: UUID(), kind: spine(ofStage: stage), stage: stage,
+                hour: stage / stagesPerHour + 1, isRevealed: true)
+        }, pathRerolls: 1, wheelResults: [:])
     }
 
     // MARK: - Naming
@@ -258,4 +222,5 @@ struct Voyage: Hashable, Codable {
         "The \(ordinal(hour)) Hour · \(Gate.forHour(hour).name)"
     }
 }
+
 

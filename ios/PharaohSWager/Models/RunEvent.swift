@@ -1,7 +1,7 @@
 import Foundation
 
 /// One branch of an omen: a line of flavour and what it costs / grants.
-struct EventChoice: Identifiable, Hashable {
+struct EventChoice: Identifiable, Hashable, Codable {
     let id: String
     let label: String
     let detail: String
@@ -16,9 +16,10 @@ struct EventChoice: Identifiable, Hashable {
 }
 
 /// What an omen's choice grants.
-enum EventReward: Hashable {
+enum EventReward: Hashable, Codable {
     case none
     case gold(Int)
+    case pathRerolls(Int)
     case heal(Int)
     /// Roll a class-appropriate reforge at the current tier.
     case reforge
@@ -33,7 +34,7 @@ enum EventReward: Hashable {
 }
 
 /// A sighting on the river with a choice to make.
-struct RunEvent: Identifiable, Hashable {
+struct RunEvent: Identifiable, Hashable, Codable {
     let id: String
     let title: String
     let symbol: String
@@ -153,8 +154,19 @@ enum EventContent {
         ),
     ]
 
+    /// Three genuinely hidden, shuffled gifts. Every omen includes a chance
+    /// at a path reroll, and no blind selection can demand gold or health.
     static func random(excluding usedIDs: Set<String>) -> RunEvent {
         let pool = all.filter { !usedIDs.contains($0.id) }
-        return (pool.isEmpty ? all : pool).randomElement() ?? all[0]
+        let story = (pool.isEmpty ? all : pool).randomElement() ?? all[0]
+        let gifts: [EventReward] = [.gold(35), .heal(30), .reforge, .imbue, .patronOffer]
+        let rewards = ([EventReward.pathRerolls(1)] + Array(gifts.shuffled().prefix(2))).shuffled()
+        let choices = rewards.enumerated().map { index, reward in
+            EventChoice(id: "seal_\(index)", label: "Sealed Omen \(index + 1)",
+                detail: "Choose to reveal your fate", hpCost: 0, goldCost: 0,
+                maxHPChange: 0, reward: reward)
+        }
+        return RunEvent(id: story.id, title: story.title, symbol: story.symbol,
+            body: story.body, choices: choices)
     }
 }
