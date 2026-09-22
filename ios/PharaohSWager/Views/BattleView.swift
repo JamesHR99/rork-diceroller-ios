@@ -15,7 +15,7 @@ struct BattleView: View {
     }
 }
 
-private struct BattleContentView: View {
+struct BattleContentView: View {
     let engine: BattleEngine
     @Environment(GameManager.self) private var game
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -27,6 +27,11 @@ private struct BattleContentView: View {
     /// meet the health bars instead of leaving a band of empty river between
     /// them and pushing its own last row off the bottom edge.
     @State private var headerHeight: CGFloat = 0
+
+    init(engine: BattleEngine, showArrival: Bool = true) {
+        self.engine = engine
+        _arrivalShown = State(initialValue: showArrival)
+    }
 
     private var gate: Gate { game.gate }
 
@@ -219,9 +224,11 @@ private struct BattleContentView: View {
         return Group {
             if engine.displayedPlan.count > 3 || metrics.height < 210 {
                 HStack(alignment: .top, spacing: 4) {
+                    if engine.playedFaces.count < engine.slots.count {
                     DiceTrayView(engine: engine, maxReelHeight: 44,
                                  maxRowWidth: 120, compact: true, compactGrid: true)
                         .frame(width: 120)
+                    }
                     PlayBarView(engine: engine, bodyHeight: metrics.planHeight)
                 }
                 .padding(.horizontal, 8)

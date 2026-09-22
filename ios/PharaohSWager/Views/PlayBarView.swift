@@ -198,10 +198,10 @@ struct PlayBarView: View {
     private func combinedCard(_ step: PlanStep, width: CGFloat, height: CGFloat) -> some View {
         let tint = step.tint
         let boons = engine.comboBoonCandidates(for: step)
-        return VStack(alignment: .leading, spacing: 3) {
+        return VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .top, spacing: 4) {
                     Text("\(engine.beat(for: step).map { "\($0). " } ?? "")\(step.title)")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: height < 70 ? 13 : 14, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -217,15 +217,16 @@ struct PlayBarView: View {
                     }
                 }
                 Text(([engine.displayedDamage(for: step) > 0 ? "\(engine.displayedDamage(for: step)) dmg" : ""]
-                    + engine.nativePlanEffectLines(for: step)).filter { !$0.isEmpty }.joined(separator: " · "))
+                    + step.effects.map { $0.replacingOccurrences(of: "Shield", with: "Guard")
+                        .replacingOccurrences(of: "Evade (50% base)", with: "Evade 50%") }).filter { !$0.isEmpty }.joined(separator: " · "))
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.parchment)
                     .fixedSize(horizontal: false, vertical: true)
                 if !boons.isEmpty {
-                    Label(width < 175 && boons.count > 1 ? "\(boons.count) boons · if" : boonLabel(boons), systemImage: "sparkles")
+                    Label(width < 175 ? "\(boons.count) boon\(boons.count == 1 ? "" : "s") · if eligible" : boonLabel(boons), systemImage: "sparkles")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.gold)
                 }
         }
-        .padding(6)
+        .padding(height < 70 ? 4 : 6)
         .frame(width: width, height: height, alignment: .topLeading)
         .background { TurnOrderPlaque(accent: tint) }
         .contentShape(Rectangle())

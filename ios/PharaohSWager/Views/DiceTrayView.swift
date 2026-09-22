@@ -724,12 +724,12 @@ private struct DiceTrayReelView: View {
         let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
         switch face.face.soloKind {
         case .damage: return "\(value) dmg"
-        case .block: return "+\(value) shield"
+        case .block: return "+\(value) Guard"
         case .heal: return "+\(value) hp"
         case .poison: return "\(value) psn"
 
         case .evade: return "Evade 50%"
-        case .focus: return "+50% next hit"
+        case .focus: return "+50% next"
         }
     }
 

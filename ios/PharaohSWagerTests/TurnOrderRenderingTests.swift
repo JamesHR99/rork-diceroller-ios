@@ -155,6 +155,10 @@ final class TurnOrderRenderingTests: XCTestCase {
                 PlayBarView(engine: engine, bodyHeight: 160)
             }, name: "Six-visible-actions-\(width)", size: CGSize(width: width, height: 202))
         }
+        for size in [CGSize(width: 660, height: 320), CGSize(width: 760, height: 354)] {
+            try await capture(BattleContentView(engine: engine, showArrival: false).environment(GameManager()),
+                name: "Combat-full-six-actions-\(size.width)", size: size)
+        }
     }
 
     func testTurnOrderAndDestinationLayouts() async throws {
