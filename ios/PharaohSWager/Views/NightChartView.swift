@@ -23,8 +23,10 @@ struct NightChartView: View {
             VStack(spacing: 0) {
                 header
                 gateRibbon
-                wheelArea(diameter: min(280, max(160, proxy.size.height - 118)))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                GeometryReader { middle in
+                    wheelArea(diameter: min(280, max(80, middle.size.height - 12)))
+                        .frame(width: middle.size.width, height: middle.size.height)
+                }
                 footer
             }
         }
@@ -117,9 +119,11 @@ struct NightChartView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             ForEach([StageKind.battle, .omen, .shrine, .ferryman], id: \.self) { kind in
-                Label(kind.label, systemImage: kind.symbol)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(kind.tint)
+                HStack(spacing: 4) {
+                    PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol, size: 16, tint: kind.tint)
+                    Text(kind.label).font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(kind.tint)
             }
             Spacer(minLength: 0)
             Text("8 guardians · 2 omens · 1 shrine · 1 shop")
@@ -313,9 +317,8 @@ struct EncounterWheelView: View {
                         .fill(kind.tint.opacity(index.isMultiple(of: 2) ? 0.6 : 0.38))
                     WheelWedge(index: index)
                         .stroke(Theme.gold.opacity(0.8), lineWidth: 1)
-                    Image(systemName: kind.symbol)
-                        .font(.system(size: diameter * 0.075, weight: .bold))
-                        .foregroundStyle(Theme.parchment)
+                    PharaohSWagerSymbol(art: kind.artName, fallback: kind.symbol,
+                        size: diameter * 0.10, tint: Theme.parchment)
                         .shadow(color: .black, radius: 2)
                         .offset(y: -diameter * 0.36)
                         .rotationEffect(.degrees(Double(index) * Voyage.wedgeDegrees))
