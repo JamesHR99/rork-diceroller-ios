@@ -8,9 +8,9 @@ struct BattleLoopTests {
         let move = EnemyMove(id: "two-hits", name: "Two hits", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
         let enemy = EnemyDef(id: "test-foe", name: "Practice foe", title: "Tests", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
-        // Five-die hands are deterministic in unit tests: use the first five
-        // requested faces as the complete test bag so assertions never depend
-        // on which sixth legacy fixture die happened to be left undrawn.
+        // Test hands follow the live hand size. Supplying fewer faces still
+        // creates a deliberately smaller fixture when a rule does not care
+        // about the full six-die draw.
         let dice = faces.prefix(BattleRules.handSize).enumerated().map { index, face in
             Die(name: "Test \(index)", slot: face.isAttack ? .weapon : .armor, faces: Array(repeating: face, count: 6), patron: patron)
         }
@@ -123,8 +123,8 @@ struct BattleLoopTests {
         let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
             maxHP: 100, startHP: 100, critBonus: -1)
 
-        #expect(engine.slots.count == 5)
-        #expect(engine.drawBag.count == 5)
+        #expect(engine.slots.count == BattleRules.handSize)
+        #expect(engine.drawBag.count == dice.count - BattleRules.handSize)
         #expect(engine.discardPile.isEmpty)
 
         try await roll(engine)
@@ -137,7 +137,7 @@ struct BattleLoopTests {
 
         // Used dice stay visible as greyed spent slots for the rest of the
         // round, while still entering the logical discard pile immediately.
-        #expect(engine.slots.count == 5)
+        #expect(engine.slots.count == BattleRules.handSize)
         #expect(engine.slots.filter {
             if case .spent = $0.state { return true }
             return false
@@ -147,16 +147,16 @@ struct BattleLoopTests {
         engine.endPlayerTurn()
         let turn2Deadline = clock.now.advanced(by: .seconds(30))
         while engine.turnNumber == 1 && clock.now < turn2Deadline { try await Task.sleep(for: .milliseconds(20)) }
-        #expect(engine.slots.count == 5)
-        #expect(engine.drawBag.isEmpty)
-        #expect(engine.discardPile.count == 5)
+        #expect(engine.slots.count == BattleRules.handSize)
+        #expect(engine.drawBag.count == dice.count - BattleRules.handSize)
+        #expect(engine.discardPile.isEmpty)
 
         try await roll(engine)
         engine.endPlayerTurn()
         let turn3Deadline = clock.now.advanced(by: .seconds(30))
         while engine.turnNumber == 2 && clock.now < turn3Deadline { try await Task.sleep(for: .milliseconds(20)) }
-        #expect(engine.slots.count == 5)
-        #expect(engine.drawBag.count == 5)
+        #expect(engine.slots.count == BattleRules.handSize)
+        #expect(engine.drawBag.count == dice.count - BattleRules.handSize)
         #expect(engine.discardPile.isEmpty)
     }
 
@@ -261,16 +261,16 @@ struct BattleLoopTests {
     }
 
     @Test(arguments: ["archer", "warrior", "rogue", "magician"])
-    func startingLoadoutsUseTenPhysicalDiceAndDrawFive(classID: String) {
+    func startingLoadoutsUseTenPhysicalDiceAndDrawSix(classID: String) {
         let hero = GameData.heroClass(id: classID)
         #expect(hero.startingLoadout.allDice.count == 10)
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice, classID: classID, maxHP: hero.maxHP, startHP: hero.maxHP, critBonus: 0)
-        #expect(Set(engine.slots.map { $0.die.id }).count == 5)
+        #expect(Set(engine.slots.map { $0.die.id }).count == BattleRules.handSize)
         #expect(engine.rerollsRemaining == 1)
         #expect(engine.rerollHalfCharges == 2)
         #expect(engine.resolveRemaining == 3)
-        #expect(engine.drawBag.count == 5)
+        #expect(engine.drawBag.count == hero.startingLoadout.allDice.count - BattleRules.handSize)
     }
 
     @Test func tappingARerollDieStartsImmediatelyAndSpendsExactlyOnce() async throws {
@@ -287,7 +287,7 @@ struct BattleLoopTests {
         engine.reroll(slotID: selected.id, reduceMotion: true)
         #expect(engine.rerollsRemaining == 1)
         try await settled(engine)
-        #expect(engine.rolled.count == 5)
+        #expect(engine.rolled.count == BattleRules.handSize)
         for face in before where face.dieID != selected.die.id {
             let kept = try #require(engine.rolled.first { $0.id == face.id })
             #expect(kept.wasKept && kept.face == face.face && kept.isCrit == face.isCrit)
@@ -320,7 +320,7 @@ struct BattleLoopTests {
         try await roll(engine)
         for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
         #expect(engine.weldCandidates.isEmpty)
-        #expect(engine.timeline.filter(\.isPlayer).count == 5)
+        #expect(engine.timeline.filter(\.isPlayer).count == BattleRules.handSize)
     }
 
     @Test func fourMatchingDiceWindUpAndCanBeSeparatedAgain() async throws {
@@ -345,7 +345,7 @@ struct BattleLoopTests {
         let expected = try #require(SameFaceCatalog.action(.arrow1, count: 1)).damage
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - expected)
-        #expect(engine.rolled.isEmpty && engine.slots.count == 5)
+        #expect(engine.rolled.isEmpty && engine.slots.count == BattleRules.handSize)
         #expect(engine.rerollsRemaining == 1)
         #expect(engine.resolveRemaining == 3)
     }
