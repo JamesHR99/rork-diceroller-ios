@@ -70,20 +70,9 @@ private struct BattleContentView: View {
             .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9), value: deckUp)
         }
         .overlay {
-            // A landing chain takes the whole deck: shockwave, embers, wash
-            // and a banner naming what just happened.
-            if let flash = engine.comboFlash {
-                ComboFlashView(flash: flash)
-                    .id(flash.id)
-                    .zIndex(4)
-                    .transition(.opacity)
-            }
-        }
-        .overlay {
-            // Before an action lands it is named and held still: who is
-            // acting, what they are doing, what it is worth and every god
-            // power riding it, all at the same time.
-            if let card = engine.spotlight {
+            // Player action names and maths stay out of this UI pass. Enemy
+            // spotlights remain as reaction feedback after End Turn.
+            if let card = engine.spotlight, !card.isPlayer {
                 ActionSpotlightView(card: card)
                     .id(card.id)
                     .zIndex(5)
