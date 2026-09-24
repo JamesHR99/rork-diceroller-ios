@@ -109,6 +109,24 @@ private struct BattleContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
+        .overlay {
+            // The engine already totals every resolving action into a spotlight.
+            // Keep it in the middle of the arena so damage, combo names and
+            // statuses are readable while the fighters and dice remain visible.
+            if let spotlight = engine.spotlight {
+                ActionSpotlightView(card: spotlight)
+                    .padding(.horizontal, 90)
+                    .zIndex(8)
+                    .transition(.scale(scale: 0.94).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.spotlight?.id)
+        .task {
+            // The opening hand should behave like every later turn: it rolls
+            // itself as soon as battle appears. The guard inside rollAll keeps
+            // this safe if SwiftUI re-runs the task after the hand has settled.
+            engine.rollAll(reduceMotion: reduceMotion)
+        }
         .sheet(isPresented: $showBoons) {
             VStack(spacing: 12) {
                 HStack {
@@ -191,9 +209,8 @@ private struct BattleContentView: View {
         Group {
             if phone {
                 VStack(spacing: 4) {
-                    // Give the slot machine almost the whole phone width. This
-                    // makes the five dice and roll lever substantially larger
-                    // without changing the battlefield's own geometry.
+                    // Give the six-die hand almost the whole phone width. With
+                    // no manual roll control, every lane is now a physical die.
                     DiceTrayView(
                         engine: engine,
                         maxReelHeight: 66,
@@ -283,11 +300,14 @@ private struct BattleContentView: View {
             // the rail itself; this value follows the broad central planks.
             let deckInset: CGFloat = 24
             let combatWidth = max(280, stage.size.width - deckInset * 2)
-            // Lift the whole combat line above the persistent dice shelf so
-            // feet, lower-body animation and hit effects never disappear
-            // behind the tray.
-            let trayClearance: CGFloat = size.width < 600 ? 34 : 22
-            let deckLift = min(86, max(58, boatWidth * 0.065 + trayClearance))
+            // Landscape iPhones are wider than 600pt, so width alone cannot
+            // identify the compact screen shown in play. Use the short side to
+            // reserve the full dice-console depth and keep both fighters above it.
+            let isCompactPhone = min(size.width, size.height) < 500
+            let trayClearance: CGFloat = isCompactPhone ? 78 : 26
+            let deckLift: CGFloat = isCompactPhone
+                ? min(138, max(112, boatWidth * 0.065 + trayClearance))
+                : min(98, max(62, boatWidth * 0.065 + trayClearance))
             let fighterRoom = max(150, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.
