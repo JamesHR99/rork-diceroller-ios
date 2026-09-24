@@ -679,7 +679,22 @@ final class GameManager {
                 kind: .die(die)
             ))
         }
-        return offers
+        // Never strand the reward screen with fewer than three picks just
+        // because the small offer pool produced duplicate signatures.
+        while offers.count < count,
+              let pick = GameData.diceOffers(classID, .common).randomElement() {
+            let die = pick.die.instantiated()
+            offers.append(Offer(
+                name: die.name,
+                detail: faceSummary(die),
+                symbol: "die.face.5.fill",
+                rarity: die.rarity,
+                comboHint: "Add this die to your draw bag",
+                price: 0,
+                kind: .die(die)
+            ))
+        }
+        return Array(offers.prefix(count))
     }
 
     /// Ptah rarely turns up in the spoils. One Chisel is guaranteed somewhere
