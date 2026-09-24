@@ -236,15 +236,11 @@ struct InfoSheetView: View {
             loreHeading
 
             comboGroup(
-                title: "\(hero.weaponName.uppercased()) — WEAPON COMBOS",
-                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner != nil && $0.source == .weapon }
+                title: "\(hero.name.uppercased()) ACTIONS",
+                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner != nil }
             )
             comboGroup(
-                title: "\(hero.armorName.uppercased()) — ARMOUR COMBOS",
-                combos: SameFaceCatalog.actions(for: classID).filter { $0.owner != nil && $0.source == .armor }
-            )
-            comboGroup(
-                title: "SHARED FACES",
+                title: "SHARED ACTIONS",
                 combos: SameFaceCatalog.actions(for: classID).filter { $0.owner == nil }
             )
 
@@ -277,7 +273,7 @@ struct InfoSheetView: View {
                     .font(.system(size: 13, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.sunGold)
             }
-            Text("Dice standing next to each other chain together. Nothing tells you which arrangements mean something — lay them out, commit, and a chain names itself as it lands. Every one you land is written in here for good.")
+            Text("Matching dice can be grouped into one action. Build a group, play it immediately, and discovered chains are written here for good.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
