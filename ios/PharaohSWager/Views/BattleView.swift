@@ -127,6 +127,12 @@ private struct BattleContentView: View {
             // this safe if SwiftUI re-runs the task after the hand has settled.
             engine.rollAll(reduceMotion: reduceMotion)
         }
+        .onChange(of: engine.turnNumber) { _, _ in
+            // Every fresh player turn auto-rolls after the engine has drawn its
+            // new six-die hand. Keeping this trigger in the live battle view
+            // avoids coupling deterministic engine tests to presentation timing.
+            engine.rollAll(reduceMotion: reduceMotion)
+        }
         .sheet(isPresented: $showBoons) {
             VStack(spacing: 12) {
                 HStack {
