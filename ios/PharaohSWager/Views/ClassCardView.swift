@@ -64,12 +64,12 @@ struct ClassCardView: View {
                 statPill(art: PharaohSWagerArt.Status.health, icon: "heart.fill",
                          value: "\(hero.maxHP)", label: "HP", tint: Theme.blood)
                 statPill(art: PharaohSWagerArt.staminaFull, icon: "bolt.fill",
-                         value: "6", label: "DICE", tint: Theme.gold)
+                         value: "10", label: "BAG", tint: Theme.gold)
                 // Base agility sits with health and stamina because it decides
                 // the shape of every turn: lower acts first, and each action
                 // adds its own size in dice on top of this.
                 statPill(art: nil, icon: "hare.fill",
-                         value: "0/2", label: "REROLLS", tint: Theme.frost)
+                         value: "1", label: "REROLL", tint: Theme.frost)
             }
 
             Text(hero.playstyle.uppercased())
@@ -91,17 +91,14 @@ struct ClassCardView: View {
     private var detailColumn: some View {
         VStack(alignment: .leading, spacing: 7) {
             gearBlock(
-                title: "\(hero.weaponName) · 3 dice",
-                art: GearSlot.weapon.artName,
-                symbol: "burst.fill",
-                die: hero.startingLoadout.weapon.dice.first
+                title: "STARTING BAG · 10 CLASS DICE",
+                art: nil,
+                symbol: "dice.fill",
+                die: hero.startingLoadout.allDice.first
             )
-            gearBlock(
-                title: "\(hero.armorName) · 2 dice",
-                art: GearSlot.armor.artName,
-                symbol: "shield.lefthalf.filled",
-                die: hero.startingLoadout.armor.dice.first
-            )
+            Text("Draw 5 each turn · 3 Resolve · 1 selective reroll")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.parchmentDim)
 
             GoldRule(height: 4, opacity: 0.55)
 
