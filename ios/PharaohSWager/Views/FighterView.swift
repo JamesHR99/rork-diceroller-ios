@@ -237,7 +237,9 @@ struct FighterView: View {
                     .padding(.horizontal, 9)
                     .padding(.vertical, 3)
                     .background(Theme.gold, in: .capsule)
-                    .offset(y: 2)
+                    // Keep the marker above the intent chips rather than
+                    // sitting on top of the first telegraphed enemy action.
+                    .offset(y: -24)
             }
             .allowsHitTesting(false)
         }
