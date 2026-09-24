@@ -352,7 +352,7 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 BattleBarqueView(gate: gate, width: boatWidth, discGlow: game.discGlow)
-                    .opacity(deckUp ? 0.3 : 0.96)
+                    .opacity(0.96)
 
                 HStack(alignment: .bottom, spacing: 8) {
                     FighterView(
@@ -563,20 +563,7 @@ private struct BattleContentView: View {
             .background(Theme.bgElevated, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1))
 
-            Button {
-                showBoons = true
-                Haptics.light()
-            } label: {
-                Label("BOONS \(game.equippedBoons.count)", systemImage: "sparkles")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.gold)
-                    .padding(.horizontal, 10)
-                    .frame(minHeight: 36)
-                    .background(Theme.bgElevated, in: .capsule)
-            }
-            .buttonStyle(PressableButtonStyle())
-            .accessibilityIdentifier("battle.boons")
-            .accessibilityLabel("Equipped god boons, \(game.equippedBoons.count)")
+            boonStrip
 
             // Chisels of Ptah: the copper marks beside the turn. The optional
             // ones are controls — tap a mark to pick the Chisel up, then tap
@@ -628,6 +615,62 @@ private struct BattleContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 3)
+    }
+
+    /// God boons stay visible as icons during combat instead of hiding behind
+    /// a count. Tapping the strip still opens the existing detailed sheet.
+    private var boonStrip: some View {
+        Button {
+            showBoons = true
+            Haptics.light()
+        } label: {
+            HStack(spacing: 4) {
+                if game.equippedBoons.isEmpty {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.parchmentDim)
+                    Text("NO BOONS")
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(Theme.parchmentDim)
+                } else {
+                    ForEach(Array(game.equippedBoons.prefix(6))) { boon in
+                        let god = boon.def?.god
+                        PharaohSWagerSymbol(
+                            art: god?.artName,
+                            fallback: god?.symbol ?? "sparkles",
+                            size: 18,
+                            tint: god?.tint ?? Theme.gold
+                        )
+                        .frame(width: 28, height: 28)
+                        .background(Theme.bg.opacity(0.72), in: .rect(cornerRadius: 7))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7)
+                                .strokeBorder((god?.tint ?? Theme.gold).opacity(0.5), lineWidth: 1)
+                        )
+                        .overlay(alignment: .bottomTrailing) {
+                            if boon.level > 1 {
+                                Text("\(boon.level)")
+                                    .font(.system(size: 7, weight: .black))
+                                    .foregroundStyle(Theme.bg)
+                                    .frame(width: 12, height: 12)
+                                    .background(Theme.gold, in: .circle)
+                                    .offset(x: 3, y: 3)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(Theme.bgElevated.opacity(0.92), in: .rect(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Theme.gold.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityIdentifier("battle.boons")
+        .accessibilityLabel("Equipped god boons, \(game.equippedBoons.count)")
     }
 
     /// One Chisel's copper mark. An optional Chisel is a button: it lifts the
