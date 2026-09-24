@@ -704,7 +704,7 @@ final class BattleEngine {
     private(set) var turnNumber = 1
     private(set) var committedPlan: [PlanStep] = []
     private(set) var activeStepIndex: Int?
-    private(set) var lastAction = "Roll your dice."
+    private(set) var lastAction = "Your dice roll as the turn begins."
 
     // MARK: The shared clock
     /// Anubis's Preserved Moment, armed in planning: this one commitment may
@@ -2086,7 +2086,6 @@ final class BattleEngine {
         lastReelLocked = isLast
         if isLast {
             Audio.shared.stopDiceRoll()
-            sortSlotsByRolledFace()
         }
 
         // A die landing should be felt. The last reel and any critical hit
@@ -2107,34 +2106,6 @@ final class BattleEngine {
         } else {
             Haptics.medium()
             Audio.shared.play(.diceLock, volumeScale: 0.8)
-        }
-    }
-
-    /// Once every reel has locked, group the hand into the face order used by
-    /// the game catalogue. Matching results therefore sit together instead of
-    /// retaining the random pre-roll shuffle. Spent dice keep the face they
-    /// landed on, so a later reroll does not make the row jump unpredictably.
-    private func sortSlotsByRolledFace() {
-        func faceRank(_ slot: DieSlot) -> Int {
-            let face: RolledFace?
-            switch slot.state {
-            case .rolled(let rolledFace), .spent(let rolledFace):
-                face = rolledFace
-            case .idle, .rolling:
-                face = nil
-            }
-            guard let face,
-                  let rank = FaceKind.allCases.firstIndex(of: face.matchFace) else {
-                return FaceKind.allCases.count
-            }
-            return rank
-        }
-
-        slots.sort { lhs, rhs in
-            let leftRank = faceRank(lhs)
-            let rightRank = faceRank(rhs)
-            if leftRank != rightRank { return leftRank < rightRank }
-            return lhs.die.name.localizedCaseInsensitiveCompare(rhs.die.name) == .orderedAscending
         }
     }
 

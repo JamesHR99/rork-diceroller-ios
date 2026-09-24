@@ -2,7 +2,7 @@ import Foundation
 
 /// Shared, deterministic rules used by planning, resolution and tests.
 enum BattleRules {
-    static let handSize = 5
+    static let handSize = 6
     static let baseRerolls = 1
     static let maximumRerolls = 2
     static let resolvePerTurn = 3
