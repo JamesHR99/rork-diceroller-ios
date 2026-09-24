@@ -73,6 +73,9 @@ struct FighterView: View {
 
     private var stageBody: some View {
         VStack(spacing: 4) {
+            if side == .enemy, let foe, foe.isAlive {
+                enemyIntentRow(foe)
+            }
             nameRow
             if side == .enemy, let foe, foe.armour + foe.shield > 0 {
                 armourBar(foe, width: barWidth)
@@ -395,6 +398,70 @@ struct FighterView: View {
             .transition(.scale(scale: 2.3).combined(with: .opacity))
             .allowsHitTesting(false)
         }
+    }
+
+    /// Enemy intent lives over the creature itself now. Each telegraphed move
+    /// is one compact chip, kept in execution order and stripped of move names.
+    private func enemyIntentRow(_ foe: EnemyState) -> some View {
+        let projected = engine.projectedRound(for: foe)
+        return HStack(spacing: 3) {
+            ForEach(Array(projected.prefix(3).enumerated()), id: \.offset) { _, entry in
+                intentChip(move: entry.element.move, strike: entry.element.strike)
+            }
+            if projected.count > 3 {
+                Text("+\(projected.count - 3)")
+                    .font(.system(size: 7.5, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.parchment)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 4)
+                    .background(Theme.bg.opacity(0.84), in: .capsule)
+            }
+        }
+        .frame(maxWidth: stageWidth)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Enemy intent")
+    }
+
+    private func intentChip(
+        move: EnemyMove,
+        strike: (damage: Int, heal: Int, block: Int)
+    ) -> some View {
+        HStack(spacing: 3) {
+            if strike.damage > 0 {
+                Image(systemName: "sword.fill")
+                    .foregroundStyle(Theme.blood)
+                Text("\(strike.damage)")
+            }
+            if strike.block > 0 {
+                Image(systemName: "shield.fill")
+                    .foregroundStyle(Theme.frost)
+                Text("\(strike.block)")
+            }
+            if strike.heal > 0 {
+                Image(systemName: "cross.fill")
+                    .foregroundStyle(Theme.venom)
+                Text("\(strike.heal)")
+            }
+            if strike.damage == 0, strike.block == 0, strike.heal == 0, move.charge > 0 {
+                Image(systemName: "bolt.fill")
+                    .foregroundStyle(Theme.gold)
+                Text("×\(String(format: "%.1f", move.charge))")
+            }
+            if strike.damage == 0, strike.block == 0, strike.heal == 0, move.charge == 0 {
+                Image(systemName: "ellipsis")
+                    .foregroundStyle(Theme.parchmentDim)
+            }
+        }
+        .font(.system(size: 8.5, weight: .black).monospacedDigit())
+        .foregroundStyle(Theme.parchment)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Theme.bg.opacity(0.9), in: .rect(cornerRadius: 7))
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .strokeBorder(Theme.gold.opacity(0.28), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.55), radius: 3, y: 1)
     }
 
     private var nameRow: some View {
