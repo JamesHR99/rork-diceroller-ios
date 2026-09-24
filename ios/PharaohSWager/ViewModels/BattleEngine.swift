@@ -1927,7 +1927,7 @@ final class BattleEngine {
         }?.id
     }
 
-    var undrawnCount: Int { max(0, loadoutDice.count - drawnDieIDs.count) }
+    var undrawnCount: Int { drawBag.count }
 
     /// Dice still waiting in the draw bag. When it empties, the discard pile is
     /// shuffled back in before the next draw.
@@ -2564,7 +2564,7 @@ final class BattleEngine {
         }
 
         // Resolve the finite alternating queue. Delay effects may move pending entries.
-        enemyTurnCount += 1
+        if endingTurn { enemyTurnCount += 1 }
         while !pendingEntries.isEmpty {
             let entry = pendingEntries.removeFirst()
             currentBeat += 1
