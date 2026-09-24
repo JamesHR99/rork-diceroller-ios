@@ -69,16 +69,6 @@ private struct BattleContentView: View {
             }
             .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9), value: deckUp)
         }
-        .overlay {
-            // Player action names and maths stay out of this UI pass. Enemy
-            // spotlights remain as reaction feedback after End Turn.
-            if let card = engine.spotlight, !card.isPlayer {
-                ActionSpotlightView(card: card)
-                    .id(card.id)
-                    .zIndex(5)
-                    .transition(.opacity)
-            }
-        }
         .overlay(alignment: .bottom) {
             // Aiming happens after you commit: the deck is down, the stage is
             // uncovered, and each blow asks which creature it should strike.
@@ -169,7 +159,10 @@ private struct BattleContentView: View {
     // MARK: - Dice deck
 
     private func actionTrayHeight(for size: CGSize) -> CGFloat {
-        min(130, max(104, size.height * 0.27))
+        // Keep the hand close to the proportions of the approved mock-up:
+        // substantial enough to tap comfortably, but never a second screen
+        // sitting over the barque.
+        min(124, max(94, size.height * 0.235))
     }
 
     private func diceDeck(size: CGSize) -> some View {
@@ -179,7 +172,7 @@ private struct BattleContentView: View {
         let controlsWidth: CGFloat = compact ? 178 : 214
         let gutters: CGFloat = compact ? 24 : 34
         let diceWidth = max(250, size.width - resolveWidth - controlsWidth - gutters)
-        let reelHeight = min(compact ? 76 : 92, trayHeight - 22)
+        let reelHeight = min(compact ? 70 : 86, trayHeight - 18)
 
         return HStack(spacing: compact ? 6 : 10) {
             ResolveMedallionView(engine: engine)
