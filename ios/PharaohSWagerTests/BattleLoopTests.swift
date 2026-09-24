@@ -29,12 +29,20 @@ struct BattleLoopTests {
 
     private func nextRound(_ engine: BattleEngine) async throws {
         let previousTurn = engine.turnNumber
-        engine.commitTurn()
+        if engine.phase == .player, engine.canCommit {
+            engine.commitTurn()
+            let actionDeadline = ContinuousClock().now.advanced(by: .seconds(30))
+            while engine.phase != .player && engine.phase != .won && engine.phase != .lost
+                    && ContinuousClock().now < actionDeadline {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+        }
+        if engine.phase == .player { engine.endPlayerTurn() }
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(45))
         while engine.turnNumber == previousTurn && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
-        #expect(engine.turnNumber == previousTurn + 1)
-        #expect(engine.phase == .player)
+        #expect(engine.turnNumber == previousTurn + 1 || engine.phase == .won || engine.phase == .lost)
+        if engine.phase != .won && engine.phase != .lost { #expect(engine.phase == .player) }
     }
 
 
@@ -87,70 +95,50 @@ struct BattleLoopTests {
         #expect(engine.damageBreakdown(for: critical) == "\(base) base + \(criticalTotal - base) crit = \(criticalTotal) damage")
     }
 
-    @Test func chargeAnimationKeepsOnlyCreditedDiceAndLocksCommit() async throws {
-        let engine = battle(Array(repeating: .block, count: 6))
+    @Test func playingAnActionSpendsOnlyItsDice() async throws {
+        let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
+        let before = engine.rolled.count
         let face = try #require(engine.rolled.first)
         engine.placeInPlayBar(faceID: face.id)
-        engine.gainRerollHalfCharges(3)
         engine.commitTurn()
-        #expect(engine.rerollChargeFlights.count == 1)
-        #expect(engine.rerollHalfCharges == 4)
-        #expect(engine.committedPlan.count == 1)
-        #expect(!engine.canCommit)
-        engine.commitTurn()
-        #expect(engine.rerollHalfCharges == 4)
-        try await Task.sleep(for: .seconds(1))
-        #expect(engine.rerollChargeFlights.isEmpty)
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(20))
+        while engine.phase != .player && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.rolled.count == before - 1)
+        #expect(engine.resolveRemaining == 2)
+        #expect(engine.canEndTurn)
     }
 
-    @Test func halfChargesPersistRechargeAndResetPerEncounter() async throws {
-        let engine = battle(Array(repeating: .block, count: 6))
+    @Test func selectiveRerollResetsEachTurnInsteadOfChargingFromUnusedDice() async throws {
+        let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
+        #expect(engine.rerollsRemaining == 1)
         let first = try #require(engine.slots.first)
         engine.selectingReroll = true
         engine.reroll(slotID: first.id, reduceMotion: true)
-        #expect(!engine.isRolling && engine.rerollsRemaining == 0)
-        engine.selectingReroll = false
-
-        // Five physical dice form one action; only the sixth earns a half.
-        for face in engine.rolled.prefix(5) { engine.placeInPlayBar(faceID: face.id) }
-        #expect(engine.pendingRerollHalfCharges == 1)
-        try await nextRound(engine)
-        #expect(engine.rerollHalfCharges == 1 && engine.rerollsRemaining == 0)
-
-        try await roll(engine)
-        for face in engine.rolled.prefix(5) { engine.placeInPlayBar(faceID: face.id) }
-        try await nextRound(engine)
-        #expect(engine.rerollHalfCharges == 2 && engine.rerollsRemaining == 1)
-
-        try await roll(engine)
-        engine.selectingReroll = true
-        engine.reroll(slotID: engine.slots[0].id, reduceMotion: true)
-        #expect(engine.rerollHalfCharges == 0)
         try await settled(engine)
-        // An empty plan still resolves the enemy queue and caps the award.
-        let protectionBefore = engine.playerHP + engine.playerShield
-        #expect(engine.pendingRerollHalfCharges == 4)
+        #expect(engine.rerollsRemaining == 0)
+        #expect(engine.pendingRerollHalfCharges == 0)
         try await nextRound(engine)
-        #expect(engine.rerollHalfCharges == 4)
-        #expect(engine.playerHP + engine.playerShield < protectionBefore)
-        let fresh = battle(Array(repeating: .block, count: 6))
-        #expect(fresh.rerollHalfCharges == 0)
+        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollHalfCharges == 2)
     }
 
-    @Test func fullHandEarnsNothingAndCommitCannotPayTwice() async throws {
-        let engine = battle(Array(repeating: .block, count: 6))
+    @Test func resolveIsSpentByImmediateActionsAndResetsNextTurn() async throws {
+        let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
-        engine.gainRerollHalfCharges(1)
-        for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
-        #expect(engine.pendingRerollHalfCharges == 0)
+        let face = try #require(engine.rolled.first)
+        engine.placeInPlayBar(faceID: face.id)
+        #expect(engine.plannedResolveCost == 1)
         engine.commitTurn()
-        #expect(engine.rerollHalfCharges == 1)
-        engine.commitTurn()
-        #expect(engine.rerollHalfCharges == 1)
-        try await nextRound(engine)
-        #expect(engine.rerollHalfCharges == 1)
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(20))
+        while engine.phase != .player && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.resolveRemaining == 2)
+        engine.endPlayerTurn()
+        while engine.turnNumber == 1 && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.resolveRemaining == 3)
     }
 
     @Test func rewardsShareTheCapAndKeepHalfCharges() {
@@ -220,14 +208,16 @@ struct BattleLoopTests {
     }
 
     @Test(arguments: ["archer", "warrior", "rogue", "magician"])
-    func startingLoadoutsUseEightPhysicalDiceAndDrawSix(classID: String) {
+    func startingLoadoutsUseTenPhysicalDiceAndDrawFive(classID: String) {
         let hero = GameData.heroClass(id: classID)
-        #expect(hero.startingLoadout.allDice.count == 8)
+        #expect(hero.startingLoadout.allDice.count == 10)
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice, classID: classID, maxHP: hero.maxHP, startHP: hero.maxHP, critBonus: 0)
-        #expect(Set(engine.slots.map { $0.die.id }).count == 6)
-        #expect(engine.rerollsRemaining == 0)
-        #expect(engine.rerollHalfCharges == 0)
+        #expect(Set(engine.slots.map { $0.die.id }).count == 5)
+        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.resolveRemaining == 3)
+        #expect(engine.drawBag.count == 5)
     }
 
     @Test func tappingARerollDieStartsImmediatelyAndSpendsExactlyOnce() async throws {
@@ -244,7 +234,7 @@ struct BattleLoopTests {
         engine.reroll(slotID: selected.id, reduceMotion: true)
         #expect(engine.rerollsRemaining == 1)
         try await settled(engine)
-        #expect(engine.rolled.count == 6)
+        #expect(engine.rolled.count == 5)
         for face in before where face.dieID != selected.die.id {
             let kept = try #require(engine.rolled.first { $0.id == face.id })
             #expect(kept.wasKept && kept.face == face.face && kept.isCrit == face.isCrit)
@@ -257,7 +247,7 @@ struct BattleLoopTests {
         try await roll(engine)
         for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
         #expect(engine.weldCandidates.isEmpty)
-        #expect(engine.timeline.filter(\.isPlayer).count == 6)
+        #expect(engine.timeline.filter(\.isPlayer).count == 5)
     }
 
     @Test func fourMatchingDiceWindUpAndCanBeSeparatedAgain() async throws {
@@ -282,8 +272,9 @@ struct BattleLoopTests {
         let expected = try #require(SameFaceCatalog.action(.arrow1, count: 1)).damage
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - expected)
-        #expect(engine.rolled.isEmpty && engine.slots.count == 6)
-        #expect(engine.rerollsRemaining == 2)
+        #expect(engine.rolled.isEmpty && engine.slots.count == 5)
+        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.resolveRemaining == 3)
     }
 
     @Test func godCatalogueRetainsStableIDsAndEvolvesInTheSourceSlot() {
