@@ -292,11 +292,7 @@ private struct DiceTrayReelView: View {
             case .rolling:
                 spinningReel
             case .rolled(let face):
-                if engine.playOrder.contains(face.id) {
-                    emptyReel(spent: false)
-                } else {
-                    settledReel(face)
-                }
+                settledReel(face)
             case .spent:
                 emptyReel(spent: true)
             }
@@ -392,7 +388,7 @@ private struct DiceTrayReelView: View {
             if selectingReroll {
                 engine.reroll(slotID: slot.id, reduceMotion: reduceMotion)
             } else {
-                engine.placeInPlayBar(faceID: face.id)
+                engine.toggleActionSelection(faceID: face.id)
             }
         } label: {
             VStack(spacing: 1) {
@@ -431,6 +427,26 @@ private struct DiceTrayReelView: View {
             .background { reelGround(opacity: 1) }
             .clipShape(.rect(cornerRadius: corner))
             .dieFrame(settledFrame(face), tint: frameTint(face))
+            .overlay {
+                if engine.playOrder.contains(face.id) && !selectingReroll {
+                    RoundedRectangle(cornerRadius: corner)
+                        .strokeBorder(Theme.gold, lineWidth: 3)
+                        .shadow(color: Theme.gold.opacity(0.8), radius: 10)
+                        .padding(2)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if engine.playOrder.contains(face.id) && !selectingReroll {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.bg)
+                        .frame(width: 22, height: 22)
+                        .background(Theme.gold, in: .circle)
+                        .overlay(Circle().strokeBorder(Theme.parchment.opacity(0.9), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
+                        .offset(y: 8)
+                }
+            }
             .overlay { armedHalo }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
@@ -698,24 +714,16 @@ private struct DiceTrayReelView: View {
     }
 
     private func bottomTagTint(_ face: RolledFace) -> Color {
-        selectingReroll ? Theme.frost : (face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85))
+        if selectingReroll { return Theme.frost }
+        if engine.playOrder.contains(face.id) { return Theme.gold }
+        return face.isCrit ? Theme.gold : Theme.parchmentDim
     }
 
-    /// Quick "what will this do" tag under the face icon — read from the
-    /// substituted tier when a Chisel has shifted the face.
+    /// The compact tray intentionally avoids action maths. The face itself is
+    /// the choice; the only extra state shown here is whether it is selected.
     private func bottomTag(_ face: RolledFace) -> String {
-        if selectingReroll { return "TAP TO REROLL" }
-        guard face.isCrit else { return face.matchFace.soloTag }
-        let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
-        switch face.face.soloKind {
-        case .damage: return "\(value) dmg"
-        case .block: return "+\(value) shield"
-        case .heal: return "+\(value) hp"
-        case .poison: return "\(value) psn"
-
-        case .evade: return "Evade 50%"
-        case .focus: return "+50% next hit"
-        }
+        if selectingReroll { return "REROLL" }
+        return engine.playOrder.contains(face.id) ? "SELECTED" : "TAP"
     }
 
     /// A reel whose face has gone down to the plan, or been spent outright.
