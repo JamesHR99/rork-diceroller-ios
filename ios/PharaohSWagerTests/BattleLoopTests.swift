@@ -8,7 +8,10 @@ struct BattleLoopTests {
         let move = EnemyMove(id: "two-hits", name: "Two hits", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
         let enemy = EnemyDef(id: "test-foe", name: "Practice foe", title: "Tests", maxHP: 500,
             symbol: "circle", goldReward: 0, moves: [move])
-        let dice = faces.enumerated().map { index, face in
+        // Five-die hands are deterministic in unit tests: use the first five
+        // requested faces as the complete test bag so assertions never depend
+        // on which sixth legacy fixture die happened to be left undrawn.
+        let dice = faces.prefix(BattleRules.handSize).enumerated().map { index, face in
             Die(name: "Test \(index)", slot: face.isAttack ? .weapon : .armor, faces: Array(repeating: face, count: 6), patron: patron)
         }
         return BattleEngine(enemies: [enemy], dice: dice, classID: classID, maxHP: 100, startHP: startHP,
@@ -496,7 +499,7 @@ struct BattleLoopTests {
     }
 
     @Test func thermalAndLightFeetCannotDoubleTheBonusCharge() async throws {
-        let engine = battle([.evade, .arrow1, .arrow2, .arrow3, .block, .focus], boons: ["HO-U1", "BA-U1"])
+        let engine = battle([.evade, .arrow1, .arrow2, .focus, .block], boons: ["HO-U1", "BA-U1"])
         try await roll(engine)
         engine.gainRerollHalfCharges(2)
         let focus = try #require(engine.slots.first { slot in
@@ -514,16 +517,17 @@ struct BattleLoopTests {
         #expect(engine.rerollHalfCharges == 1)
     }
 
-    @Test(arguments: [5, 6])
-    func bankedEmbersRequiresAnUnusedDie(played: Int) async throws {
-        let engine = battle(Array(repeating: .arrow1, count: 6), boons: ["RA-U2"])
+    @Test func unusedDiceDoNotRechargeTheBaseReroll() async throws {
+        let engine = battle(Array(repeating: .arrow1, count: 5), boons: ["RA-U2"])
         try await roll(engine)
-        for face in engine.rolled.prefix(played) { engine.placeInPlayBar(faceID: face.id) }
+        let face = try #require(engine.rolled.first)
+        engine.placeInPlayBar(faceID: face.id)
         try await nextRound(engine)
-        #expect(engine.rerollHalfCharges == (played == 5 ? 2 : 0))
+        #expect(engine.rerollsRemaining >= 1)
+        #expect(engine.pendingRerollHalfCharges == 0)
     }
 
-    @Test func lastMeasureAddsJudgementWithoutRequiringAllSixDice() async throws {
+    @Test func lastMeasureAddsJudgementWithoutUsingTheWholeHand() async throws {
         let engine = battle([.arrow1, .arrow2, .block, .block, .block, .block], boons: ["AN-A2", "AN-U1"])
         try await roll(engine)
         for kind in [FaceKind.arrow1, .arrow2] {
