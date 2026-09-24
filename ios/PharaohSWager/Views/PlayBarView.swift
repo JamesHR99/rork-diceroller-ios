@@ -14,17 +14,21 @@ struct PlayBarView: View {
 
     private var compact: Bool { bodyHeight < 104 }
 
-    private var columnHeight: CGFloat { max(94, bodyHeight + (compact ? 22 : 28)) }
-    private var rerollHeight: CGFloat { 44 }
-    private var commitHeight: CGFloat { columnHeight - rerollHeight - 6 }
-    private var controlWidth: CGFloat { compact ? 108 : 120 }
+    private var columnHeight: CGFloat { max(126, bodyHeight + (compact ? 22 : 28)) }
+    private var resolveHeight: CGFloat { 20 }
+    private var rerollHeight: CGFloat { 32 }
+    private var commitHeight: CGFloat { 42 }
+    private var endTurnHeight: CGFloat { 32 }
+    private var controlWidth: CGFloat { compact ? 118 : 132 }
 
     var body: some View {
         HStack(spacing: 7) {
             planSection
-            VStack(spacing: 6) {
+            VStack(spacing: 5) {
+                resolveMeter
                 rerollButton
                 commitButton
+                endTurnButton
             }
         }
         .padding(.horizontal, 6)
@@ -81,15 +85,15 @@ struct PlayBarView: View {
     private var planHeader: some View {
         HStack(spacing: 8) {
             Button { showingOrder = true } label: {
-                Label(compact ? "ORDER" : "TURN ORDER", systemImage: "list.number")
+                Label(compact ? "INTENT" : "ENEMY INTENT", systemImage: "eye.fill")
                     .font(.system(size: 10, weight: .black))
                     .foregroundStyle(Theme.gold)
             }
             .sheet(isPresented: $showingOrder) {
                 NavigationStack {
                     List {
-                        Section("Alternating actions") {
-                            ForEach(engine.timeline) { entry in
+                        Section("Enemies act after End Turn") {
+                            ForEach(engine.timeline.filter { !$0.isPlayer }) { entry in
                                 HStack {
                                     Text("\(entry.beat)").monospacedDigit()
                                     VStack(alignment: .leading) {
@@ -100,7 +104,7 @@ struct PlayBarView: View {
                             }
                         }
                     }
-                    .navigationTitle("This round")
+                    .navigationTitle("Enemy intent")
                     .toolbar { Button("Done") { showingOrder = false } }
                 }
             }
@@ -146,7 +150,7 @@ struct PlayBarView: View {
             let cardWidth = max(1, (geometry.size.width - CGFloat(max(0, steps.count - 1)) * 4) / CGFloat(max(1, steps.count)))
             HStack(spacing: 4) {
                 if steps.isEmpty {
-                    Text("PLACE DICE IN ORDER · MATCHING NEIGHBOURS COMBINE")
+                    Text("BUILD ONE ACTION · MATCHING DICE COMBINE · PLAY IT NOW")
                         .font(.fantasy(13, weight: .bold))
                         .foregroundStyle(Theme.parchment)
                         .minimumScaleFactor(0.5)
@@ -239,6 +243,29 @@ struct PlayBarView: View {
         .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.92)))
     }
 
+    private var resolveMeter: some View {
+        HStack(spacing: 4) {
+            Text("RESOLVE")
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(Theme.parchmentDim)
+            ForEach(0..<BattleRules.resolvePerTurn, id: \.self) { index in
+                Circle()
+                    .fill(index < engine.resolveRemaining ? Theme.gold : Theme.gold.opacity(0.15))
+                    .frame(width: 8, height: 8)
+            }
+            Spacer(minLength: 2)
+            if !engine.playedFaces.isEmpty {
+                Text("COST \(engine.plannedResolveCost)")
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(engine.plannedResolveCost <= engine.resolveRemaining ? Theme.gold : Theme.blood)
+            }
+        }
+        .padding(.horizontal, 7)
+        .frame(width: controlWidth, height: resolveHeight)
+        .background(Theme.bg.opacity(0.72), in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.35), lineWidth: 0.8))
+    }
+
     private var rerollButton: some View {
         Button {
             engine.selectingReroll.toggle()
@@ -247,17 +274,8 @@ struct PlayBarView: View {
             VStack(spacing: 2) {
                 Label(engine.selectingReroll ? "CANCEL" : "REROLL", systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 12, weight: .black))
-                Text(engine.selectingReroll ? "Tap a die to roll now" : "\(engine.rerollChargeText)/\(engine.rerollCapacity) charges")
+                Text(engine.selectingReroll ? "Tap one die" : "\(engine.rerollChargeText) selective reroll")
                     .font(.system(size: 9, weight: .semibold))
-                GeometryReader { proxy in
-                    Capsule().fill(Theme.gold.opacity(0.2))
-                        .overlay(alignment: .leading) {
-                            Capsule().fill(Theme.gold)
-                                .frame(width: proxy.size.width * CGFloat(engine.availableRerollHalfCharges) / CGFloat(max(1, engine.rerollCapacity * 2)))
-                        }
-                }
-                .frame(height: 4)
-                .animation(.easeOut(duration: 0.7), value: engine.rerollHalfCharges)
             }
             .foregroundStyle(Theme.gold)
             .paintedContentInsets()
@@ -275,7 +293,7 @@ struct PlayBarView: View {
     // MARK: - Commit
 
     private var commitButton: some View {
-        let armed = engine.canCommit && !engine.playedFaces.isEmpty
+        let armed = engine.canCommit
         let layout = commitHeight < 56 ? AnyLayout(HStackLayout(spacing: 4))
                                        : AnyLayout(VStackLayout(spacing: 2))
         return Button {
@@ -286,8 +304,8 @@ struct PlayBarView: View {
             layout {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.burn, size: compact ? 21 : 26)
                     .shadow(color: Theme.ember.opacity(armed ? 0.8 : 0), radius: 8)
-                Text(engine.playedFaces.isEmpty ? "END TURN" : "FIGHT!")
-                    .font(.fantasy(armed ? 20 : 15, weight: .black))
+                Text(engine.playedFaces.isEmpty ? "BUILD ACTION" : "PLAY ACTION")
+                    .font(.fantasy(armed ? 17 : 13, weight: .black))
                     .kerning(1.4)
                     .foregroundStyle(
                         engine.canCommit
@@ -317,5 +335,29 @@ struct PlayBarView: View {
         .disabled(!engine.canCommit)
         .accessibilityIdentifier("battle.commit")
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
+
+    private var endTurnButton: some View {
+        Button {
+            engine.endPlayerTurn()
+            Haptics.medium()
+            Audio.shared.play(.uiConfirm)
+        } label: {
+            Label("END TURN", systemImage: "hourglass.bottomhalf.filled")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(engine.canEndTurn ? Theme.parchment : Theme.parchmentDim)
+                .frame(width: controlWidth, height: endTurnHeight)
+                .background {
+                    DeckButtonSurface(
+                        tone: .secondary,
+                        state: engine.canEndTurn ? .normal : .disabled,
+                        rim: Theme.ember,
+                        cornerRadius: 12
+                    )
+                }
+        }
+        .buttonStyle(PressableButtonStyle())
+        .disabled(!engine.canEndTurn)
+        .accessibilityIdentifier("battle.endTurn")
+    }
     }
 }
