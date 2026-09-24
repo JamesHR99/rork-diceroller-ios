@@ -39,12 +39,12 @@ private struct BattleContentView: View {
                 VStack(spacing: 0) {
                     topStrip
 
-                    // The battlefield never collapses into a planning HUD.
-                    // Dice live on a shallow shelf at the bottom, so the player
-                    // can read every fighter and every intent while rolling.
+                    // The battlefield always receives the full remaining
+                    // screen. The combat console is a true overlay on the
+                    // barque, so showing the dice never pushes the boat or the
+                    // fighters upward.
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.bottom, deckUp ? actionTrayHeight(for: size) - 8 : 0)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
@@ -159,44 +159,78 @@ private struct BattleContentView: View {
     // MARK: - Dice deck
 
     private func actionTrayHeight(for size: CGSize) -> CGFloat {
-        // Keep the hand close to the proportions of the approved mock-up:
-        // substantial enough to tap comfortably, but never a second screen
-        // sitting over the barque.
-        min(124, max(94, size.height * 0.235))
+        // The controls now float over the barque rather than reserving layout
+        // space. On phones that lets the hand become a larger two-tier console:
+        // dice/roll above, Resolve + Reroll + Play below.
+        if size.width < 600 {
+            return min(176, max(150, size.height * 0.22))
+        }
+        return min(142, max(116, size.height * 0.18))
     }
 
+    @ViewBuilder
     private func diceDeck(size: CGSize) -> some View {
         let trayHeight = actionTrayHeight(for: size)
-        let compact = size.width < 600 || trayHeight < 116
-        let resolveWidth: CGFloat = compact ? 48 : 80
-        let controlsWidth: CGFloat = compact ? 128 : 214
-        let outerPadding: CGFloat = compact ? 4 : 12
-        let spacing: CGFloat = compact ? 4 : 10
-        let diceWidth = max(
-            compact ? 176 : 250,
-            size.width - resolveWidth - controlsWidth - (outerPadding * 2) - (spacing * 2)
+        let phone = size.width < 600
+        let wideResolveWidth: CGFloat = 86
+        let wideControlsWidth: CGFloat = 222
+        let wideOuterPadding: CGFloat = 14
+        let wideSpacing: CGFloat = 12
+        let wideDiceWidth = max(
+            300,
+            size.width - wideResolveWidth - wideControlsWidth
+                - (wideOuterPadding * 2) - (wideSpacing * 2)
         )
-        let reelHeight = min(compact ? 54 : 86, trayHeight - 18)
 
-        return HStack(spacing: spacing) {
-            ResolveMedallionView(engine: engine, diameter: resolveWidth)
-                .frame(width: resolveWidth)
+        Group {
+            if phone {
+                VStack(spacing: 4) {
+                    // Give the slot machine almost the whole phone width. This
+                    // makes the five dice and roll lever substantially larger
+                    // without changing the battlefield's own geometry.
+                    DiceTrayView(
+                        engine: engine,
+                        maxReelHeight: 66,
+                        maxRowWidth: max(300, size.width - 12),
+                        compact: true
+                    )
+                    .frame(maxWidth: .infinity)
 
-            DiceTrayView(
-                engine: engine,
-                maxReelHeight: reelHeight,
-                maxRowWidth: diceWidth,
-                compact: true
-            )
-            .frame(maxWidth: diceWidth)
+                    HStack(spacing: 10) {
+                        ResolveMedallionView(engine: engine, diameter: 64)
 
-            PlayBarView(engine: engine, bodyHeight: trayHeight - 18)
-                .frame(width: controlsWidth)
+                        Spacer(minLength: 8)
+
+                        // A taller body selects the full-size control treatment
+                        // rather than the tiny one-line phone controls.
+                        PlayBarView(engine: engine, bodyHeight: 108)
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .padding(.top, 5)
+                .padding(.bottom, 7)
+            } else {
+                HStack(spacing: wideSpacing) {
+                    ResolveMedallionView(engine: engine, diameter: wideResolveWidth)
+                        .frame(width: wideResolveWidth)
+
+                    DiceTrayView(
+                        engine: engine,
+                        maxReelHeight: 94,
+                        maxRowWidth: wideDiceWidth,
+                        compact: true
+                    )
+                    .frame(maxWidth: wideDiceWidth)
+
+                    PlayBarView(engine: engine, bodyHeight: 112)
+                        .frame(width: wideControlsWidth)
+                }
+                .padding(.horizontal, wideOuterPadding)
+                .padding(.vertical, 8)
+            }
         }
-        .padding(.horizontal, outerPadding)
-        .padding(.vertical, 7)
         .frame(maxWidth: .infinity)
-        .frame(height: trayHeight)
+        .frame(height: trayHeight, alignment: .bottom)
         .disabled(!engine.rerollChargeFlights.isEmpty)
         .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
             GeometryReader { proxy in
