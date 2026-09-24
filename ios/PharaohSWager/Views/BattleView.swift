@@ -172,6 +172,15 @@ private struct BattleContentView: View {
     private func diceDeck(size: CGSize) -> some View {
         let trayHeight = actionTrayHeight(for: size)
         let phone = size.width < 600
+        let wideResolveWidth: CGFloat = 86
+        let wideControlsWidth: CGFloat = 222
+        let wideOuterPadding: CGFloat = 14
+        let wideSpacing: CGFloat = 12
+        let wideDiceWidth = max(
+            300,
+            size.width - wideResolveWidth - wideControlsWidth
+                - (wideOuterPadding * 2) - (wideSpacing * 2)
+        )
 
         Group {
             if phone {
@@ -201,31 +210,22 @@ private struct BattleContentView: View {
                 .padding(.top, 5)
                 .padding(.bottom, 7)
             } else {
-                let resolveWidth: CGFloat = 86
-                let controlsWidth: CGFloat = 222
-                let outerPadding: CGFloat = 14
-                let spacing: CGFloat = 12
-                let diceWidth = max(
-                    300,
-                    size.width - resolveWidth - controlsWidth - (outerPadding * 2) - (spacing * 2)
-                )
-
-                HStack(spacing: spacing) {
-                    ResolveMedallionView(engine: engine, diameter: resolveWidth)
-                        .frame(width: resolveWidth)
+                HStack(spacing: wideSpacing) {
+                    ResolveMedallionView(engine: engine, diameter: wideResolveWidth)
+                        .frame(width: wideResolveWidth)
 
                     DiceTrayView(
                         engine: engine,
                         maxReelHeight: 94,
-                        maxRowWidth: diceWidth,
+                        maxRowWidth: wideDiceWidth,
                         compact: true
                     )
-                    .frame(maxWidth: diceWidth)
+                    .frame(maxWidth: wideDiceWidth)
 
                     PlayBarView(engine: engine, bodyHeight: 112)
-                        .frame(width: controlsWidth)
+                        .frame(width: wideControlsWidth)
                 }
-                .padding(.horizontal, outerPadding)
+                .padding(.horizontal, wideOuterPadding)
                 .padding(.vertical, 8)
             }
         }
