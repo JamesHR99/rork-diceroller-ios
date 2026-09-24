@@ -1960,7 +1960,7 @@ final class BattleEngine {
     var plannedResolveCost: Int { turnPlan.reduce(0) { $0 + resolveCost(for: $1) } }
     var canCommit: Bool {
         phase == .player && hasRolled && !isRolling && !playedFaces.isEmpty
-            && plannedResolveCost <= resolveRemaining
+            && turnPlan.count == 1 && plannedResolveCost <= resolveRemaining
     }
     var canEndTurn: Bool { phase == .player && hasRolled && !isRolling }
 
