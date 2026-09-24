@@ -2386,6 +2386,15 @@ final class BattleEngine {
 
     // MARK: - Turn resolution
 
+    /// Played dice leave the hand as soon as their action resolves, exactly like
+    /// played cards entering a discard pile. Unplayed dice remain until End Turn.
+    private func discardPlayedDice(_ step: PlanStep) {
+        let ids = Set(step.faces.map(\.dieID))
+        for id in ids where !discardPile.contains(id) { discardPile.append(id) }
+        slots.removeAll { ids.contains($0.die.id) }
+        drawnDieIDs.subtract(ids)
+    }
+
     private func resolveTurn() async {
         let steps = buildPlan(from: playedFaces)
         committedPlan = steps
@@ -2543,6 +2552,7 @@ final class BattleEngine {
                 applyPendingBoonEffects()
                 finishSameFaceAction(step, target: target)
                 completedDice += step.faces.count
+                discardPlayedDice(step)
                 if roles(for: step).contains(.attack), step.faces.count >= 4 { completedLargeAttack = true }
                 if let combo = step.combo {
                     assassinArmed.remove(step.id.uuidString)
