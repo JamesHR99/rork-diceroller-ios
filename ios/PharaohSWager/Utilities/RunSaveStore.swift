@@ -10,11 +10,15 @@ nonisolated struct RunSave: Codable {
     /// Bumped whenever the shape changes, so an old save is discarded rather
     /// than decoded into nonsense.
     ///
+    /// 5: combat became a ten-die draw bag with five-die hands, Resolve and a
+    /// discard/reshuffle loop. Older runs keep an eight-die loadout and cannot
+    /// be resumed honestly under these rules.
+    ///
     /// 2: the river became a run of two-channel forks. Stops no longer carry
     /// connections, they carry a revealed flag instead, an hour is two stops
     /// rather than four, and Mooring is gone as a kind — nothing about an old
     /// chart can be read into the new one.
-    static let currentVersion = 4
+    static let currentVersion = 5
 
     var version: Int = RunSave.currentVersion
 
