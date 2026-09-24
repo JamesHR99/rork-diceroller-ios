@@ -134,7 +134,7 @@ final class TurnOrderRenderingTests: XCTestCase {
         }
     }
 
-    func testSquareReelsAndSixVisibleActions() async throws {
+    func testSquareReelsAndFiveVisibleActions() async throws {
         let kinds: [FaceKind] = [.arrow1, .arrow2, .arrow3, .block, .evade, .focus]
         let dice = kinds.map { Die(name: "Layout", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
@@ -146,10 +146,10 @@ final class TurnOrderRenderingTests: XCTestCase {
                 name: "Square-reels-\(width)", size: CGSize(width: width, height: 160))
         }
         for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
-        XCTAssertEqual(engine.displayedPlan.count, 6)
+        XCTAssertEqual(engine.displayedPlan.count, 5)
         for width in [660.0, 850.0] {
             try await capture(PlayBarView(engine: engine, bodyHeight: 80),
-                name: "Six-visible-actions-\(width)", size: CGSize(width: width, height: 122))
+                name: "Five-visible-actions-\(width)", size: CGSize(width: width, height: 122))
         }
     }
 
