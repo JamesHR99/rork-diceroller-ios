@@ -230,8 +230,8 @@ private struct BattleContentView: View {
     /// bars and the status row all have to fit above the figure, and a
     /// serpent-lord is drawn taller again, so the tallest fighter on the deck
     /// sets the measure for everyone.
-    private func fighterHeight(_ room: CGFloat) -> CGFloat {
-        let chrome: CGFloat = 96
+    private func fighterHeight(_ room: CGFloat, hasIntent: Bool = false) -> CGFloat {
+        let chrome: CGFloat = hasIntent ? 120 : 96
         let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
         return min(232, max(112, free / (1.06 * tallest)))
@@ -330,7 +330,7 @@ private struct BattleContentView: View {
                     isTargeted: engine.isTargeted(foeID: foe.id),
                     isAimable: engine.isAiming && foe.isAlive,
                     onTap: engine.isAiming ? { engine.aim(at: foe.id) } : nil,
-                    stageHeight: fighterHeight(room),
+                    stageHeight: fighterHeight(room, hasIntent: true),
                     cardWidth: foes.count > 1 ? cardWidth : nil
                 )
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
