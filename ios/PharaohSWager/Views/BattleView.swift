@@ -179,28 +179,47 @@ private struct BattleContentView: View {
 
     // MARK: - Dice deck
 
+    private func actionTrayHeight(for size: CGSize) -> CGFloat {
+        min(130, max(104, size.height * 0.27))
+    }
+
     private func diceDeck(size: CGSize) -> some View {
-        let metrics = BattleDeckMetrics(screenHeight: size.height,
-                                        headerHeight: headerHeight > 0 ? headerHeight : 120)
-        return FittedActionContent {
-            VStack(spacing: 6) {
-                DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
-                             maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
-                    .padding(.horizontal, 8)
-                PlayBarView(engine: engine, bodyHeight: metrics.planHeight)
-                    .padding(.horizontal, 10)
-            }
-            .padding(.bottom, 8)
-            .frame(maxWidth: .infinity)
+        let trayHeight = actionTrayHeight(for: size)
+        let compact = size.width < 760 || trayHeight < 116
+        let resolveWidth: CGFloat = compact ? 66 : 80
+        let controlsWidth: CGFloat = compact ? 178 : 214
+        let gutters: CGFloat = compact ? 24 : 34
+        let diceWidth = max(250, size.width - resolveWidth - controlsWidth - gutters)
+        let reelHeight = min(compact ? 76 : 92, trayHeight - 22)
+
+        return HStack(spacing: compact ? 6 : 10) {
+            ResolveMedallionView(engine: engine)
+                .scaleEffect(compact ? 0.84 : 1)
+                .frame(width: resolveWidth)
+
+            DiceTrayView(
+                engine: engine,
+                maxReelHeight: reelHeight,
+                maxRowWidth: diceWidth,
+                compact: true
+            )
+            .frame(maxWidth: diceWidth)
+
+            PlayBarView(engine: engine, bodyHeight: trayHeight - 18)
+                .frame(width: controlsWidth)
         }
-        .frame(height: metrics.height, alignment: .top)
+        .padding(.horizontal, compact ? 8 : 12)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity)
+        .frame(height: trayHeight)
         .disabled(!engine.rerollChargeFlights.isEmpty)
         .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
             GeometryReader { proxy in
                 if !engine.rerollChargeFlights.isEmpty, let target = anchors["reroll"] {
                     RerollChargeFlight(
                         sources: engine.rerollChargeFlights.compactMap { anchors[$0.uuidString].map { proxy[$0] } },
-                        destination: proxy[target])
+                        destination: proxy[target]
+                    )
                 }
             }
             .allowsHitTesting(false)
@@ -209,7 +228,7 @@ private struct BattleContentView: View {
             DeckShelfBackground(armed: engine.selectingReroll)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .offset(y: deckUp ? 0 : size.height)
+        .offset(y: deckUp ? 0 : trayHeight + 28)
         .opacity(deckUp ? 1 : 0)
         .allowsHitTesting(deckUp)
         .accessibilityHidden(!deckUp)
