@@ -6,6 +6,11 @@ struct PlayBarView: View {
     let engine: BattleEngine
     var bodyHeight: CGFloat = 108
 
+    private var compact: Bool { bodyHeight < 100 }
+    private var controlHeight: CGFloat { compact ? 58 : 68 }
+    private var rerollWidth: CGFloat { compact ? 64 : 76 }
+    private var primaryWidth: CGFloat { compact ? 106 : 126 }
+
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
     private var primaryEnabled: Bool {
         hasSelection ? engine.canCommit : engine.canEndTurn
@@ -27,7 +32,7 @@ struct PlayBarView: View {
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: engine.selectingReroll ? "xmark" : "arrow.triangle.2.circlepath")
-                    .font(.system(size: 17, weight: .black))
+                    .font(.system(size: compact ? 14 : 17, weight: .black))
                 Text(engine.selectingReroll ? "CANCEL" : "REROLL")
                     .font(.system(size: 10, weight: .black))
                     .kerning(0.8)
@@ -37,7 +42,7 @@ struct PlayBarView: View {
                 }
             }
             .foregroundStyle(engine.selectingReroll ? Theme.frost : Theme.gold)
-            .frame(width: 76, height: 68)
+            .frame(width: rerollWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
                     tone: .secondary,
@@ -67,13 +72,13 @@ struct PlayBarView: View {
                 Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
                     .font(.system(size: 17, weight: .black))
                 Text(hasSelection ? "PLAY" : "END TURN")
-                    .font(.fantasy(17, weight: .black))
+                    .font(.fantasy(compact ? 14 : 17, weight: .black))
                     .kerning(1.4)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
             .foregroundStyle(primaryEnabled ? Theme.parchment : Theme.parchmentDim)
-            .frame(width: 126, height: 68)
+            .frame(width: primaryWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
                     tone: hasSelection ? .primary : .secondary,
