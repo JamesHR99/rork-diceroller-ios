@@ -22,18 +22,11 @@ private struct BattleContentView: View {
     @State private var showInfo = false
     @State private var showBoons = false
     @State private var arrivalShown = true
-    /// Where the run's heading and the health rail actually end. The deck is
-    /// hung off this rather than off the bottom of the screen, so it rises to
-    /// meet the health bars instead of leaving a band of empty river between
-    /// them and pushing its own last row off the bottom edge.
-    @State private var headerHeight: CGFloat = 0
 
     private var gate: Gate { game.gate }
 
-    /// The dice deck rides up over the arena while you are planning, and slides
-    /// away the moment you commit — that is what hands the whole screen back to
-    /// the fighters and the hull they are standing on. Aiming happens on the
-    /// uncovered stage, so the deck is down for that too.
+    /// The compact dice shelf is visible only while the player is choosing an
+    /// action. The stage behind it remains fully readable instead of dimming.
     private var deckUp: Bool {
         engine.phase == .player || !engine.rerollChargeFlights.isEmpty
     }
@@ -44,40 +37,14 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        topStrip
+                    topStrip
 
-                        // While the deck is up, the fighters are read off the
-                        // slim rail; once it drops, the stage below is
-                        // uncovered and the full-size figures are what you
-                        // watch.
-                        if deckUp {
-                            tickerRail(width: max(0, size.width - 24))
-                                .padding(.horizontal, 12)
-                                .padding(.top, 2)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-
-                            enemyOrderStrip
-                                .padding(.horizontal, 14)
-                                .padding(.top, 3)
-                        }
-
-                        // Enemy actions have one shared strip above the reels;
-                        // the health cards stay compact and the whole pack's
-                        // order can be read from left to right.
-                    }
-                    // The deck is measured against what this strip leaves
-                    // behind, so it can sit directly under the health bars.
-                    .onGeometryChange(for: CGFloat.self) { proxy in
-                        proxy.size.height
-                    } action: { height in
-                        headerHeight = height
-                    }
-
+                    // The battlefield never collapses into a planning HUD.
+                    // Dice live on a shallow shelf at the bottom, so the player
+                    // can read every fighter and every intent while rolling.
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .opacity(deckUp ? 0.22 : 1)
-                        .scaleEffect(deckUp ? 0.94 : 1, anchor: .top)
+                        .padding(.bottom, deckUp ? actionTrayHeight(for: size) - 8 : 0)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
