@@ -272,11 +272,15 @@ private struct DiceTrayReelView: View {
     private var selectingReroll: Bool { engine.selectingReroll }
 
     private var corner: CGFloat { 15 }
-    /// All three lines live inside the painted frame's true opening. The art
-    /// has a broad ornamental rim, so sizing against the outer square made the
-    /// glyph, name and value look cropped even when SwiftUI's bounds were valid.
+    /// The battle shelf uses deliberately compact, icon-first dice. Taller
+    /// presentation captures (and any future detail view) keep the face name
+    /// and tag, but the live hand reads like physical dice rather than cards.
+    private var dense: Bool { height < 88 }
     private var iconSize: CGFloat {
-        max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
+        if dense {
+            return max(22, min(34, min(width * 0.48, height * 0.46)))
+        }
+        return max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
     }
     private var labelSize: CGFloat { max(8.5, min(10.5, width * 0.105)) }
     private func labelSize(for face: RolledFace) -> CGFloat {
@@ -346,12 +350,14 @@ private struct DiceTrayReelView: View {
             .frame(width: iconSize, height: iconSize)
             .accessibilityHidden(true)
 
-            Text("ROLLING")
-                .font(.system(size: labelSize, weight: .heavy))
-                .foregroundStyle(Theme.gold.opacity(0.8))
-            Text("···")
-                .font(.system(size: tagSize, weight: .black))
-                .foregroundStyle(Theme.parchmentDim)
+            if !dense {
+                Text("ROLLING")
+                    .font(.system(size: labelSize, weight: .heavy))
+                    .foregroundStyle(Theme.gold.opacity(0.8))
+                Text("···")
+                    .font(.system(size: tagSize, weight: .black))
+                    .foregroundStyle(Theme.parchmentDim)
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 6)
@@ -409,20 +415,22 @@ private struct DiceTrayReelView: View {
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
                 // tier the engine will use, in Ptah's copper.
-                Text(reelLabel(face))
-                    .font(.system(size: labelSize(for: face), weight: .heavy))
-                    .kerning(0.2)
-                    .foregroundStyle(face.isCrit
-                                     ? Theme.gold
-                                     : ((face.patron?.tint ?? face.matchFace.tint)))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(bottomTag(face))
-                    .font(.system(size: tagSize, weight: .black).monospacedDigit())
-                    .foregroundStyle(bottomTagTint(face))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(width: max(1, width * 0.66))
+                if !dense {
+                    Text(reelLabel(face))
+                        .font(.system(size: labelSize(for: face), weight: .heavy))
+                        .kerning(0.2)
+                        .foregroundStyle(face.isCrit
+                                         ? Theme.gold
+                                         : ((face.patron?.tint ?? face.matchFace.tint)))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text(bottomTag(face))
+                        .font(.system(size: tagSize, weight: .black).monospacedDigit())
+                        .foregroundStyle(bottomTagTint(face))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(width: max(1, width * 0.66))
+                }
             }
             .padding(.horizontal, max(8, width * 0.1))
             .padding(.vertical, max(9, height * 0.075))
@@ -512,6 +520,8 @@ private struct DiceTrayReelView: View {
             }
         }
         .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(face.matchFace.label)
+        .accessibilityValue(engine.playOrder.contains(face.id) ? "Selected" : "Not selected")
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
