@@ -135,7 +135,13 @@ struct BattleLoopTests {
         let actionDeadline = clock.now.advanced(by: .seconds(20))
         while engine.phase != .player && clock.now < actionDeadline { try await Task.sleep(for: .milliseconds(20)) }
 
-        #expect(engine.slots.count == 4)
+        // Used dice stay visible as greyed spent slots for the rest of the
+        // round, while still entering the logical discard pile immediately.
+        #expect(engine.slots.count == 5)
+        #expect(engine.slots.filter {
+            if case .spent = $0.state { return true }
+            return false
+        }.count == 1)
         #expect(engine.discardPile.count == 1)
 
         engine.endPlayerTurn()

@@ -72,7 +72,10 @@ struct DieSlot: Identifiable {
         case idle
         case rolling
         case rolled(RolledFace)
-        case spent
+        /// A face already committed this round. Keep the landed face attached
+        /// so the tray can leave the physical die in place, greyed out, rather
+        /// than collapsing the hand while combat animation is playing.
+        case spent(RolledFace)
     }
 }
 
@@ -2081,7 +2084,10 @@ final class BattleEngine {
         rolled.append(result)
         slamPulse += 1
         lastReelLocked = isLast
-        if isLast { Audio.shared.stopDiceRoll() }
+        if isLast {
+            Audio.shared.stopDiceRoll()
+            sortSlotsByRolledFace()
+        }
 
         // A die landing should be felt. The last reel and any critical hit
         // the tray noticeably harder than the ones in between.
@@ -2101,6 +2107,34 @@ final class BattleEngine {
         } else {
             Haptics.medium()
             Audio.shared.play(.diceLock, volumeScale: 0.8)
+        }
+    }
+
+    /// Once every reel has locked, group the hand into the face order used by
+    /// the game catalogue. Matching results therefore sit together instead of
+    /// retaining the random pre-roll shuffle. Spent dice keep the face they
+    /// landed on, so a later reroll does not make the row jump unpredictably.
+    private func sortSlotsByRolledFace() {
+        func faceRank(_ slot: DieSlot) -> Int {
+            let face: RolledFace?
+            switch slot.state {
+            case .rolled(let rolledFace), .spent(let rolledFace):
+                face = rolledFace
+            case .idle, .rolling:
+                face = nil
+            }
+            guard let face,
+                  let rank = FaceKind.allCases.firstIndex(of: face.matchFace) else {
+                return FaceKind.allCases.count
+            }
+            return rank
+        }
+
+        slots.sort { lhs, rhs in
+            let leftRank = faceRank(lhs)
+            let rightRank = faceRank(rhs)
+            if leftRank != rightRank { return leftRank < rightRank }
+            return lhs.die.name.localizedCaseInsensitiveCompare(rhs.die.name) == .orderedAscending
         }
     }
 
@@ -2420,12 +2454,12 @@ final class BattleEngine {
 
     // MARK: - Turn resolution
 
-    /// Played dice leave the hand as soon as their action resolves, exactly like
-    /// played cards entering a discard pile. Unplayed dice remain until End Turn.
+    /// A played die is logically discarded immediately, but its physical slot
+    /// stays in the tray until End Turn so the hand never collapses mid-round.
+    /// Keeping the discard bookkeeping here preserves the draw/reshuffle loop.
     private func discardPlayedDice(_ step: PlanStep) {
         let ids = Set(step.faces.map(\.dieID))
         for id in ids where !discardPile.contains(id) { discardPile.append(id) }
-        slots.removeAll { ids.contains($0.die.id) }
         drawnDieIDs.subtract(ids)
     }
 
@@ -2436,7 +2470,7 @@ final class BattleEngine {
         let spentFaceIDs = Set(steps.flatMap { $0.faces.map(\.id) })
         for index in slots.indices {
             if case .rolled(let face) = slots[index].state, spentFaceIDs.contains(face.id) {
-                slots[index].state = .spent
+                slots[index].state = .spent(face)
             }
         }
         rolled.removeAll { spentFaceIDs.contains($0.id) }
@@ -4709,7 +4743,11 @@ final class BattleEngine {
         capstoneUsedThisTurn = false
         thermalUsedThisTurn = false
 
-        discardPile.append(contentsOf: slots.map { $0.die.id })
+        // Spent dice are already in the discard pile; add only the dice that
+        // remained unused so retaining their visual slots cannot duplicate IDs.
+        for id in slots.map({ $0.die.id }) where !discardPile.contains(id) {
+            discardPile.append(id)
+        }
         let drawn = drawFromBag(count: BattleRules.handSize)
         slots = drawn.map { DieSlot(die: $0, state: .idle) }
         drawnDieIDs = Set(drawn.map(\.id))

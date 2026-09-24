@@ -25,10 +25,16 @@ private struct BattleContentView: View {
 
     private var gate: Gate { game.gate }
 
-    /// The compact dice shelf is visible only while the player is choosing an
-    /// action. The stage behind it remains fully readable instead of dimming.
+    /// Keep the combat hand on-screen throughout the round. Resolution and
+    /// enemy animations play above it instead of making the whole interface
+    /// disappear and reappear between actions.
     private var deckUp: Bool {
-        engine.phase == .player || !engine.rerollChargeFlights.isEmpty
+        switch engine.phase {
+        case .won, .lost:
+            return false
+        default:
+            return true
+        }
     }
 
     var body: some View {
@@ -163,9 +169,9 @@ private struct BattleContentView: View {
         // space. On phones that lets the hand become a larger two-tier console:
         // dice/roll above, Resolve + Reroll + Play below.
         if size.width < 600 {
-            return min(176, max(150, size.height * 0.22))
+            return min(142, max(122, size.height * 0.18))
         }
-        return min(142, max(116, size.height * 0.18))
+        return min(126, max(108, size.height * 0.16))
     }
 
     @ViewBuilder
@@ -196,14 +202,12 @@ private struct BattleContentView: View {
                     )
                     .frame(maxWidth: .infinity)
 
-                    HStack(spacing: 10) {
-                        ResolveMedallionView(engine: engine, diameter: 64)
+                    HStack(spacing: 8) {
+                        ResolveMedallionView(engine: engine, diameter: 38)
 
-                        Spacer(minLength: 8)
+                        Spacer(minLength: 6)
 
-                        // A taller body selects the full-size control treatment
-                        // rather than the tiny one-line phone controls.
-                        PlayBarView(engine: engine, bodyHeight: 108)
+                        PlayBarView(engine: engine, bodyHeight: 72)
                     }
                     .padding(.horizontal, 12)
                 }
@@ -279,7 +283,11 @@ private struct BattleContentView: View {
             // the rail itself; this value follows the broad central planks.
             let deckInset: CGFloat = 24
             let combatWidth = max(280, stage.size.width - deckInset * 2)
-            let deckLift = min(62, max(40, boatWidth * 0.065))
+            // Lift the whole combat line above the persistent dice shelf so
+            // feet, lower-body animation and hit effects never disappear
+            // behind the tray.
+            let trayClearance: CGFloat = size.width < 600 ? 34 : 22
+            let deckLift = min(86, max(58, boatWidth * 0.065 + trayClearance))
             let fighterRoom = max(150, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.

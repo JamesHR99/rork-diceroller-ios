@@ -22,27 +22,34 @@ struct DiceTrayView: View {
 
     private var selectingReroll: Bool { engine.selectingReroll }
 
+    /// On the compact battle shelf the roll control is another square in the
+    /// row, exactly the same size as each die. Solve all seven lanes together
+    /// so making the button larger never squeezes the last die off-screen.
+    private var compactSquareWidth: CGFloat {
+        let count = max(engine.slots.count, 1)
+        let bedPadding: CGFloat = 8
+        let outerGap: CGFloat = 4
+        let gaps = reelGap * CGFloat(max(count - 1, 0))
+        let free = maxRowWidth - bedPadding - outerGap - gaps
+        return max(22, min(maxReelHeight, min(100, free / CGFloat(count + 1))))
+    }
+
     /// Dice grow to fill the deck, shrinking only once the row gets long — and
-    /// never past the width the deck actually has. A freeze adds a carried reel
-    /// on top of the loadout, so the row can run one wider than the dice cap;
-    /// cutting the reels from the measured width is what keeps the outermost
-    /// die on screen when it does.
+    /// never past the width the deck actually has.
     private var reelWidth: CGFloat {
+        if compact { return compactSquareWidth }
+
         let count = max(engine.slots.count, 1)
         let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
-        // The compact battle shelf has to fit five physical dice, the roll
-        // lever and both action controls on a phone. Use a much smaller lever
-        // lane and bed inset there instead of letting the dice be squeezed to
-        // almost zero width by desktop-sized chrome.
-        let leverLane = leverWidth + (compact ? 4 : 8)
-        let bedPadding: CGFloat = compact ? 8 : 20
+        let leverLane = leverWidth + 8
+        let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
-        return max(compact ? 22 : 1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
+        return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
 
     private var leverWidth: CGFloat {
-        if compact { return 46 }
+        if compact { return compactSquareWidth }
         return maxRowWidth < 620 ? 72 : 88
     }
     private var reelGap: CGFloat { compact ? 3 : 6 }
@@ -301,8 +308,8 @@ private struct DiceTrayReelView: View {
                 spinningReel
             case .rolled(let face):
                 settledReel(face)
-            case .spent:
-                emptyReel(spent: true)
+            case .spent(let face):
+                spentReel(face)
             }
         }
         .frame(width: width, height: height)
@@ -773,16 +780,40 @@ private struct DiceTrayReelView: View {
     }
 
     /// A reel whose face has gone down to the plan, or been spent outright.
-    private func emptyReel(spent: Bool) -> some View {
-        Color.clear
-            .background { reelGround(opacity: spent ? 0.5 : 0.3) }
-            .dieFrame(spent ? .spent : .empty, opacity: spent ? 0.8 : 0.6)
-            .overlay {
-                if spent {
-                    PharaohSWagerIcon(name: PharaohSWagerArt.interactionSpent, size: 26)
-                        .opacity(0.65)
-                }
+    /// A committed die stays physically in the row for the rest of the round.
+    /// Its landed face remains readable, but colour, glow and interaction are
+    /// stripped away so it is unmistakably unavailable.
+    private func spentReel(_ face: RolledFace) -> some View {
+        VStack(spacing: 1) {
+            PharaohSWagerSymbol(
+                art: face.matchFace.artName,
+                fallback: face.matchFace.symbol,
+                size: iconSize,
+                tint: face.matchFace.tint
+            )
+            if !dense {
+                Text(reelLabel(face))
+                    .font(.system(size: labelSize(for: face), weight: .heavy))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
+        }
+        .padding(.horizontal, max(8, width * 0.1))
+        .padding(.vertical, max(9, height * 0.075))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { reelGround(opacity: 0.72) }
+        .clipShape(.rect(cornerRadius: corner))
+        .dieFrame(.spent, opacity: 0.78)
+        .grayscale(1)
+        .saturation(0)
+        .opacity(0.52)
+        .overlay(alignment: .topTrailing) {
+            PharaohSWagerIcon(name: PharaohSWagerArt.interactionSpent, size: 18)
+                .padding(4)
+                .opacity(0.9)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(face.displayName), used")
     }
 
     private var reelName: some View {
