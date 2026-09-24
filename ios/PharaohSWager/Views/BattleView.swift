@@ -333,50 +333,38 @@ private struct BattleContentView: View {
                     stageHeight: fighterHeight(room),
                     cardWidth: foes.count > 1 ? cardWidth : nil
                 )
-                .overlay(alignment: .bottom) { allocationTotal(for: foe) }
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.4), value: foes.count)
     }
 
-    /// The blow waiting to be sent, named on a slab at the foot of the stage.
-    /// Aiming is its own moment now: the deck is down, the fighters are
-    /// full-size, and each attack asks which creature it should strike.
+    /// Multi-enemy fights still need a targeting moment, but this pass keeps it
+    /// deliberately free of combo names, damage previews and effect text.
     private func aimPrompt(_ aim: AimRequest) -> some View {
         VStack(spacing: 8) {
-            Text("AIM THIS BLOW")
-                .font(.system(size: 9, weight: .black))
-                .kerning(2.6)
+            Text("CHOOSE A TARGET")
+                .font(.fantasy(18, weight: .black))
+                .kerning(1.8)
                 .foregroundStyle(Theme.gold)
 
-            HStack(spacing: 8) {
-                ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
-                    PharaohSWagerSymbol(art: face.artName, fallback: face.symbol,
-                               size: 22, tint: face.tint)
-                        .frame(width: 27, height: 25)
+            if !aim.faces.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
+                        PharaohSWagerSymbol(
+                            art: face.artName,
+                            fallback: face.symbol,
+                            size: 22,
+                            tint: face.tint
+                        )
+                        .frame(width: 28, height: 26)
                         .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
+                    }
                 }
-
-                Text(aim.title.uppercased())
-                    .font(.fantasy(19, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(aim.tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-
-                Text(aim.detail)
-                    .font(.system(size: 12.5, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.ember)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3)
-                    .background(Theme.bg.opacity(0.6), in: .capsule)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
             }
 
             HStack(spacing: 10) {
-                Text("TAP THE CREATURE IT SHOULD STRIKE")
+                Text("TAP AN ENEMY")
                     .font(.system(size: 9.5, weight: .black))
                     .kerning(1.4)
                     .foregroundStyle(Theme.parchmentDim)
@@ -394,7 +382,7 @@ private struct BattleContentView: View {
                 Button {
                     engine.cancelAiming()
                 } label: {
-                    Text("BACK TO PLAN")
+                    Text("BACK")
                         .font(.system(size: 9.5, weight: .black))
                         .kerning(1.2)
                         .foregroundStyle(Theme.parchment)
@@ -414,35 +402,12 @@ private struct BattleContentView: View {
         }
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.4)
+                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.2)
         )
+        .goldCorners(size: 18, inset: 4, opacity: 0.6)
         .shadow(color: .black.opacity(0.7), radius: 16, y: 6)
         .padding(.bottom, 18)
         .padding(.horizontal, 14)
-    }
-
-    /// The running damage total pointed at a foe while attacks are being
-    /// allocated — it builds up beside each fighter as blows are assigned.
-    @ViewBuilder
-    private func allocationTotal(for foe: EnemyState) -> some View {
-        if engine.isAiming {
-            let total = engine.allocatedDamage(for: foe.id)
-            if total > 0 {
-                HStack(spacing: 4) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.piercing, fallback: "bolt.fill",
-                               size: 13, tint: Theme.bg)
-                    Text("\(total)")
-                        .font(.system(size: 13, weight: .black).monospacedDigit())
-                }
-                .foregroundStyle(Theme.bg)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Theme.ember, in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
-                .offset(y: 48)
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
-            }
-        }
     }
 
     // MARK: - Top strip
