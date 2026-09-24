@@ -135,21 +135,36 @@ final class TurnOrderRenderingTests: XCTestCase {
     }
 
     func testSquareReelsAndFiveVisibleActions() async throws {
-        let kinds: [FaceKind] = [.arrow1, .arrow2, .arrow3, .block, .evade, .focus]
+        // Exactly five dice keeps the hand deterministic and exercises the new
+        // in-place selection treatment rather than the retired planning row.
+        let kinds: [FaceKind] = [.arrow1, .arrow1, .block, .evade, .focus]
         let dice = kinds.map { Die(name: "Layout", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
         engine.rollAll(reduceMotion: true)
         while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
+
         for width in [660.0, 850.0] {
             try await capture(DiceTrayView(engine: engine, maxReelHeight: 100, maxRowWidth: width - 44, compact: false),
                 name: "Square-reels-\(width)", size: CGSize(width: width, height: 160))
         }
-        for face in engine.rolled { engine.placeInPlayBar(faceID: face.id) }
-        XCTAssertEqual(engine.displayedPlan.count, 5)
+
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        XCTAssertEqual(arrows.count, 2)
+        for face in arrows { engine.toggleActionSelection(faceID: face.id) }
+        XCTAssertEqual(engine.displayedPlan.count, 1)
+        XCTAssertEqual(engine.displayedPlan.first?.faces.count, 2)
+
         for width in [660.0, 850.0] {
-            try await capture(PlayBarView(engine: engine, bodyHeight: 80),
-                name: "Five-visible-actions-\(width)", size: CGSize(width: width, height: 122))
+            try await capture(
+                HStack(spacing: 8) {
+                    ResolveMedallionView(engine: engine)
+                    DiceTrayView(engine: engine, maxReelHeight: 86, maxRowWidth: width - 290, compact: true)
+                    PlayBarView(engine: engine, bodyHeight: 94)
+                },
+                name: "Selected-bottom-hand-\(width)",
+                size: CGSize(width: width, height: 122)
+            )
         }
     }
 
