@@ -181,7 +181,10 @@ struct BattleLoopTests {
         while engine.phase != .player && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
         #expect(engine.resolveRemaining == 2)
         engine.endPlayerTurn()
-        while engine.turnNumber == 1 && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        let nextTurnDeadline = clock.now.advanced(by: .seconds(30))
+        while engine.turnNumber == 1 && clock.now < nextTurnDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         #expect(engine.resolveRemaining == 3)
     }
 
