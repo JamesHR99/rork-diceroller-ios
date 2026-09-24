@@ -485,6 +485,22 @@ private struct DiceTrayReelView: View {
             .offset(y: reduceMotion || settled ? 0 : -3)
         }
         .contextMenu {
+            if let step = engine.step(containing: face.id),
+               let action = step.combo,
+               action.dodgeCharges > 0,
+               step.faces.prefix(action.dodgeCharges).contains(where: { $0.id == face.id }) {
+                Menu("Evade target: \(engine.evadeTargetLabel(faceID: face.id))") {
+                    Button("Next strike") {
+                        engine.assignEvade(faceID: face.id, strikeID: nil)
+                    }
+                    ForEach(engine.incomingStrikes) { strike in
+                        Button(strike.title) {
+                            engine.assignEvade(faceID: face.id, strikeID: strike.id)
+                        }
+                    }
+                }
+            }
+
             ForEach(engine.conversionOptions(for: face), id: \.self) { kind in
                 Button("Convert to \(kind.label)") { engine.convert(faceID: face.id, to: kind) }
             }
