@@ -150,76 +150,56 @@ struct InfoSheetView: View {
 
     private var loadoutTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("YOUR GEAR — WEAPON AND ARMOUR ARE PERMANENT")
+            sectionTitle("YOUR DICE BAG")
 
-            Text("You own \(GameData.ownedDiceTotal) dice and \(GameData.diceDrawCount) of them fill your slots each round, drawn without replacement. The dice left in the bag are marked below, so the randomness is always readable; a face you hold is the only one guaranteed to come back.")
+            Text("Your run starts with ten class-specific dice. Draw five each turn; played and unplayed dice go to the discard pile at End Turn, and the discard reshuffles only when the draw bag is empty.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(loadout.pieces) { piece in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        PharaohSWagerSymbol(art: piece.slot.artName, fallback: piece.symbol,
-                                   size: 26, tint: hero.accent)
-                            .frame(width: 36, height: 36)
-                            .background(Theme.bg, in: .rect(cornerRadius: 8))
-                        Text(piece.name)
-                            .font(.fantasy(16, weight: .bold))
-                            .foregroundStyle(Theme.parchment)
-                        Text("\(piece.slot.label) · \(piece.dice.count) \(piece.dice.count == 1 ? "die" : "dice")")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.parchmentDim)
-                        Spacer()
-                    }
-
-                    ForEach(piece.dice) { die in
-                        HStack(alignment: .top, spacing: 8) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(die.name)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(Theme.parchment)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.7)
-                                Text(die.rarity.label.uppercased())
-                                    .font(.system(size: 9.5, weight: .black))
-                                    .kerning(0.6)
-                                    .foregroundStyle(die.rarity.tint)
-                            }
-                            .frame(width: 132, alignment: .leading)
-
-                            DieStripView(die: die, tileSize: 30, showCrit: true, critBonus: critBonus)
-
-                            // Which dice this round put on the table, and
-                            // which two are still waiting in the bag.
-                            if drawnDieIDs.contains(die.id) {
-                                Text("DRAWN")
-                                    .font(.system(size: 9.5, weight: .black))
-                                    .kerning(0.8)
-                                    .foregroundStyle(Theme.gold)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2.5)
-                                    .background(Theme.gold.opacity(0.14), in: .capsule)
-                            } else if !drawnDieIDs.isEmpty {
-                                Text("IN THE BAG")
-                                    .font(.system(size: 9.5, weight: .black))
-                                    .kerning(0.8)
-                                    .foregroundStyle(Theme.parchmentDim)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2.5)
-                                    .background(Theme.bg.opacity(0.6), in: .capsule)
-                            }
-
-                            Spacer(minLength: 0)
-                        }
-                    }
-
-                    faceLegend(for: piece)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("\(loadout.allDice.count) DICE", systemImage: "dice.fill")
+                        .font(.fantasy(15, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                    Spacer()
+                    Text("DRAW 5")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.gold)
                 }
-                .padding(12)
-                .background(Theme.bgCard, in: .rect(cornerRadius: 14))
-            }
 
+                ForEach(loadout.allDice) { die in
+                    HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(die.name)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Theme.parchment)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Text(die.rarity.label.uppercased())
+                                .font(.system(size: 9.5, weight: .black))
+                                .kerning(0.6)
+                                .foregroundStyle(die.rarity.tint)
+                        }
+                        .frame(width: 132, alignment: .leading)
+
+                        DieStripView(die: die, tileSize: 30, showCrit: true, critBonus: critBonus)
+
+                        if drawnDieIDs.contains(die.id) {
+                            Text("HAND")
+                                .font(.system(size: 9.5, weight: .black))
+                                .kerning(0.8)
+                                .foregroundStyle(Theme.gold)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2.5)
+                                .background(Theme.gold.opacity(0.14), in: .capsule)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+            .padding(12)
+            .background(Theme.bgCard, in: .rect(cornerRadius: 14))
         }
     }
 
@@ -716,14 +696,14 @@ struct InfoSheetView: View {
                 ]
             )
             ruleCard(
-                icon: "dice.fill", tint: Theme.gold, title: "SIX DICE · EARN YOUR REROLLS",
+                icon: "dice.fill", tint: Theme.gold, title: "DRAW FIVE · SPEND 3 RESOLVE",
                 lines: [
-                    "Draw six of your eight dice every round: five weapon and three armour dice in the collection.",
-                    "There is no player stamina. Use all six dice or commit early.",
-                    "Start each encounter with zero rerolls. Each unused die at commitment earns half a charge, up to two stored rerolls. Half-charges carry between rounds and reset after the encounter. Tap Reroll, then an unplayed die to spend one full charge immediately.",
-                    "The other results become Kept during a reroll, including their crits. God powers can reward these results.",
-                    "No results carry between rounds. The next round draws six fresh dice. Boons and duos share one bonus half-charge per round, separate from unused-dice charging. Divine healing shares an 8 HP per-round limit; native Heal actions do not.",
-                    "Siege Draw and Echoing Staff reserve one reroll while armed. Disarming releases it; committing spends it. Boon rewards refill the same two-charge pool."
+                    "Start with ten class-specific dice. Draw five from the bag each turn.",
+                    "You have 3 Resolve each turn. A 1–2 die action costs 1, a 3–4 die action costs 2, and a 5–6 die action costs 3.",
+                    "Build and play one action at a time. It resolves immediately, so you can reassess before spending more Resolve.",
+                    "You begin each turn with one selective reroll. Tap Reroll, then choose an unplayed die.",
+                    "Enemies do not interrupt your actions. They execute their telegraphed intent only when you press End Turn.",
+                    "At End Turn, every remaining die in hand discards. Draw five next turn; when the draw bag is empty, shuffle the discard pile back in."
                 ]
             )
             ruleCard(
@@ -733,7 +713,7 @@ struct InfoSheetView: View {
                     "Evade grants 50% reduction charges when it resolves. Choose an announced hit or Next strike. Boons can raise reduction to 75%.",
                     "Each charge reduces one hit, never an entire multi-hit move. Weaken, defensive wards and Evade multiply before Guard absorbs damage. Unused charges expire at round end.",
                     "Focus and Channel prime the next separate Attack, through the end of next round. The strongest prime wins.",
-                    "All actions share the alternating queue. Attacks of 4–6 dice wind up for one player event before release."
+                    "Enemy intent is fixed for the turn. Your actions resolve first; enemies act only after End Turn."
                 ]
             )
 
