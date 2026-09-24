@@ -295,7 +295,7 @@ struct BattleLoopTests {
 
         for face in arrows { engine.toggleActionSelection(faceID: face.id) }
         #expect(engine.playedFaces.count == 2)
-        #expect(Set(engine.playedFaces.map(\.matchFace)) == [.arrow1])
+        #expect(Set(engine.playedFaces.map(\.matchFace)) == Set([FaceKind.arrow1]))
         #expect(engine.turnPlan.count == 1)
 
         engine.toggleActionSelection(faceID: block.id)
