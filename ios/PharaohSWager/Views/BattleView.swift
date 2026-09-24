@@ -167,16 +167,19 @@ private struct BattleContentView: View {
 
     private func diceDeck(size: CGSize) -> some View {
         let trayHeight = actionTrayHeight(for: size)
-        let compact = size.width < 760 || trayHeight < 116
-        let resolveWidth: CGFloat = compact ? 66 : 80
-        let controlsWidth: CGFloat = compact ? 178 : 214
-        let gutters: CGFloat = compact ? 24 : 34
-        let diceWidth = max(250, size.width - resolveWidth - controlsWidth - gutters)
-        let reelHeight = min(compact ? 70 : 86, trayHeight - 18)
+        let compact = size.width < 600 || trayHeight < 116
+        let resolveWidth: CGFloat = compact ? 48 : 80
+        let controlsWidth: CGFloat = compact ? 128 : 214
+        let outerPadding: CGFloat = compact ? 4 : 12
+        let spacing: CGFloat = compact ? 4 : 10
+        let diceWidth = max(
+            compact ? 176 : 250,
+            size.width - resolveWidth - controlsWidth - (outerPadding * 2) - (spacing * 2)
+        )
+        let reelHeight = min(compact ? 54 : 86, trayHeight - 18)
 
-        return HStack(spacing: compact ? 6 : 10) {
-            ResolveMedallionView(engine: engine)
-                .scaleEffect(compact ? 0.84 : 1)
+        return HStack(spacing: spacing) {
+            ResolveMedallionView(engine: engine, diameter: resolveWidth)
                 .frame(width: resolveWidth)
 
             DiceTrayView(
@@ -190,7 +193,7 @@ private struct BattleContentView: View {
             PlayBarView(engine: engine, bodyHeight: trayHeight - 18)
                 .frame(width: controlsWidth)
         }
-        .padding(.horizontal, compact ? 8 : 12)
+        .padding(.horizontal, outerPadding)
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity)
         .frame(height: trayHeight)
