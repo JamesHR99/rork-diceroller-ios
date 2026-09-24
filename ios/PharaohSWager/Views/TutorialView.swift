@@ -143,9 +143,9 @@ struct TutorialView: View {
 
     private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Order defence before the hit you want to stop", systemImage: "shield.fill")
-            Label("Your action → enemy action → your action", systemImage: "arrow.left.arrow.right")
-            Text("A 1–3 die Attack takes one event; 4–6 dice take two. Singles never give enemies extra attacks. When one side runs out, the other finishes its announced actions.")
+            Label("Read the enemy intent before spending Resolve", systemImage: "eye.fill")
+            Label("Play actions now → press End Turn → enemies act", systemImage: "arrow.right.circle.fill")
+            Text("You have 3 Resolve. Build one action at a time, resolve it immediately, then decide whether to spend more or end the turn.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -199,14 +199,12 @@ struct TutorialView: View {
     private var classDice: some View {
         let loadout = hero.startingLoadout
         return VStack(alignment: .leading, spacing: 8) {
-            diceBlock(title: "\(hero.weaponName) · \(GameData.ownedWeaponDice) dice",
-                      die: loadout.weapon.dice.first)
-            diceBlock(title: "\(hero.armorName) · \(GameData.ownedArmourDice) dice",
-                      die: loadout.armor.dice.first)
+            diceBlock(title: "Starting bag · 10 class dice",
+                      die: loadout.allDice.first)
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("6 dice · unused dice charge rerolls · \(hero.battleIdentity.lowercased())")
+                Text("Draw 5 · 3 Resolve · 1 selective reroll · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
@@ -358,7 +356,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "roll",
                 title: "The roll",
-                body: "You own eight dice. Six of them fill the night's slots each round, drawn at random, and they roll as they arrive.\n\nThe faces you get are what you have to work with — not what you would have chosen. Every round is a hand you have to make something of.",
+                body: "You begin with ten class-specific dice in one bag. Draw five each turn and roll them as they arrive.\n\nPlayed and unplayed dice go to the discard pile at End Turn. When the draw bag empties, shuffle the discard pile back in.",
                 art: PharaohSWagerArt.interactionRoll,
                 fallbackSymbol: "dice.fill",
                 tint: Theme.gold,
@@ -375,8 +373,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Six dice. Earn your rerolls.",
-                body: "Each round draws six dice from your collection. Use each die once; there is no stamina bar.\n\nTap REROLL, then tap an unplayed die to reroll it immediately. Other results become Prepared. Start each encounter with zero charges. Every unused die earns half a reroll when you commit. Store up to two, spend them, and recharge the empty space. Half-charges carry between rounds; all charges reset after each encounter. Every round starts with a fresh draw.",
+                title: "Three Resolve. One reroll.",
+                body: "Each turn starts with 3 Resolve and one selective reroll. A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nTap REROLL, then an unplayed die to reroll it. Build one action, play it immediately, then decide what to do with the rest of the hand.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -385,7 +383,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "action-order",
                 title: "Who moves first",
-                body: "Block gives 8 Guard until round end; Evade halves one chosen hit. Heal restores missing HP. Bes can retain up to 8 Guard. Focus primes +50% damage for your next Attack. Each support action takes one event. Attacks using four to six matching dice take a wind-up event and a release event.\n\nThen actions alternate, starting with you. Twin Shot plus a separate Block gives you both damage and protection. Check TURN ORDER before committing.",
+                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nEnemies show their intent before you act, but they do not interrupt your turn. Spend Resolve in any order, then press END TURN and every surviving enemy executes its announced actions.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,

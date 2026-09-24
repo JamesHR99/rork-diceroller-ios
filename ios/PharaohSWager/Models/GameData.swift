@@ -47,15 +47,14 @@ enum GameData {
         ),
     ]
 
-    /// How many dice the collection holds: five weapon, three armour.
-    static let ownedWeaponDice = 5
-    static let ownedArmourDice = 3
+    /// Starting pool size. The legacy weapon/armour split is retained only in saved
+    /// data; combat treats all ten dice as one class-specific draw bag.
+    static let ownedWeaponDice = 6
+    static let ownedArmourDice = 4
     static let ownedDiceTotal = ownedWeaponDice + ownedArmourDice
 
-    /// How many dice hit the table each turn, drawn at random from the whole
-    /// loadout. You carry more than you draw, so the same collection produces
-    /// a different hand every turn.
-    static let diceDrawCount = 6
+    /// Five dice are drawn from the run's dice bag each turn.
+    static let diceDrawCount = 5
 
     /// Odds that a god brings one of their legendaries to a meeting at all.
     /// A legendary is found the same way as any other boon — it is simply a

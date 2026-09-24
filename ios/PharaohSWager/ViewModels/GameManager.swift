@@ -645,70 +645,56 @@ final class GameManager {
         let baseGold = battle.enemies.reduce(0) { $0 + $1.def.goldReward }
         let earned = max(6, Int(Double(GameData.goldReward(base: baseGold, progress: progress)) * 0.6))
         gold += earned
-        // A won Trial hands the turn over to its god: the spoils become a
-        // choice of three of that god's own boons.
-        let wonTrial = battle.trialAccepted && battle.phase == .won
-        let trialGod = wonTrial ? battle.trial?.deity : nil
-        if wonTrial { trialUsed = true }
+        // Every combat now ends in a deckbuilding decision: draft one of three
+        // class-legal dice or skip. Gods, Chisels and reforges remain available
+        // from their dedicated map/shop encounters rather than displacing the
+        // core post-combat dice draft.
+        if battle.trialAccepted { trialUsed = true }
         self.battle = nil
-
-        // The practice bout ends at your first god's audience: one god, chosen
-        // at random, offering three of their powers. The collection stays at
-        // eight dice and the gods speak through powers now.
-        if isOpeningEncounter {
-            let deity = Deity.allCases.randomElement() ?? .ra
-            visitingDeity = deity
-            isShrine = false
-            rewardOffers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
-            statusMessage = deity.greeting
-            withAnimation { screen = .reward }
-            return
-        }
-
-        let kind = activeNode?.kind
-        // The collection stays at eight dice, so a serpent-lord pays out in a
-        // god's audience rather than more gear. Bosses and heralds are where a
-        // god reliably comes to the water's edge.
-        let godAttends = kind == .boss
-            || (kind == .herald && Int.random(in: 0..<100) < 62)
-            || Int.random(in: 0..<100) < 42
-
-        // Ptah is the one craftsman who only ever works at the end of a fight,
-        // and he takes the whole reward when he comes: three Chisels on the
-        // bench instead of a god's three boons. A Trial's own god outranks him.
-        let unownedChisels = ChiselCatalog.chisels(for: classID)
-            .filter { !ownedChisels.contains($0.id) }
-        let ptahAttends = trialGod == nil
-            && ownedChisels.count < GameData.chiselMaxPerRun
-            && !unownedChisels.isEmpty
-            && shouldDropChisel()
-
-        var spoils: [Offer]
-        if ptahAttends {
-            visitingDeity = nil
-            isShrine = false
-            isPtahForge = true
-            spoils = unownedChisels.shuffled().prefix(3).map(makeChiselOffer)
-        } else if let trialGod {
-            visitingDeity = trialGod
-            isShrine = false
-            spoils = makeGodFavourOffers(deity: trialGod, count: 3, progress: progress)
-        } else if godAttends {
-            let deity = Deity.allCases.randomElement() ?? .ra
-            visitingDeity = deity
-            isShrine = false
-            spoils = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
-        } else {
-            visitingDeity = nil
-            isShrine = false
-            spoils = makeMundaneSpoils(count: 3)
-        }
-        rewardOffers = spoils
-        statusMessage = "+\(earned) gold · \(currentHP)/\(maxHP) health"
-        if let trialGod {
-            statusMessage = "The trial is won — \(trialGod.name) offers a boon."
-        }
+        visitingDeity = nil
+        isShrine = false
+        isPtahForge = false
+        rewardOffers = makeDiceDraftOffers(count: 3)
+        statusMessage = "+\(earned) gold · choose one die or Skip"
         withAnimation { screen = .reward }
+    }
+
+    private func makeDiceDraftOffers(count: Int) -> [Offer] {
+        var offers: [Offer] = []
+        var attempts = 0
+        while offers.count < count && attempts < 24 {
+            attempts += 1
+            let rarity = Rarity.roll(progress: progress)
+            guard let pick = GameData.diceOffers(classID, rarity).randomElement() else { continue }
+            let die = pick.die.instantiated()
+            let signature = faceSummary(die)
+            guard !offers.contains(where: { $0.name == die.name && $0.detail.contains(signature) }) else { continue }
+            offers.append(Offer(
+                name: die.name,
+                detail: signature,
+                symbol: "die.face.5.fill",
+                rarity: die.rarity,
+                comboHint: "Add this die to your draw bag",
+                price: 0,
+                kind: .die(die)
+            ))
+        }
+        // Never strand the reward screen with fewer than three picks just
+        // because the small offer pool produced duplicate signatures.
+        while offers.count < count,
+              let pick = GameData.diceOffers(classID, .common).randomElement() {
+            let die = pick.die.instantiated()
+            offers.append(Offer(
+                name: die.name,
+                detail: faceSummary(die),
+                symbol: "die.face.5.fill",
+                rarity: die.rarity,
+                comboHint: "Add this die to your draw bag",
+                price: 0,
+                kind: .die(die)
+            ))
+        }
+        return Array(offers.prefix(count))
     }
 
     /// Ptah rarely turns up in the spoils. One Chisel is guaranteed somewhere
@@ -857,7 +843,7 @@ final class GameManager {
     }
 
     func skipReward() {
-        gold += 15
+        statusMessage = "No die taken."
         leaveEncounter()
     }
 
@@ -928,7 +914,7 @@ final class GameManager {
         guard var loadout else { return }
         if loadout.add(die) {
             self.loadout = loadout
-            statusMessage = "\(die.name) added to your \(die.slot.label.lowercased())."
+            statusMessage = "\(die.name) added to your dice bag."
         } else {
             pendingSelection = .swapDie(die)
         }

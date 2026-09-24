@@ -664,8 +664,14 @@ final class BattleEngine {
 
     // MARK: Board state
     private let loadoutDice: [Die]
+    /// Slay-the-Spire-style draw/discard loop. Dice are identified physically so
+    /// reforges, patrons and crit upgrades stay attached to the same object.
+    private(set) var drawBag: [UUID] = []
+    private(set) var discardPile: [UUID] = []
     private(set) var slots: [DieSlot]
     private(set) var drawnDieIDs: Set<UUID> = []
+    private(set) var resolveRemaining = BattleRules.resolvePerTurn
+    private var endingTurn = false
     private(set) var rolled: [RolledFace] = []
     private(set) var hasRolled = false
     private(set) var rollID = UUID()
@@ -749,6 +755,10 @@ final class BattleEngine {
     private var boonPierceBonus = 0.0
     /// Delay the player has pushed onto each foe's pending action this round.
     private(set) var foeDelays: [UUID: Int] = [:]
+    /// Frost can carry one announced enemy move into the next enemy phase. It
+    /// replaces that foe's newly-planned first move rather than creating an
+    /// extra attack, so delay never increases enemy action economy.
+    private var deferredEnemyMoves: [UUID: EnemyMove] = [:]
     /// The beat the resolution has reached, for the strip's playhead.
     private(set) var currentBeat = 0
     /// Enemies that caught you stepping off the barque, quicker for round one.
@@ -859,9 +869,15 @@ final class BattleEngine {
         // The round's allowance, not a carried bar: every encounter opens on 3.
 
         self.loadoutDice = dice
-        let opening = Self.draw(count: GameData.diceDrawCount, from: dice, excluding: [])
+        var openingBag = dice.map(\.id).shuffled()
+        let openingIDs = Array(openingBag.prefix(BattleRules.handSize))
+        openingBag.removeFirst(min(BattleRules.handSize, openingBag.count))
+        self.drawBag = openingBag
+        self.discardPile = []
+        let opening = openingIDs.compactMap { id in dice.first { $0.id == id } }
         self.slots = opening.map { DieSlot(die: $0, state: .idle) }
         self.drawnDieIDs = Set(opening.map(\.id))
+        self.rerollHalfCharges = BattleRules.baseRerolls * 2
         self.patrons = patrons
         self.upgrades = upgrades
         self.capstoneID = capstoneID
@@ -1815,10 +1831,7 @@ final class BattleEngine {
             return false
         }.count
     }
-    var pendingRerollHalfCharges: Int {
-        guard hasRolled, !isRolling else { return 0 }
-        return min(unusedDiceCount, max(0, rerollCapacity * 2 - availableRerollHalfCharges))
-    }
+    var pendingRerollHalfCharges: Int { 0 }
     /// All rewards share the same storage ceiling. Overflow is discarded.
     func gainRerollHalfCharges(_ amount: Int) {
         guard amount > 0 else { return }
@@ -1918,24 +1931,42 @@ final class BattleEngine {
         }?.id
     }
 
-    var undrawnCount: Int { max(0, loadoutDice.count - drawnDieIDs.count) }
+    var undrawnCount: Int { drawBag.count }
 
-    /// The dice left in the bag this round — shown so the randomness is
-    /// understandable rather than hidden.
+    /// Dice still waiting in the draw bag. When it empties, the discard pile is
+    /// shuffled back in before the next draw.
     var undrawnDice: [Die] {
-        let onTable = Set(slots.map { $0.die.id })
-        return loadoutDice.filter { !onTable.contains($0.id) }
+        drawBag.compactMap { id in loadoutDice.first { $0.id == id } }
     }
 
-    /// Draws distinct physical dice from the collection.
-    static func draw(count: Int, from dice: [Die], excluding heldIDs: Set<UUID>) -> [Die] {
-        guard count > 0 else { return [] }
-        let bag = dice.filter { !heldIDs.contains($0.id) }
-        guard bag.count > count else { return bag }
-        return Array(bag.shuffled().prefix(count))
+    private func drawFromBag(count: Int) -> [Die] {
+        var result: [Die] = []
+        while result.count < count {
+            if drawBag.isEmpty {
+                guard !discardPile.isEmpty else { break }
+                drawBag = discardPile.shuffled()
+                discardPile = []
+            }
+            guard !drawBag.isEmpty else { break }
+            let id = drawBag.removeFirst()
+            if let die = loadoutDice.first(where: { $0.id == id }) { result.append(die) }
+        }
+        return result
     }
 
-    var canCommit: Bool { phase == .player && hasRolled && !isRolling }
+    func resolveCost(for step: PlanStep) -> Int {
+        switch step.faces.count {
+        case ...2: 1
+        case 3...4: 2
+        default: 3
+        }
+    }
+    var plannedResolveCost: Int { turnPlan.reduce(0) { $0 + resolveCost(for: $1) } }
+    var canCommit: Bool {
+        phase == .player && hasRolled && !isRolling && !playedFaces.isEmpty
+            && turnPlan.count == 1 && plannedResolveCost <= resolveRemaining
+    }
+    var canEndTurn: Bool { phase == .player && hasRolled && !isRolling }
 
     /// True when the turn may actually fire: from the plan, or from the aiming
     /// phase once the last blow has been pointed. The FIGHT slab tests
@@ -2327,42 +2358,58 @@ final class BattleEngine {
     }
 
     func commitTurn() {
-        guard canResolve else { return }
-        let earned = pendingRerollHalfCharges
+        guard canResolve, !playedFaces.isEmpty else { return }
+        let cost = plannedResolveCost
+        guard cost <= resolveRemaining else { return }
+        resolveRemaining -= cost
         committedUnusedDice = unusedDiceCount
         lastMeasureTargetID = allocations[lastMeasureRequestID]
-        rerollChargeFlights = Array(slots.filter { slot in
-            if case .rolled(let face) = slot.state { return !playOrder.contains(face.id) }
-            return false
-        }.prefix(earned).map(\.id))
-        // Pay reservations before refilling; a reserved charge cannot be spent
-        // on a reroll too. Commitment locks the award, including an empty plan.
-        rerollHalfCharges = max(0, rerollHalfCharges - reservedRerolls * 2)
-        gainRerollHalfCharges(earned)
         selectingReroll = false
         rerollSelection = []
         resetTargetingSelection()
         committedPlan = buildPlan(from: playedFaces)
+        endingTurn = false
         phase = .resolving
-        Task {
-            if !rerollChargeFlights.isEmpty {
-                try? await Task.sleep(for: .milliseconds(850))
-                rerollChargeFlights = []
-            }
-            await resolveTurn()
-        }
+        Task { await resolveTurn() }
+    }
+
+    /// End Turn is the only point at which enemies execute their telegraphed
+    /// intents. Any rolled dice still in hand are discarded before the next draw.
+    func endPlayerTurn() {
+        guard canEndTurn else { return }
+        selectingReroll = false
+        rerollSelection = []
+        resetTargetingSelection()
+        playOrder = []
+        weldedGroups = []
+        committedPlan = []
+        endingTurn = true
+        phase = .resolving
+        Task { await resolveTurn() }
     }
 
     // MARK: - Turn resolution
 
+    /// Played dice leave the hand as soon as their action resolves, exactly like
+    /// played cards entering a discard pile. Unplayed dice remain until End Turn.
+    private func discardPlayedDice(_ step: PlanStep) {
+        let ids = Set(step.faces.map(\.dieID))
+        for id in ids where !discardPile.contains(id) { discardPile.append(id) }
+        slots.removeAll { ids.contains($0.die.id) }
+        drawnDieIDs.subtract(ids)
+    }
+
     private func resolveTurn() async {
         let steps = buildPlan(from: playedFaces)
         committedPlan = steps
-        momentumCarry = 0
-        weaponComboLandedThisTurn = false
 
-        for index in slots.indices { slots[index].state = .spent }
-        rolled = []
+        let spentFaceIDs = Set(steps.flatMap { $0.faces.map(\.id) })
+        for index in slots.indices {
+            if case .rolled(let face) = slots[index].state, spentFaceIDs.contains(face.id) {
+                slots[index].state = .spent
+            }
+        }
+        rolled.removeAll { spentFaceIDs.contains($0.id) }
         playOrder = []
         weldedGroups = []
         preparedFocusUsed = []
@@ -2382,9 +2429,20 @@ final class BattleEngine {
             attributing = .native
             pendingDivineEntries = []
         }
-        pendingEntries = timeline
+        if endingTurn {
+            var skippedDelayedFoes: Set<UUID> = []
+            pendingEntries = timeline.filter { entry in
+                guard !entry.isPlayer else { return false }
+                guard deferredEnemyMoves[entry.sourceID] != nil,
+                      !skippedDelayedFoes.contains(entry.sourceID) else { return true }
+                skippedDelayedFoes.insert(entry.sourceID)
+                return false
+            }
+        } else {
+            pendingEntries = timeline.filter(\.isPlayer)
+        }
 
-        // One action of yours, resolved at the beat it was scheduled for.
+        // One action of yours, resolved immediately. Enemy intent waits for End Turn.
         // Returns true when the fight ended inside it.
         func resolvePlayerStep(_ step: PlanStep, index: Int) async -> Bool {
             activeStepIndex = index
@@ -2509,6 +2567,7 @@ final class BattleEngine {
                 applyPendingBoonEffects()
                 finishSameFaceAction(step, target: target)
                 completedDice += step.faces.count
+                discardPlayedDice(step)
                 if roles(for: step).contains(.attack), step.faces.count >= 4 { completedLargeAttack = true }
                 if let combo = step.combo {
                     assassinArmed.remove(step.id.uuidString)
@@ -2528,7 +2587,7 @@ final class BattleEngine {
         }
 
         // Resolve the finite alternating queue. Delay effects may move pending entries.
-        enemyTurnCount += 1
+        if endingTurn { enemyTurnCount += 1 }
         while !pendingEntries.isEmpty {
             let entry = pendingEntries.removeFirst()
             currentBeat += 1
@@ -2558,6 +2617,18 @@ final class BattleEngine {
             await sinkTheFallen()
         }
         phase = .resolving
+        if !endingTurn {
+            activeStepIndex = nil
+            currentBeat = 0
+            committedPlan = []
+            phase = .player
+            resetPoses()
+            lastAction = resolveRemaining > 0
+                ? "\(resolveRemaining) Resolve left — play another action or End Turn."
+                : "No Resolve left — End Turn."
+            return
+        }
+        endingTurn = false
 
         // Relentless Advance strengthens next round's first weapon combo.
         relentlessActive = weaponComboLandedThisTurn
@@ -3768,13 +3839,14 @@ final class BattleEngine {
     /// Pushes one foe's telegraphed action a beat later, capped per round so a
 
     private func delayFoe(targetIndex target: Int?) {
-        guard let index = resolveTarget(target), enemies[index].isAlive else { return }
+        guard let index = resolveTarget(target), enemies[index].isAlive,
+              let announced = enemies[index].intents.first else { return }
         let foeID = enemies[index].id
         let already = foeDelays[foeID] ?? 0
-        guard already < Timing.maxDelayPerEnemy else { return }
-        guard BattleRules.postponeEnemy(foeID, queue: &pendingEntries) else { return }
+        guard already < Timing.maxDelayPerEnemy, deferredEnemyMoves[foeID] == nil else { return }
+        deferredEnemyMoves[foeID] = announced
         foeDelays[foeID] = already + 1
-        addFloat("Delayed", color: Theme.frost, onEnemy: true, foe: foeID)
+        addFloat("Delayed to next turn", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
     /// Poison stacks and then grows on its own every round. It never expires,
@@ -4552,6 +4624,8 @@ final class BattleEngine {
         attacksThisRound = 0
         guardsThisRound = 0
         soloAttacksThisRound = 0
+        momentumCarry = 0
+        weaponComboLandedThisTurn = false
         lastSoloFoeID = nil
         separateGuardPlayed = false
         separateEvadePlayed = false
@@ -4580,7 +4654,9 @@ final class BattleEngine {
 
 
         rerollsUsed = 0
+        rerollHalfCharges = BattleRules.baseRerolls * 2
         gainRerollHalfCharges(nextRoundRerolls * 2)
+        resolveRemaining = BattleRules.resolvePerTurn
         rerollSelection = []
         selectingReroll = false
         evadeAssignments = [:]
@@ -4603,7 +4679,8 @@ final class BattleEngine {
         capstoneUsedThisTurn = false
         thermalUsedThisTurn = false
 
-        let drawn = Self.draw(count: BattleRules.handSize, from: loadoutDice, excluding: [])
+        discardPile.append(contentsOf: slots.map { $0.die.id })
+        let drawn = drawFromBag(count: BattleRules.handSize)
         slots = drawn.map { DieSlot(die: $0, state: .idle) }
         drawnDieIDs = Set(drawn.map(\.id))
         rolled = []
@@ -4625,11 +4702,18 @@ final class BattleEngine {
             // condition and yours: a hurt one looks for a mend, a bare one
             // raises guard, one standing over a nearly-dead enemy presses,
             // and a healthy one with time to spare winds something up.
-            enemies[index].intents = EnemyPlanner.plan(
+            let planned = EnemyPlanner.plan(
                 def: enemies[index].def,
                 hpFraction: fraction,
                 context: turnContext(for: enemies[index])
             )
+            if let delayed = deferredEnemyMoves.removeValue(forKey: enemies[index].id) {
+                enemies[index].intents = planned.isEmpty
+                    ? [delayed]
+                    : [delayed] + Array(planned.dropFirst())
+            } else {
+                enemies[index].intents = planned
+            }
         }
 
         // Per-turn Chisel timers: the nock frees up, the current forgets and
@@ -4656,7 +4740,7 @@ final class BattleEngine {
             Haptics.heavy()
         } else {
             stageAnnouncement = nil
-            lastAction = "Round \(turnNumber) — six dice, one plan."
+            lastAction = "Round \(turnNumber) — draw five, spend 3 Resolve, then End Turn."
         }
         phase = .player
         resetPoses()

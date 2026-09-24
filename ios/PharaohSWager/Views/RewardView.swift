@@ -138,7 +138,7 @@ struct RewardView: View {
             } label: {
                 HStack(spacing: 5) {
                     PharaohSWagerIcon(name: PharaohSWagerArt.currency, size: 19)
-                    Text(game.isShrine ? "Offer 15 gold" : "Take 15 gold")
+                    Text("Skip")
                         .font(.fantasy(14, weight: .bold))
                         .foregroundStyle(Theme.parchment.opacity(0.8))
                         .shadow(color: .black.opacity(0.7), radius: 2, y: 1)

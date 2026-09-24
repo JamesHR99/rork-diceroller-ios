@@ -50,7 +50,8 @@ struct DicePresentationTests {
             try await Task.sleep(for: .milliseconds(20))
         }
         try #require(!engine.isRolling)
-        #expect(engine.canCommit)
+        #expect(!engine.canCommit)
+        #expect(engine.canEndTurn)
         #expect(Set(engine.slots.map(\.id)) == slotIDs)
         #expect(engine.rolled.count == slotIDs.count)
         #expect(Set(engine.rolled.map(\.id)).count == slotIDs.count)

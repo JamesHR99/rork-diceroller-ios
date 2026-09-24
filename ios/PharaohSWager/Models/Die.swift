@@ -1,32 +1,23 @@
 import Foundation
 
-/// Which piece of gear a die is bolted to.
+/// Legacy persistence bucket from the pre-dice-bag rules. Gameplay no longer
+/// treats dice as weapon or armour dice; both cases are one unified pool.
 enum GearSlot: String, Hashable, CaseIterable, Codable {
     case weapon
     case armor
 
-    var label: String {
-        switch self {
-        case .weapon: "Weapon"
-        case .armor: "Armour"
-        }
-    }
+    var label: String { "Dice" }
 
-    var symbol: String {
-        switch self {
-        case .weapon: "burst.fill"
-        case .armor: "shield.lefthalf.filled"
-        }
-    }
+    var symbol: String { "dice.fill" }
 }
 
-/// A six-faced die belonging to a weapon or armour. At most one god may
-/// claim any die as its patron; the claim never changes the faces, it makes
-/// the god answer whatever those faces do.
+/// A six-faced die in the run's unified dice bag. At most one god may claim
+/// a die as its patron. The legacy slot is serialized only for save/content
+/// compatibility and has no combat, draw, reward or UI meaning.
 struct Die: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
-    var slot: GearSlot
+    var slot: GearSlot // legacy storage only
     var rarity: Rarity
     var faces: [DieFace]
     /// The god who claimed this die, if any. A blessed die is the entry ticket
