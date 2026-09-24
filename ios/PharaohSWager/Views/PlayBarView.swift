@@ -7,13 +7,15 @@ struct PlayBarView: View {
     var bodyHeight: CGFloat = 108
 
     private var compact: Bool { bodyHeight < 100 }
-    private var controlHeight: CGFloat { compact ? 52 : 68 }
-    private var rerollWidth: CGFloat { compact ? 48 : 76 }
-    private var primaryWidth: CGFloat { compact ? 76 : 126 }
+    private var controlHeight: CGFloat { compact ? 46 : 54 }
+    private var rerollWidth: CGFloat { compact ? 46 : 62 }
+    private var primaryWidth: CGFloat { compact ? 62 : 92 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
+    private var outOfResolve: Bool { engine.resolveRemaining == 0 }
+    private var shouldEndTurn: Bool { !hasSelection || outOfResolve }
     private var primaryEnabled: Bool {
-        hasSelection ? engine.canCommit : engine.canEndTurn
+        shouldEndTurn ? engine.canEndTurn : engine.canCommit
     }
 
     var body: some View {
@@ -60,10 +62,10 @@ struct PlayBarView: View {
 
     private var primaryButton: some View {
         Button {
-            if hasSelection {
-                engine.beginCommit()
-            } else {
+            if shouldEndTurn {
                 engine.endPlayerTurn()
+            } else {
+                engine.beginCommit()
             }
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
@@ -71,9 +73,9 @@ struct PlayBarView: View {
             Group {
                 if compact {
                     VStack(spacing: 1) {
-                        Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
+                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
                             .font(.system(size: 13, weight: .black))
-                        Text(hasSelection ? "PLAY" : "END TURN")
+                        Text(shouldEndTurn ? "END TURN" : "PLAY")
                             .font(.fantasy(10, weight: .black))
                             .kerning(0.7)
                             .lineLimit(1)
@@ -81,9 +83,9 @@ struct PlayBarView: View {
                     }
                 } else {
                     HStack(spacing: 8) {
-                        Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
-                            .font(.system(size: 17, weight: .black))
-                        Text(hasSelection ? "PLAY" : "END TURN")
+                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
+                            .font(.system(size: 15, weight: .black))
+                        Text(shouldEndTurn ? "END TURN" : "PLAY")
                             .font(.fantasy(17, weight: .black))
                             .kerning(1.4)
                             .lineLimit(1)
@@ -95,19 +97,19 @@ struct PlayBarView: View {
             .frame(width: primaryWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
-                    tone: hasSelection ? .primary : .secondary,
-                    state: primaryEnabled ? (hasSelection ? .highlighted : .normal) : .disabled,
-                    rim: hasSelection ? Theme.gold : Theme.frost,
-                    cornerRadius: 16,
-                    emphasis: hasSelection && primaryEnabled ? 1 : 0
+                    tone: shouldEndTurn ? .secondary : .primary,
+                    state: primaryEnabled ? (shouldEndTurn ? .normal : .highlighted) : .disabled,
+                    rim: shouldEndTurn ? Theme.frost : Theme.gold,
+                    cornerRadius: 14,
+                    emphasis: !shouldEndTurn && primaryEnabled ? 1 : 0
                 )
             }
             .goldCorners(size: 15, inset: 3, opacity: primaryEnabled ? 0.8 : 0.28)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!primaryEnabled)
-        .accessibilityIdentifier(hasSelection ? "battle.commit" : "battle.endTurn")
-        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: hasSelection)
+        .accessibilityIdentifier(shouldEndTurn ? "battle.endTurn" : "battle.commit")
+        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: shouldEndTurn)
     }
 }
 
