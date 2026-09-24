@@ -531,21 +531,33 @@ struct BattleLoopTests {
     }
 
     @Test(arguments: ["BE-A2", "BA-A4"])
-    func defensiveReactionsEmpowerTheFollowingAttack(boon: String) async throws {
+    func defensiveReactionsEmpowerTheNextTurnsAttack(boon: String) async throws {
         let defence: FaceKind = boon == "BE-A2" ? .block : .evade
-        let engine = battle([defence, .arrow1, .focus, .focus, .focus, .focus], boons: [boon])
+        let engine = battle([defence, .arrow1, .focus, .focus, .focus], boons: [boon])
         try await roll(engine)
-        let guardFace = try #require(engine.rolled.first { $0.face == defence })
-        let attack = try #require(engine.rolled.first { $0.face == .arrow1 })
-        engine.placeInPlayBar(faceID: guardFace.id)
+        let defenceFace = try #require(engine.rolled.first { $0.face == defence })
+        engine.placeInPlayBar(faceID: defenceFace.id)
         engine.commitTurn()
-        let firstClock = ContinuousClock()
-        let firstDeadline = firstClock.now.advanced(by: .seconds(20))
-        while engine.phase != .player && firstClock.now < firstDeadline { try await Task.sleep(for: .milliseconds(20)) }
 
+        let actionClock = ContinuousClock()
+        let actionDeadline = actionClock.now.advanced(by: .seconds(20))
+        while engine.phase != .player && actionClock.now < actionDeadline { try await Task.sleep(for: .milliseconds(20)) }
+
+        // The reaction is caused by the enemy phase now, so it cannot buff an
+        // attack played before End Turn. It banks for the next player's turn.
+        engine.endPlayerTurn()
+        let nextTurnDeadline = actionClock.now.advanced(by: .seconds(35))
+        while engine.turnNumber == 1 && actionClock.now < nextTurnDeadline { try await Task.sleep(for: .milliseconds(20)) }
+
+        try await roll(engine)
+        let attack = try #require(engine.rolled.first { $0.face == .arrow1 })
         engine.placeInPlayBar(faceID: attack.id)
         let damage = try #require(engine.turnPlan.first).damage
-        try await nextRound(engine)
+        engine.commitTurn()
+        let attackDeadline = actionClock.now.advanced(by: .seconds(20))
+        while engine.phase != .player && engine.phase != .won && actionClock.now < attackDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         #expect(engine.enemies[0].hp == 500 - damage - 6)
     }
 
