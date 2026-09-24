@@ -2389,8 +2389,6 @@ final class BattleEngine {
     private func resolveTurn() async {
         let steps = buildPlan(from: playedFaces)
         committedPlan = steps
-        momentumCarry = 0
-        weaponComboLandedThisTurn = false
 
         let spentFaceIDs = Set(steps.flatMap { $0.faces.map(\.id) })
         for index in slots.indices {
@@ -4600,6 +4598,8 @@ final class BattleEngine {
         attacksThisRound = 0
         guardsThisRound = 0
         soloAttacksThisRound = 0
+        momentumCarry = 0
+        weaponComboLandedThisTurn = false
         lastSoloFoeID = nil
         separateGuardPlayed = false
         separateEvadePlayed = false
