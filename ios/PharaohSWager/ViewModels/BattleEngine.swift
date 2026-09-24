@@ -755,6 +755,10 @@ final class BattleEngine {
     private var boonPierceBonus = 0.0
     /// Delay the player has pushed onto each foe's pending action this round.
     private(set) var foeDelays: [UUID: Int] = [:]
+    /// Frost can carry one announced enemy move into the next enemy phase. It
+    /// replaces that foe's newly-planned first move rather than creating an
+    /// extra attack, so delay never increases enemy action economy.
+    private var deferredEnemyMoves: [UUID: EnemyMove] = [:]
     /// The beat the resolution has reached, for the strip's playhead.
     private(set) var currentBeat = 0
     /// Enemies that caught you stepping off the barque, quicker for round one.
@@ -2425,7 +2429,18 @@ final class BattleEngine {
             attributing = .native
             pendingDivineEntries = []
         }
-        pendingEntries = endingTurn ? timeline.filter { !$0.isPlayer } : timeline.filter(\.isPlayer)
+        if endingTurn {
+            var skippedDelayedFoes: Set<UUID> = []
+            pendingEntries = timeline.filter { entry in
+                guard !entry.isPlayer else { return false }
+                guard deferredEnemyMoves[entry.sourceID] != nil,
+                      !skippedDelayedFoes.contains(entry.sourceID) else { return true }
+                skippedDelayedFoes.insert(entry.sourceID)
+                return false
+            }
+        } else {
+            pendingEntries = timeline.filter(\.isPlayer)
+        }
 
         // One action of yours, resolved immediately. Enemy intent waits for End Turn.
         // Returns true when the fight ended inside it.
@@ -3824,13 +3839,14 @@ final class BattleEngine {
     /// Pushes one foe's telegraphed action a beat later, capped per round so a
 
     private func delayFoe(targetIndex target: Int?) {
-        guard let index = resolveTarget(target), enemies[index].isAlive else { return }
+        guard let index = resolveTarget(target), enemies[index].isAlive,
+              let announced = enemies[index].intents.first else { return }
         let foeID = enemies[index].id
         let already = foeDelays[foeID] ?? 0
-        guard already < Timing.maxDelayPerEnemy else { return }
-        guard BattleRules.postponeEnemy(foeID, queue: &pendingEntries) else { return }
+        guard already < Timing.maxDelayPerEnemy, deferredEnemyMoves[foeID] == nil else { return }
+        deferredEnemyMoves[foeID] = announced
         foeDelays[foeID] = already + 1
-        addFloat("Delayed", color: Theme.frost, onEnemy: true, foe: foeID)
+        addFloat("Delayed to next turn", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
     /// Poison stacks and then grows on its own every round. It never expires,
@@ -4686,11 +4702,18 @@ final class BattleEngine {
             // condition and yours: a hurt one looks for a mend, a bare one
             // raises guard, one standing over a nearly-dead enemy presses,
             // and a healthy one with time to spare winds something up.
-            enemies[index].intents = EnemyPlanner.plan(
+            let planned = EnemyPlanner.plan(
                 def: enemies[index].def,
                 hpFraction: fraction,
                 context: turnContext(for: enemies[index])
             )
+            if let delayed = deferredEnemyMoves.removeValue(forKey: enemies[index].id) {
+                enemies[index].intents = planned.isEmpty
+                    ? [delayed]
+                    : [delayed] + Array(planned.dropFirst())
+            } else {
+                enemies[index].intents = planned
+            }
         }
 
         // Per-turn Chisel timers: the nock frees up, the current forgets and
