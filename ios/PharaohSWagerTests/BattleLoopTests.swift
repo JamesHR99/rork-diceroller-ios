@@ -113,6 +113,47 @@ struct BattleLoopTests {
         #expect(engine.canEndTurn)
     }
 
+    @Test func playedAndUnplayedDiceCycleThroughDiscardAndReshuffle() async throws {
+        let dice = (0..<10).map {
+            Die(name: "Bag \($0)", slot: .weapon, faces: Array(repeating: .block, count: 6))
+        }
+        let foe = EnemyDef(id: "bag-test", name: "Bag Test", title: "Test", maxHP: 500,
+            symbol: "circle", goldReward: 0,
+            moves: [EnemyMove(id: "wait", name: "Wait", faces: [], weight: 1)])
+        let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
+            maxHP: 100, startHP: 100, critBonus: -1)
+
+        #expect(engine.slots.count == 5)
+        #expect(engine.drawBag.count == 5)
+        #expect(engine.discardPile.isEmpty)
+
+        try await roll(engine)
+        let face = try #require(engine.rolled.first)
+        engine.placeInPlayBar(faceID: face.id)
+        engine.commitTurn()
+        let clock = ContinuousClock()
+        let actionDeadline = clock.now.advanced(by: .seconds(20))
+        while engine.phase != .player && clock.now < actionDeadline { try await Task.sleep(for: .milliseconds(20)) }
+
+        #expect(engine.slots.count == 4)
+        #expect(engine.discardPile.count == 1)
+
+        engine.endPlayerTurn()
+        let turn2Deadline = clock.now.advanced(by: .seconds(30))
+        while engine.turnNumber == 1 && clock.now < turn2Deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.slots.count == 5)
+        #expect(engine.drawBag.isEmpty)
+        #expect(engine.discardPile.count == 5)
+
+        try await roll(engine)
+        engine.endPlayerTurn()
+        let turn3Deadline = clock.now.advanced(by: .seconds(30))
+        while engine.turnNumber == 2 && clock.now < turn3Deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(engine.slots.count == 5)
+        #expect(engine.drawBag.count == 5)
+        #expect(engine.discardPile.isEmpty)
+    }
+
     @Test func selectiveRerollResetsEachTurnInsteadOfChargingFromUnusedDice() async throws {
         let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
