@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The roll tray. It takes over the middle of the arena during your turn — one
-/// pull rolls every die that isn't frozen, then you tap faces into the plan.
+/// The dice tray. Six dice auto-roll at the start of each player turn, then you
+/// tap faces into the plan.
 /// Freezing is armed from the play bar. The whole tray clears away once the
 /// turn is committed so the fighters have the stage to themselves.
 struct DiceTrayView: View {
@@ -22,16 +22,14 @@ struct DiceTrayView: View {
 
     private var selectingReroll: Bool { engine.selectingReroll }
 
-    /// On the compact battle shelf the roll control is another square in the
-    /// row, exactly the same size as each die. Solve all seven lanes together
-    /// so making the button larger never squeezes the last die off-screen.
+    /// The tray is now all dice: no roll lever reserves a lane. Six physical
+    /// dice share the full shelf width and auto-roll when the turn begins.
     private var compactSquareWidth: CGFloat {
         let count = max(engine.slots.count, 1)
-        let bedPadding: CGFloat = 8
-        let outerGap: CGFloat = 4
+        let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(max(count - 1, 0))
-        let free = maxRowWidth - bedPadding - outerGap - gaps
-        return max(22, min(maxReelHeight, min(100, free / CGFloat(count + 1))))
+        let free = maxRowWidth - bedPadding - gaps
+        return max(22, min(maxReelHeight, min(100, free / CGFloat(count))))
     }
 
     /// Dice grow to fill the deck, shrinking only once the row gets long — and
@@ -41,16 +39,10 @@ struct DiceTrayView: View {
 
         let count = max(engine.slots.count, 1)
         let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
-        let leverLane = leverWidth + 8
         let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(count - 1)
-        let free = maxRowWidth - leverLane - bedPadding - gaps
+        let free = maxRowWidth - bedPadding - gaps
         return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
-    }
-
-    private var leverWidth: CGFloat {
-        if compact { return compactSquareWidth }
-        return maxRowWidth < 620 ? 72 : 88
     }
     private var reelGap: CGFloat { compact ? 3 : 6 }
 
@@ -61,8 +53,6 @@ struct DiceTrayView: View {
             if !compact { header }
 
             HStack(spacing: compact ? 4 : 8) {
-                leadingControl
-
                 HStack(spacing: 0) {
                     HStack(spacing: reelGap) {
                         ForEach(engine.slots) { slot in
@@ -248,15 +238,6 @@ struct DiceTrayView: View {
     }
 
     // MARK: - Combo panel
-
-    // MARK: - Roll control
-
-    private var leadingControl: some View {
-        RollLeverButton(height: reelHeight, width: leverWidth,
-                        isEnabled: engine.canRoll, isRolling: engine.isRolling) {
-            engine.rollAll(reduceMotion: reduceMotion)
-        }
-    }
 }
 
 /// A single die in the tray: waits, tumbles, settles on a face, then empties
