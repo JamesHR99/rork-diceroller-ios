@@ -30,18 +30,22 @@ struct DiceTrayView: View {
     private var reelWidth: CGFloat {
         let count = max(engine.slots.count, 1)
         let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
-        // The lever's lane is reserved whether or not ROLL is showing, so the
-        // dice keep one size for the whole turn instead of jumping wider the
-        // moment the lever is pulled.
-        let leverLane = leverWidth + 8
-        let bedPadding: CGFloat = 20
+        // The compact battle shelf has to fit five physical dice, the roll
+        // lever and both action controls on a phone. Use a much smaller lever
+        // lane and bed inset there instead of letting the dice be squeezed to
+        // almost zero width by desktop-sized chrome.
+        let leverLane = leverWidth + (compact ? 4 : 8)
+        let bedPadding: CGFloat = compact ? 8 : 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
-        return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
+        return max(compact ? 22 : 1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
 
-    private var leverWidth: CGFloat { maxRowWidth < 620 ? 72 : 88 }
-    private var reelGap: CGFloat { 6 }
+    private var leverWidth: CGFloat {
+        if compact { return 46 }
+        return maxRowWidth < 620 ? 72 : 88
+    }
+    private var reelGap: CGFloat { compact ? 3 : 6 }
 
     private var reelHeight: CGFloat { reelWidth }
 
@@ -49,7 +53,7 @@ struct DiceTrayView: View {
         VStack(spacing: compact ? 0 : 5) {
             if !compact { header }
 
-            HStack(spacing: 8) {
+            HStack(spacing: compact ? 4 : 8) {
                 leadingControl
 
                 HStack(spacing: 0) {
@@ -79,7 +83,7 @@ struct DiceTrayView: View {
                 .background { reelBed }
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, compact ? 0 : 14)
         .padding(.top, compact ? 2 : 6)
         .padding(.bottom, 2)
         // The tray takes its height from its content but never more width than
