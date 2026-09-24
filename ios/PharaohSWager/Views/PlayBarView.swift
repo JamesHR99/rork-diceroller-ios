@@ -7,9 +7,9 @@ struct PlayBarView: View {
     var bodyHeight: CGFloat = 108
 
     private var compact: Bool { bodyHeight < 100 }
-    private var controlHeight: CGFloat { compact ? 58 : 68 }
-    private var rerollWidth: CGFloat { compact ? 64 : 76 }
-    private var primaryWidth: CGFloat { compact ? 106 : 126 }
+    private var controlHeight: CGFloat { compact ? 52 : 68 }
+    private var rerollWidth: CGFloat { compact ? 48 : 76 }
+    private var primaryWidth: CGFloat { compact ? 76 : 126 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
     private var primaryEnabled: Bool {
@@ -17,7 +17,7 @@ struct PlayBarView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: compact ? 4 : 8) {
             rerollButton
             primaryButton
         }
@@ -68,14 +68,28 @@ struct PlayBarView: View {
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
-                    .font(.system(size: 17, weight: .black))
-                Text(hasSelection ? "PLAY" : "END TURN")
-                    .font(.fantasy(compact ? 14 : 17, weight: .black))
-                    .kerning(1.4)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+            Group {
+                if compact {
+                    VStack(spacing: 1) {
+                        Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
+                            .font(.system(size: 13, weight: .black))
+                        Text(hasSelection ? "PLAY" : "END TURN")
+                            .font(.fantasy(10, weight: .black))
+                            .kerning(0.7)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: hasSelection ? "play.fill" : "hourglass.bottomhalf.filled")
+                            .font(.system(size: 17, weight: .black))
+                        Text(hasSelection ? "PLAY" : "END TURN")
+                            .font(.fantasy(17, weight: .black))
+                            .kerning(1.4)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                }
             }
             .foregroundStyle(primaryEnabled ? Theme.parchment : Theme.parchmentDim)
             .frame(width: primaryWidth, height: controlHeight)
@@ -101,6 +115,7 @@ struct PlayBarView: View {
 /// numeric rather than explanatory so the battle view stays visually quiet.
 struct ResolveMedallionView: View {
     let engine: BattleEngine
+    var diameter: CGFloat = 72
 
     var body: some View {
         ZStack {
@@ -121,16 +136,16 @@ struct ResolveMedallionView: View {
 
             VStack(spacing: 0) {
                 Text("\(engine.resolveRemaining)/\(BattleRules.resolvePerTurn)")
-                    .font(.fantasy(22, weight: .black).monospacedDigit())
+                    .font(.fantasy(max(15, diameter * 0.3), weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.parchment)
                     .contentTransition(.numericText())
                 Text("RESOLVE")
-                    .font(.system(size: 7.5, weight: .black))
+                    .font(.system(size: max(6, diameter * 0.104), weight: .black))
                     .kerning(0.8)
                     .foregroundStyle(Theme.gold)
             }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: diameter, height: diameter)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Resolve \(engine.resolveRemaining) of \(BattleRules.resolvePerTurn)")
     }
