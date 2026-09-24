@@ -4783,11 +4783,6 @@ final class BattleEngine {
         }
         phase = .player
         resetPoses()
-
-        // A fresh hand begins moving immediately. There is no manual Roll
-        // control in battle now; preserve the player's reduce-motion setting
-        // from the opening roll for every later turn.
-        rollAll(reduceMotion: rollUsesReducedMotion)
     }
 
     private func finishVictory() {
