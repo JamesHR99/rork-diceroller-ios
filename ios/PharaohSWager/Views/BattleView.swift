@@ -539,7 +539,7 @@ private struct BattleContentView: View {
                         .font(.system(size: 8, weight: .black))
                         .foregroundStyle(Theme.parchmentDim)
                 } else {
-                    ForEach(Array(game.equippedBoons.prefix(6))) { boon in
+                    ForEach(game.equippedBoons) { boon in
                         let god = boon.def?.god
                         PharaohSWagerSymbol(
                             art: god?.artName,
