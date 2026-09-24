@@ -2402,6 +2402,11 @@ final class BattleEngine {
     /// intents. Any rolled dice still in hand are discarded before the next draw.
     func endPlayerTurn() {
         guard canEndTurn else { return }
+        // Round-end powers must read the hand as it actually stands when the
+        // player ends the turn. Recording this only during the last immediate
+        // action made "leave dice unused" effects fail when no later action
+        // refreshed the snapshot.
+        committedUnusedDice = unusedDiceCount
         selectingReroll = false
         rerollSelection = []
         resetTargetingSelection()
