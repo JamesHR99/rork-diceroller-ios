@@ -335,6 +335,7 @@ struct PlayBarView: View {
         .disabled(!engine.canCommit)
         .accessibilityIdentifier("battle.commit")
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: armed)
+    }
 
     private var endTurnButton: some View {
         Button {
@@ -358,6 +359,5 @@ struct PlayBarView: View {
         .buttonStyle(PressableButtonStyle())
         .disabled(!engine.canEndTurn)
         .accessibilityIdentifier("battle.endTurn")
-    }
     }
 }
