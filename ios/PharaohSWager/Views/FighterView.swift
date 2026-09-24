@@ -405,8 +405,8 @@ struct FighterView: View {
     private func enemyIntentRow(_ foe: EnemyState) -> some View {
         let projected = engine.projectedRound(for: foe)
         return HStack(spacing: 3) {
-            ForEach(Array(projected.prefix(3).enumerated()), id: \.offset) { _, entry in
-                intentChip(move: entry.element.move, strike: entry.element.strike)
+            ForEach(Array(projected.prefix(3).enumerated()), id: \.offset) { indexed in
+                intentChip(move: indexed.element.move, strike: indexed.element.strike)
             }
             if projected.count > 3 {
                 Text("+\(projected.count - 3)")
