@@ -286,6 +286,26 @@ struct BattleLoopTests {
         #expect(engine.rolled.first { $0.dieID == selected.die.id }?.wasKept == false)
     }
 
+    @Test func bottomHandSelectionKeepsOneFaceFamilyAtATime() async throws {
+        let engine = battle([.arrow1, .arrow1, .block, .evade, .focus])
+        try await roll(engine)
+
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let block = try #require(engine.rolled.first { $0.face == .block })
+
+        for face in arrows { engine.toggleActionSelection(faceID: face.id) }
+        #expect(engine.playedFaces.count == 2)
+        #expect(Set(engine.playedFaces.map(\.matchFace)) == [.arrow1])
+        #expect(engine.turnPlan.count == 1)
+
+        engine.toggleActionSelection(faceID: block.id)
+        #expect(engine.playedFaces.map(\.matchFace) == [.block])
+
+        engine.toggleActionSelection(faceID: block.id)
+        #expect(engine.playedFaces.isEmpty)
+        #expect(engine.canEndTurn)
+    }
+
     @Test func mixedArrowsCannotCombineAndSupportTakesAnEvent() async throws {
         let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
         try await roll(engine)
