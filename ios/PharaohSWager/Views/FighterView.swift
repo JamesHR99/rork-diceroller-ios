@@ -473,8 +473,6 @@ struct FighterView: View {
                 .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
-
-            actionChip()
         }
     }
 
