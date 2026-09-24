@@ -2454,12 +2454,12 @@ final class BattleEngine {
 
     // MARK: - Turn resolution
 
-    /// A played die is logically unavailable immediately, but its physical slot
-    /// stays in the tray until End Turn. The next round already discards every
-    /// slot before drawing a fresh hand, so removing it here only made the tray
-    /// shrink during combat.
+    /// A played die is logically discarded immediately, but its physical slot
+    /// stays in the tray until End Turn so the hand never collapses mid-round.
+    /// Keeping the discard bookkeeping here preserves the draw/reshuffle loop.
     private func discardPlayedDice(_ step: PlanStep) {
         let ids = Set(step.faces.map(\.dieID))
+        for id in ids where !discardPile.contains(id) { discardPile.append(id) }
         drawnDieIDs.subtract(ids)
     }
 
@@ -4743,7 +4743,11 @@ final class BattleEngine {
         capstoneUsedThisTurn = false
         thermalUsedThisTurn = false
 
-        discardPile.append(contentsOf: slots.map { $0.die.id })
+        // Spent dice are already in the discard pile; add only the dice that
+        // remained unused so retaining their visual slots cannot duplicate IDs.
+        for id in slots.map({ $0.die.id }) where !discardPile.contains(id) {
+            discardPile.append(id)
+        }
         let drawn = drawFromBag(count: BattleRules.handSize)
         slots = drawn.map { DieSlot(die: $0, state: .idle) }
         drawnDieIDs = Set(drawn.map(\.id))
