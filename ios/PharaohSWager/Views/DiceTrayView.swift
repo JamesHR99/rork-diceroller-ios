@@ -387,6 +387,9 @@ private struct DiceTrayReelView: View {
         Button {
             if selectingReroll {
                 engine.reroll(slotID: slot.id, reduceMotion: reduceMotion)
+            } else if engine.armingChisel != nil, engine.armHeldChisel(ontoFace: face.id) {
+                // Optional Chisels now attach through a selected die because
+                // the old action-plan cards no longer exist.
             } else {
                 engine.toggleActionSelection(faceID: face.id)
             }
@@ -447,7 +450,7 @@ private struct DiceTrayReelView: View {
                         .offset(y: 8)
                 }
             }
-            .overlay { armedHalo }
+            .overlay { armedHalo(face) }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
                     PharaohSWagerIcon(name: PharaohSWagerArt.interactionImbue, size: 15).padding(3)
@@ -660,12 +663,23 @@ private struct DiceTrayReelView: View {
     /// not replace their frame or wash the face with the old freeze effect.
     /// While freeze mode is armed, every freezable die wears a breathing icy ring.
     @ViewBuilder
-    private var armedHalo: some View {
+    private func armedHalo(_ face: RolledFace) -> some View {
         if selectingReroll {
             RoundedRectangle(cornerRadius: corner)
                 .strokeBorder(Theme.frost.opacity(engine.rerollSelection.contains(slot.id) ? 1 : 0.28),
                               style: StrokeStyle(lineWidth: 2, dash: [4.5, 4]))
                 .shadow(color: Theme.frost.opacity(0.24), radius: 6)
+                .allowsHitTesting(false)
+        } else if engine.isChiselArmed(onFace: face.id) {
+            RoundedRectangle(cornerRadius: corner)
+                .strokeBorder(Theme.ptahCopper, lineWidth: 2.4)
+                .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 8)
+                .allowsHitTesting(false)
+        } else if engine.armableChisel(forFace: face.id) != nil {
+            RoundedRectangle(cornerRadius: corner)
+                .strokeBorder(Theme.ptahCopper.opacity(0.8),
+                              style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                .shadow(color: Theme.ptahCopper.opacity(0.35), radius: 6)
                 .allowsHitTesting(false)
         }
     }
@@ -723,6 +737,8 @@ private struct DiceTrayReelView: View {
     /// the choice; the only extra state shown here is whether it is selected.
     private func bottomTag(_ face: RolledFace) -> String {
         if selectingReroll { return "REROLL" }
+        if engine.isChiselArmed(onFace: face.id) { return "ARMED" }
+        if engine.armableChisel(forFace: face.id) != nil { return "TAP TO ARM" }
         return engine.playOrder.contains(face.id) ? "SELECTED" : "TAP"
     }
 
