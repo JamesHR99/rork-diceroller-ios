@@ -428,23 +428,39 @@ struct FighterView: View {
     ) -> some View {
         HStack(spacing: 3) {
             if strike.damage > 0 {
-                Image(systemName: "sword.fill")
-                    .foregroundStyle(Theme.blood)
+                PharaohSWagerSymbol(
+                    art: PharaohSWagerArt.Status.piercing,
+                    fallback: "burst.fill",
+                    size: 13,
+                    tint: Theme.blood
+                )
                 Text("\(strike.damage)")
             }
             if strike.block > 0 {
-                Image(systemName: "shield.fill")
-                    .foregroundStyle(Theme.frost)
+                PharaohSWagerSymbol(
+                    art: PharaohSWagerArt.Status.shield,
+                    fallback: "shield.fill",
+                    size: 13,
+                    tint: Theme.frost
+                )
                 Text("\(strike.block)")
             }
             if strike.heal > 0 {
-                Image(systemName: "cross.fill")
-                    .foregroundStyle(Theme.venom)
+                PharaohSWagerSymbol(
+                    art: PharaohSWagerArt.Status.health,
+                    fallback: "cross.fill",
+                    size: 13,
+                    tint: Theme.venom
+                )
                 Text("\(strike.heal)")
             }
             if strike.damage == 0, strike.block == 0, strike.heal == 0, move.charge > 0 {
-                Image(systemName: "bolt.fill")
-                    .foregroundStyle(Theme.gold)
+                PharaohSWagerSymbol(
+                    art: PharaohSWagerArt.Status.critical,
+                    fallback: "bolt.fill",
+                    size: 13,
+                    tint: Theme.gold
+                )
                 Text("×\(String(format: "%.1f", move.charge))")
             }
             if strike.damage == 0, strike.block == 0, strike.heal == 0, move.charge == 0 {
