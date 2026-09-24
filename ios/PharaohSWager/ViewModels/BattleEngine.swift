@@ -2142,6 +2142,31 @@ final class BattleEngine {
         Audio.shared.play(.diceTake)
     }
 
+    /// Bottom-tray interaction for the compact battle UI. A play is one face
+    /// family at a time: tap matching dice to add/remove them. Tapping a
+    /// different face starts a fresh selection instead of building an invalid
+    /// multi-action plan.
+    func toggleActionSelection(faceID: UUID) {
+        guard phase == .player, !isRolling,
+              let face = rolled.first(where: { $0.id == faceID }) else { return }
+
+        if playOrder.contains(faceID) {
+            returnToTray(faceID: faceID)
+            return
+        }
+
+        if let selectedKind = playedFaces.first?.matchFace,
+           selectedKind != face.matchFace {
+            playOrder = []
+            weldedGroups = []
+            resetTargetingSelection()
+        }
+
+        placeInPlayBar(faceID: faceID)
+    }
+
+    var selectedActionFace: FaceKind? { playedFaces.first?.matchFace }
+
     // MARK: - Combining, by choice
 
     /// A run of adjacent dice in the plan that would make a real recipe, and
@@ -2377,6 +2402,11 @@ final class BattleEngine {
     /// intents. Any rolled dice still in hand are discarded before the next draw.
     func endPlayerTurn() {
         guard canEndTurn else { return }
+        // Round-end powers must read the hand as it actually stands when the
+        // player ends the turn. Recording this only during the last immediate
+        // action made "leave dice unused" effects fail when no later action
+        // refreshed the snapshot.
+        committedUnusedDice = unusedDiceCount
         selectingReroll = false
         rerollSelection = []
         resetTargetingSelection()

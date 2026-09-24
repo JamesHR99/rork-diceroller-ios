@@ -22,18 +22,11 @@ private struct BattleContentView: View {
     @State private var showInfo = false
     @State private var showBoons = false
     @State private var arrivalShown = true
-    /// Where the run's heading and the health rail actually end. The deck is
-    /// hung off this rather than off the bottom of the screen, so it rises to
-    /// meet the health bars instead of leaving a band of empty river between
-    /// them and pushing its own last row off the bottom edge.
-    @State private var headerHeight: CGFloat = 0
 
     private var gate: Gate { game.gate }
 
-    /// The dice deck rides up over the arena while you are planning, and slides
-    /// away the moment you commit — that is what hands the whole screen back to
-    /// the fighters and the hull they are standing on. Aiming happens on the
-    /// uncovered stage, so the deck is down for that too.
+    /// The compact dice shelf is visible only while the player is choosing an
+    /// action. The stage behind it remains fully readable instead of dimming.
     private var deckUp: Bool {
         engine.phase == .player || !engine.rerollChargeFlights.isEmpty
     }
@@ -44,40 +37,14 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        topStrip
+                    topStrip
 
-                        // While the deck is up, the fighters are read off the
-                        // slim rail; once it drops, the stage below is
-                        // uncovered and the full-size figures are what you
-                        // watch.
-                        if deckUp {
-                            tickerRail(width: max(0, size.width - 24))
-                                .padding(.horizontal, 12)
-                                .padding(.top, 2)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-
-                            enemyOrderStrip
-                                .padding(.horizontal, 14)
-                                .padding(.top, 3)
-                        }
-
-                        // Enemy actions have one shared strip above the reels;
-                        // the health cards stay compact and the whole pack's
-                        // order can be read from left to right.
-                    }
-                    // The deck is measured against what this strip leaves
-                    // behind, so it can sit directly under the health bars.
-                    .onGeometryChange(for: CGFloat.self) { proxy in
-                        proxy.size.height
-                    } action: { height in
-                        headerHeight = height
-                    }
-
+                    // The battlefield never collapses into a planning HUD.
+                    // Dice live on a shallow shelf at the bottom, so the player
+                    // can read every fighter and every intent while rolling.
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .opacity(deckUp ? 0.22 : 1)
-                        .scaleEffect(deckUp ? 0.94 : 1, anchor: .top)
+                        .padding(.bottom, deckUp ? actionTrayHeight(for: size) - 8 : 0)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
@@ -101,27 +68,6 @@ private struct BattleContentView: View {
                 .zIndex(3)
             }
             .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9), value: deckUp)
-        }
-        .overlay {
-            // A landing chain takes the whole deck: shockwave, embers, wash
-            // and a banner naming what just happened.
-            if let flash = engine.comboFlash {
-                ComboFlashView(flash: flash)
-                    .id(flash.id)
-                    .zIndex(4)
-                    .transition(.opacity)
-            }
-        }
-        .overlay {
-            // Before an action lands it is named and held still: who is
-            // acting, what they are doing, what it is worth and every god
-            // power riding it, all at the same time.
-            if let card = engine.spotlight {
-                ActionSpotlightView(card: card)
-                    .id(card.id)
-                    .zIndex(5)
-                    .transition(.opacity)
-            }
         }
         .overlay(alignment: .bottom) {
             // Aiming happens after you commit: the deck is down, the stage is
@@ -212,28 +158,53 @@ private struct BattleContentView: View {
 
     // MARK: - Dice deck
 
+    private func actionTrayHeight(for size: CGSize) -> CGFloat {
+        // Keep the hand close to the proportions of the approved mock-up:
+        // substantial enough to tap comfortably, but never a second screen
+        // sitting over the barque.
+        min(124, max(94, size.height * 0.235))
+    }
+
     private func diceDeck(size: CGSize) -> some View {
-        let metrics = BattleDeckMetrics(screenHeight: size.height,
-                                        headerHeight: headerHeight > 0 ? headerHeight : 120)
-        return FittedActionContent {
-            VStack(spacing: 6) {
-                DiceTrayView(engine: engine, maxReelHeight: metrics.reelHeight,
-                             maxRowWidth: max(0, size.width - 44), compact: metrics.isCompact)
-                    .padding(.horizontal, 8)
-                PlayBarView(engine: engine, bodyHeight: metrics.planHeight)
-                    .padding(.horizontal, 10)
-            }
-            .padding(.bottom, 8)
-            .frame(maxWidth: .infinity)
+        let trayHeight = actionTrayHeight(for: size)
+        let compact = size.width < 600 || trayHeight < 116
+        let resolveWidth: CGFloat = compact ? 48 : 80
+        let controlsWidth: CGFloat = compact ? 128 : 214
+        let outerPadding: CGFloat = compact ? 4 : 12
+        let spacing: CGFloat = compact ? 4 : 10
+        let diceWidth = max(
+            compact ? 176 : 250,
+            size.width - resolveWidth - controlsWidth - (outerPadding * 2) - (spacing * 2)
+        )
+        let reelHeight = min(compact ? 54 : 86, trayHeight - 18)
+
+        return HStack(spacing: spacing) {
+            ResolveMedallionView(engine: engine, diameter: resolveWidth)
+                .frame(width: resolveWidth)
+
+            DiceTrayView(
+                engine: engine,
+                maxReelHeight: reelHeight,
+                maxRowWidth: diceWidth,
+                compact: true
+            )
+            .frame(maxWidth: diceWidth)
+
+            PlayBarView(engine: engine, bodyHeight: trayHeight - 18)
+                .frame(width: controlsWidth)
         }
-        .frame(height: metrics.height, alignment: .top)
+        .padding(.horizontal, outerPadding)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity)
+        .frame(height: trayHeight)
         .disabled(!engine.rerollChargeFlights.isEmpty)
         .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
             GeometryReader { proxy in
                 if !engine.rerollChargeFlights.isEmpty, let target = anchors["reroll"] {
                     RerollChargeFlight(
                         sources: engine.rerollChargeFlights.compactMap { anchors[$0.uuidString].map { proxy[$0] } },
-                        destination: proxy[target])
+                        destination: proxy[target]
+                    )
                 }
             }
             .allowsHitTesting(false)
@@ -242,93 +213,10 @@ private struct BattleContentView: View {
             DeckShelfBackground(armed: engine.selectingReroll)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .offset(y: deckUp ? 0 : size.height)
+        .offset(y: deckUp ? 0 : trayHeight + 28)
         .opacity(deckUp ? 1 : 0)
         .allowsHitTesting(deckUp)
         .accessibilityHidden(!deckUp)
-    }
-
-    /// The slim read carried while the deck is up: you on the left, everything
-    /// that rose out of the river on the right, each with its health and the
-    /// blow it is winding up.
-    private func tickerRail(width: CGFloat) -> some View {
-        let foes = engine.stagedFoes
-        let compact = foes.count > 1
-        let spacing: CGFloat = foes.count > 2 ? 4 : 6
-        let natural: CGFloat = compact ? 212 : 268
-        // You take a smaller share of a crowded rail so all health channels
-        // and portraits remain visible at once.
-        let playerShare: CGFloat = foes.count >= 3 ? 0.3 : (foes.count == 2 ? 0.34 : 0.42)
-        let playerWidth = min(natural, max(120, width * playerShare))
-        let foeRoom = width - playerWidth - spacing * CGFloat(foes.count + 1)
-        let foeWidth = min(natural, max(96, foeRoom / CGFloat(max(foes.count, 1))))
-
-        return HStack(alignment: .top, spacing: spacing) {
-            FighterView(
-                engine: engine,
-                side: .player,
-                heroSymbol: game.heroClass?.fighterSymbol ?? "figure.stand",
-                heroName: game.heroClass?.name ?? "Hero",
-                accent: game.heroClass?.accent ?? Theme.gold,
-                heroClassID: game.classID,
-                layout: .ticker,
-                tickerCompact: compact,
-                cardWidth: playerWidth
-            )
-
-            Spacer(minLength: 0)
-
-            ForEach(foes) { foe in
-                FighterView(
-                    engine: engine,
-                    side: .enemy,
-                    heroSymbol: "",
-                    heroName: "",
-                    accent: Theme.blood,
-                    foe: foe,
-                    isTargeted: engine.isTargeted(foeID: foe.id),
-                    layout: .ticker,
-                    tickerCompact: compact,
-                    cardWidth: foeWidth
-                )
-                .opacity(foe.isAlive ? 1 : 0.4)
-            }
-        }
-        .frame(width: width, alignment: .leading)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// One shared enemy queue above the reels. Health cards stay focused on
-    /// health, while this strip shows exactly which creature acts next when a
-    /// pack has several announced moves.
-    private var enemyOrderStrip: some View {
-        let actions = engine.timeline.filter { !$0.isPlayer }
-        let columns = actions.count > 3 ? (actions.count + 1) / 2 : max(1, actions.count)
-        return HStack(spacing: 6) {
-            Text("ENEMY\nORDER")
-                .font(.system(size: 8, weight: .black)).foregroundStyle(Theme.blood)
-                .fixedSize()
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: columns), spacing: 3) {
-                ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                    FittedActionContent {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(index + 1). \(action.title)")
-                                .font(.fantasy(10, weight: .bold)).foregroundStyle(Theme.parchment)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(action.detail)
-                                .font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.gold)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .padding(.horizontal, 6).padding(.vertical, 3)
-                    .frame(height: 34)
-                    .background(Theme.bgCard.opacity(0.9), in: .rect(cornerRadius: 7))
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.blood.opacity(0.4)))
-                }
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Enemy action order")
     }
 
     // MARK: - Stage
@@ -338,8 +226,8 @@ private struct BattleContentView: View {
     /// bars and the status row all have to fit above the figure, and a
     /// serpent-lord is drawn taller again, so the tallest fighter on the deck
     /// sets the measure for everyone.
-    private func fighterHeight(_ room: CGFloat) -> CGFloat {
-        let chrome: CGFloat = 96
+    private func fighterHeight(_ room: CGFloat, hasIntent: Bool = false) -> CGFloat {
+        let chrome: CGFloat = hasIntent ? 120 : 96
         let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
         return min(232, max(112, free / (1.06 * tallest)))
@@ -366,7 +254,7 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 BattleBarqueView(gate: gate, width: boatWidth, discGlow: game.discGlow)
-                    .opacity(deckUp ? 0.3 : 0.96)
+                    .opacity(0.96)
 
                 HStack(alignment: .bottom, spacing: 8) {
                     FighterView(
@@ -438,53 +326,41 @@ private struct BattleContentView: View {
                     isTargeted: engine.isTargeted(foeID: foe.id),
                     isAimable: engine.isAiming && foe.isAlive,
                     onTap: engine.isAiming ? { engine.aim(at: foe.id) } : nil,
-                    stageHeight: fighterHeight(room),
+                    stageHeight: fighterHeight(room, hasIntent: true),
                     cardWidth: foes.count > 1 ? cardWidth : nil
                 )
-                .overlay(alignment: .bottom) { allocationTotal(for: foe) }
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.4), value: foes.count)
     }
 
-    /// The blow waiting to be sent, named on a slab at the foot of the stage.
-    /// Aiming is its own moment now: the deck is down, the fighters are
-    /// full-size, and each attack asks which creature it should strike.
+    /// Multi-enemy fights still need a targeting moment, but this pass keeps it
+    /// deliberately free of combo names, damage previews and effect text.
     private func aimPrompt(_ aim: AimRequest) -> some View {
         VStack(spacing: 8) {
-            Text("AIM THIS BLOW")
-                .font(.system(size: 9, weight: .black))
-                .kerning(2.6)
+            Text("CHOOSE A TARGET")
+                .font(.fantasy(18, weight: .black))
+                .kerning(1.8)
                 .foregroundStyle(Theme.gold)
 
-            HStack(spacing: 8) {
-                ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
-                    PharaohSWagerSymbol(art: face.artName, fallback: face.symbol,
-                               size: 22, tint: face.tint)
-                        .frame(width: 27, height: 25)
+            if !aim.faces.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
+                        PharaohSWagerSymbol(
+                            art: face.artName,
+                            fallback: face.symbol,
+                            size: 22,
+                            tint: face.tint
+                        )
+                        .frame(width: 28, height: 26)
                         .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
+                    }
                 }
-
-                Text(aim.title.uppercased())
-                    .font(.fantasy(19, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(aim.tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-
-                Text(aim.detail)
-                    .font(.system(size: 12.5, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.ember)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3)
-                    .background(Theme.bg.opacity(0.6), in: .capsule)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
             }
 
             HStack(spacing: 10) {
-                Text("TAP THE CREATURE IT SHOULD STRIKE")
+                Text("TAP AN ENEMY")
                     .font(.system(size: 9.5, weight: .black))
                     .kerning(1.4)
                     .foregroundStyle(Theme.parchmentDim)
@@ -502,7 +378,7 @@ private struct BattleContentView: View {
                 Button {
                     engine.cancelAiming()
                 } label: {
-                    Text("BACK TO PLAN")
+                    Text("BACK")
                         .font(.system(size: 9.5, weight: .black))
                         .kerning(1.2)
                         .foregroundStyle(Theme.parchment)
@@ -522,35 +398,12 @@ private struct BattleContentView: View {
         }
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.4)
+                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.2)
         )
+        .goldCorners(size: 18, inset: 4, opacity: 0.6)
         .shadow(color: .black.opacity(0.7), radius: 16, y: 6)
         .padding(.bottom, 18)
         .padding(.horizontal, 14)
-    }
-
-    /// The running damage total pointed at a foe while attacks are being
-    /// allocated — it builds up beside each fighter as blows are assigned.
-    @ViewBuilder
-    private func allocationTotal(for foe: EnemyState) -> some View {
-        if engine.isAiming {
-            let total = engine.allocatedDamage(for: foe.id)
-            if total > 0 {
-                HStack(spacing: 4) {
-                    PharaohSWagerSymbol(art: PharaohSWagerArt.Status.piercing, fallback: "bolt.fill",
-                               size: 13, tint: Theme.bg)
-                    Text("\(total)")
-                        .font(.system(size: 13, weight: .black).monospacedDigit())
-                }
-                .foregroundStyle(Theme.bg)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Theme.ember, in: .capsule)
-                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.6), lineWidth: 1))
-                .offset(y: 48)
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
-            }
-        }
     }
 
     // MARK: - Top strip
@@ -577,20 +430,7 @@ private struct BattleContentView: View {
             .background(Theme.bgElevated, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.3), lineWidth: 1))
 
-            Button {
-                showBoons = true
-                Haptics.light()
-            } label: {
-                Label("BOONS \(game.equippedBoons.count)", systemImage: "sparkles")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.gold)
-                    .padding(.horizontal, 10)
-                    .frame(minHeight: 36)
-                    .background(Theme.bgElevated, in: .capsule)
-            }
-            .buttonStyle(PressableButtonStyle())
-            .accessibilityIdentifier("battle.boons")
-            .accessibilityLabel("Equipped god boons, \(game.equippedBoons.count)")
+            boonStrip
 
             // Chisels of Ptah: the copper marks beside the turn. The optional
             // ones are controls — tap a mark to pick the Chisel up, then tap
@@ -642,6 +482,62 @@ private struct BattleContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 3)
+    }
+
+    /// God boons stay visible as icons during combat instead of hiding behind
+    /// a count. Tapping the strip still opens the existing detailed sheet.
+    private var boonStrip: some View {
+        Button {
+            showBoons = true
+            Haptics.light()
+        } label: {
+            HStack(spacing: 4) {
+                if game.equippedBoons.isEmpty {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.parchmentDim)
+                    Text("NO BOONS")
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(Theme.parchmentDim)
+                } else {
+                    ForEach(game.equippedBoons) { boon in
+                        let god = boon.def?.god
+                        PharaohSWagerSymbol(
+                            art: god?.artName,
+                            fallback: god?.symbol ?? "sparkles",
+                            size: 18,
+                            tint: god?.tint ?? Theme.gold
+                        )
+                        .frame(width: 28, height: 28)
+                        .background(Theme.bg.opacity(0.72), in: .rect(cornerRadius: 7))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7)
+                                .strokeBorder((god?.tint ?? Theme.gold).opacity(0.5), lineWidth: 1)
+                        )
+                        .overlay(alignment: .bottomTrailing) {
+                            if boon.level > 1 {
+                                Text("\(boon.level)")
+                                    .font(.system(size: 7, weight: .black))
+                                    .foregroundStyle(Theme.bg)
+                                    .frame(width: 12, height: 12)
+                                    .background(Theme.gold, in: .circle)
+                                    .offset(x: 3, y: 3)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(Theme.bgElevated.opacity(0.92), in: .rect(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Theme.gold.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityIdentifier("battle.boons")
+        .accessibilityLabel("Equipped god boons, \(game.equippedBoons.count)")
     }
 
     /// One Chisel's copper mark. An optional Chisel is a button: it lifts the

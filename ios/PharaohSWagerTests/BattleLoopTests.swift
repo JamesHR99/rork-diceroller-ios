@@ -181,7 +181,10 @@ struct BattleLoopTests {
         while engine.phase != .player && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
         #expect(engine.resolveRemaining == 2)
         engine.endPlayerTurn()
-        while engine.turnNumber == 1 && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        let nextTurnDeadline = clock.now.advanced(by: .seconds(30))
+        while engine.turnNumber == 1 && clock.now < nextTurnDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         #expect(engine.resolveRemaining == 3)
     }
 
@@ -284,6 +287,26 @@ struct BattleLoopTests {
             #expect(kept.wasKept && kept.face == face.face && kept.isCrit == face.isCrit)
         }
         #expect(engine.rolled.first { $0.dieID == selected.die.id }?.wasKept == false)
+    }
+
+    @Test func bottomHandSelectionKeepsOneFaceFamilyAtATime() async throws {
+        let engine = battle([.arrow1, .arrow1, .block, .evade, .focus])
+        try await roll(engine)
+
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let block = try #require(engine.rolled.first { $0.face == .block })
+
+        for face in arrows { engine.toggleActionSelection(faceID: face.id) }
+        #expect(engine.playedFaces.count == 2)
+        #expect(Set(engine.playedFaces.map(\.matchFace)) == Set([FaceKind.arrow1]))
+        #expect(engine.turnPlan.count == 1)
+
+        engine.toggleActionSelection(faceID: block.id)
+        #expect(engine.playedFaces.map(\.matchFace) == [.block])
+
+        engine.toggleActionSelection(faceID: block.id)
+        #expect(engine.playedFaces.isEmpty)
+        #expect(engine.canEndTurn)
     }
 
     @Test func mixedArrowsCannotCombineAndSupportTakesAnEvent() async throws {

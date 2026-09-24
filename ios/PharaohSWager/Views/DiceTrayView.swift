@@ -30,18 +30,22 @@ struct DiceTrayView: View {
     private var reelWidth: CGFloat {
         let count = max(engine.slots.count, 1)
         let ideal: CGFloat = count <= 6 ? 100 : (count <= 8 ? 88 : 74)
-        // The lever's lane is reserved whether or not ROLL is showing, so the
-        // dice keep one size for the whole turn instead of jumping wider the
-        // moment the lever is pulled.
-        let leverLane = leverWidth + 8
-        let bedPadding: CGFloat = 20
+        // The compact battle shelf has to fit five physical dice, the roll
+        // lever and both action controls on a phone. Use a much smaller lever
+        // lane and bed inset there instead of letting the dice be squeezed to
+        // almost zero width by desktop-sized chrome.
+        let leverLane = leverWidth + (compact ? 4 : 8)
+        let bedPadding: CGFloat = compact ? 8 : 20
         let gaps = reelGap * CGFloat(count - 1)
         let free = maxRowWidth - leverLane - bedPadding - gaps
-        return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
+        return max(compact ? 22 : 1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
 
-    private var leverWidth: CGFloat { maxRowWidth < 620 ? 72 : 88 }
-    private var reelGap: CGFloat { 6 }
+    private var leverWidth: CGFloat {
+        if compact { return 46 }
+        return maxRowWidth < 620 ? 72 : 88
+    }
+    private var reelGap: CGFloat { compact ? 3 : 6 }
 
     private var reelHeight: CGFloat { reelWidth }
 
@@ -49,7 +53,7 @@ struct DiceTrayView: View {
         VStack(spacing: compact ? 0 : 5) {
             if !compact { header }
 
-            HStack(spacing: 8) {
+            HStack(spacing: compact ? 4 : 8) {
                 leadingControl
 
                 HStack(spacing: 0) {
@@ -79,7 +83,7 @@ struct DiceTrayView: View {
                 .background { reelBed }
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, compact ? 0 : 14)
         .padding(.top, compact ? 2 : 6)
         .padding(.bottom, 2)
         // The tray takes its height from its content but never more width than
@@ -272,11 +276,15 @@ private struct DiceTrayReelView: View {
     private var selectingReroll: Bool { engine.selectingReroll }
 
     private var corner: CGFloat { 15 }
-    /// All three lines live inside the painted frame's true opening. The art
-    /// has a broad ornamental rim, so sizing against the outer square made the
-    /// glyph, name and value look cropped even when SwiftUI's bounds were valid.
+    /// The battle shelf uses deliberately compact, icon-first dice. Taller
+    /// presentation captures (and any future detail view) keep the face name
+    /// and tag, but the live hand reads like physical dice rather than cards.
+    private var dense: Bool { height < 88 }
     private var iconSize: CGFloat {
-        max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
+        if dense {
+            return max(22, min(34, min(width * 0.48, height * 0.46)))
+        }
+        return max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
     }
     private var labelSize: CGFloat { max(8.5, min(10.5, width * 0.105)) }
     private func labelSize(for face: RolledFace) -> CGFloat {
@@ -292,11 +300,7 @@ private struct DiceTrayReelView: View {
             case .rolling:
                 spinningReel
             case .rolled(let face):
-                if engine.playOrder.contains(face.id) {
-                    emptyReel(spent: false)
-                } else {
-                    settledReel(face)
-                }
+                settledReel(face)
             case .spent:
                 emptyReel(spent: true)
             }
@@ -350,12 +354,14 @@ private struct DiceTrayReelView: View {
             .frame(width: iconSize, height: iconSize)
             .accessibilityHidden(true)
 
-            Text("ROLLING")
-                .font(.system(size: labelSize, weight: .heavy))
-                .foregroundStyle(Theme.gold.opacity(0.8))
-            Text("···")
-                .font(.system(size: tagSize, weight: .black))
-                .foregroundStyle(Theme.parchmentDim)
+            if !dense {
+                Text("ROLLING")
+                    .font(.system(size: labelSize, weight: .heavy))
+                    .foregroundStyle(Theme.gold.opacity(0.8))
+                Text("···")
+                    .font(.system(size: tagSize, weight: .black))
+                    .foregroundStyle(Theme.parchmentDim)
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 6)
@@ -391,8 +397,11 @@ private struct DiceTrayReelView: View {
         Button {
             if selectingReroll {
                 engine.reroll(slotID: slot.id, reduceMotion: reduceMotion)
+            } else if engine.armingChisel != nil, engine.armHeldChisel(ontoFace: face.id) {
+                // Optional Chisels now attach through a selected die because
+                // the old action-plan cards no longer exist.
             } else {
-                engine.placeInPlayBar(faceID: face.id)
+                engine.toggleActionSelection(faceID: face.id)
             }
         } label: {
             VStack(spacing: 1) {
@@ -410,20 +419,22 @@ private struct DiceTrayReelView: View {
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
                 // tier the engine will use, in Ptah's copper.
-                Text(reelLabel(face))
-                    .font(.system(size: labelSize(for: face), weight: .heavy))
-                    .kerning(0.2)
-                    .foregroundStyle(face.isCrit
-                                     ? Theme.gold
-                                     : ((face.patron?.tint ?? face.matchFace.tint)))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(bottomTag(face))
-                    .font(.system(size: tagSize, weight: .black).monospacedDigit())
-                    .foregroundStyle(bottomTagTint(face))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(width: max(1, width * 0.66))
+                if !dense {
+                    Text(reelLabel(face))
+                        .font(.system(size: labelSize(for: face), weight: .heavy))
+                        .kerning(0.2)
+                        .foregroundStyle(face.isCrit
+                                         ? Theme.gold
+                                         : ((face.patron?.tint ?? face.matchFace.tint)))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text(bottomTag(face))
+                        .font(.system(size: tagSize, weight: .black).monospacedDigit())
+                        .foregroundStyle(bottomTagTint(face))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(width: max(1, width * 0.66))
+                }
             }
             .padding(.horizontal, max(8, width * 0.1))
             .padding(.vertical, max(9, height * 0.075))
@@ -431,7 +442,27 @@ private struct DiceTrayReelView: View {
             .background { reelGround(opacity: 1) }
             .clipShape(.rect(cornerRadius: corner))
             .dieFrame(settledFrame(face), tint: frameTint(face))
-            .overlay { armedHalo }
+            .overlay {
+                if engine.playOrder.contains(face.id) && !selectingReroll {
+                    RoundedRectangle(cornerRadius: corner)
+                        .strokeBorder(Theme.gold, lineWidth: 3)
+                        .shadow(color: Theme.gold.opacity(0.8), radius: 10)
+                        .padding(2)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if engine.playOrder.contains(face.id) && !selectingReroll {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.bg)
+                        .frame(width: 22, height: 22)
+                        .background(Theme.gold, in: .circle)
+                        .overlay(Circle().strokeBorder(Theme.parchment.opacity(0.9), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
+                        .offset(y: 8)
+                }
+            }
+            .overlay { armedHalo(face) }
             .overlay(alignment: .topTrailing) {
                 if face.imbueTiers > 0 {
                     PharaohSWagerIcon(name: PharaohSWagerArt.interactionImbue, size: 15).padding(3)
@@ -466,6 +497,22 @@ private struct DiceTrayReelView: View {
             .offset(y: reduceMotion || settled ? 0 : -3)
         }
         .contextMenu {
+            if let step = engine.step(containing: face.id),
+               let action = step.combo,
+               action.dodgeCharges > 0,
+               step.faces.prefix(action.dodgeCharges).contains(where: { $0.id == face.id }) {
+                Menu("Evade target: \(engine.evadeTargetLabel(faceID: face.id))") {
+                    Button("Next strike") {
+                        engine.assignEvade(faceID: face.id, strikeID: nil)
+                    }
+                    ForEach(engine.incomingStrikes) { strike in
+                        Button(strike.title) {
+                            engine.assignEvade(faceID: face.id, strikeID: strike.id)
+                        }
+                    }
+                }
+            }
+
             ForEach(engine.conversionOptions(for: face), id: \.self) { kind in
                 Button("Convert to \(kind.label)") { engine.convert(faceID: face.id, to: kind) }
             }
@@ -477,6 +524,8 @@ private struct DiceTrayReelView: View {
             }
         }
         .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(face.matchFace.label)
+        .accessibilityValue(engine.playOrder.contains(face.id) ? "Selected" : "Not selected")
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
@@ -644,12 +693,23 @@ private struct DiceTrayReelView: View {
     /// not replace their frame or wash the face with the old freeze effect.
     /// While freeze mode is armed, every freezable die wears a breathing icy ring.
     @ViewBuilder
-    private var armedHalo: some View {
+    private func armedHalo(_ face: RolledFace) -> some View {
         if selectingReroll {
             RoundedRectangle(cornerRadius: corner)
                 .strokeBorder(Theme.frost.opacity(engine.rerollSelection.contains(slot.id) ? 1 : 0.28),
                               style: StrokeStyle(lineWidth: 2, dash: [4.5, 4]))
                 .shadow(color: Theme.frost.opacity(0.24), radius: 6)
+                .allowsHitTesting(false)
+        } else if engine.isChiselArmed(onFace: face.id) {
+            RoundedRectangle(cornerRadius: corner)
+                .strokeBorder(Theme.ptahCopper, lineWidth: 2.4)
+                .shadow(color: Theme.ptahCopper.opacity(0.7), radius: 8)
+                .allowsHitTesting(false)
+        } else if engine.armableChisel(forFace: face.id) != nil {
+            RoundedRectangle(cornerRadius: corner)
+                .strokeBorder(Theme.ptahCopper.opacity(0.8),
+                              style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                .shadow(color: Theme.ptahCopper.opacity(0.35), radius: 6)
                 .allowsHitTesting(false)
         }
     }
@@ -698,24 +758,18 @@ private struct DiceTrayReelView: View {
     }
 
     private func bottomTagTint(_ face: RolledFace) -> Color {
-        selectingReroll ? Theme.frost : (face.isCrit ? Theme.gold : Theme.parchment.opacity(0.85))
+        if selectingReroll { return Theme.frost }
+        if engine.playOrder.contains(face.id) { return Theme.gold }
+        return face.isCrit ? Theme.gold : Theme.parchmentDim
     }
 
-    /// Quick "what will this do" tag under the face icon — read from the
-    /// substituted tier when a Chisel has shifted the face.
+    /// The compact tray intentionally avoids action maths. The face itself is
+    /// the choice; the only extra state shown here is whether it is selected.
     private func bottomTag(_ face: RolledFace) -> String {
-        if selectingReroll { return "TAP TO REROLL" }
-        guard face.isCrit else { return face.matchFace.soloTag }
-        let value = GameData.scaleUp(face.matchFace.soloValue, by: GameData.faceCritMultiplier)
-        switch face.face.soloKind {
-        case .damage: return "\(value) dmg"
-        case .block: return "+\(value) shield"
-        case .heal: return "+\(value) hp"
-        case .poison: return "\(value) psn"
-
-        case .evade: return "Evade 50%"
-        case .focus: return "+50% next hit"
-        }
+        if selectingReroll { return "REROLL" }
+        if engine.isChiselArmed(onFace: face.id) { return "ARMED" }
+        if engine.armableChisel(forFace: face.id) != nil { return "TAP TO ARM" }
+        return engine.playOrder.contains(face.id) ? "SELECTED" : "TAP"
     }
 
     /// A reel whose face has gone down to the plan, or been spent outright.
