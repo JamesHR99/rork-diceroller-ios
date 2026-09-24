@@ -2142,6 +2142,31 @@ final class BattleEngine {
         Audio.shared.play(.diceTake)
     }
 
+    /// Bottom-tray interaction for the compact battle UI. A play is one face
+    /// family at a time: tap matching dice to add/remove them. Tapping a
+    /// different face starts a fresh selection instead of building an invalid
+    /// multi-action plan.
+    func toggleActionSelection(faceID: UUID) {
+        guard phase == .player, !isRolling,
+              let face = rolled.first(where: { $0.id == faceID }) else { return }
+
+        if playOrder.contains(faceID) {
+            returnToTray(faceID: faceID)
+            return
+        }
+
+        if let selectedKind = playedFaces.first?.matchFace,
+           selectedKind != face.matchFace {
+            playOrder = []
+            weldedGroups = []
+            resetTargetingSelection()
+        }
+
+        placeInPlayBar(faceID: faceID)
+    }
+
+    var selectedActionFace: FaceKind? { playedFaces.first?.matchFace }
+
     // MARK: - Combining, by choice
 
     /// A run of adjacent dice in the plan that would make a real recipe, and
