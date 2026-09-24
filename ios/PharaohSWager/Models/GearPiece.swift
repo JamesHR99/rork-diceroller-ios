@@ -23,10 +23,10 @@ struct Loadout: Hashable, Codable {
     var weapon: GearPiece
     var armor: GearPiece
 
-    /// The collection never grows: five weapon dice and three armour dice.
-    /// Equipment improvements replace or modify a die rather than quietly
-    /// adding a ninth, so the draw stays understandable.
-    static let maxDice = GameData.ownedDiceTotal
+    /// Runs begin with ten dice, then grow through post-combat draft rewards.
+    /// The old weapon/armour containers remain a save-compatibility detail;
+    /// battle and reward UI present one unified dice pool.
+    static let maxDice = 30
 
     var allDice: [Die] {
         weapon.dice + armor.dice
@@ -38,7 +38,7 @@ struct Loadout: Hashable, Codable {
 
     var pieces: [GearPiece] { [weapon, armor] }
 
-    /// Adds a die to its matching gear piece. Returns false when at the cap.
+    /// Adds a die to the unified pool. The legacy slot only chooses its save container.
     mutating func add(_ die: Die) -> Bool {
         guard !isFull else { return false }
         switch die.slot {
