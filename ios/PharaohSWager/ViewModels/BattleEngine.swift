@@ -2402,7 +2402,7 @@ final class BattleEngine {
         guard cost <= resolveRemaining else { return }
         resolveRemaining -= cost
         committedUnusedDice = unusedDiceCount
-        if endingTurn || resolveRemaining == 0 { bankUnusedDiceAsRerollCharge() }
+        if resolveRemaining == 0 { bankUnusedDiceAsRerollCharge() }
         lastMeasureTargetID = allocations[lastMeasureRequestID]
         selectingReroll = false
         rerollSelection = []
