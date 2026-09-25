@@ -8,8 +8,8 @@ struct PlayBarView: View {
 
     private var compact: Bool { bodyHeight < 100 }
     private var controlHeight: CGFloat { compact ? 46 : 54 }
-    private var rerollWidth: CGFloat { compact ? 46 : 62 }
-    private var primaryWidth: CGFloat { compact ? 62 : 92 }
+    private var rerollWidth: CGFloat { compact ? 42 : 62 }
+    private var primaryWidth: CGFloat { compact ? 56 : 92 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
     private var outOfResolve: Bool { engine.resolveRemaining == 0 }
@@ -19,7 +19,7 @@ struct PlayBarView: View {
     }
 
     var body: some View {
-        HStack(spacing: compact ? 4 : 8) {
+        HStack(spacing: compact ? 3 : 8) {
             rerollButton
             primaryButton
         }
