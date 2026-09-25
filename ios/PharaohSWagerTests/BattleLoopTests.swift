@@ -141,7 +141,8 @@ struct BattleLoopTests {
         for resolve in 0..<BattleRules.resolvePerTurn {
             let face = try #require(engine.rolled.first)
             engine.placeInPlayBar(faceID: face.id)
-            expectedDamage += try #require(engine.turnPlan.first).damage
+            let step = try #require(engine.turnPlan.first)
+            expectedDamage += step.damage
             engine.commitTurn()
 
             let clock = ContinuousClock()
