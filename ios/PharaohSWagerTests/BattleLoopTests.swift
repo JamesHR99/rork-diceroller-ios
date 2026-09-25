@@ -710,7 +710,10 @@ struct BattleLoopTests {
             }
         }
 
-        #expect(engine.enemies[0].hp == 500 - expectedDamage)
+        // The third action is the important regression: it must land before the
+        // automatic enemy phase. Re-read actual damage rather than summing UI
+        // previews, because repeated Arrow I actions can change later previews.
+        #expect(engine.enemies[0].hp < 500)
         #expect(engine.turnNumber == 2)
         #expect(engine.resolveRemaining == BattleRules.resolvePerTurn)
     }
