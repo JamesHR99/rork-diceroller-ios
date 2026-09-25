@@ -2398,13 +2398,17 @@ final class BattleEngine {
         rerollSelection = []
         resetTargetingSelection()
         committedPlan = buildPlan(from: playedFaces)
-        endingTurn = false
+        // Spending the final Resolve commits the end of the round immediately.
+        // The chosen action still resolves first, then enemy intent follows
+        // without forcing a second tap on an inert End Turn button.
+        endingTurn = resolveRemaining == 0
         phase = .resolving
         Task { await resolveTurn() }
     }
 
-    /// End Turn is the only point at which enemies execute their telegraphed
-    /// intents. Any rolled dice still in hand are discarded before the next draw.
+    /// End Turn executes telegraphed enemy intents when Resolve remains.
+    /// Reaching zero Resolve does the same automatically after the final action.
+    /// Any rolled dice still in hand are discarded before the next draw.
     func endPlayerTurn() {
         guard canEndTurn else { return }
         // Round-end powers must read the hand as it actually stands when the
@@ -2658,9 +2662,7 @@ final class BattleEngine {
             committedPlan = []
             phase = .player
             resetPoses()
-            lastAction = resolveRemaining > 0
-                ? "\(resolveRemaining) Resolve left — play another action or End Turn."
-                : "No Resolve left — End Turn."
+            lastAction = "\(resolveRemaining) Resolve left — play another action or End Turn."
             return
         }
         endingTurn = false
@@ -4779,7 +4781,7 @@ final class BattleEngine {
             Haptics.heavy()
         } else {
             stageAnnouncement = nil
-            lastAction = "Round \(turnNumber) — draw five, spend 3 Resolve, then End Turn."
+            lastAction = "Round \(turnNumber) — roll six dice, spend Resolve, then face the enemy."
         }
         phase = .player
         resetPoses()
