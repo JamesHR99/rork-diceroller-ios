@@ -2480,14 +2480,18 @@ final class BattleEngine {
             pendingDivineEntries = []
         }
         if endingTurn {
+            // The action that spent the final Resolve is already captured in
+            // `steps`. Resolve it before appending enemy intent; otherwise the
+            // automatic round end skips the player's last committed action.
             var skippedDelayedFoes: Set<UUID> = []
-            pendingEntries = timeline.filter { entry in
+            let enemyEntries = timeline.filter { entry in
                 guard !entry.isPlayer else { return false }
                 guard deferredEnemyMoves[entry.sourceID] != nil,
                       !skippedDelayedFoes.contains(entry.sourceID) else { return true }
                 skippedDelayedFoes.insert(entry.sourceID)
                 return false
             }
+            pendingEntries = timeline.filter(\.isPlayer) + enemyEntries
         } else {
             pendingEntries = timeline.filter(\.isPlayer)
         }
