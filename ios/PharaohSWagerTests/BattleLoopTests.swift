@@ -160,7 +160,7 @@ struct BattleLoopTests {
         #expect(engine.discardPile.isEmpty)
     }
 
-    @Test func selectiveRerollResetsEachTurnInsteadOfChargingFromUnusedDice() async throws {
+    @Test func unusedDiceChargeRerollsAndCarryAcrossRounds() async throws {
         let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
         #expect(engine.rerollsRemaining == 1)
@@ -169,10 +169,10 @@ struct BattleLoopTests {
         engine.reroll(slotID: first.id, reduceMotion: true)
         try await settled(engine)
         #expect(engine.rerollsRemaining == 0)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges == BattleRules.handSize)
         try await nextRound(engine)
-        #expect(engine.rerollsRemaining == 1)
-        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.rerollsRemaining == BattleRules.maximumRerolls)
+        #expect(engine.rerollHalfCharges == BattleRules.maximumRerolls * 2)
     }
 
     @Test func resolveIsSpentByImmediateActionsAndResetsNextTurn() async throws {
@@ -346,7 +346,7 @@ struct BattleLoopTests {
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - expected)
         #expect(engine.rolled.isEmpty && engine.slots.count == BattleRules.handSize)
-        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollsRemaining == BattleRules.maximumRerolls)
         #expect(engine.resolveRemaining == 3)
     }
 
@@ -603,19 +603,19 @@ struct BattleLoopTests {
         try await settled(engine)
         let evade = try #require(engine.rolled.first { $0.face == .evade })
         engine.placeInPlayBar(faceID: evade.id)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges == engine.unusedDiceCount)
         try await nextRound(engine)
         #expect(engine.rerollHalfCharges >= 1)
     }
 
-    @Test func unusedDiceDoNotRechargeTheBaseReroll() async throws {
+    @Test func unusedDiceRechargeTheRerollMeter() async throws {
         let engine = battle(Array(repeating: .arrow1, count: 5), boons: ["RA-U2"])
         try await roll(engine)
         let face = try #require(engine.rolled.first)
         engine.placeInPlayBar(faceID: face.id)
         try await nextRound(engine)
         #expect(engine.rerollsRemaining >= 1)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges > 0)
     }
 
     @Test func lastMeasureAddsJudgementWithoutUsingTheWholeHand() async throws {
