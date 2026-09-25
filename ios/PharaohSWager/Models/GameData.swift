@@ -53,8 +53,8 @@ enum GameData {
     static let ownedArmourDice = 4
     static let ownedDiceTotal = ownedWeaponDice + ownedArmourDice
 
-    /// Five dice are drawn from the run's dice bag each turn.
-    static let diceDrawCount = 5
+    /// Six physical dice are drawn from the run's dice bag each turn.
+    static let diceDrawCount = BattleRules.handSize
 
     /// Odds that a god brings one of their legendaries to a meeting at all.
     /// A legendary is found the same way as any other boon — it is simply a
@@ -226,6 +226,33 @@ enum GameData {
 
     static func faceOffers(_ classID: String, _ rarity: Rarity) -> [(face: FaceKind, hint: String)] {
         SameFaceCatalog.palette(for: classID).map { ($0, "Match 1–6 identical faces; reforge either equipment family") }
+    }
+
+    /// The run's main progression is forging the dice already carried. Early
+    /// rewards introduce the next tactical face families; later rewards can
+    /// transform basic faces into specialised ones rather than simply growing
+    /// the bag every fight.
+    static func faceUpgradeOffers(_ classID: String, progress: Double) -> [(face: FaceKind, hint: String)] {
+        let early: [FaceKind]
+        let advanced: [FaceKind]
+        switch classID {
+        case "archer":
+            early = [.arrow1, .block, .evade, .heal, .focus]
+            advanced = progress < 0.34 ? [.arrow2] : [.arrow2, .arrow3, .bowSmack]
+        case "warrior":
+            early = [.overhead, .block, .heal, .focus]
+            advanced = [.sideSwing]
+        case "rogue":
+            early = [.swiftSlash, .evade, .block, .heal, .focus]
+            advanced = progress < 0.34 ? [.daggerThrow] : [.daggerThrow, .poison]
+        default:
+            early = [.wandZap, .channel, .runeLife]
+            advanced = progress < 0.34 ? [.runeFire, .runeFrost] : [.runeFire, .runeFrost, .runeArcane]
+        }
+        let pool = Array(Set(early + advanced))
+        return pool.map { face in
+            (face, "Forge one existing die face into \(face.label) · \(face.soloEffect)")
+        }
     }
 
     static func imbueName(_ classID: String) -> String {
