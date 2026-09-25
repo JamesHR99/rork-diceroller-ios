@@ -2469,14 +2469,19 @@ final class BattleEngine {
             pendingDivineEntries = []
         }
         if endingTurn {
+            // If the round is ending because the committed action spent the
+            // final Resolve, that action still resolves in full before any
+            // enemy intent. A manual End Turn has no player entries here.
+            let playerEntries = timeline.filter(\.isPlayer)
             var skippedDelayedFoes: Set<UUID> = []
-            pendingEntries = timeline.filter { entry in
+            let enemyEntries = timeline.filter { entry in
                 guard !entry.isPlayer else { return false }
                 guard deferredEnemyMoves[entry.sourceID] != nil,
                       !skippedDelayedFoes.contains(entry.sourceID) else { return true }
                 skippedDelayedFoes.insert(entry.sourceID)
                 return false
             }
+            pendingEntries = playerEntries + enemyEntries
         } else {
             pendingEntries = timeline.filter(\.isPlayer)
         }
