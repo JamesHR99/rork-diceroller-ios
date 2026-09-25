@@ -14,7 +14,7 @@ enum WarriorContent {
     /// Sword die: 3× Overhead Swing, 2× Side Swing, 1× Block.
     static func swordDie(rarity: Rarity = .common, name: String = "Longsword") -> Die {
         Die(name: name, slot: .weapon, rarity: rarity,
-            faces: [.overhead, .overhead, .overhead, .sideSwing, .sideSwing, .block])
+            faces: [.overhead, .overhead, .overhead, .overhead, .block, .focus])
     }
 
     /// Plate die: 2× Block, 2× Heal, 2× Focus.
