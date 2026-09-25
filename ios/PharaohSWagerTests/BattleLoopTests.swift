@@ -661,4 +661,59 @@ struct BattleLoopTests {
         #expect(engine.playerHP >= 20 + 8 - softened)
     }
 
+
+    @Test func finalResolveActionPlaysBeforeAutomaticEnemyTurn() async throws {
+        let foe = EnemyDef(
+            id: "final-resolve-test",
+            name: "Final Resolve Test",
+            title: "Test",
+            maxHP: 500,
+            symbol: "circle",
+            goldReward: 0,
+            moves: [EnemyMove(id: "wait", name: "Wait", faces: [], weight: 1)]
+        )
+        let dice = (0..<6).map {
+            Die(name: "Arrow \($0)", slot: .weapon, faces: Array(repeating: .arrow1, count: 6))
+        }
+        let engine = BattleEngine(
+            enemies: [foe],
+            dice: dice,
+            classID: "archer",
+            maxHP: 100,
+            startHP: 100,
+            critBonus: -1
+        )
+
+        try await roll(engine)
+
+        var expectedDamage = 0
+        for resolve in 0..<BattleRules.resolvePerTurn {
+            let face = try #require(engine.rolled.first)
+            engine.placeInPlayBar(faceID: face.id)
+            let step = try #require(engine.turnPlan.first)
+            expectedDamage += step.damage
+            engine.commitTurn()
+
+            let clock = ContinuousClock()
+            if resolve < BattleRules.resolvePerTurn - 1 {
+                let deadline = clock.now.advanced(by: .seconds(20))
+                while engine.phase != .player && clock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                #expect(engine.phase == .player)
+            } else {
+                let deadline = clock.now.advanced(by: .seconds(30))
+                while engine.turnNumber == 1 && engine.phase != .won && engine.phase != .lost
+                        && clock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+            }
+        }
+
+        #expect(engine.enemies[0].hp == 500 - expectedDamage)
+        #expect(engine.turnNumber == 2)
+        #expect(engine.resolveRemaining == BattleRules.resolvePerTurn)
+    }
+
+
 }
