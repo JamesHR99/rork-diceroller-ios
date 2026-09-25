@@ -121,16 +121,13 @@ private struct BattleContentView: View {
             }
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: engine.spotlight?.id)
-        .task {
-            // The opening hand should behave like every later turn: it rolls
-            // itself as soon as battle appears. The guard inside rollAll keeps
-            // this safe if SwiftUI re-runs the task after the hand has settled.
-            engine.rollAll(reduceMotion: reduceMotion)
-        }
+        // The opening hand is deliberately not rolled here. The encounter
+        // card's PLAY button starts the first roll; later hands roll only after
+        // the enemy phase has fully finished.
         .onChange(of: engine.turnNumber) { _, _ in
-            // Every fresh player turn auto-rolls after the engine has drawn its
-            // new six-die hand. Keeping this trigger in the live battle view
-            // avoids coupling deterministic engine tests to presentation timing.
+            // A new turn number is published only after the enemy phase and
+            // round-end effects have finished, so this is the one automatic roll
+            // point after the opening PLAY roll.
             engine.rollAll(reduceMotion: reduceMotion)
         }
         .sheet(isPresented: $showBoons) {
@@ -193,7 +190,7 @@ private struct BattleContentView: View {
         // space. On phones that lets the hand become a larger two-tier console:
         // dice/roll above, Resolve + Reroll + Play below.
         if size.width < 600 {
-            return min(142, max(122, size.height * 0.18))
+            return min(154, max(134, size.height * 0.195))
         }
         return min(126, max(108, size.height * 0.16))
     }
@@ -219,8 +216,8 @@ private struct BattleContentView: View {
                     // no manual roll control, every lane is now a physical die.
                     DiceTrayView(
                         engine: engine,
-                        maxReelHeight: 66,
-                        maxRowWidth: max(300, size.width - 12),
+                        maxReelHeight: 78,
+                        maxRowWidth: max(300, size.width - 4),
                         compact: true
                     )
                     .frame(maxWidth: .infinity)
@@ -288,10 +285,10 @@ private struct BattleContentView: View {
     /// serpent-lord is drawn taller again, so the tallest fighter on the deck
     /// sets the measure for everyone.
     private func fighterHeight(_ room: CGFloat, hasIntent: Bool = false) -> CGFloat {
-        let chrome: CGFloat = hasIntent ? 120 : 96
+        let chrome: CGFloat = hasIntent ? 106 : 84
         let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
-        return min(232, max(112, free / (1.06 * tallest)))
+        return min(272, max(126, free / (1.02 * tallest)))
     }
 
     /// The fight itself, uncovered once the deck goes down: full-size figures
@@ -310,9 +307,9 @@ private struct BattleContentView: View {
             // identify the compact screen shown in play. Use the short side to
             // reserve the full dice-console depth and keep both fighters above it.
             let isCompactPhone = min(size.width, size.height) < 500
-            let trayClearance: CGFloat = isCompactPhone ? 78 : 26
+            let trayClearance: CGFloat = isCompactPhone ? 92 : 26
             let deckLift: CGFloat = isCompactPhone
-                ? min(138, max(112, boatWidth * 0.065 + trayClearance))
+                ? min(154, max(126, boatWidth * 0.065 + trayClearance))
                 : min(98, max(62, boatWidth * 0.065 + trayClearance))
             let fighterRoom = max(150, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
@@ -376,7 +373,7 @@ private struct BattleContentView: View {
     /// stand quiet — no aiming happens during planning.
     private func enemyGroup(room: CGFloat, width: CGFloat) -> some View {
         let foes = engine.stagedFoes
-        let scale: CGFloat = foes.count >= 3 ? 0.66 : (foes.count == 2 ? 0.8 : 1)
+        let scale: CGFloat = foes.count >= 3 ? 0.7 : (foes.count == 2 ? 0.86 : 1)
         // The pack is cut to the room the deck actually has. Three cards at a
         // fixed width overran an iPhone and pushed the last foe off-screen, so
         // the share is measured and the figures squeeze to fit it.
@@ -753,8 +750,9 @@ private struct BattleContentView: View {
                     Button {
                         withAnimation(.easeInOut(duration: 0.35)) { arrivalShown = false }
                         Haptics.medium()
+                        engine.rollAll(reduceMotion: reduceMotion)
                     } label: {
-                        Text(foes[0].def.isBoss ? "Stand Between It and Ra" : "Take Up Your Dice")
+                        Text("PLAY")
                             .font(.fantasy(16, weight: .bold))
                             .foregroundStyle(Theme.parchment)
                             .paintedContentInsets()
