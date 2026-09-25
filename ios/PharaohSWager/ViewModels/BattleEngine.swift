@@ -1834,7 +1834,20 @@ final class BattleEngine {
             return false
         }.count
     }
-    var pendingRerollHalfCharges: Int { 0 }
+    var pendingRerollHalfCharges: Int { unusedDiceCount }
+
+    /// Unspent dice become reroll charge when the round ends. One unused die is
+    /// half a charge, so two unused dice earn one reroll. Charge carries through
+    /// the encounter up to the normal reroll capacity.
+    private func bankUnusedDiceAsRerollCharge() {
+        let before = rerollHalfCharges
+        gainRerollHalfCharges(committedUnusedDice)
+        let gained = rerollHalfCharges - before
+        guard gained > 0 else { return }
+        for _ in 0..<gained { rerollChargeFlights.append(UUID()) }
+        addFloat("+\(Self.chargeText(gained)) Reroll", color: Theme.gold, onEnemy: false)
+    }
+
     /// All rewards share the same storage ceiling. Overflow is discarded.
     func gainRerollHalfCharges(_ amount: Int) {
         guard amount > 0 else { return }
@@ -1957,13 +1970,9 @@ final class BattleEngine {
         return result
     }
 
-    func resolveCost(for step: PlanStep) -> Int {
-        switch step.faces.count {
-        case ...2: 1
-        case 3...4: 2
-        default: 3
-        }
-    }
+    /// Every completed player action costs exactly one Resolve, regardless of
+    /// how many dice are welded into it. The dice themselves are the commitment.
+    func resolveCost(for step: PlanStep) -> Int { 1 }
     var plannedResolveCost: Int { turnPlan.reduce(0) { $0 + resolveCost(for: $1) } }
     var canCommit: Bool {
         phase == .player && hasRolled && !isRolling && !playedFaces.isEmpty
@@ -2393,6 +2402,7 @@ final class BattleEngine {
         guard cost <= resolveRemaining else { return }
         resolveRemaining -= cost
         committedUnusedDice = unusedDiceCount
+        if resolveRemaining == 0 { bankUnusedDiceAsRerollCharge() }
         lastMeasureTargetID = allocations[lastMeasureRequestID]
         selectingReroll = false
         rerollSelection = []
@@ -2416,6 +2426,7 @@ final class BattleEngine {
         // action made "leave dice unused" effects fail when no later action
         // refreshed the snapshot.
         committedUnusedDice = unusedDiceCount
+        bankUnusedDiceAsRerollCharge()
         selectingReroll = false
         rerollSelection = []
         resetTargetingSelection()
@@ -2469,14 +2480,18 @@ final class BattleEngine {
             pendingDivineEntries = []
         }
         if endingTurn {
+            // The action that spent the final Resolve is already captured in
+            // `steps`. Resolve it before appending enemy intent; otherwise the
+            // automatic round end skips the player's last committed action.
             var skippedDelayedFoes: Set<UUID> = []
-            pendingEntries = timeline.filter { entry in
+            let enemyEntries = timeline.filter { entry in
                 guard !entry.isPlayer else { return false }
                 guard deferredEnemyMoves[entry.sourceID] != nil,
                       !skippedDelayedFoes.contains(entry.sourceID) else { return true }
                 skippedDelayedFoes.insert(entry.sourceID)
                 return false
             }
+            pendingEntries = timeline.filter(\.isPlayer) + enemyEntries
         } else {
             pendingEntries = timeline.filter(\.isPlayer)
         }
@@ -4691,7 +4706,8 @@ final class BattleEngine {
 
 
         rerollsUsed = 0
-        rerollHalfCharges = BattleRules.baseRerolls * 2
+        // Earned charge persists across rounds of this encounter. Only a fresh
+        // battle seeds the base reroll in init; ending a round no longer resets it.
         gainRerollHalfCharges(nextRoundRerolls * 2)
         resolveRemaining = BattleRules.resolvePerTurn
         rerollSelection = []

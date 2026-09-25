@@ -15,13 +15,13 @@ enum MagicianContent {
     /// Wand die: one of every rune, a Wand Zap and a Channel.
     static func wandDie(rarity: Rarity = .common, name: String = "Magic Wand") -> Die {
         Die(name: name, slot: .weapon, rarity: rarity,
-            faces: [.runeFire, .runeFire, .runeFrost, .runeArcane, .wandZap, .channel])
+            faces: [.wandZap, .wandZap, .wandZap, .wandZap, .channel, .runeLife])
     }
 
     /// Robes die: 2× Life Rune, 1× Channel, 1× Arcane, 1× Frost, 1× Fire.
     static func armorDie(rarity: Rarity = .common, name: String = "Robes") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.runeFire, .runeFrost, .runeLife, .runeLife, .runeArcane, .channel])
+            faces: [.wandZap, .channel, .channel, .runeLife, .runeLife, .runeLife])
     }
 
     static func weapon() -> GearPiece {

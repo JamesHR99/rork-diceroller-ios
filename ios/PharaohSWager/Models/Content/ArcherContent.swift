@@ -14,13 +14,13 @@ enum ArcherContent {
     /// Bow die: 2× Arrow I, 2× Arrow II, 1× Arrow III, 1× Focus.
     static func bowDie(rarity: Rarity = .common, name: String = "Longbow") -> Die {
         Die(name: name, slot: .weapon, rarity: rarity,
-            faces: [.arrow1, .arrow1, .arrow2, .arrow2, .arrow3, .focus])
+            faces: [.arrow1, .arrow1, .arrow1, .arrow1, .focus, .block])
     }
 
     /// Light armour die: 2× Bow Smack, 2× Block, 1× Evade, 1× Heal.
     static func armorDie(rarity: Rarity = .common, name: String = "Light Armour") -> Die {
         Die(name: name, slot: .armor, rarity: rarity,
-            faces: [.arrow1, .bowSmack, .block, .block, .evade, .heal])
+            faces: [.arrow1, .arrow1, .block, .block, .evade, .heal])
     }
 
     static func weapon() -> GearPiece {

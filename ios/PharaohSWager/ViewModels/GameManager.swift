@@ -645,18 +645,46 @@ final class GameManager {
         let baseGold = battle.enemies.reduce(0) { $0 + $1.def.goldReward }
         let earned = max(6, Int(Double(GameData.goldReward(base: baseGold, progress: progress)) * 0.6))
         gold += earned
-        // Every combat now ends in a deckbuilding decision: draft one of three
-        // class-legal dice or skip. Gods, Chisels and reforges remain available
-        // from their dedicated map/shop encounters rather than displacing the
-        // core post-combat dice draft.
+        // Combat primarily improves the dice already carried. A whole new die
+        // is a rarer power spike because it adds six permanent faces at once.
         if battle.trialAccepted { trialUsed = true }
         self.battle = nil
         visitingDeity = nil
         isShrine = false
         isPtahForge = false
-        rewardOffers = makeDiceDraftOffers(count: 3)
-        statusMessage = "+\(earned) gold · choose one die or Skip"
+        rewardOffers = makeForgingRewardOffers(count: 3)
+        statusMessage = "+\(earned) gold · forge a face or claim a rare new die"
         withAnimation { screen = .reward }
+    }
+
+    /// Normal victories are face-forging rewards. New dice are deliberately
+    /// rare: they are six-face upgrades, not the default post-combat pick.
+    private func makeForgingRewardOffers(count: Int) -> [Offer] {
+        var offers: [Offer] = []
+        var seen: Set<FaceKind> = []
+        let facePool = GameData.faceUpgradeOffers(classID, progress: progress).shuffled()
+        let wholeDieChance = progress < 0.2 ? 0.06 : (progress < 0.65 ? 0.12 : 0.18)
+
+        if Double.random(in: 0..<1) < wholeDieChance,
+           let pick = GameData.diceOffers(classID, Rarity.roll(progress: progress)).randomElement() {
+            let die = pick.die.instantiated()
+            offers.append(Offer(
+                name: "New Die · \(die.name)", detail: faceSummary(die), symbol: "die.face.5.fill",
+                rarity: die.rarity, comboHint: "Rare: add all six faces to your draw bag",
+                price: 0, kind: .die(die)
+            ))
+        }
+
+        for pick in facePool where offers.count < count && !seen.contains(pick.face) {
+            seen.insert(pick.face)
+            offers.append(Offer(
+                name: "Forge → \(pick.face.label)",
+                detail: "Replace one face on a die you already carry with \(pick.face.label). \(pick.face.soloEffect).",
+                symbol: pick.face.symbol, rarity: Rarity.roll(progress: progress),
+                comboHint: pick.hint, price: 0, kind: .reforge(pick.face)
+            ))
+        }
+        return Array(offers.prefix(count))
     }
 
     private func makeDiceDraftOffers(count: Int) -> [Offer] {

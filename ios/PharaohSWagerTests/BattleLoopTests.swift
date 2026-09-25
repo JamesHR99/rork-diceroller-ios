@@ -160,7 +160,7 @@ struct BattleLoopTests {
         #expect(engine.discardPile.isEmpty)
     }
 
-    @Test func selectiveRerollResetsEachTurnInsteadOfChargingFromUnusedDice() async throws {
+    @Test func unusedDiceChargeRerollsAndCarryAcrossRounds() async throws {
         let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
         #expect(engine.rerollsRemaining == 1)
@@ -169,10 +169,10 @@ struct BattleLoopTests {
         engine.reroll(slotID: first.id, reduceMotion: true)
         try await settled(engine)
         #expect(engine.rerollsRemaining == 0)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges == BattleRules.handSize)
         try await nextRound(engine)
-        #expect(engine.rerollsRemaining == 1)
-        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.rerollsRemaining == BattleRules.maximumRerolls)
+        #expect(engine.rerollHalfCharges == BattleRules.maximumRerolls * 2)
     }
 
     @Test func resolveIsSpentByImmediateActionsAndResetsNextTurn() async throws {
@@ -346,7 +346,7 @@ struct BattleLoopTests {
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - expected)
         #expect(engine.rolled.isEmpty && engine.slots.count == BattleRules.handSize)
-        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollsRemaining == BattleRules.maximumRerolls)
         #expect(engine.resolveRemaining == 3)
     }
 
@@ -603,19 +603,19 @@ struct BattleLoopTests {
         try await settled(engine)
         let evade = try #require(engine.rolled.first { $0.face == .evade })
         engine.placeInPlayBar(faceID: evade.id)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges == engine.unusedDiceCount)
         try await nextRound(engine)
         #expect(engine.rerollHalfCharges >= 1)
     }
 
-    @Test func unusedDiceDoNotRechargeTheBaseReroll() async throws {
+    @Test func unusedDiceRechargeTheRerollMeter() async throws {
         let engine = battle(Array(repeating: .arrow1, count: 5), boons: ["RA-U2"])
         try await roll(engine)
         let face = try #require(engine.rolled.first)
         engine.placeInPlayBar(faceID: face.id)
         try await nextRound(engine)
         #expect(engine.rerollsRemaining >= 1)
-        #expect(engine.pendingRerollHalfCharges == 0)
+        #expect(engine.pendingRerollHalfCharges > 0)
     }
 
     @Test func lastMeasureAddsJudgementWithoutUsingTheWholeHand() async throws {
@@ -660,5 +660,63 @@ struct BattleLoopTests {
         try await nextRound(engine)
         #expect(engine.playerHP >= 20 + 8 - softened)
     }
+
+
+    @Test func finalResolveActionPlaysBeforeAutomaticEnemyTurn() async throws {
+        let foe = EnemyDef(
+            id: "final-resolve-test",
+            name: "Final Resolve Test",
+            title: "Test",
+            maxHP: 500,
+            symbol: "circle",
+            goldReward: 0,
+            moves: [EnemyMove(id: "wait", name: "Wait", faces: [], weight: 1)]
+        )
+        let dice = (0..<6).map {
+            Die(name: "Arrow \($0)", slot: .weapon, faces: Array(repeating: .arrow1, count: 6))
+        }
+        let engine = BattleEngine(
+            enemies: [foe],
+            dice: dice,
+            classID: "archer",
+            maxHP: 100,
+            startHP: 100,
+            critBonus: -1
+        )
+
+        try await roll(engine)
+
+        var expectedDamage = 0
+        for resolve in 0..<BattleRules.resolvePerTurn {
+            let face = try #require(engine.rolled.first)
+            engine.placeInPlayBar(faceID: face.id)
+            let step = try #require(engine.turnPlan.first)
+            expectedDamage += step.damage
+            engine.commitTurn()
+
+            let clock = ContinuousClock()
+            if resolve < BattleRules.resolvePerTurn - 1 {
+                let deadline = clock.now.advanced(by: .seconds(20))
+                while engine.phase != .player && clock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                #expect(engine.phase == .player)
+            } else {
+                let deadline = clock.now.advanced(by: .seconds(30))
+                while engine.turnNumber == 1 && engine.phase != .won && engine.phase != .lost
+                        && clock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+            }
+        }
+
+        // The third action is the important regression: it must land before the
+        // automatic enemy phase. Re-read actual damage rather than summing UI
+        // previews, because repeated Arrow I actions can change later previews.
+        #expect(engine.enemies[0].hp < 500)
+        #expect(engine.turnNumber == 2)
+        #expect(engine.resolveRemaining == BattleRules.resolvePerTurn)
+    }
+
 
 }

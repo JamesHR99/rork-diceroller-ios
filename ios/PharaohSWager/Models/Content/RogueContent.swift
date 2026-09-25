@@ -14,7 +14,7 @@ enum RogueContent {
     /// Dagger die: 2× Swift Slash, 2× Dagger Throw, 1× Evade, 1× Poison.
     static func daggerDie(rarity: Rarity = .common, name: String = "Twin Daggers") -> Die {
         Die(name: name, slot: .weapon, rarity: rarity,
-            faces: [.swiftSlash, .swiftSlash, .daggerThrow, .daggerThrow, .evade, .poison])
+            faces: [.swiftSlash, .swiftSlash, .swiftSlash, .swiftSlash, .evade, .focus])
     }
 
     /// Leather die: 2× Evade, 2× Heal, 1× Focus, 1× Block.
