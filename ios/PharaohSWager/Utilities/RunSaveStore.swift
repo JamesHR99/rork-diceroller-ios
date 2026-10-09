@@ -54,6 +54,9 @@ nonisolated struct RunSave: Codable {
     let totalCombos: Int
     let totalCrits: Int
 
+    /// Optional so current runs migrate without losing their progress.
+    var encounter: EncounterSave? = nil
+
     let savedAt: Date
 
     /// The hour this save sits in, for the Continue card on the title screen.
@@ -114,5 +117,6 @@ enum RunSaveStore {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 }
+
 
 

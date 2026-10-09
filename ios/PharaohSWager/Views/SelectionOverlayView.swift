@@ -265,7 +265,8 @@ struct SelectionOverlayView: View {
     }
 
     private var cancelLabel: String {
-        switch selection {
+        if game.screen == .shop { return "Cancel · Refund" }
+        return switch selection {
         case .swapDie: "Leave it behind"
         default: "Skip"
         }
@@ -630,5 +631,6 @@ struct SelectionOverlayView: View {
     }
 
 }
+
 
 
