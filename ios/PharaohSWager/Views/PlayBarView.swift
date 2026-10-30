@@ -1,14 +1,13 @@
 import SwiftUI
 
-/// Compact controls for the always-visible battle hand. The old planning bar
-/// is deliberately gone: dice themselves are the selection UI.
+/// Secondary controls beneath the featured hand, with 44-point touch targets.
 struct PlayBarView: View {
     let engine: BattleEngine
     var bodyHeight: CGFloat = 108
 
     private var compact: Bool { bodyHeight < 100 }
-    private var controlHeight: CGFloat { compact ? 46 : 54 }
-    private var rerollWidth: CGFloat { compact ? 42 : 62 }
+    private var controlHeight: CGFloat { compact ? 44 : 54 }
+    private var rerollWidth: CGFloat { compact ? 88 : 62 }
     private var primaryWidth: CGFloat { compact ? 96 : 124 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
@@ -32,15 +31,16 @@ struct PlayBarView: View {
             Haptics.light()
             Audio.shared.play(.uiTap)
         } label: {
-            VStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Image(systemName: engine.selectingReroll ? "xmark" : "arrow.triangle.2.circlepath")
                     .font(.system(size: compact ? 14 : 17, weight: .black))
-                Text(engine.selectingReroll ? "CANCEL" : "REROLL")
-                    .font(.system(size: 10, weight: .black))
-                    .kerning(0.8)
-                if !engine.selectingReroll {
-                    Text(engine.rerollChargeText)
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                VStack(spacing: 1) {
+                    Text(engine.selectingReroll ? "CANCEL" : "REROLL")
+                        .font(.system(size: 9, weight: .black))
+                    if !engine.selectingReroll {
+                        Text(engine.rerollChargeText + " left")
+                            .font(.system(size: 8, weight: .bold).monospacedDigit())
+                    }
                 }
             }
             .foregroundStyle(engine.selectingReroll ? Theme.frost : Theme.gold)

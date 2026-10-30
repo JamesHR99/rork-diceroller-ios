@@ -14,6 +14,8 @@ import SwiftUI
 /// then gone.
 struct ActionSpotlightView: View {
     let card: ActionSpotlight
+    var compact = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var risen = false
     @State private var glow = false
@@ -34,16 +36,45 @@ struct ActionSpotlightView: View {
     private var accent: Color { card.tint }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            tablet
-            Spacer(minLength: 0)
+        Group {
+            if compact {
+                // Keep the middle of the arena free for contact and projectiles.
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        actorLine
+                        Text(card.title.uppercased())
+                            .font(.fantasy(15, weight: .black))
+                            .foregroundStyle(accent)
+                    }
+                    detailLine
+                    if !card.entries.isEmpty {
+                        Text(card.entries.map { "\($0.name): \($0.effect)" }.joined(separator: " · "))
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Theme.parchment)
+                            .lineLimit(2)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background { TurnOrderPlaque(accent: accent) }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 720)
+                .accessibilityElement(children: .combine)
+            } else {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    tablet
+                    Spacer(minLength: 0)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .allowsHitTesting(false)
         .onAppear {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.68)) { risen = true }
-            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { glow = true }
+            withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.68)) { risen = true }
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { glow = true }
+            }
         }
     }
 

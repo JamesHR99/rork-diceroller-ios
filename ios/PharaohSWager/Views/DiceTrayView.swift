@@ -16,6 +16,7 @@ struct DiceTrayView: View {
     /// side of the screen.
     var maxRowWidth: CGFloat = 690
     var compact = false
+    var featured = false
 
     @State private var slamKick: CGFloat = 0
     @State private var slamFlare: Double = 0
@@ -29,7 +30,7 @@ struct DiceTrayView: View {
         let bedPadding: CGFloat = 20
         let gaps = reelGap * CGFloat(max(count - 1, 0))
         let free = maxRowWidth - bedPadding - gaps
-        return max(22, min(maxReelHeight, min(100, free / CGFloat(count))))
+        return max(22, min(maxReelHeight, min(featured ? 132 : 100, free / CGFloat(count))))
     }
 
     /// Dice grow to fill the deck, shrinking only once the row gets long — and
@@ -44,7 +45,7 @@ struct DiceTrayView: View {
         let free = maxRowWidth - bedPadding - gaps
         return max(1, min(maxReelHeight, min(ideal, free / CGFloat(count))))
     }
-    private var reelGap: CGFloat { compact ? 3 : 6 }
+    private var reelGap: CGFloat { compact && !featured ? 3 : 6 }
 
     private var reelHeight: CGFloat { reelWidth }
 
@@ -60,7 +61,8 @@ struct DiceTrayView: View {
                                 slot: slot,
                                 engine: engine,
                                 width: reelWidth,
-                                height: reelHeight
+                                height: reelHeight,
+                                featured: featured
                             )
                             .anchorPreference(key: RerollChargeAnchorKey.self, value: .bounds) {
                                 [slot.id.uuidString: $0]
@@ -93,10 +95,10 @@ struct DiceTrayView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectingReroll)
         .onChange(of: engine.slamPulse) { _, _ in
             let heavy = engine.lastReelLocked
-            slamKick = heavy ? 1.5 : 0
+            slamKick = heavy ? (featured ? 7 : 1.5) : (featured ? 2 : 0)
             slamFlare = heavy ? 0.65 : 0.2
-            withAnimation(.spring(response: 0.18, dampingFraction: 0.8)) { slamKick = 0 }
-            withAnimation(.easeOut(duration: 0.18)) { slamFlare = 0 }
+            withAnimation(.spring(response: 0.26, dampingFraction: 0.55)) { slamKick = 0 }
+            withAnimation(.easeOut(duration: 0.32)) { slamFlare = 0 }
         }
         .onAppear {
             ReelSymbolCache.prepare(engine.slots.map(\.die))
@@ -248,6 +250,7 @@ private struct DiceTrayReelView: View {
     let engine: BattleEngine
     let width: CGFloat
     let height: CGFloat
+    var featured = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var settled = false
@@ -267,12 +270,13 @@ private struct DiceTrayReelView: View {
     /// Compact dice retain a short name so unfamiliar symbols are usable.
     private var dense: Bool { height < 88 }
     private var iconSize: CGFloat {
+        if featured { return max(24, min(66, width * 0.58, height * 0.52)) }
         if dense {
             return max(22, min(34, min(width * 0.48, height * 0.46)))
         }
         return max(13, min(29, min(width * 0.29, (height - 46) * 0.52)))
     }
-    private var labelSize: CGFloat { max(8.5, min(10.5, width * 0.105)) }
+    private var labelSize: CGFloat { max(8.5, min(featured ? 13 : 10.5, width * 0.12)) }
     private func labelSize(for face: RolledFace) -> CGFloat {
         face.patron == nil ? labelSize : min(10.5, labelSize + 0.75)
     }
@@ -340,7 +344,7 @@ private struct DiceTrayReelView: View {
             .frame(width: iconSize, height: iconSize)
             .accessibilityHidden(true)
 
-            if !dense {
+            if !dense && !featured {
                 Text("ROLLING")
                     .font(.system(size: labelSize, weight: .heavy))
                     .foregroundStyle(Theme.gold.opacity(0.8))
@@ -413,7 +417,7 @@ private struct DiceTrayReelView: View {
                                      : ((face.patron?.tint ?? face.matchFace.tint)))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                if !dense {
+                if !dense && !featured {
                     Text(bottomTag(face))
                         .font(.system(size: tagSize, weight: .black).monospacedDigit())
                         .foregroundStyle(bottomTagTint(face))
@@ -484,8 +488,8 @@ private struct DiceTrayReelView: View {
             .overlay { if !reduceMotion { critSparks(face) } }
             .shadow(color: glowTint(face).opacity(face.isCrit ? 0.8 : 0.35),
                     radius: face.isCrit && critFlash ? 14 : 7)
-            .scaleEffect(reduceMotion || settled ? 1 : 1.045)
-            .offset(y: reduceMotion || settled ? 0 : -3)
+            .scaleEffect(reduceMotion || settled ? 1 : (featured ? 1.12 : 1.045))
+            .offset(y: reduceMotion || settled ? 0 : (featured ? -10 : -3))
         }
         .contextMenu {
             if let step = engine.step(containing: face.id),

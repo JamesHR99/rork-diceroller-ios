@@ -82,6 +82,7 @@ struct BattlePhaseLabel: View {
 /// changes the Resolve cost, never secretly inserts an enemy exchange.
 struct BattleDecisionPanel: View {
     let engine: BattleEngine
+    var columns = 3
     @State private var inspectedAction: PlanStep?
     @State private var inspectedEnemy: TimelineEntry?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -119,35 +120,35 @@ struct BattleDecisionPanel: View {
     var body: some View {
         VStack(spacing: 4) {
             preview
-            HStack(spacing: 7) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(engine.phase == .enemyActing ? "ENEMY TURN" : "AFTER END TURN")
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundStyle(Theme.ember)
-                    Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg*")
-                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(Theme.parchmentDim)
-                }
-                .frame(width: 104, alignment: .leading)
-
-                ScrollView(.horizontal) {
-                    HStack(spacing: 6) {
-                        ForEach(engine.enemyActionOrder, id: \.scheduleKey) { entry in
-                            enemyChip(entry)
-                        }
-                        if engine.enemyActionOrder.isEmpty {
-                            Text("No enemy moves this round")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Theme.parchmentDim)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-                .scrollIndicators(.hidden)
-                .accessibilityIdentifier("battle.enemyOrder")
+            HStack(spacing: 6) {
+                Text("THEN ENEMIES · AFTER END TURN")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(Theme.ember)
+                Spacer(minLength: 0)
+                Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg before defenses")
+                    .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Theme.parchmentDim)
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(height: 12)
+
+            // Row-major order, with every entry present. No scrolling and no
+            // '+ more' chip that hides the back half of a crowded round.
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: max(1, columns)), spacing: 4) {
+                ForEach(engine.enemyActionOrder, id: \.scheduleKey) { entry in
+                    enemyChip(entry)
+                }
+                if engine.enemyActionOrder.isEmpty {
+                    Text("No enemy moves this round")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .frame(height: 28)
+                }
+            }
+            .accessibilityIdentifier("battle.enemyOrder")
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(Theme.bg.opacity(0.96), in: .rect(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.gold.opacity(0.35)))
@@ -218,6 +219,7 @@ struct BattleDecisionPanel: View {
         }
         .lineLimit(1)
         .minimumScaleFactor(0.8)
+        .frame(height: 30)
     }
 
     private func enemyChip(_ entry: TimelineEntry) -> some View {
@@ -226,26 +228,30 @@ struct BattleDecisionPanel: View {
         return Button {
             inspectedEnemy = entry
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: completed ? "checkmark.circle.fill" : (active ? "play.circle.fill" : "circle"))
-                    .foregroundStyle(active ? Theme.ember : Theme.parchmentDim)
-                Text("\(entry.beat)").font(.system(size: 13, weight: .black).monospacedDigit())
+            HStack(spacing: 5) {
+                Text(completed ? "✓" : "\(entry.beat)")
+                    .font(.system(size: 12, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.bg)
+                    .frame(width: 20, height: 20)
+                    .background(active ? Theme.ember : Theme.gold, in: .circle)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(entry.title).font(.system(size: 10, weight: .bold))
-                    Text(entry.detail).font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    Text(entry.title).font(.system(size: 9, weight: .bold))
+                    Text(entry.detail).font(.system(size: 10, weight: .semibold).monospacedDigit())
                         .foregroundStyle(Theme.gold)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(1)
             }
             .foregroundStyle(Theme.parchment)
-            .padding(.horizontal, 8)
-            .frame(minHeight: 30)
+            .padding(.horizontal, 5)
+            .frame(height: 28)
             .background((active ? Theme.ember : Theme.parchment).opacity(active ? 0.15 : 0.05), in: .rect(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(active ? Theme.ember : Theme.gold.opacity(0.2), lineWidth: active ? 2 : 1))
             .opacity(completed ? 0.45 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(completed ? "Completed. " : active ? "Acting now. " : "")Enemy action \(entry.beat). \(entry.title). \(entry.detail)")
+        .accessibilityIdentifier("battle.enemyAction.\(entry.beat)")
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: active)
     }
 

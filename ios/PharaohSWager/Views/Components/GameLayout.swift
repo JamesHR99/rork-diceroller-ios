@@ -35,6 +35,30 @@ struct BattleDeckMetrics {
     }
 }
 
+/// One measured console: six generous reels, small controls and the entire
+/// enemy queue. Short phones use more columns, never a hidden scrolling tail.
+struct BattleConsoleMetrics {
+    let width: CGFloat
+    let columns: Int
+    let rows: Int
+    let orderHeight: CGFloat
+    let reelSize: CGFloat
+
+    init(size: CGSize, enemyActions: Int, diceCount: Int = BattleRules.handSize) {
+        width = max(1, min(960, size.width - 24))
+        let count = max(1, enemyActions)
+        let preferred = size.height < 500 ? max(3, (count + 1) / 2) : 3
+        columns = min(count, preferred)
+        rows = (count + columns - 1) / columns
+        orderHeight = 58 + CGFloat(rows) * 28 + CGFloat(max(0, rows - 1)) * 4
+        let dice = CGFloat(max(1, diceCount))
+        let widthLimit = (width - 40 - CGFloat(max(0, diceCount - 1)) * 6) / dice
+        // Top strip 47, footer 44, bed 16, section gaps 12, outer insets 16.
+        let heightLimit = size.height - 47 - orderHeight - 44 - 16 - 12 - 16
+        reelSize = max(44, min(132, widthLimit, heightLimit))
+    }
+}
+
 
 /// Measures every line before scaling; no truncation or hidden scroll content.
 struct FittedActionContent<Content: View>: View {
