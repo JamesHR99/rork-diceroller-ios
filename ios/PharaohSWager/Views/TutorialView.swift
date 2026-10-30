@@ -204,7 +204,7 @@ struct TutorialView: View {
 
             HStack(spacing: 6) {
                 PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("Draw 5 · 3 Resolve · 1 selective reroll · \(hero.battleIdentity.lowercased())")
+                Text("Draw \(BattleRules.handSize) · \(BattleRules.resolvePerTurn) Resolve · 1 selective reroll · \(hero.battleIdentity.lowercased())")
                     .font(.system(size: 11.5, weight: .bold))
                     .foregroundStyle(Theme.gold.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)

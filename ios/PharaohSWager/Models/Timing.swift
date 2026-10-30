@@ -76,6 +76,9 @@ struct TimelineEntry: Identifiable, Hashable {
     }
 
     var isPlayer: Bool { side.isPlayer }
+
+    /// Stable identity while projected values and phase labels update.
+    var scheduleKey: String { "\(sourceID.uuidString):\(chainIndex)" }
 }
 
 

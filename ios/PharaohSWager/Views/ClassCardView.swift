@@ -96,7 +96,7 @@ struct ClassCardView: View {
                 symbol: "dice.fill",
                 die: hero.startingLoadout.allDice.first
             )
-            Text("Draw 5 each turn · 3 Resolve · 1 selective reroll")
+            Text("Draw \(BattleRules.handSize) each turn · \(BattleRules.resolvePerTurn) Resolve · 1 selective reroll")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim)
 

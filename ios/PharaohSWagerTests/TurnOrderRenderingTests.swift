@@ -202,5 +202,27 @@ final class TurnOrderRenderingTests: XCTestCase {
         try await capture(NightChartView().environment(GameManager()), name: "Destination-dice", size: CGSize(width: 960, height: 414))
         try await capture(VStack(spacing: 30) { VerdictBanner(title: "THE WAY IS CLEAR", won: true); VerdictBanner(title: "DAWN", won: true) }, name: "Victory-contrast", size: CGSize(width: 960, height: 414))
     }
+
+    func testComboPreviewAndSharedEnemyQueueAtPhoneAndTabletWidths() async throws {
+        let move = EnemyMove(id: "pair", name: "Twin Strike", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
+        let foes = (0..<3).map { EnemyDef(id: "preview-\($0)", name: "Guardian \($0 + 1)", title: "Test", maxHP: 200,
+            symbol: "person.fill", goldReward: 0, moves: [move]) }
+        let dice = (0..<6).map { _ in Die(name: "Preview", slot: .weapon, faces: Array(repeating: .arrow3, count: 6)) }
+        let engine = BattleEngine(enemies: foes, dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        engine.rollAll(reduceMotion: true)
+        while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
+
+        for count in [2, 4, 6] {
+            for face in engine.playedFaces { engine.toggleActionSelection(faceID: face.id) }
+            for face in engine.rolled.prefix(count) { engine.toggleActionSelection(faceID: face.id) }
+            for width in [660.0, 960.0] {
+                try await capture(VStack(spacing: 8) {
+                    BattlePhaseLabel(engine: engine)
+                    BattleDecisionPanel(engine: engine).frame(height: 72)
+                }.padding(8),
+                    name: "Combo-\(count)-dice-order-\(Int(width))", size: CGSize(width: width, height: 150))
+            }
+        }
+    }
 }
 

@@ -43,7 +43,7 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
-                    topStrip
+                    topStrip(compact: size.width < 850)
 
                     // The battlefield always receives the full remaining
                     // screen. The combat console is a true overlay on the
@@ -192,14 +192,18 @@ private struct BattleContentView: View {
         if size.width < 600 {
             return min(154, max(134, size.height * 0.195))
         }
-        return min(126, max(108, size.height * 0.16))
+        return size.height < 500 ? 78 : 108
+    }
+
+    private func consoleHeight(for size: CGSize) -> CGFloat {
+        actionTrayHeight(for: size) + 78
     }
 
     @ViewBuilder
     private func diceDeck(size: CGSize) -> some View {
         let trayHeight = actionTrayHeight(for: size)
         let phone = size.width < 600
-        let wideResolveWidth: CGFloat = 86
+        let wideResolveWidth: CGFloat = size.height < 500 ? 60 : 76
         let wideControlsWidth: CGFloat = 222
         let wideOuterPadding: CGFloat = 14
         let wideSpacing: CGFloat = 12
@@ -209,7 +213,12 @@ private struct BattleContentView: View {
                 - (wideOuterPadding * 2) - (wideSpacing * 2)
         )
 
-        Group {
+        VStack(spacing: 6) {
+            BattleDecisionPanel(engine: engine)
+                .frame(height: 72)
+                .padding(.horizontal, 8)
+
+            Group {
             if phone {
                 VStack(spacing: 4) {
                     // Give the six-die hand almost the whole phone width. With
@@ -240,7 +249,7 @@ private struct BattleContentView: View {
 
                     DiceTrayView(
                         engine: engine,
-                        maxReelHeight: 94,
+                        maxReelHeight: size.height < 500 ? 58 : 86,
                         maxRowWidth: wideDiceWidth,
                         compact: true
                     )
@@ -250,11 +259,13 @@ private struct BattleContentView: View {
                         .frame(width: wideControlsWidth)
                 }
                 .padding(.horizontal, wideOuterPadding)
-                .padding(.vertical, 8)
+                .padding(.vertical, 2)
             }
+            }
+            .frame(height: trayHeight, alignment: .bottom)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: trayHeight, alignment: .bottom)
+        .frame(height: consoleHeight(for: size), alignment: .bottom)
         .disabled(!engine.rerollChargeFlights.isEmpty)
         .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
             GeometryReader { proxy in
@@ -271,7 +282,7 @@ private struct BattleContentView: View {
             DeckShelfBackground(armed: engine.selectingReroll)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .offset(y: deckUp ? 0 : trayHeight + 28)
+        .offset(y: deckUp ? 0 : consoleHeight(for: size) + 28)
         .opacity(deckUp ? 1 : 0)
         .allowsHitTesting(deckUp)
         .accessibilityHidden(!deckUp)
@@ -285,10 +296,10 @@ private struct BattleContentView: View {
     /// serpent-lord is drawn taller again, so the tallest fighter on the deck
     /// sets the measure for everyone.
     private func fighterHeight(_ room: CGFloat, hasIntent: Bool = false) -> CGFloat {
-        let chrome: CGFloat = hasIntent ? 106 : 84
+        let chrome: CGFloat = 58
         let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
-        return min(272, max(126, free / (1.02 * tallest)))
+        return min(240, max(44, free / (1.06 * tallest)))
     }
 
     /// The fight itself, uncovered once the deck goes down: full-size figures
@@ -306,12 +317,8 @@ private struct BattleContentView: View {
             // Landscape iPhones are wider than 600pt, so width alone cannot
             // identify the compact screen shown in play. Use the short side to
             // reserve the full dice-console depth and keep both fighters above it.
-            let isCompactPhone = min(size.width, size.height) < 500
-            let trayClearance: CGFloat = isCompactPhone ? 92 : 26
-            let deckLift: CGFloat = isCompactPhone
-                ? min(154, max(126, boatWidth * 0.065 + trayClearance))
-                : min(98, max(62, boatWidth * 0.065 + trayClearance))
-            let fighterRoom = max(150, room - deckLift)
+            let deckLift = consoleHeight(for: size) + 8
+            let fighterRoom = max(90, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.
             let playerWidth = max(112, combatWidth * (foeCount >= 3 ? 0.25 : 0.35))
@@ -409,6 +416,15 @@ private struct BattleContentView: View {
                 .kerning(1.8)
                 .foregroundStyle(Theme.gold)
 
+            Text("\(aim.title) · \(aim.detail)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.parchment)
+                .lineLimit(2)
+
+            Text("Your whole action lands before the enemy turn.")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Theme.frost)
+
             if !aim.faces.isEmpty {
                 HStack(spacing: 5) {
                     ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
@@ -476,10 +492,10 @@ private struct BattleContentView: View {
     /// The run's heading: the turn count, the chisels riding this run, the
     /// night dial and the codex. Everything here got a size up now that the
     /// dice have their own deck and the top of the screen is free.
-    private var topStrip: some View {
+    private func topStrip(compact: Bool) -> some View {
         HStack(spacing: 10) {
             HStack(spacing: 4) {
-                Text("TURN")
+                Text("ROUND")
                     .font(.system(size: 9, weight: .black))
                     .kerning(1.2)
                     .foregroundStyle(Theme.parchmentDim)
@@ -516,11 +532,15 @@ private struct BattleContentView: View {
                 ))
             }
 
-            // No running narration here: the damage numbers, the action
-            // spotlight and the floating text already say what just happened.
             Spacer(minLength: 4)
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            BattlePhaseLabel(engine: engine)
+
+            Spacer(minLength: 4)
+
+            if !compact {
+                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            }
 
             Button {
                 showInfo = true

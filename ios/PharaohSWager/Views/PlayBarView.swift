@@ -9,7 +9,7 @@ struct PlayBarView: View {
     private var compact: Bool { bodyHeight < 100 }
     private var controlHeight: CGFloat { compact ? 46 : 54 }
     private var rerollWidth: CGFloat { compact ? 42 : 62 }
-    private var primaryWidth: CGFloat { compact ? 56 : 92 }
+    private var primaryWidth: CGFloat { compact ? 96 : 124 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
     private var outOfResolve: Bool { engine.resolveRemaining == 0 }
@@ -70,29 +70,17 @@ struct PlayBarView: View {
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            Group {
-                if compact {
-                    VStack(spacing: 1) {
-                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
-                            .font(.system(size: 13, weight: .black))
-                        Text(shouldEndTurn ? "END TURN" : "PLAY")
-                            .font(.fantasy(10, weight: .black))
-                            .kerning(0.7)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
-                            .font(.system(size: 15, weight: .black))
-                        Text(shouldEndTurn ? "END TURN" : "PLAY")
-                            .font(.fantasy(17, weight: .black))
-                            .kerning(1.4)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                    }
+            VStack(spacing: 3) {
+                HStack(spacing: 5) {
+                    Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
+                    Text(shouldEndTurn ? "END TURN" : (engine.selectionEndsTurn ? "PLAY & END" : "PLAY"))
+                        .font(.fantasy(compact ? 12 : 14, weight: .black))
                 }
+                Text(shouldEndTurn ? "ENEMIES ACT NEXT" : "\(engine.plannedResolveCost) RESOLVE")
+                    .font(.system(size: compact ? 9 : 10, weight: .bold))
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundStyle(primaryEnabled ? Theme.parchment : Theme.parchmentDim)
             .frame(width: primaryWidth, height: controlHeight)
             .background {
@@ -109,6 +97,8 @@ struct PlayBarView: View {
         .buttonStyle(PressableButtonStyle())
         .disabled(!primaryEnabled)
         .accessibilityIdentifier(shouldEndTurn ? "battle.endTurn" : "battle.commit")
+        .accessibilityHint(shouldEndTurn ? "Hand over to the announced enemy actions" :
+            engine.selectionEndsTurn ? "Your action resolves first, then enemies act" : "Your action resolves and you can keep playing")
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: shouldEndTurn)
     }
 }

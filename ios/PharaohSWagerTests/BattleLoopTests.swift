@@ -40,7 +40,7 @@ struct BattleLoopTests {
                 try await Task.sleep(for: .milliseconds(20))
             }
         }
-        if engine.phase == .player { engine.endPlayerTurn() }
+        if engine.phase == .player, engine.turnNumber == previousTurn { engine.endPlayerTurn() }
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(45))
         while engine.turnNumber == previousTurn && clock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
@@ -206,6 +206,71 @@ struct BattleLoopTests {
         #expect(engine.rerollsRemaining == 2)
     }
 
+    @Test func comboPreviewUsesOnePlayerActionBeforeEveryEnemyMove() async throws {
+        let engine = battle(Array(repeating: .arrow3, count: 6))
+        try await roll(engine)
+        let enemyOrder = engine.enemyActionOrder.map(\.scheduleKey)
+        for face in engine.rolled { engine.toggleActionSelection(faceID: face.id) }
+        let selected = try #require(engine.selectedAction)
+        #expect(selected.faces.count == 6)
+        #expect(engine.plannedResolveCost == 3)
+        #expect(engine.selectionEndsTurn)
+        #expect(engine.timeline.filter(\.isPlayer).count == 1)
+        #expect(engine.timeline.first?.sourceID == selected.id)
+        #expect(engine.timeline.dropFirst().map(\.scheduleKey) == enemyOrder)
+        #expect(!engine.planDetail(for: selected).contains("Wind-up"))
+        #expect(engine.planDetail(for: selected).contains("\(engine.displayedDamage(for: selected)) damage"))
+    }
+
+    @Test func spendingFinalResolveExecutesComboBeforeEnemyHandover() async throws {
+        let engine = battle(Array(repeating: .arrow3, count: 6))
+        try await roll(engine)
+        for face in engine.rolled { engine.toggleActionSelection(faceID: face.id) }
+        let expectedDamage = engine.displayedDamage(for: try #require(engine.selectedAction))
+        try await nextRound(engine)
+        #expect(engine.enemies[0].hp == 500 - expectedDamage)
+        #expect(engine.playerHP < 100)
+        #expect(engine.resolveRemaining == BattleRules.resolvePerTurn)
+        #expect(engine.activeTimelineEntry == nil)
+        #expect(engine.completedEnemyActions.isEmpty)
+    }
+
+    @Test func winningFinalResolveComboCancelsEnemyRetaliation() async throws {
+        let foe = EnemyDef(id: "last-resolve", name: "Last Resolve", title: "Test", maxHP: 50,
+            symbol: "circle", goldReward: 0,
+            moves: [EnemyMove(id: "fatal", name: "Fatal", faces: [.swiftSlash], weight: 1, damage: 100)])
+        let dice = (0..<6).map { Die(name: "Arrow \($0)", slot: .weapon, faces: Array(repeating: .arrow3, count: 6)) }
+        let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer", maxHP: 100, startHP: 1, critBonus: -1)
+        try await roll(engine)
+        for face in engine.rolled { engine.toggleActionSelection(faceID: face.id) }
+        engine.commitTurn()
+        let deadline = ContinuousClock().now.advanced(by: .seconds(20))
+        while engine.phase != .won && engine.phase != .lost && ContinuousClock().now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(engine.phase == .won)
+        #expect(engine.playerHP == 1)
+    }
+
+    @Test func enemyQueueIsStableWhileComboSizeAndCostChange() async throws {
+        let move = EnemyMove(id: "hit", name: "Double Strike", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
+        let foes = (0..<3).map { EnemyDef(id: "pack-\($0)", name: "Foe \($0)", title: "Test", maxHP: 100,
+            symbol: "circle", goldReward: 0, moves: [move]) }
+        let dice = (0..<6).map { Die(name: "Arrow \($0)", slot: .weapon, faces: Array(repeating: .arrow1, count: 6)) }
+        let engine = BattleEngine(enemies: foes, dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        try await roll(engine)
+        let order = engine.enemyActionOrder.map(\.scheduleKey)
+        #expect(engine.enemyActionOrder.map(\.sourceID) == engine.enemies.map(\.id))
+        #expect(engine.enemyActionOrder.allSatisfy { $0.detail.contains("× 2") })
+        for (index, face) in engine.rolled.enumerated() {
+            engine.toggleActionSelection(faceID: face.id)
+            #expect(engine.enemyActionOrder.map(\.scheduleKey) == order)
+            #expect(engine.timeline.first?.isPlayer == true)
+            #expect(engine.timeline.dropFirst().map(\.scheduleKey) == order)
+            #expect(engine.plannedResolveCost == (index < 2 ? 1 : index < 4 ? 2 : 3))
+        }
+    }
+
     @Test func alternatingActionsAreFinite() {
         #expect(BattleRules.alternating(player: [1, 2, 3], enemy: [4]) == [1, 4, 2, 3])
         #expect(BattleRules.alternating(player: [Int](), enemy: [4, 5]) == [4, 5])
@@ -323,14 +388,16 @@ struct BattleLoopTests {
         #expect(engine.timeline.filter(\.isPlayer).count == BattleRules.handSize)
     }
 
-    @Test func fourMatchingDiceWindUpAndCanBeSeparatedAgain() async throws {
+    @Test func fourMatchingDiceAreOneUninterruptedActionAndCanBeSeparatedAgain() async throws {
         let engine = battle([.arrow1, .arrow1, .arrow1, .arrow1, .block, .focus])
         try await roll(engine)
         let arrows = engine.rolled.filter { $0.face == .arrow1 }
         for face in arrows { engine.placeInPlayBar(faceID: face.id) }
         #expect(engine.turnPlan.first?.faces.count == 4)
         #expect(engine.turnPlan.count == 1)
-        #expect(engine.timeline.filter(\.isPlayer).count == 2)
+        #expect(engine.timeline.filter(\.isPlayer).count == 1)
+        #expect(engine.plannedResolveCost == 2)
+        #expect(engine.timeline.first?.isPlayer == true)
         #expect(engine.separate(faceID: arrows[0].id))
         #expect(engine.turnPlan.count == 1)
         #expect(engine.turnPlan.first?.faces.count == 3)

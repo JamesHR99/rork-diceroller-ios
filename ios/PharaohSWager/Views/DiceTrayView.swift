@@ -264,9 +264,7 @@ private struct DiceTrayReelView: View {
     private var selectingReroll: Bool { engine.selectingReroll }
 
     private var corner: CGFloat { 15 }
-    /// The battle shelf uses deliberately compact, icon-first dice. Taller
-    /// presentation captures (and any future detail view) keep the face name
-    /// and tag, but the live hand reads like physical dice rather than cards.
+    /// Compact dice retain a short name so unfamiliar symbols are usable.
     private var dense: Bool { height < 88 }
     private var iconSize: CGFloat {
         if dense {
@@ -407,15 +405,15 @@ private struct DiceTrayReelView: View {
                 // is announced by the badge and the gold, never by hiding the
                 // roll you are trying to read. A Chisel substitution shows the
                 // tier the engine will use, in Ptah's copper.
+                Text(reelLabel(face))
+                    .font(.system(size: dense ? 9.5 : labelSize(for: face), weight: .bold))
+                    .kerning(0.2)
+                    .foregroundStyle(face.isCrit
+                                     ? Theme.gold
+                                     : ((face.patron?.tint ?? face.matchFace.tint)))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 if !dense {
-                    Text(reelLabel(face))
-                        .font(.system(size: labelSize(for: face), weight: .heavy))
-                        .kerning(0.2)
-                        .foregroundStyle(face.isCrit
-                                         ? Theme.gold
-                                         : ((face.patron?.tint ?? face.matchFace.tint)))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
                     Text(bottomTag(face))
                         .font(.system(size: tagSize, weight: .black).monospacedDigit())
                         .foregroundStyle(bottomTagTint(face))
@@ -424,8 +422,8 @@ private struct DiceTrayReelView: View {
                         .frame(width: max(1, width * 0.66))
                 }
             }
-            .padding(.horizontal, max(8, width * 0.1))
-            .padding(.vertical, max(9, height * 0.075))
+            .padding(.horizontal, dense ? 4 : max(8, width * 0.1))
+            .padding(.vertical, dense ? 4 : max(9, height * 0.075))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { reelGround(opacity: 1) }
             .clipShape(.rect(cornerRadius: corner))
@@ -436,18 +434,23 @@ private struct DiceTrayReelView: View {
                         .strokeBorder(Theme.gold, lineWidth: 3)
                         .shadow(color: Theme.gold.opacity(0.8), radius: 10)
                         .padding(2)
+                } else if engine.phase == .player, !selectingReroll,
+                          engine.selectedActionFace == face.matchFace {
+                    RoundedRectangle(cornerRadius: corner)
+                        .strokeBorder(Theme.frost.opacity(0.8), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+                        .padding(2)
                 }
             }
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: .bottomTrailing) {
                 if engine.playOrder.contains(face.id) && !selectingReroll {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 9, weight: .black))
                         .foregroundStyle(Theme.bg)
-                        .frame(width: 22, height: 22)
+                        .frame(width: 16, height: 16)
                         .background(Theme.gold, in: .circle)
                         .overlay(Circle().strokeBorder(Theme.parchment.opacity(0.9), lineWidth: 1))
                         .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
-                        .offset(y: 8)
+                        .offset(x: 2, y: 2)
                 }
             }
             .overlay { armedHalo(face) }
@@ -514,6 +517,7 @@ private struct DiceTrayReelView: View {
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(face.matchFace.label)
         .accessibilityValue(engine.playOrder.contains(face.id) ? "Selected" : "Not selected")
+        .accessibilityHint(engine.selectedActionFace == face.matchFace ? "Tap to add or remove this matching combo die" : "Tap to start a new action with this face")
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.
@@ -772,15 +776,13 @@ private struct DiceTrayReelView: View {
                 size: iconSize,
                 tint: face.matchFace.tint
             )
-            if !dense {
-                Text(reelLabel(face))
-                    .font(.system(size: labelSize(for: face), weight: .heavy))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
+            Text(reelLabel(face))
+                .font(.system(size: dense ? 9.5 : labelSize(for: face), weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
-        .padding(.horizontal, max(8, width * 0.1))
-        .padding(.vertical, max(9, height * 0.075))
+        .padding(.horizontal, dense ? 4 : max(8, width * 0.1))
+        .padding(.vertical, dense ? 4 : max(9, height * 0.075))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { reelGround(opacity: 0.72) }
         .clipShape(.rect(cornerRadius: corner))
