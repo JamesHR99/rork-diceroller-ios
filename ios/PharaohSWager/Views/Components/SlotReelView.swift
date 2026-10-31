@@ -54,7 +54,7 @@ final class SlotReelSurface: UIView {
 
         let symbols = faces.isEmpty ? [landing] : faces
         let rowHeight = symbolSize * 1.18
-        let rows = reduceMotion ? 0 : max(10, Int(duration * 19))
+        let rows = reduceMotion ? 0 : max(12, Int(duration * 24))
         let distance = CGFloat(rows) * rowHeight
 
         CATransaction.begin()
@@ -82,10 +82,13 @@ final class SlotReelSurface: UIView {
         let elapsed = max(0, ProcessInfo.processInfo.systemUptime - startedAt)
         guard elapsed < duration else { return }
         let motion = CAKeyframeAnimation(keyPath: "transform.translation.y")
-        motion.values = [0, -distance * 0.76, -distance * 0.98,
-                         -distance - rowHeight * 0.07, -distance]
-        motion.keyTimes = [0, 0.68, 0.86, 0.92, 1]
+        // A brief pull into motion, full-speed drum, then a physical detent
+        // overshoot. Every reel uses the engine's absolute landing deadline.
+        motion.values = [0, -distance * 0.08, -distance * 0.80, -distance * 0.98,
+                         -distance - rowHeight * 0.12, -distance]
+        motion.keyTimes = [0, 0.12, 0.68, 0.86, 0.94, 1]
         motion.timingFunctions = [
+            CAMediaTimingFunction(name: .easeIn),
             CAMediaTimingFunction(name: .linear),
             CAMediaTimingFunction(controlPoints: 0.15, 0.55, 0.35, 1),
             CAMediaTimingFunction(name: .easeOut),

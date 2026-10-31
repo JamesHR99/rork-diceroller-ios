@@ -202,5 +202,69 @@ final class TurnOrderRenderingTests: XCTestCase {
         try await capture(NightChartView().environment(GameManager()), name: "Destination-dice", size: CGSize(width: 960, height: 414))
         try await capture(VStack(spacing: 30) { VerdictBanner(title: "THE WAY IS CLEAR", won: true); VerdictBanner(title: "DAWN", won: true) }, name: "Victory-contrast", size: CGSize(width: 960, height: 414))
     }
+
+    func testComboPreviewAndSharedEnemyQueueAtPhoneAndTabletWidths() async throws {
+        let move = EnemyMove(id: "pair", name: "Twin Strike", faces: [.swiftSlash, .swiftSlash], weight: 1, damage: 24)
+        let foes = (0..<3).map { EnemyDef(id: "preview-\($0)", name: "Guardian \($0 + 1)", title: "Test", maxHP: 200,
+            symbol: "person.fill", goldReward: 0, moves: [move]) }
+        let dice = (0..<6).map { _ in Die(name: "Preview", slot: .weapon, faces: Array(repeating: .arrow3, count: 6)) }
+        let engine = BattleEngine(enemies: foes, dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        engine.rollAll(reduceMotion: true)
+        while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
+
+        for count in [2, 4, 6] {
+            for face in engine.playedFaces { engine.toggleActionSelection(faceID: face.id) }
+            for face in engine.rolled.prefix(count) { engine.toggleActionSelection(faceID: face.id) }
+            for width in [660.0, 960.0] {
+                try await capture(VStack(spacing: 8) {
+                    BattlePhaseLabel(engine: engine)
+                    BattleDecisionPanel(engine: engine).frame(height: 86)
+                }.padding(8),
+                    name: "Combo-\(count)-dice-order-\(Int(width))", size: CGSize(width: width, height: 170))
+            }
+        }
+    }
+
+    func testFeaturedConsoleShowsEveryMoveWithoutScrolling() async throws {
+        let moves = (0..<3).map { EnemyMove(id: "strike-\($0)", name: "Strike \($0 + 1)",
+            faces: [.swiftSlash], weight: 1, damage: 12) }
+        let foes = (0..<3).map { EnemyDef(id: "reedLurker-\($0)", name: "Guardian \($0 + 1)", title: "Test", maxHP: 500,
+            symbol: "person.fill", goldReward: 0, moves: moves, stamina: 9) }
+        let dice = (0..<6).map { _ in Die(name: "Preview", slot: .weapon, faces: Array(repeating: .arrow3, count: 6)) }
+        let engine = BattleEngine(enemies: foes, dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        XCTAssertEqual(engine.enemyActionOrder.count, 9)
+        engine.rollAll(reduceMotion: true)
+        while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
+        for face in engine.rolled.prefix(4) { engine.toggleActionSelection(faceID: face.id) }
+        for size in [CGSize(width: 660, height: 320), CGSize(width: 752, height: 354), CGSize(width: 1024, height: 720)] {
+            try await capture(BattlePlanningConsole(engine: engine, size: size),
+                name: "Featured-six-dice-nine-moves-\(Int(size.width))", size: size)
+        }
+    }
+
+    func testPlanningConsoleClearsForLargeFightersWhileAiming() async throws {
+        let game = GameManager()
+        game.startRun(with: GameData.classes.first { $0.id == "archer" }!)
+        let foe = EnemyContent.enemy(hour: 1, isHerald: false)
+        let dice = [FaceKind.arrow1, .arrow1, .block, .block, .arrow2, .focus].map {
+            Die(name: "Preview", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
+        let engine = BattleEngine(enemies: [foe, foe, foe], dice: dice,
+            classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        engine.rollAll(reduceMotion: true)
+        while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
+        for face in engine.rolled.filter({ $0.face == .arrow1 }) { engine.toggleActionSelection(faceID: face.id) }
+        engine.toggleActionSelection(faceID: try XCTUnwrap(engine.rolled.first { $0.face == .block }).id)
+        XCTAssertEqual(engine.turnPlan.count, 2)
+        let view = BattleContentView(engine: engine, arrivalShown: false).environment(game)
+        try await capture(view, name: "Battle-planning-large-dice", size: CGSize(width: 752, height: 354))
+        engine.endPlayerTurn()
+        XCTAssertTrue(engine.isAiming)
+        try await capture(view, name: "Battle-aiming-large-fighters", size: CGSize(width: 752, height: 354))
+        engine.cancelAiming()
+        XCTAssertEqual(engine.phase, .player)
+        XCTAssertEqual(engine.turnPlan.count, 2)
+        try await capture(view, name: "Battle-return-to-combo", size: CGSize(width: 752, height: 354))
+        try await capture(view, name: "Battle-queued-health-small-phone", size: CGSize(width: 660, height: 320))
+    }
 }
 

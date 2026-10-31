@@ -200,7 +200,6 @@ struct PlanStep: Identifiable {
         if !combo.earlyTick.isEmpty { parts.append("Early \(combo.earlyTick) tick") }
         if combo.lifesteal { parts.append("20% lifesteal (max \(combo.lifestealCap))") }
         if combo.reflect > 0 { parts.append("One counter (max \(combo.reflectCap))") }
-        if faces.count >= 4 && combo.roles.contains(.attack) { parts.append("Wind-up → Release") }
         return parts
     }
 
@@ -675,6 +674,8 @@ final class BattleEngine {
     private(set) var drawnDieIDs: Set<UUID> = []
     private(set) var resolveRemaining = BattleRules.resolvePerTurn
     private var endingTurn = false
+    /// UI commits a whole queued turn, including when Resolve is left unused.
+    private var queuedTurnHandover = false
     private(set) var rolled: [RolledFace] = []
     private(set) var hasRolled = false
     private(set) var rollID = UUID()
@@ -694,6 +695,8 @@ final class BattleEngine {
     private var nextRoundGuard = 0
     private var preparedFocusUsed: Set<UUID> = []
     private(set) var pendingEntries: [TimelineEntry] = []
+    private(set) var activeTimelineEntry: TimelineEntry?
+    private(set) var completedEnemyActions: Set<String> = []
     private(set) var playOrder: [UUID] = []
     /// Dice you have explicitly welded together, each entry the face ids of one
     /// combined action in plan order. Nothing fuses on its own any more: a
@@ -1000,9 +1003,10 @@ final class BattleEngine {
 
     // MARK: - The shared clock
 
-    /// Position in the visible, alternating action order.
+    /// Position in the same player-first order used by resolution.
     func beat(for foe: EnemyState, moveIndex: Int) -> Int {
-        let entries = (phase == .resolving || phase == .enemyActing) ? pendingEntries : timeline
+        let entries = (phase == .resolving || phase == .enemyActing)
+            ? [activeTimelineEntry].compactMap { $0 } + pendingEntries : timeline
         return entries.first { $0.sourceID == foe.id && $0.chainIndex == moveIndex }?.beat ?? 0
     }
 
@@ -1021,44 +1025,82 @@ final class BattleEngine {
         return roles
     }
 
-    /// The round's shared clock: your plan and every living foe's telegraphed
-    /// intent on one line. Your actions run in sequence — the second starts
-    /// when the first finishes — while each foe's move lands on its own beat.
-    /// At equal beats you resolve first; enemy ties keep the order they rose.
-    var timeline: [TimelineEntry] {
-        let player = displayedPlan.flatMap { step -> [TimelineEntry] in
-            let release = TimelineEntry(side: .player, beat: 0, duration: 1, title: planTitle(for: step),
-                detail: step.valueLine, targetID: allocations[step.id], roles: roles(for: step), sourceID: step.id)
-            guard step.faces.count >= 4, roles(for: step).contains(.attack) else { return [release] }
-            let windup = TimelineEntry(side: .player, beat: 0, duration: 1, title: "Preparing \(planTitle(for: step))",
-                detail: "Release on your next action", targetID: allocations[step.id], roles: .none,
-                sourceID: step.id, chainIndex: -1)
-            return [windup, release]
-        }
+    /// All announced enemy actions, in execution order across the whole pack.
+    /// A delayed opening move belongs to next round, not this enemy phase.
+    var enemyActionOrder: [TimelineEntry] {
         var enemy: [TimelineEntry] = []
         let foes = livingFoes
         for moveIndex in 0..<(foes.map { $0.intents.count }.max() ?? 0) {
             for foe in foes where foe.intents.indices.contains(moveIndex) {
+                if moveIndex == 0, deferredEnemyMoves[foe.id] != nil { continue }
                 let projected = projectedMoves(for: foe)[moveIndex]
                 enemy.append(TimelineEntry(side: .foe(foe.id), beat: 0, duration: 1,
-                    title: "\(foe.displayName) · \(projected.move.name)", detail: intentDetail(strike: projected.strike, move: projected.move),
+                    title: "\(foe.displayName) · \(projected.move.comboName ?? projected.move.name)", detail: intentDetail(strike: projected.strike, move: projected.move),
                     targetID: foe.id, roles: projected.strike.damage > 0 ? .attack : .guardian,
                     sourceID: foe.id, chainIndex: moveIndex))
             }
         }
-        return BattleRules.alternating(player: player, enemy: enemy).enumerated().map { index, entry in
+        return numbered(enemy)
+    }
+
+    /// Combos spend Resolve, not enemy exchanges. Every chosen action resolves
+    /// before the handover; enemies never interrupt a large combo's wind-up.
+    /// Both the planning UI and resolver use this schedule.
+    var timeline: [TimelineEntry] {
+        let player = displayedPlan.map { step in
+            TimelineEntry(side: .player, beat: 0, duration: 1, title: planTitle(for: step),
+                detail: planDetail(for: step), targetID: allocations[step.id],
+                roles: roles(for: step), sourceID: step.id)
+        }
+        return numbered(player + enemyActionOrder)
+    }
+
+    private func numbered(_ entries: [TimelineEntry]) -> [TimelineEntry] {
+        entries.enumerated().map { index, entry in
             TimelineEntry(side: entry.side, beat: index + 1, duration: 1, title: entry.title,
                 detail: entry.detail, targetID: entry.targetID, roles: entry.roles,
                 sourceID: entry.sourceID, chainIndex: entry.chainIndex)
         }
     }
 
-    func planDetail(for step: PlanStep) -> String { step.valueLine }
+    var selectedAction: PlanStep? { turnPlan.count == 1 ? turnPlan.first : nil }
+
+    var selectionEndsTurn: Bool {
+        !turnPlan.isEmpty && plannedResolveCost == resolveRemaining
+    }
+
+    var remainingEnemyActionCount: Int {
+        enemyActionOrder.filter { !completedEnemyActions.contains($0.scheduleKey) }.count
+    }
+
+    var announcedIncomingDamage: Int {
+        enemyActionOrder.filter { !completedEnemyActions.contains($0.scheduleKey) }.reduce(0) { total, entry in
+            guard let foe = livingFoes.first(where: { $0.id == entry.sourceID }),
+                  foe.intents.indices.contains(entry.chainIndex) else { return total }
+            return total + projectedMoves(for: foe)[entry.chainIndex].strike.damage
+        }
+    }
+
+    func planDetail(for step: PlanStep) -> String {
+        let damage = displayedDamage(for: step)
+        return ([damage > 0 ? "\(damage) damage before defenses" : nil].compactMap { $0 }
+            + step.effects).joined(separator: " · ")
+    }
 
     /// What a foe's telegraphed move will do when it comes round.
     private func intentDetail(strike: (damage: Int, heal: Int, block: Int), move: EnemyMove) -> String {
         var parts: [String] = []
-        if strike.damage > 0 { parts.append("\(strike.damage) dmg") }
+        if strike.damage > 0 {
+            let hits = max(1, move.faces.filter(\.isAttack).count)
+            let powers = BattleRules.splitHits(strike.damage, count: hits)
+            if hits > 1, Set(powers).count == 1 {
+                parts.append("\(powers[0]) × \(hits) damage")
+            } else if hits > 1 {
+                parts.append("\(strike.damage) damage / \(hits) hits")
+            } else {
+                parts.append("\(strike.damage) damage")
+            }
+        }
         if strike.block > 0 { parts.append("+\(strike.block) guard") }
         if strike.heal > 0 { parts.append("+\(strike.heal) hp") }
         if move.charge > 0 { parts.append("winding up ×\(String(format: "%.1f", move.charge))") }
@@ -1651,6 +1693,7 @@ final class BattleEngine {
     /// turn fires straight away.
     func beginCommit() {
         guard canCommit else { return }
+        queuedTurnHandover = true
         let queue = buildAimQueue()
         guard !queue.isEmpty else {
             commitTurn()
@@ -1718,6 +1761,7 @@ final class BattleEngine {
     /// Abandon aiming and go back to the plan — nothing has resolved yet.
     func cancelAiming() {
         guard phase == .aiming else { return }
+        queuedTurnHandover = false
         aimQueue = []
         allocations = [:]
         secondaryAllocations = [:]
@@ -1967,9 +2011,11 @@ final class BattleEngine {
     var plannedResolveCost: Int { turnPlan.reduce(0) { $0 + resolveCost(for: $1) } }
     var canCommit: Bool {
         phase == .player && hasRolled && !isRolling && !playedFaces.isEmpty
-            && turnPlan.count == 1 && plannedResolveCost <= resolveRemaining
+            && plannedResolveCost <= resolveRemaining
     }
-    var canEndTurn: Bool { phase == .player && hasRolled && !isRolling }
+    var canEndTurn: Bool {
+        phase == .player && hasRolled && !isRolling && (playedFaces.isEmpty || canCommit)
+    }
 
     /// True when the turn may actually fire: from the plan, or from the aiming
     /// phase once the last blow has been pointed. The FIGHT slab tests
@@ -2147,30 +2193,25 @@ final class BattleEngine {
         Audio.shared.play(.diceTake)
     }
 
-    /// Bottom-tray interaction for the compact battle UI. A play is one face
-    /// family at a time: tap matching dice to add/remove them. Tapping a
-    /// different face starts a fresh selection instead of building an invalid
-    /// multi-action plan.
+    /// Queue in tap order. Adjacent matching faces form a combo; a different
+    /// face starts the next action without erasing what is already queued.
     func toggleActionSelection(faceID: UUID) {
         guard phase == .player, !isRolling,
-              let face = rolled.first(where: { $0.id == faceID }) else { return }
+              rolled.contains(where: { $0.id == faceID }) else { return }
 
         if playOrder.contains(faceID) {
             returnToTray(faceID: faceID)
             return
         }
 
-        if let selectedKind = playedFaces.first?.matchFace,
-           selectedKind != face.matchFace {
-            playOrder = []
-            weldedGroups = []
-            resetTargetingSelection()
-        }
-
         placeInPlayBar(faceID: faceID)
     }
 
-    var selectedActionFace: FaceKind? { playedFaces.first?.matchFace }
+    var selectedActionFace: FaceKind? { playedFaces.last?.matchFace }
+
+    func queuedActionNumber(faceID: UUID) -> Int? {
+        turnPlan.firstIndex { $0.faces.contains { $0.id == faceID } }.map { $0 + 1 }
+    }
 
     // MARK: - Combining, by choice
 
@@ -2398,19 +2439,22 @@ final class BattleEngine {
         rerollSelection = []
         resetTargetingSelection()
         committedPlan = buildPlan(from: playedFaces)
-        // Spending the final Resolve commits the end of the round immediately.
-        // The chosen action still resolves first, then enemy intent follows
-        // without forcing a second tap on an inert End Turn button.
-        endingTurn = resolveRemaining == 0
+        // End Turn commits every queued action before handing over, even if
+        // the player deliberately leaves some Resolve unspent.
+        endingTurn = queuedTurnHandover || resolveRemaining == 0
+        queuedTurnHandover = false
         phase = .resolving
         Task { await resolveTurn() }
     }
 
-    /// End Turn executes telegraphed enemy intents when Resolve remains.
-    /// Reaching zero Resolve does the same automatically after the final action.
-    /// Any rolled dice still in hand are discarded before the next draw.
+    /// The single UI commit: aim if needed, play the entire plan, then enemies.
+    /// An empty plan passes. Unused dice are discarded before the next draw.
     func endPlayerTurn() {
         guard canEndTurn else { return }
+        if !playedFaces.isEmpty {
+            beginCommit()
+            return
+        }
         // Round-end powers must read the hand as it actually stands when the
         // player ends the turn. Recording this only during the last immediate
         // action made "leave dice unused" effects fail when no later action
@@ -2468,18 +2512,9 @@ final class BattleEngine {
             attributing = .native
             pendingDivineEntries = []
         }
-        if endingTurn {
-            var skippedDelayedFoes: Set<UUID> = []
-            pendingEntries = timeline.filter { entry in
-                guard !entry.isPlayer else { return false }
-                guard deferredEnemyMoves[entry.sourceID] != nil,
-                      !skippedDelayedFoes.contains(entry.sourceID) else { return true }
-                skippedDelayedFoes.insert(entry.sourceID)
-                return false
-            }
-        } else {
-            pendingEntries = timeline.filter(\.isPlayer)
-        }
+        // The last Resolve still pays for a real player action. It must land
+        // before the announced enemy phase, just as the preview promises.
+        pendingEntries = endingTurn ? timeline : timeline.filter(\.isPlayer)
 
         // One action of yours, resolved immediately. Enemy intent waits for End Turn.
         // Returns true when the fight ended inside it.
@@ -2494,7 +2529,7 @@ final class BattleEngine {
                 resolveBlessings(in: support, targetIndex: target)
                 addFloat("FOCUS +\(step.focusBonus)", color: Theme.gold, onEnemy: false)
             }
-            activeTargetID = target.map { enemies[$0].id }
+            activeTargetID = step.targetsEnemy ? target.map { enemies[$0].id } : nil
             boonPierceBonus = 0
             nativeAttackHPDamage = 0
             actionEvadePercent = BattleRules.baseEvadePercent
@@ -2625,10 +2660,11 @@ final class BattleEngine {
             return false
         }
 
-        // Resolve the finite alternating queue. Delay effects may move pending entries.
+        // Resolve the player action first, then the finite enemy queue at handover.
         if endingTurn { enemyTurnCount += 1 }
         while !pendingEntries.isEmpty {
             let entry = pendingEntries.removeFirst()
+            activeTimelineEntry = entry
             currentBeat += 1
             switch entry.side {
             case .player:
@@ -2651,10 +2687,13 @@ final class BattleEngine {
                 activeStepIndex = nil
                 try? await Task.sleep(for: .milliseconds(BattleBeat.foeLeadIn))
                 if await foeActs(index: index, moveIndex: entry.chainIndex) { return }
+                completedEnemyActions.insert(entry.scheduleKey)
                 if !hasLivingFoes { finishVictory(); return }
             }
+            activeTimelineEntry = nil
             await sinkTheFallen()
         }
+        activeTimelineEntry = nil
         phase = .resolving
         if !endingTurn {
             activeStepIndex = nil
@@ -3883,6 +3922,7 @@ final class BattleEngine {
         guard already < Timing.maxDelayPerEnemy, deferredEnemyMoves[foeID] == nil else { return }
         deferredEnemyMoves[foeID] = announced
         foeDelays[foeID] = already + 1
+        pendingEntries.removeAll { !$0.isPlayer && $0.sourceID == foeID && $0.chainIndex == 0 }
         addFloat("Delayed to next turn", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
@@ -4700,6 +4740,8 @@ final class BattleEngine {
         rollingSlotIDs = []
         preparedFocusUsed = []
         pendingEntries = []
+        activeTimelineEntry = nil
+        completedEnemyActions = []
 
         foeDelays = [:]
         currentBeat = 0
@@ -4855,8 +4897,8 @@ final class BattleEngine {
         return (combo, members)
     }
 
-    /// Groups played faces into steps. Combos come only from welds you made
-    /// yourself; everything else resolves as the single die it is.
+    /// Group adjacent matching dice into actions, preserving the tap order
+    /// across different face families throughout the queued turn.
     func buildPlan(from faces: [RolledFace]) -> [PlanStep] {
         var runs: [[RolledFace]] = []
         var usedDice: Set<UUID> = []

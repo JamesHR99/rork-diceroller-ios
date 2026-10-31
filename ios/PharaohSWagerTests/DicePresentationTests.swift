@@ -7,13 +7,28 @@ struct DicePresentationTests {
     @Test(arguments: [1, 2, 4, 5, 6, 8, 12])
     func rollStopsStayOrderedAndBounded(count: Int) {
         let stops = (0..<count).map { DiceRollTiming.stopTime(index: $0, count: count) }
-        #expect(stops.first == 0.82)
-        #expect((stops.last ?? 0) <= 1.78 + 0.000001)
+        #expect(stops.first == 0.92)
+        #expect((stops.last ?? 0) <= 2.12 + 0.000001)
         for (previous, next) in zip(stops, stops.dropFirst()) {
             #expect(next > previous)
-            #expect(next - previous <= 0.16 + 0.000001)
+            #expect(next - previous <= 0.20 + 0.000001)
         }
-        if count <= 6 { #expect((stops.last ?? 0) <= 1.62 + 0.000001) }
+        if count <= 6 { #expect((stops.last ?? 0) <= 1.92 + 0.000001) }
+    }
+
+    @Test(arguments: [CGSize(width: 660, height: 320), CGSize(width: 752, height: 354),
+                      CGSize(width: 844, height: 369), CGSize(width: 1024, height: 720)])
+    func featuredConsoleFitsAllNineEnemyMoves(size: CGSize) {
+        for count in 0...9 {
+            let metrics = BattleConsoleMetrics(size: size, enemyActions: count)
+            #expect(metrics.columns * metrics.rows >= count)
+            #expect(metrics.width <= size.width)
+            #expect(metrics.reelSize >= 60)
+            // Health 32, reel bed 16, gaps 12, insets 16. Controls share
+            // the action row; the 47-point top strip stays separate.
+            #expect(metrics.reelSize + metrics.orderHeight + 76 <= size.height - 47 + 0.001)
+            #expect(metrics.reelSize * 6 + 30 + 40 <= metrics.width + 0.001)
+        }
     }
 
     @Test(arguments: [1, 4, 6, 12])

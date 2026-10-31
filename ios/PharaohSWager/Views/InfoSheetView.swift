@@ -273,7 +273,7 @@ struct InfoSheetView: View {
                     .font(.system(size: 13, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.sunGold)
             }
-            Text("Matching dice can be grouped into one action. Build a group, play it immediately, and discovered chains are written here for good.")
+            Text("Adjacent matching dice form one action. Queue your actions, then press End Turn to play them in order. Discovered chains are written here for good.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -685,21 +685,21 @@ struct InfoSheetView: View {
                 icon: "link", tint: Theme.ember, title: "COMBOS AND SINGLES",
                 lines: [
                     "Every die can be used once. Combine 1–6 identical faces; Arrow I and Arrow II are separate.",
-                    "Adjacent matching faces combine immediately. Different faces split the run. Drag dice to reorder; minus returns the last die.",
+                    "Matching faces queued together combine. Different faces start the next action. Tap a queued die to remove it; add dice in the order you want to play.",
                     "Keep spare dice useful: Twin Shot and a separate Block give you damage and defence in the same round.",
                     "Native crit multiplier: 1 + 0.5 × critical dice / group size. No second critical roll.",
                     "New recipes are recorded in your codex when discovered."
                 ]
             )
             ruleCard(
-                icon: "dice.fill", tint: Theme.gold, title: "DRAW FIVE · SPEND 3 RESOLVE",
+                icon: "dice.fill", tint: Theme.gold, title: "DRAW \(BattleRules.handSize) · SPEND 3 RESOLVE",
                 lines: [
-                    "Start with ten class-specific dice. Draw five from the bag each turn.",
+                    "Start with ten class-specific dice. Draw \(BattleRules.handSize) from the bag each turn.",
                     "You have 3 Resolve each turn. A 1–2 die action costs 1, a 3–4 die action costs 2, and a 5–6 die action costs 3.",
-                    "Build and play one action at a time. It resolves immediately, so you can reassess before spending more Resolve.",
+                    "Queue actions from your hand in tap order. Press End Turn to play the entire plan before enemies act.",
                     "You begin each turn with one selective reroll. Tap Reroll, then choose an unplayed die.",
                     "Enemies do not interrupt your actions. They execute their telegraphed intent only when you press End Turn.",
-                    "At End Turn, every remaining die in hand discards. Draw five next turn; when the draw bag is empty, shuffle the discard pile back in."
+                    "At End Turn, every remaining die in hand discards. Draw \(BattleRules.handSize) next turn; when the draw bag is empty, shuffle the discard pile back in."
                 ]
             )
             ruleCard(

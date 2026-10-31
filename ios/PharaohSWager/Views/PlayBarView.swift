@@ -1,22 +1,17 @@
 import SwiftUI
 
-/// Compact controls for the always-visible battle hand. The old planning bar
-/// is deliberately gone: dice themselves are the selection UI.
+/// Secondary controls beneath the featured hand, with 44-point touch targets.
 struct PlayBarView: View {
     let engine: BattleEngine
     var bodyHeight: CGFloat = 108
 
     private var compact: Bool { bodyHeight < 100 }
-    private var controlHeight: CGFloat { compact ? 46 : 54 }
-    private var rerollWidth: CGFloat { compact ? 42 : 62 }
-    private var primaryWidth: CGFloat { compact ? 56 : 92 }
+    private var controlHeight: CGFloat { compact ? 44 : 54 }
+    private var rerollWidth: CGFloat { compact ? 88 : 62 }
+    private var primaryWidth: CGFloat { compact ? 96 : 124 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
-    private var outOfResolve: Bool { engine.resolveRemaining == 0 }
-    private var shouldEndTurn: Bool { !hasSelection || outOfResolve }
-    private var primaryEnabled: Bool {
-        shouldEndTurn ? engine.canEndTurn : engine.canCommit
-    }
+    private var primaryEnabled: Bool { engine.canEndTurn }
 
     var body: some View {
         HStack(spacing: compact ? 3 : 8) {
@@ -32,15 +27,16 @@ struct PlayBarView: View {
             Haptics.light()
             Audio.shared.play(.uiTap)
         } label: {
-            VStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Image(systemName: engine.selectingReroll ? "xmark" : "arrow.triangle.2.circlepath")
                     .font(.system(size: compact ? 14 : 17, weight: .black))
-                Text(engine.selectingReroll ? "CANCEL" : "REROLL")
-                    .font(.system(size: 10, weight: .black))
-                    .kerning(0.8)
-                if !engine.selectingReroll {
-                    Text(engine.rerollChargeText)
-                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                VStack(spacing: 1) {
+                    Text(engine.selectingReroll ? "CANCEL" : "REROLL")
+                        .font(.system(size: 9, weight: .black))
+                    if !engine.selectingReroll {
+                        Text(engine.rerollChargeText + " left")
+                            .font(.system(size: 8, weight: .bold).monospacedDigit())
+                    }
                 }
             }
             .foregroundStyle(engine.selectingReroll ? Theme.frost : Theme.gold)
@@ -62,54 +58,41 @@ struct PlayBarView: View {
 
     private var primaryButton: some View {
         Button {
-            if shouldEndTurn {
-                engine.endPlayerTurn()
-            } else {
-                engine.beginCommit()
-            }
+            engine.endPlayerTurn()
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            Group {
-                if compact {
-                    VStack(spacing: 1) {
-                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
-                            .font(.system(size: 13, weight: .black))
-                        Text(shouldEndTurn ? "END TURN" : "PLAY")
-                            .font(.fantasy(10, weight: .black))
-                            .kerning(0.7)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
-                            .font(.system(size: 15, weight: .black))
-                        Text(shouldEndTurn ? "END TURN" : "PLAY")
-                            .font(.fantasy(17, weight: .black))
-                            .kerning(1.4)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                    }
+            VStack(spacing: 3) {
+                HStack(spacing: 5) {
+                    Image(systemName: "play.fill")
+                    Text("END TURN")
+                        .font(.fantasy(compact ? 12 : 14, weight: .black))
                 }
+                Text(hasSelection ? "\(engine.plannedResolveCost)/\(engine.resolveRemaining) RESOLVE" : "PASS")
+                    .font(.system(size: compact ? 9 : 10, weight: .bold))
+                    .foregroundStyle(engine.plannedResolveCost > engine.resolveRemaining ? Theme.ember : Theme.parchmentDim)
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundStyle(primaryEnabled ? Theme.parchment : Theme.parchmentDim)
             .frame(width: primaryWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
-                    tone: shouldEndTurn ? .secondary : .primary,
-                    state: primaryEnabled ? (shouldEndTurn ? .normal : .highlighted) : .disabled,
-                    rim: shouldEndTurn ? Theme.frost : Theme.gold,
+                    tone: hasSelection ? .primary : .secondary,
+                    state: primaryEnabled ? (hasSelection ? .highlighted : .normal) : .disabled,
+                    rim: hasSelection ? Theme.gold : Theme.frost,
                     cornerRadius: 14,
-                    emphasis: !shouldEndTurn && primaryEnabled ? 1 : 0
+                    emphasis: hasSelection && primaryEnabled ? 1 : 0
                 )
             }
             .goldCorners(size: 15, inset: 3, opacity: primaryEnabled ? 0.8 : 0.28)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!primaryEnabled)
-        .accessibilityIdentifier(shouldEndTurn ? "battle.endTurn" : "battle.commit")
-        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: shouldEndTurn)
+        .accessibilityIdentifier("battle.endTurn")
+        .accessibilityHint(engine.plannedResolveCost > engine.resolveRemaining ? "Over Resolve budget. Remove dice to end your turn." :
+            hasSelection ? "Play every queued action in order, then enemies act" : "Pass to the announced enemy actions")
+        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: hasSelection)
     }
 }
 

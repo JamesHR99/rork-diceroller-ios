@@ -1,5 +1,87 @@
 import SwiftUI
 
+/// The hand is the hero during decisions. It floats over, rather than
+/// compressing, the battle stage and shares no width with the action buttons.
+struct BattlePlanningConsole: View {
+    let engine: BattleEngine
+    let size: CGSize
+
+    var body: some View {
+        let metrics = BattleConsoleMetrics(size: size, enemyActions: engine.enemyActionOrder.count,
+                                           diceCount: engine.slots.count)
+        VStack(spacing: 6) {
+            BattleHealthRail(engine: engine)
+                .frame(height: 32)
+            VStack(spacing: 6) {
+                DiceTrayView(engine: engine, maxReelHeight: metrics.reelSize,
+                             maxRowWidth: metrics.width - 20, compact: true, featured: true)
+                BattleDecisionPanel(engine: engine, columns: metrics.columns, showsControls: true)
+                    .frame(height: metrics.orderHeight)
+            }
+            .padding(8)
+            .background { TurnOrderPlaque(accent: engine.isRolling ? Theme.gold : Theme.frost) }
+        }
+        .frame(width: metrics.width)
+        .shadow(color: .black.opacity(0.7), radius: 24, y: 10)
+        .disabled(!engine.rerollChargeFlights.isEmpty)
+        .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
+            GeometryReader { proxy in
+                if !engine.rerollChargeFlights.isEmpty, let target = anchors["reroll"] {
+                    RerollChargeFlight(
+                        sources: engine.rerollChargeFlights.compactMap { anchors[$0.uuidString].map { proxy[$0] } },
+                        destination: proxy[target])
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+/// Dedicated planning HUD above the dice, so the overlay can never cover HP.
+struct BattleHealthRail: View {
+    let engine: BattleEngine
+
+    var body: some View {
+        HStack(spacing: 8) {
+            health(name: "YOU · GUARD \(engine.playerShield)", hp: engine.playerHP,
+                   maxHP: engine.playerMaxHP, tint: Theme.frost, identifier: "player")
+            ForEach(engine.livingFoes) { foe in
+                health(name: foe.displayName, hp: foe.hp, maxHP: foe.def.maxHP,
+                       tint: Theme.blood, identifier: foe.id.uuidString)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Theme.bg.opacity(0.97), in: .rect(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.gold.opacity(0.4)))
+    }
+
+    private func health(name: String, hp: Int, maxHP: Int, tint: Color, identifier: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 4) {
+                Text(name.uppercased())
+                    .font(.system(size: 9, weight: .black))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text("\(hp)/\(maxHP)")
+                    .font(.system(size: 11, weight: .black).monospacedDigit())
+                    .fixedSize()
+            }
+            .foregroundStyle(Theme.parchment)
+            GeometryReader { bar in
+                Capsule().fill(tint.opacity(0.2))
+                Capsule().fill(tint)
+                    .frame(width: bar.size.width * min(1, max(0, CGFloat(hp) / CGFloat(max(1, maxHP)))))
+            }
+            .frame(height: 4)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(name). Health \(hp) of \(maxHP)")
+        .accessibilityIdentifier("battle.health.\(identifier)")
+    }
+}
+
 /// The deck of the barque and the water around it: you on the left, the thing
 /// that came out of the river on the right, and the dice deck sliding up over
 /// the whole lower half while you plan the turn.
@@ -15,26 +97,21 @@ struct BattleView: View {
     }
 }
 
-private struct BattleContentView: View {
+struct BattleContentView: View {
     let engine: BattleEngine
     @Environment(GameManager.self) private var game
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showInfo = false
     @State private var showBoons = false
-    @State private var arrivalShown = true
+    @State var arrivalShown = true
 
     private var gate: Gate { game.gate }
 
-    /// Keep the combat hand on-screen throughout the round. Resolution and
-    /// enemy animations play above it instead of making the whole interface
-    /// disappear and reappear between actions.
+    /// Planning deliberately covers the stage; committing gives it back to
+    /// the fighters. Keep the console only long enough for charge flights.
     private var deckUp: Bool {
-        switch engine.phase {
-        case .won, .lost:
-            return false
-        default:
-            return true
-        }
+        !arrivalShown && !engine.trialPromptVisible &&
+            (engine.phase == .player || !engine.rerollChargeFlights.isEmpty)
     }
 
     var body: some View {
@@ -43,7 +120,7 @@ private struct BattleContentView: View {
 
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
-                    topStrip
+                    topStrip(compact: size.width < 850)
 
                     // The battlefield always receives the full remaining
                     // screen. The combat console is a true overlay on the
@@ -51,10 +128,23 @@ private struct BattleContentView: View {
                     // fighters upward.
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityHidden(deckUp)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 
-                diceDeck(size: size)
+                if deckUp {
+                    Color.black.opacity(0.38)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+
+                BattlePlanningConsole(engine: engine, size: size)
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .padding(.top, 47)
+                    .offset(y: deckUp || reduceMotion ? 0 : size.height + 40)
+                    .opacity(deckUp ? 1 : 0)
+                    .allowsHitTesting(deckUp)
+                    .accessibilityHidden(!deckUp)
             }
             // The river is painted behind the arena rather than stacked inside
             // it. As a background it cannot drive the layout — held as a child
@@ -109,13 +199,12 @@ private struct BattleContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: engine.trialPromptVisible)
-        .overlay {
-            // The engine already totals every resolving action into a spotlight.
-            // Keep it in the middle of the arena so damage, combo names and
-            // statuses are readable while the fighters and dice remain visible.
+        .overlay(alignment: .bottom) {
+            // A low caption names the action without masking its animation.
             if let spotlight = engine.spotlight {
-                ActionSpotlightView(card: spotlight)
-                    .padding(.horizontal, 90)
+                ActionSpotlightView(card: spotlight, compact: true)
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 6)
                     .zIndex(8)
                     .transition(.scale(scale: 0.94).combined(with: .opacity))
             }
@@ -183,100 +272,6 @@ private struct BattleContentView: View {
         }
     }
 
-    // MARK: - Dice deck
-
-    private func actionTrayHeight(for size: CGSize) -> CGFloat {
-        // The controls now float over the barque rather than reserving layout
-        // space. On phones that lets the hand become a larger two-tier console:
-        // dice/roll above, Resolve + Reroll + Play below.
-        if size.width < 600 {
-            return min(154, max(134, size.height * 0.195))
-        }
-        return min(126, max(108, size.height * 0.16))
-    }
-
-    @ViewBuilder
-    private func diceDeck(size: CGSize) -> some View {
-        let trayHeight = actionTrayHeight(for: size)
-        let phone = size.width < 600
-        let wideResolveWidth: CGFloat = 86
-        let wideControlsWidth: CGFloat = 222
-        let wideOuterPadding: CGFloat = 14
-        let wideSpacing: CGFloat = 12
-        let wideDiceWidth = max(
-            300,
-            size.width - wideResolveWidth - wideControlsWidth
-                - (wideOuterPadding * 2) - (wideSpacing * 2)
-        )
-
-        Group {
-            if phone {
-                VStack(spacing: 4) {
-                    // Give the six-die hand almost the whole phone width. With
-                    // no manual roll control, every lane is now a physical die.
-                    DiceTrayView(
-                        engine: engine,
-                        maxReelHeight: 78,
-                        maxRowWidth: max(300, size.width - 4),
-                        compact: true
-                    )
-                    .frame(maxWidth: .infinity)
-
-                    HStack(spacing: 8) {
-                        ResolveMedallionView(engine: engine, diameter: 38)
-
-                        Spacer(minLength: 6)
-
-                        PlayBarView(engine: engine, bodyHeight: 72)
-                    }
-                    .padding(.horizontal, 12)
-                }
-                .padding(.top, 5)
-                .padding(.bottom, 7)
-            } else {
-                HStack(spacing: wideSpacing) {
-                    ResolveMedallionView(engine: engine, diameter: wideResolveWidth)
-                        .frame(width: wideResolveWidth)
-
-                    DiceTrayView(
-                        engine: engine,
-                        maxReelHeight: 94,
-                        maxRowWidth: wideDiceWidth,
-                        compact: true
-                    )
-                    .frame(maxWidth: wideDiceWidth)
-
-                    PlayBarView(engine: engine, bodyHeight: 112)
-                        .frame(width: wideControlsWidth)
-                }
-                .padding(.horizontal, wideOuterPadding)
-                .padding(.vertical, 8)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: trayHeight, alignment: .bottom)
-        .disabled(!engine.rerollChargeFlights.isEmpty)
-        .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
-            GeometryReader { proxy in
-                if !engine.rerollChargeFlights.isEmpty, let target = anchors["reroll"] {
-                    RerollChargeFlight(
-                        sources: engine.rerollChargeFlights.compactMap { anchors[$0.uuidString].map { proxy[$0] } },
-                        destination: proxy[target]
-                    )
-                }
-            }
-            .allowsHitTesting(false)
-        }
-        .background {
-            DeckShelfBackground(armed: engine.selectingReroll)
-                .ignoresSafeArea(edges: .bottom)
-        }
-        .offset(y: deckUp ? 0 : trayHeight + 28)
-        .opacity(deckUp ? 1 : 0)
-        .allowsHitTesting(deckUp)
-        .accessibilityHidden(!deckUp)
-    }
-
     // MARK: - Stage
 
     /// How tall an ordinary fighter stands, measured off the room the arena
@@ -285,10 +280,10 @@ private struct BattleContentView: View {
     /// serpent-lord is drawn taller again, so the tallest fighter on the deck
     /// sets the measure for everyone.
     private func fighterHeight(_ room: CGFloat, hasIntent: Bool = false) -> CGFloat {
-        let chrome: CGFloat = hasIntent ? 106 : 84
+        let chrome: CGFloat = 58
         let tallest: CGFloat = engine.stagedFoes.contains { $0.def.isBoss } ? 1.16 : 1
         let free = room - chrome
-        return min(272, max(126, free / (1.02 * tallest)))
+        return min(240, max(44, free / (1.06 * tallest)))
     }
 
     /// The fight itself, uncovered once the deck goes down: full-size figures
@@ -303,15 +298,10 @@ private struct BattleContentView: View {
             // the rail itself; this value follows the broad central planks.
             let deckInset: CGFloat = 24
             let combatWidth = max(280, stage.size.width - deckInset * 2)
-            // Landscape iPhones are wider than 600pt, so width alone cannot
-            // identify the compact screen shown in play. Use the short side to
-            // reserve the full dice-console depth and keep both fighters above it.
-            let isCompactPhone = min(size.width, size.height) < 500
-            let trayClearance: CGFloat = isCompactPhone ? 92 : 26
-            let deckLift: CGFloat = isCompactPhone
-                ? min(154, max(126, boatWidth * 0.065 + trayClearance))
-                : min(98, max(62, boatWidth * 0.065 + trayClearance))
-            let fighterRoom = max(150, room - deckLift)
+            // Never shrink the cast to accommodate planning controls. Their
+            // feet stay on the deck whether the console is up or down.
+            let deckLift: CGFloat = min(54, room * 0.15)
+            let fighterRoom = max(90, room - deckLift)
             // A crowd takes more of the deck than a single guardian, but the
             // demigod always keeps a readable share of it.
             let playerWidth = max(112, combatWidth * (foeCount >= 3 ? 0.25 : 0.35))
@@ -373,7 +363,7 @@ private struct BattleContentView: View {
     /// stand quiet — no aiming happens during planning.
     private func enemyGroup(room: CGFloat, width: CGFloat) -> some View {
         let foes = engine.stagedFoes
-        let scale: CGFloat = foes.count >= 3 ? 0.7 : (foes.count == 2 ? 0.86 : 1)
+        let scale: CGFloat = foes.count >= 3 ? 0.84 : (foes.count == 2 ? 0.94 : 1)
         // The pack is cut to the room the deck actually has. Three cards at a
         // fixed width overran an iPhone and pushed the last foe off-screen, so
         // the share is measured and the figures squeeze to fit it.
@@ -400,74 +390,35 @@ private struct BattleContentView: View {
         .animation(.easeInOut(duration: 0.4), value: foes.count)
     }
 
-    /// Multi-enemy fights still need a targeting moment, but this pass keeps it
-    /// deliberately free of combo names, damage previews and effect text.
+    /// A low targeting caption leaves the enlarged enemies unobstructed.
     private func aimPrompt(_ aim: AimRequest) -> some View {
-        VStack(spacing: 8) {
-            Text("CHOOSE A TARGET")
-                .font(.fantasy(18, weight: .black))
-                .kerning(1.8)
-                .foregroundStyle(Theme.gold)
-
-            if !aim.faces.isEmpty {
-                HStack(spacing: 5) {
-                    ForEach(Array(aim.faces.prefix(5).enumerated()), id: \.offset) { _, face in
-                        PharaohSWagerSymbol(
-                            art: face.artName,
-                            fallback: face.symbol,
-                            size: 22,
-                            tint: face.tint
-                        )
-                        .frame(width: 28, height: 26)
-                        .background(Theme.bg.opacity(0.55), in: .rect(cornerRadius: 7))
-                    }
-                }
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("TAP AN ENEMY\(engine.aimQueue.count > 1 ? " · \(engine.aimQueue.count) TARGETS LEFT" : "")")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(Theme.gold)
+                Text("\(aim.title) · \(aim.detail)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.parchment)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text("Your whole action lands before enemies.")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.frost)
             }
-
-            HStack(spacing: 10) {
-                Text("TAP AN ENEMY")
-                    .font(.system(size: 9.5, weight: .black))
-                    .kerning(1.4)
-                    .foregroundStyle(Theme.parchmentDim)
-
-                if engine.aimQueue.count > 1 {
-                    Text("\(engine.aimQueue.count) LEFT")
-                        .font(.system(size: 9, weight: .black))
-                        .kerning(1)
-                        .foregroundStyle(Theme.bg)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(Theme.gold, in: .capsule)
-                }
-
-                Button {
-                    engine.cancelAiming()
-                } label: {
-                    Text("BACK")
-                        .font(.system(size: 9.5, weight: .black))
-                        .kerning(1.2)
-                        .foregroundStyle(Theme.parchment)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 5)
-                        .background(Theme.bgElevated, in: .capsule)
-                        .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.4), lineWidth: 1))
-                }
+            Spacer(minLength: 0)
+            Button("BACK") { engine.cancelAiming() }
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(Theme.parchment)
+                .frame(width: 60, height: 44)
+                .background(Theme.bgElevated, in: .capsule)
+                .overlay(Capsule().strokeBorder(Theme.gold.opacity(0.4)))
                 .buttonStyle(PressableButtonStyle())
-            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 13)
-        .background {
-            PapyrusSurface(ground: .panel, tint: Theme.bgElevated, strength: 0.55, shade: 0.44)
-                .clipShape(.rect(cornerRadius: 18))
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Theme.gold.opacity(0.55), lineWidth: 1.2)
-        )
-        .goldCorners(size: 18, inset: 4, opacity: 0.6)
-        .shadow(color: .black.opacity(0.7), radius: 16, y: 6)
-        .padding(.bottom, 18)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background { TurnOrderPlaque() }
+        .padding(.bottom, 6)
         .padding(.horizontal, 14)
     }
 
@@ -476,10 +427,10 @@ private struct BattleContentView: View {
     /// The run's heading: the turn count, the chisels riding this run, the
     /// night dial and the codex. Everything here got a size up now that the
     /// dice have their own deck and the top of the screen is free.
-    private var topStrip: some View {
+    private func topStrip(compact: Bool) -> some View {
         HStack(spacing: 10) {
             HStack(spacing: 4) {
-                Text("TURN")
+                Text("ROUND")
                     .font(.system(size: 9, weight: .black))
                     .kerning(1.2)
                     .foregroundStyle(Theme.parchmentDim)
@@ -516,11 +467,15 @@ private struct BattleContentView: View {
                 ))
             }
 
-            // No running narration here: the damage numbers, the action
-            // spotlight and the floating text already say what just happened.
             Spacer(minLength: 4)
 
-            NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            BattlePhaseLabel(engine: engine)
+
+            Spacer(minLength: 4)
+
+            if !compact {
+                NightDialView(currentHour: game.currentHour, hoursCleared: game.hoursCleared, compact: true)
+            }
 
             Button {
                 showInfo = true
@@ -814,41 +769,3 @@ private struct BattleContentView: View {
         .animation(.easeInOut(duration: 0.4), value: engine.phase)
     }
 }
-
-/// The ground the dice deck rides on: a slab of dark papyrus with a carved
-/// gold lip along its top edge, so the deck reads as a shelf being pushed up
-/// over the boards rather than a card floating in the air.
-private struct DeckShelfBackground: View {
-    let armed: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            PapyrusSurface(ground: .panel, tint: Theme.bgElevated, strength: 0.5, shade: 0.5)
-                .clipShape(.rect(topLeadingRadius: 26, topTrailingRadius: 26))
-
-            LinearGradient(
-                colors: [Theme.bg.opacity(0.0), Theme.bg.opacity(0.55)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .clipShape(.rect(topLeadingRadius: 26, topTrailingRadius: 26))
-
-            VStack(spacing: 0) {
-                GoldRule(height: 7, opacity: armed ? 0.5 : 0.9)
-                    .modifier(TintWash(tint: armed ? Theme.frost : nil))
-                HieroglyphBand(tint: armed ? Theme.frost : Theme.gold, height: 9, opacity: 0.24)
-                    .padding(.horizontal, 26)
-            }
-            .padding(.top, 2)
-        }
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill((armed ? Theme.frost : Theme.gold).opacity(0.5))
-                .frame(height: 1.2)
-        }
-        .shadow(color: .black.opacity(0.7), radius: 24, y: -8)
-        .allowsHitTesting(false)
-    }
-}
-
-

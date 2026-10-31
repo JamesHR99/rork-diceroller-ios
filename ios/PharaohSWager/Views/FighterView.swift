@@ -73,20 +73,22 @@ struct FighterView: View {
 
     private var stageBody: some View {
         VStack(spacing: 4) {
-            if side == .enemy, let foe, foe.isAlive {
-                enemyIntentRow(foe)
+            // Guard has a fixed place beside the name, keeping the header
+            // stable without taking vertical space from the fighter artwork.
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    nameRow
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if side == .player {
+                        defenseBadge(value: shieldValue, label: "GUARD", tint: Theme.frost)
+                    } else if let foe, foe.armour + foe.shield > 0 {
+                        defenseBadge(value: foe.armour + foe.shield, label: "ARMOR", tint: Theme.bronze)
+                    }
+                }
+                .frame(width: barWidth, height: 22)
+                healthBar
             }
-            nameRow
-            if side == .enemy, let foe, foe.armour + foe.shield > 0 {
-                armourBar(foe, width: barWidth)
-            }
-            // The guard sits directly over health, the way armour does on a
-            // foe: a steel channel you can read the depth of at a glance,
-            // rather than a small number lost in the status row.
-            if shieldValue > 0 {
-                shieldBar(width: barWidth, height: 13)
-            }
-            healthBar
+            .frame(height: 45)
             sprite
                 .overlay(alignment: .bottom) {
                     badgeRow
@@ -102,6 +104,20 @@ struct FighterView: View {
         .overlay { verdictRing }
         .contentShape(Rectangle())
         .onTapGesture { onTap?() }
+    }
+
+    private func defenseBadge(value: Int, label: String, tint: Color) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: "shield.fill")
+            Text("\(label) \(value)").monospacedDigit()
+        }
+        .font(.system(size: 10, weight: .bold))
+        .foregroundStyle(value > 0 ? tint : Theme.parchmentDim)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 3)
+        .background(Theme.bg.opacity(0.9), in: .capsule)
+        .fixedSize()
+        .accessibilityLabel(side == .player ? "Guard \(value). Absorbs damage; expires at round end unless retained by a power." : "Armour and Guard \(value)")
     }
 
     /// While a blow is waiting to be aimed, every creature it could be sent at
