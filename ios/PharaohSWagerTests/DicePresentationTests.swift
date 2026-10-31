@@ -24,9 +24,9 @@ struct DicePresentationTests {
             #expect(metrics.columns * metrics.rows >= count)
             #expect(metrics.width <= size.width)
             #expect(metrics.reelSize >= 60)
-            // Match the live content: reel bed 16, footer 44, gaps 12,
-            // outer padding 16 and the always-visible 47-point top strip.
-            #expect(metrics.reelSize + metrics.orderHeight + 88 <= size.height - 47 + 0.001)
+            // Health 32, reel bed 16, gaps 12, insets 16. Controls share
+            // the action row; the 47-point top strip stays separate.
+            #expect(metrics.reelSize + metrics.orderHeight + 76 <= size.height - 47 + 0.001)
             #expect(metrics.reelSize * 6 + 30 + 40 <= metrics.width + 0.001)
         }
     }

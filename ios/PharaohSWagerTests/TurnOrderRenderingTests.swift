@@ -246,20 +246,25 @@ final class TurnOrderRenderingTests: XCTestCase {
         let game = GameManager()
         game.startRun(with: GameData.classes.first { $0.id == "archer" }!)
         let foe = EnemyContent.enemy(hour: 1, isHerald: false)
-        let dice = (0..<6).map { _ in Die(name: "Preview", slot: .weapon, faces: Array(repeating: .arrow1, count: 6)) }
+        let dice = [FaceKind.arrow1, .arrow1, .block, .block, .arrow2, .focus].map {
+            Die(name: "Preview", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
         let engine = BattleEngine(enemies: [foe, foe, foe], dice: dice,
             classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
         engine.rollAll(reduceMotion: true)
         while engine.isRolling { try await Task.sleep(for: .milliseconds(20)) }
-        engine.toggleActionSelection(faceID: engine.rolled[0].id)
+        for face in engine.rolled.filter({ $0.face == .arrow1 }) { engine.toggleActionSelection(faceID: face.id) }
+        engine.toggleActionSelection(faceID: try XCTUnwrap(engine.rolled.first { $0.face == .block }).id)
+        XCTAssertEqual(engine.turnPlan.count, 2)
         let view = BattleContentView(engine: engine, arrivalShown: false).environment(game)
         try await capture(view, name: "Battle-planning-large-dice", size: CGSize(width: 752, height: 354))
-        engine.beginCommit()
+        engine.endPlayerTurn()
         XCTAssertTrue(engine.isAiming)
         try await capture(view, name: "Battle-aiming-large-fighters", size: CGSize(width: 752, height: 354))
         engine.cancelAiming()
         XCTAssertEqual(engine.phase, .player)
+        XCTAssertEqual(engine.turnPlan.count, 2)
         try await capture(view, name: "Battle-return-to-combo", size: CGSize(width: 752, height: 354))
+        try await capture(view, name: "Battle-queued-health-small-phone", size: CGSize(width: 660, height: 320))
     }
 }
 

@@ -11,11 +11,7 @@ struct PlayBarView: View {
     private var primaryWidth: CGFloat { compact ? 96 : 124 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
-    private var outOfResolve: Bool { engine.resolveRemaining == 0 }
-    private var shouldEndTurn: Bool { !hasSelection || outOfResolve }
-    private var primaryEnabled: Bool {
-        shouldEndTurn ? engine.canEndTurn : engine.canCommit
-    }
+    private var primaryEnabled: Bool { engine.canEndTurn }
 
     var body: some View {
         HStack(spacing: compact ? 3 : 8) {
@@ -62,22 +58,19 @@ struct PlayBarView: View {
 
     private var primaryButton: some View {
         Button {
-            if shouldEndTurn {
-                engine.endPlayerTurn()
-            } else {
-                engine.beginCommit()
-            }
+            engine.endPlayerTurn()
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
             VStack(spacing: 3) {
                 HStack(spacing: 5) {
-                    Image(systemName: shouldEndTurn ? "hourglass.bottomhalf.filled" : "play.fill")
-                    Text(shouldEndTurn ? "END TURN" : (engine.selectionEndsTurn ? "PLAY & END" : "PLAY"))
+                    Image(systemName: "play.fill")
+                    Text("END TURN")
                         .font(.fantasy(compact ? 12 : 14, weight: .black))
                 }
-                Text(shouldEndTurn ? "ENEMIES ACT NEXT" : "\(engine.plannedResolveCost) RESOLVE")
+                Text(hasSelection ? "\(engine.plannedResolveCost)/\(engine.resolveRemaining) RESOLVE" : "PASS")
                     .font(.system(size: compact ? 9 : 10, weight: .bold))
+                    .foregroundStyle(engine.plannedResolveCost > engine.resolveRemaining ? Theme.ember : Theme.parchmentDim)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)
@@ -85,21 +78,21 @@ struct PlayBarView: View {
             .frame(width: primaryWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
-                    tone: shouldEndTurn ? .secondary : .primary,
-                    state: primaryEnabled ? (shouldEndTurn ? .normal : .highlighted) : .disabled,
-                    rim: shouldEndTurn ? Theme.frost : Theme.gold,
+                    tone: hasSelection ? .primary : .secondary,
+                    state: primaryEnabled ? (hasSelection ? .highlighted : .normal) : .disabled,
+                    rim: hasSelection ? Theme.gold : Theme.frost,
                     cornerRadius: 14,
-                    emphasis: !shouldEndTurn && primaryEnabled ? 1 : 0
+                    emphasis: hasSelection && primaryEnabled ? 1 : 0
                 )
             }
             .goldCorners(size: 15, inset: 3, opacity: primaryEnabled ? 0.8 : 0.28)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!primaryEnabled)
-        .accessibilityIdentifier(shouldEndTurn ? "battle.endTurn" : "battle.commit")
-        .accessibilityHint(shouldEndTurn ? "Hand over to the announced enemy actions" :
-            engine.selectionEndsTurn ? "Your action resolves first, then enemies act" : "Your action resolves and you can keep playing")
-        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: shouldEndTurn)
+        .accessibilityIdentifier("battle.endTurn")
+        .accessibilityHint(engine.plannedResolveCost > engine.resolveRemaining ? "Over Resolve budget. Remove dice to end your turn." :
+            hasSelection ? "Play every queued action in order, then enemies act" : "Pass to the announced enemy actions")
+        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: hasSelection)
     }
 }
 

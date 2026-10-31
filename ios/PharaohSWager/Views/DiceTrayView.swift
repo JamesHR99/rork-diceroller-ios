@@ -447,7 +447,7 @@ private struct DiceTrayReelView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if engine.playOrder.contains(face.id) && !selectingReroll {
-                    Image(systemName: "checkmark")
+                    Text(engine.queuedActionNumber(faceID: face.id).map(String.init) ?? "")
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(Theme.bg)
                         .frame(width: 16, height: 16)
@@ -520,8 +520,8 @@ private struct DiceTrayReelView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(face.matchFace.label)
-        .accessibilityValue(engine.playOrder.contains(face.id) ? "Selected" : "Not selected")
-        .accessibilityHint(engine.selectedActionFace == face.matchFace ? "Tap to add or remove this matching combo die" : "Tap to start a new action with this face")
+        .accessibilityValue(engine.queuedActionNumber(faceID: face.id).map { "Queued action \($0)" } ?? "Not queued")
+        .accessibilityHint(engine.playOrder.contains(face.id) ? "Remove this die from your turn" : "Add this die to the end of your turn")
         .draggable(face.id.uuidString)
         .onAppear {
             // The reel drops the last inch and slams into its detent.

@@ -78,54 +78,28 @@ struct BattlePhaseLabel: View {
     }
 }
 
-/// A preview of the chosen action above one shared enemy queue. Combo size
-/// changes the Resolve cost, never secretly inserts an enemy exchange.
+/// A compact, ordered player plan above the complete announced enemy queue.
 struct BattleDecisionPanel: View {
     let engine: BattleEngine
     var columns = 3
+    var showsControls = false
     @State private var inspectedAction: PlanStep?
     @State private var inspectedEnemy: TimelineEntry?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var action: PlanStep? {
-        if engine.phase == .player { return engine.selectedAction }
-        if engine.phase == .aiming || engine.activeTimelineEntry?.isPlayer == true {
-            return engine.displayedPlan.first
-        }
-        return nil
-    }
-
-    private var emptyTitle: String {
-        if engine.phase == .enemyActing { return engine.activeTimelineEntry?.title ?? "ENEMIES ACTING" }
-        if engine.phase == .resolving { return "RESOLVING ROUND" }
-        return engine.selectingReroll ? "REROLL: TAP AN UNUSED DIE" : "CHOOSE YOUR NEXT ACTION"
-    }
-
-    private var emptyDetail: String {
-        if engine.phase != .player { return engine.lastAction }
-        return "Tap matching dice to build a combo; tap selected dice to remove them."
-    }
-
-    private var handover: String {
-        guard engine.phase == .player else {
-            return engine.phase == .enemyActing ? "ENEMIES ACTING" : "RESOLVING"
-        }
-        guard let action else { return "Enemies wait for End Turn" }
-        let cost = engine.resolveCost(for: action)
-        if cost > engine.resolveRemaining { return "Not enough Resolve — select fewer dice" }
-        if engine.selectionEndsTurn { return "Acts first → enemies act next" }
-        return "Acts first → you keep \(engine.resolveRemaining - cost) Resolve"
-    }
-
     var body: some View {
         VStack(spacing: 4) {
-            preview
+            HStack(spacing: 8) {
+                preview
+                if showsControls { PlayBarView(engine: engine, bodyHeight: 44) }
+            }
+            .frame(height: showsControls ? 44 : 30)
             HStack(spacing: 6) {
-                Text("THEN ENEMIES · AFTER END TURN")
+                Text("THEN ENEMIES")
                     .font(.system(size: 9, weight: .black))
                     .foregroundStyle(Theme.ember)
                 Spacer(minLength: 0)
-                Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg before defenses")
+                Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg*")
                     .font(.system(size: 9, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Theme.parchmentDim)
             }
@@ -162,7 +136,7 @@ struct BattleDecisionPanel: View {
                 }
                 if let chisel = engine.chiselLine(for: step) { Text(chisel).foregroundStyle(Theme.ptahCopper) }
                 Divider()
-                Text("This whole action resolves before enemies. Its Resolve cost determines whether you can play again or hand over the turn.")
+                Text("Queued actions play in order when you press End Turn. All your actions finish before enemies act.")
                 Text("Damage is before target defenses. God powers and target-dependent effects resolve when played.")
                     .foregroundStyle(Theme.parchmentDim)
                 if (step.combo?.shield ?? 0) > 0 {
@@ -180,46 +154,46 @@ struct BattleDecisionPanel: View {
         }
     }
 
+    /// One numbered chip per queued action, not instructions for every tap.
     private var preview: some View {
-        HStack(spacing: 10) {
-            Button {
-                inspectedAction = action
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(action.map { "\($0.isCombo ? "COMBO" : "ACTION"): \($0.title)" }
-                             ?? emptyTitle)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Theme.parchment)
-                        if action != nil { Image(systemName: "info.circle").foregroundStyle(Theme.gold) }
+        HStack(spacing: 4) {
+            if engine.displayedPlan.isEmpty {
+                Text(engine.selectingReroll ? "REROLL" : "YOUR TURN")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Theme.frost)
+                Spacer(minLength: 0)
+                Text("\(engine.resolveRemaining) RESOLVE")
+                    .font(.system(size: 10, weight: .bold).monospacedDigit())
+                    .foregroundStyle(Theme.gold)
+            } else {
+                ForEach(Array(engine.displayedPlan.enumerated()), id: \.element.id) { index, step in
+                    Button { inspectedAction = step } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 3) {
+                                Text("\(index + 1).").foregroundStyle(Theme.frost)
+                                Text(step.title)
+                            }
+                            .font(.system(size: 10, weight: .black))
+                            Text("\(step.diceCount)× · " + engine.planDetail(for: step)
+                                .replacingOccurrences(of: "damage before defenses", with: "dmg")
+                                .replacingOccurrences(of: "Shield", with: "Guard"))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Theme.gold)
+                        }
+                        .foregroundStyle(Theme.parchment)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 5)
+                        .frame(height: 30)
+                        .background(Theme.frost.opacity(0.08), in: .rect(cornerRadius: 6))
                     }
-                    Text(action.map { engine.planDetail(for: $0).replacingOccurrences(of: "Shield", with: "Guard") }
-                         ?? emptyDetail)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Theme.parchmentDim)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Queued action \(index + 1). \(step.title). \(step.diceCount) dice. \(engine.planDetail(for: step))")
+                    .accessibilityIdentifier("battle.queuedAction.\(index + 1)")
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(action == nil)
-            .accessibilityIdentifier("battle.actionPreview")
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if let action {
-                    Text("\(action.diceCount) DICE · \(engine.resolveCost(for: action)) RESOLVE")
-                        .font(.system(size: 11, weight: .black).monospacedDigit())
-                        .foregroundStyle(engine.resolveCost(for: action) > engine.resolveRemaining ? Theme.ember : Theme.gold)
-                }
-                Text(handover)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(engine.selectionEndsTurn ? Theme.ember : Theme.frost)
-            }
-            .accessibilityIdentifier("battle.handoverPreview")
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-        .frame(height: 30)
+        .frame(maxWidth: .infinity)
     }
 
     private func enemyChip(_ entry: TimelineEntry) -> some View {

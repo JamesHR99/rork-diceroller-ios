@@ -50,11 +50,12 @@ struct BattleConsoleMetrics {
         let preferred = size.height < 500 ? max(3, (count + 1) / 2) : 3
         columns = min(count, preferred)
         rows = (count + columns - 1) / columns
-        orderHeight = 58 + CGFloat(rows) * 28 + CGFloat(max(0, rows - 1)) * 4
+        orderHeight = 74 + CGFloat(rows) * 28 + CGFloat(max(0, rows - 1)) * 4
         let dice = CGFloat(max(1, diceCount))
         let widthLimit = (width - 40 - CGFloat(max(0, diceCount - 1)) * 6) / dice
-        // Top strip 47, footer 44, bed 16, section gaps 12, outer insets 16.
-        let heightLimit = size.height - 47 - orderHeight - 44 - 16 - 12 - 16
+        // Top strip 47, health rail 32, bed 16, gaps 12, outer insets 16.
+        // Reroll/End Turn now share the action-preview row, not a large footer.
+        let heightLimit = size.height - 47 - orderHeight - 32 - 16 - 12 - 16
         reelSize = max(44, min(132, widthLimit, heightLimit))
     }
 }

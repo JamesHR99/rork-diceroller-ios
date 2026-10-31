@@ -10,40 +10,18 @@ struct BattlePlanningConsole: View {
         let metrics = BattleConsoleMetrics(size: size, enemyActions: engine.enemyActionOrder.count,
                                            diceCount: engine.slots.count)
         VStack(spacing: 6) {
-            DiceTrayView(engine: engine, maxReelHeight: metrics.reelSize,
-                         maxRowWidth: metrics.width - 20, compact: true, featured: true)
-            BattleDecisionPanel(engine: engine, columns: metrics.columns)
-                .frame(height: metrics.orderHeight)
-            HStack(spacing: 10) {
-                HStack(spacing: 5) {
-                    ForEach(0..<BattleRules.resolvePerTurn, id: \.self) { index in
-                        Image(systemName: index < engine.resolveRemaining ? "diamond.fill" : "diamond")
-                            .foregroundStyle(index < engine.resolveRemaining ? Theme.gold : Theme.parchmentDim)
-                    }
-                    Text("\(engine.resolveRemaining) RESOLVE")
-                        .fontWeight(.black)
-                }
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.parchment)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Resolve \(engine.resolveRemaining) of \(BattleRules.resolvePerTurn)")
-
-                Spacer(minLength: 0)
-                Text(engine.isRolling ? "LOCKING \(engine.lockedReelCount)/\(engine.slots.count)" :
-                    "HP \(engine.playerHP)/\(engine.playerMaxHP) · GUARD \(engine.playerShield)")
-                    .font(.system(size: 10, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.gold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 0)
-                PlayBarView(engine: engine, bodyHeight: 44)
+            BattleHealthRail(engine: engine)
+                .frame(height: 32)
+            VStack(spacing: 6) {
+                DiceTrayView(engine: engine, maxReelHeight: metrics.reelSize,
+                             maxRowWidth: metrics.width - 20, compact: true, featured: true)
+                BattleDecisionPanel(engine: engine, columns: metrics.columns, showsControls: true)
+                    .frame(height: metrics.orderHeight)
             }
-            .frame(height: 44)
-            .padding(.horizontal, 6)
+            .padding(8)
+            .background { TurnOrderPlaque(accent: engine.isRolling ? Theme.gold : Theme.frost) }
         }
-        .padding(8)
         .frame(width: metrics.width)
-        .background { TurnOrderPlaque(accent: engine.isRolling ? Theme.gold : Theme.frost) }
         .shadow(color: .black.opacity(0.7), radius: 24, y: 10)
         .disabled(!engine.rerollChargeFlights.isEmpty)
         .overlayPreferenceValue(RerollChargeAnchorKey.self) { anchors in
@@ -56,6 +34,51 @@ struct BattlePlanningConsole: View {
             }
             .allowsHitTesting(false)
         }
+    }
+}
+
+/// Dedicated planning HUD above the dice, so the overlay can never cover HP.
+struct BattleHealthRail: View {
+    let engine: BattleEngine
+
+    var body: some View {
+        HStack(spacing: 8) {
+            health(name: "YOU · GUARD \(engine.playerShield)", hp: engine.playerHP,
+                   maxHP: engine.playerMaxHP, tint: Theme.frost, identifier: "player")
+            ForEach(engine.livingFoes) { foe in
+                health(name: foe.displayName, hp: foe.hp, maxHP: foe.def.maxHP,
+                       tint: Theme.blood, identifier: foe.id.uuidString)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Theme.bg.opacity(0.97), in: .rect(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.gold.opacity(0.4)))
+    }
+
+    private func health(name: String, hp: Int, maxHP: Int, tint: Color, identifier: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 4) {
+                Text(name.uppercased())
+                    .font(.system(size: 9, weight: .black))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text("\(hp)/\(maxHP)")
+                    .font(.system(size: 11, weight: .black).monospacedDigit())
+                    .fixedSize()
+            }
+            .foregroundStyle(Theme.parchment)
+            GeometryReader { bar in
+                Capsule().fill(tint.opacity(0.2))
+                Capsule().fill(tint)
+                    .frame(width: bar.size.width * min(1, max(0, CGFloat(hp) / CGFloat(max(1, maxHP)))))
+            }
+            .frame(height: 4)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(name). Health \(hp) of \(maxHP)")
+        .accessibilityIdentifier("battle.health.\(identifier)")
     }
 }
 
@@ -105,6 +128,7 @@ struct BattleContentView: View {
                     // fighters upward.
                     battleStage(size: size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityHidden(deckUp)
                 }
                 .modifier(ShakeEffect(animatableData: engine.shakeTrigger))
 

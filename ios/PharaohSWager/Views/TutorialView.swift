@@ -144,8 +144,8 @@ struct TutorialView: View {
     private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Read the enemy intent before spending Resolve", systemImage: "eye.fill")
-            Label("Play actions now → press End Turn → enemies act", systemImage: "arrow.right.circle.fill")
-            Text("You have 3 Resolve. Build one action at a time, resolve it immediately, then decide whether to spend more or end the turn.")
+            Label("Queue your actions → End Turn → enemies act", systemImage: "arrow.right.circle.fill")
+            Text("You have 3 Resolve. Queue actions in tap order, then press End Turn to play the whole plan before enemies act.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -356,7 +356,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "roll",
                 title: "The roll",
-                body: "You begin with ten class-specific dice in one bag. Draw five each turn and roll them as they arrive.\n\nPlayed and unplayed dice go to the discard pile at End Turn. When the draw bag empties, shuffle the discard pile back in.",
+                body: "You begin with ten class-specific dice in one bag. Draw \(BattleRules.handSize) each turn and roll them as they arrive.\n\nPlayed and unplayed dice go to the discard pile at End Turn. When the draw bag empties, shuffle the discard pile back in.",
                 art: PharaohSWagerArt.interactionRoll,
                 fallbackSymbol: "dice.fill",
                 tint: Theme.gold,
@@ -374,7 +374,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "rerolls",
                 title: "Three Resolve. One reroll.",
-                body: "Each turn starts with 3 Resolve and one selective reroll. A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nTap REROLL, then an unplayed die to reroll it. Build one action, play it immediately, then decide what to do with the rest of the hand.",
+                body: "Each turn starts with 3 Resolve and one selective reroll. A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nTap REROLL, then an unplayed die to reroll it. Queue your whole turn from the hand, then press END TURN to play the actions in order.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -673,7 +673,7 @@ private struct OrderDemoView: View {
                 ? "A single die is a useful action. Try adding a matching face for a combo."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "Those dice now land together as one action. Keep another die for Block or Evade, or put Focus before the combo to boost it. A different face splits the run. Return a die or drag its icon to change the order."
+        return "Those dice now land together as one action. Add Block or Evade after it, or queue Focus before the combo to boost it. A different face starts the next action. Tap a queued die to remove it; End Turn plays the whole plan."
     }
 
     // MARK: Hand

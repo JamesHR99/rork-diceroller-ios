@@ -222,6 +222,103 @@ struct BattleLoopTests {
         #expect(engine.planDetail(for: selected).contains("\(engine.displayedDamage(for: selected)) damage"))
     }
 
+    @Test func endTurnPlaysArrowComboThenBlockBeforeEnemiesWithoutReopeningPlanning() async throws {
+        let engine = battle([.arrow1, .arrow1, .block, .focus, .arrow2, .arrow2])
+        try await roll(engine)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let block = try #require(engine.rolled.first { $0.face == .block })
+        for face in arrows + [block] { engine.toggleActionSelection(faceID: face.id) }
+        let steps = engine.turnPlan
+        #expect(steps.map(\.faces.count) == [2, 1])
+        #expect(steps.map { $0.faces[0].matchFace } == [.arrow1, .block])
+        #expect(engine.plannedResolveCost == 2)
+        #expect(engine.canCommit && engine.canEndTurn)
+        #expect(engine.phase == .player)
+        #expect(engine.enemies[0].hp == 500 && engine.playerShield == 0)
+        #expect(arrows.allSatisfy { engine.queuedActionNumber(faceID: $0.id) == 1 })
+        #expect(engine.queuedActionNumber(faceID: block.id) == 2)
+
+        let damage = engine.displayedDamage(for: steps[0])
+        let guardValue = GameData.scaleUp(try #require(steps[1].combo).shield, by: steps[1].comboScale)
+        let incoming = engine.announcedIncomingDamage
+        let expectedOrder = engine.timeline.map(\.scheduleKey)
+        engine.endPlayerTurn()
+        var seen: [String] = []
+        var sawEnemy = false
+        let deadline = ContinuousClock().now.advanced(by: .seconds(30))
+        while engine.turnNumber == 1 && ContinuousClock().now < deadline {
+            #expect(engine.phase != .player)
+            if let entry = engine.activeTimelineEntry, seen.last != entry.scheduleKey {
+                seen.append(entry.scheduleKey)
+                if !entry.isPlayer, !sawEnemy {
+                    sawEnemy = true
+                    #expect(engine.enemies[0].hp == 500 - damage)
+                    #expect(engine.playerShield == guardValue)
+                }
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(seen == expectedOrder)
+        #expect(sawEnemy)
+        #expect(engine.turnNumber == 2)
+        #expect(engine.playerHP == 100 - max(0, incoming - guardValue))
+        #expect(engine.resolveRemaining == BattleRules.resolvePerTurn)
+    }
+
+    @Test func overBudgetQueueCannotCommitAndRemovingDiceRebuildsCombos() async throws {
+        let engine = battle([.arrow1, .block, .arrow1, .block])
+        try await roll(engine)
+        let arrows = engine.rolled.filter { $0.face == .arrow1 }
+        let blocks = engine.rolled.filter { $0.face == .block }
+        for face in [arrows[0], blocks[0], arrows[1]] { engine.toggleActionSelection(faceID: face.id) }
+        #expect(engine.plannedResolveCost == 3)
+        #expect(engine.phase == .player) // A full budget still waits for End Turn.
+        engine.toggleActionSelection(faceID: blocks[1].id)
+        #expect(engine.turnPlan.count == 4)
+        #expect(engine.plannedResolveCost == 4)
+        #expect(!engine.canCommit && !engine.canEndTurn)
+        engine.endPlayerTurn()
+        #expect(engine.phase == .player)
+        #expect(engine.resolveRemaining == 3)
+        engine.toggleActionSelection(faceID: blocks[0].id)
+        #expect(engine.turnPlan.map(\.faces.count) == [2, 1])
+        #expect(engine.plannedResolveCost == 2)
+        #expect(engine.canEndTurn)
+        #expect(engine.queuedActionNumber(faceID: arrows[1].id) == 1)
+        #expect(engine.queuedActionNumber(faceID: blocks[1].id) == 2)
+    }
+
+    @Test func cancellingQueuedTurnAimingKeepsAllActionsAndResolve() async throws {
+        let move = EnemyMove(id: "wait", name: "Wait", faces: [], weight: 1)
+        let foes = (0..<2).map { EnemyDef(id: "queue-\($0)", name: "Foe \($0)", title: "Test", maxHP: 500,
+            symbol: "circle", goldReward: 0, moves: [move]) }
+        let dice = [FaceKind.arrow1, .block, .arrow2].map { Die(name: "Queue", slot: .weapon, faces: Array(repeating: $0, count: 6)) }
+        let engine = BattleEngine(enemies: foes, dice: dice, classID: "archer", maxHP: 100, startHP: 100, critBonus: -1)
+        try await roll(engine)
+        for kind in [FaceKind.arrow1, .block, .arrow2] {
+            engine.toggleActionSelection(faceID: try #require(engine.rolled.first { $0.face == kind }).id)
+        }
+        let plan = engine.turnPlan.map(\.id)
+        engine.endPlayerTurn()
+        #expect(engine.phase == .aiming)
+        #expect(engine.aimQueue.count == 2)
+        engine.aim(at: engine.enemies[0].id)
+        #expect(engine.phase == .aiming && engine.aimQueue.count == 1)
+        engine.cancelAiming()
+        #expect(engine.turnPlan.map(\.id) == plan)
+        #expect(engine.resolveRemaining == 3)
+        engine.endPlayerTurn()
+        engine.aim(at: engine.enemies[0].id)
+        engine.aim(at: engine.enemies[1].id)
+        let deadline = ContinuousClock().now.advanced(by: .seconds(30))
+        while engine.turnNumber == 1 && ContinuousClock().now < deadline {
+            #expect(engine.phase != .player)
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(engine.turnNumber == 2)
+        #expect(engine.enemies.allSatisfy { $0.hp < 500 })
+    }
+
     @Test func spendingFinalResolveExecutesComboBeforeEnemyHandover() async throws {
         let engine = battle(Array(repeating: .arrow3, count: 6))
         try await roll(engine)
@@ -360,7 +457,7 @@ struct BattleLoopTests {
         #expect(engine.rolled.first { $0.dieID == selected.die.id }?.wasKept == false)
     }
 
-    @Test func bottomHandSelectionKeepsOneFaceFamilyAtATime() async throws {
+    @Test func bottomHandSelectionAppendsOtherFacesAndOnlyRemovesTappedDice() async throws {
         let engine = battle([.arrow1, .arrow1, .block, .evade, .focus])
         try await roll(engine)
 
@@ -373,10 +470,13 @@ struct BattleLoopTests {
         #expect(engine.turnPlan.count == 1)
 
         engine.toggleActionSelection(faceID: block.id)
-        #expect(engine.playedFaces.map(\.matchFace) == [.block])
+        #expect(engine.playedFaces.map(\.matchFace) == [.arrow1, .arrow1, .block])
+        #expect(engine.turnPlan.count == 2)
+        #expect(engine.plannedResolveCost == 2)
 
         engine.toggleActionSelection(faceID: block.id)
-        #expect(engine.playedFaces.isEmpty)
+        #expect(engine.playedFaces.map(\.matchFace) == [.arrow1, .arrow1])
+        #expect(engine.turnPlan.count == 1)
         #expect(engine.canEndTurn)
     }
 
