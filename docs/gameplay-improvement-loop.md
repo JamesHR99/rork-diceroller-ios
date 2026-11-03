@@ -106,3 +106,7 @@ This needs a save-safe staged reward, not just a second screen. Persist the won 
 
 Before keeping the change, test claiming and skipping each step; saving and resuming at both steps and during die replacement; duplicate, class and capacity constraints; and the existing save format. Then play through the herald and its rewards on a compact phone layout, recording the health spent, the chosen Chisel's impact on later decisions, and whether both rewards feel worth the extra screen.
 
+## Omen fairness follow-up
+
+Code review found two wagers advertising fixed rewards while their actual gold payout scaled with run progress. Their displayed odds, damage, and gold now derive from the same reward data used to resolve the wager. The Standing Idol now describes its random power (and possible gold fallback or slot replacement), and its power pool excludes effects the current loadout cannot use. Deterministic tests cover wager descriptions across early, middle, and late progress. A live Omen replay and the staged herald/Trial work remain outstanding.
+

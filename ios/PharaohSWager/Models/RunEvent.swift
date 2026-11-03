@@ -13,6 +13,13 @@ struct EventChoice: Identifiable, Hashable {
     let maxHPChange: Int
     /// What the choice hands over, if anything.
     let reward: EventReward
+
+    func displayedDetail(progress: Double) -> String {
+        if case .gamble(let chance, let damage) = reward {
+            return "\(Int((chance * 100).rounded()))% chance of \(EventReward.gambleGold(progress: progress)) gold, else take \(damage) damage"
+        }
+        return detail
+    }
 }
 
 /// What an omen's choice grants.
@@ -26,10 +33,12 @@ enum EventReward: Hashable {
     case imbue
     /// Roll a class-appropriate die at the current tier.
     case die
-    /// An ultra-rare omen favour: a god claims one of your dice as patron.
+    /// An omen grants a random god power, or gold if none is available.
     case patronOffer
     /// A gamble: `chance` to win the first reward, else take damage.
     case gamble(chance: Double, damage: Int)
+
+    static func gambleGold(progress: Double) -> Int { 40 + Int(progress * 50) }
 }
 
 /// A sighting on the river with a choice to make.
@@ -83,7 +92,7 @@ enum EventContent {
             id: "sunkenShrine", title: "The Sunken Shrine", symbol: "building.columns.fill",
             body: "A shrine roof breaks the surface, tilted, half-swallowed. Whatever was worshipped here has been under water for a very long time, and it still has something to give away.",
             choices: [
-                EventChoice(id: "shrine_dive", label: "Dive for the offering box", detail: "70% chance of 65 gold, else take 18 damage",
+                EventChoice(id: "shrine_dive", label: "Dive for the offering box", detail: "",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .gamble(chance: 0.7, damage: 18)),
                 EventChoice(id: "shrine_pry", label: "Pry the lintel carefully", detail: "Lose 6 health, sharpen one face's crit",
                             hpCost: 6, goldCost: 0, maxHPChange: 0, reward: .imbue),
@@ -119,7 +128,7 @@ enum EventContent {
             id: "gatekeeper", title: "The Bored Gatekeeper", symbol: "figure.fencing",
             body: "A figure with a knife and a jackal's patience stands on the bank. \"One pass. No dying. I have eleven more hours of this and I am extremely bored.\"",
             choices: [
-                EventChoice(id: "gate_spar", label: "Take the wager", detail: "55% chance of 75 gold, else take 22 damage",
+                EventChoice(id: "gate_spar", label: "Take the wager", detail: "",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .gamble(chance: 0.55, damage: 22)),
                 EventChoice(id: "gate_watch", label: "Watch how it holds the knife", detail: "Imbue one face with crit",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .imbue),
@@ -131,7 +140,7 @@ enum EventContent {
             id: "standingIdol", title: "The Standing Idol", symbol: "hand.raised.fill",
             body: "A gold-leafed god stands hip-deep in the shallows, one palm open. The river has worn everything away except the face, which is still watching, and still willing to deal.",
             choices: [
-                EventChoice(id: "idol_palm", label: "Press your palm to the gold", detail: "A god stirs and claims one of your dice",
+                EventChoice(id: "idol_palm", label: "Press your palm to the gold", detail: "Random god power, or gold if none is usable; a full slot requires a replacement",
                             hpCost: 0, goldCost: 0, maxHPChange: 0, reward: .patronOffer),
                 EventChoice(id: "idol_litany", label: "Recite the doubled litany", detail: "-25 gold, sharpen one face's crit",
                             hpCost: 0, goldCost: 25, maxHPChange: 0, reward: .imbue),

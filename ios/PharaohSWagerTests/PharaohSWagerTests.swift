@@ -13,6 +13,22 @@ import Testing
 @Suite(.serialized)
 struct PharaohSWagerTests {
 
+    @Test func omenWagersExplainTheirActualProgressScaledPayout() throws {
+        for id in ["shrine_dive", "gate_spar"] {
+            let choice = try #require(EventContent.all.flatMap(\.choices).first { $0.id == id })
+            for progress in [0.0, 0.5, 1.0] {
+                let detail = choice.displayedDetail(progress: progress)
+                #expect(detail.contains("\(EventReward.gambleGold(progress: progress)) gold"))
+                if case .gamble(let chance, let damage) = choice.reward {
+                    #expect(detail.contains("\(Int((chance * 100).rounded()))%"))
+                    #expect(detail.contains("\(damage) damage"))
+                } else { Issue.record("Expected a wager") }
+            }
+        }
+        let idol = try #require(EventContent.all.flatMap(\.choices).first { $0.id == "idol_palm" })
+        #expect(idol.displayedDetail(progress: 0).contains("god power"))
+    }
+
     private func shrineVisit() throws -> GameManager {
         let game = GameManager()
         game.startRun(with: try #require(GameData.classes.first))

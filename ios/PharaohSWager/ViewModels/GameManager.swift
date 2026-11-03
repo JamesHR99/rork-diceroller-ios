@@ -1342,11 +1342,13 @@ final class GameManager {
             // Gods no longer claim dice — an omen hands over one of their
             // powers instead, at a rarity rolled for this point in the night.
             let deity = Deity.allCases.randomElement() ?? .ra
-            let pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) }
+            let pool = GodCatalog.regulars(of: deity).filter { !owns(boon: $0.id) && usableBoon($0) }
             if let def = pool.randomElement() {
                 let rarity = BoonRarity.roll(progress: progress)
                 equip(boon: def, rarity: rarity)
-                lines.append("\(deity.name) grants \(def.name) (\(rarity.label))")
+                lines.append(pendingSelection == nil
+                    ? "\(deity.name) grants \(def.name) (\(rarity.label))"
+                    : "\(deity.name) offers \(def.name) (\(rarity.label)); choose a power to replace")
             } else {
                 let gift = 30 + Int(progress * 30)
                 gold += gift
@@ -1354,7 +1356,7 @@ final class GameManager {
             }
         case .gamble(let chance, let damage):
             if Double.random(in: 0..<1) < chance {
-                let winnings = 40 + Int(progress * 50)
+                let winnings = EventReward.gambleGold(progress: progress)
                 gold += winnings
                 lines.append("It pays off: +\(winnings) gold")
                 Haptics.success()

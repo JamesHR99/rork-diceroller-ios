@@ -129,7 +129,7 @@ struct EventView: View {
                         .foregroundStyle(Theme.parchment)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    Text(choice.detail)
+                    Text(choice.displayedDetail(progress: game.progress))
                         .font(.system(size: 12.5))
                         .foregroundStyle(Theme.parchment.opacity(0.8))
                         .lineLimit(3)
