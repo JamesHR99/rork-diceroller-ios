@@ -78,49 +78,61 @@ struct BattlePhaseLabel: View {
     }
 }
 
-/// A compact, ordered player plan above the complete announced enemy queue.
+/// One truthful, editable schedule: blue player actions and announced enemy
+/// moves share the same numbered clock before the player presses Go.
 struct BattleDecisionPanel: View {
     let engine: BattleEngine
     var columns = 3
     var showsControls = false
     @State private var inspectedAction: PlanStep?
     @State private var inspectedEnemy: TimelineEntry?
+    @State private var timelineFrames: [String: CGRect] = [:]
+    @State private var draggingAction: UUID?
+    @State private var dragLocation: CGPoint?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 8) {
-                preview
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RESOLVE \(engine.plannedResolveCost) / \(engine.resolveRemaining)")
+                        .font(.system(size: 15, weight: .black).monospacedDigit())
+                        .foregroundStyle(engine.plannedResolveCost > engine.resolveRemaining ? Theme.ember : Theme.gold)
+                    Text("\(max(0, engine.resolveRemaining - engine.plannedResolveCost)) left · drag actions · \(engine.announcedIncomingDamage) incoming*")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.parchmentDim)
+                        .lineLimit(1).minimumScaleFactor(0.75)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if showsControls { PlayBarView(engine: engine, bodyHeight: 44) }
             }
             .frame(height: showsControls ? 44 : 30)
-            HStack(spacing: 6) {
-                Text("THEN ENEMIES")
-                    .font(.system(size: 9, weight: .black))
-                    .foregroundStyle(Theme.ember)
-                Spacer(minLength: 0)
-                Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg*")
-                    .font(.system(size: 9, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Theme.parchmentDim)
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-            .frame(height: 12)
-
-            // Row-major order, with every entry present. No scrolling and no
-            // '+ more' chip that hides the back half of a crowded round.
+            // Every action remains present. Short screens add columns rather
+            // than hiding a scrolling tail.
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: max(1, columns)), spacing: 4) {
-                ForEach(engine.enemyActionOrder, id: \.scheduleKey) { entry in
-                    enemyChip(entry)
+                ForEach(engine.timeline, id: \.scheduleKey) { entry in
+                    timelineChip(entry)
+                        .background(GeometryReader { proxy in
+                            Color.clear.preference(key: TimelineFramesKey.self,
+                                value: [entry.scheduleKey: proxy.frame(in: .named("battleTimeline"))])
+                        })
+                        .overlay {
+                            if draggingAction != nil, let point = dragLocation,
+                               timelineFrames[entry.scheduleKey]?.contains(point) == true {
+                                RoundedRectangle(cornerRadius: 8).stroke(Theme.frost, lineWidth: 2)
+                            }
+                        }
                 }
-                if engine.enemyActionOrder.isEmpty {
-                    Text("No enemy moves this round")
+                if engine.timeline.isEmpty {
+                    Text("No actions queued")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Theme.parchmentDim)
                         .frame(height: 28)
                 }
             }
-            .accessibilityIdentifier("battle.enemyOrder")
+            .coordinateSpace(name: "battleTimeline")
+            .onPreferenceChange(TimelineFramesKey.self) { timelineFrames = $0 }
+            .accessibilityIdentifier("battle.timeline")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -136,7 +148,7 @@ struct BattleDecisionPanel: View {
                 }
                 if let chisel = engine.chiselLine(for: step) { Text(chisel).foregroundStyle(Theme.ptahCopper) }
                 Divider()
-                Text("Queued actions play in order when you press End Turn. All your actions finish before enemies act.")
+                Text("This action lands on its numbered beat when you press Go. Drag it on the timeline to place it around enemy moves.")
                 Text("Damage is before target defenses. God powers and target-dependent effects resolve when played.")
                     .foregroundStyle(Theme.parchmentDim)
                 if (step.combo?.shield ?? 0) > 0 {
@@ -146,7 +158,7 @@ struct BattleDecisionPanel: View {
         }
         .sheet(item: $inspectedEnemy) { entry in
             detailSheet(title: entry.title) {
-                Text("Enemy action \(entry.beat)").foregroundStyle(Theme.ember)
+                Text("Timeline beat \(entry.beat)").foregroundStyle(Theme.ember)
                 Text(entry.detail)
                 Text("* Announced damage is before your Guard, Evade and reactive powers. Defeated enemies lose their remaining actions. Delayed opening moves return next round.")
                     .foregroundStyle(Theme.parchmentDim)
@@ -154,46 +166,79 @@ struct BattleDecisionPanel: View {
         }
     }
 
-    /// One numbered chip per queued action, not instructions for every tap.
-    private var preview: some View {
-        HStack(spacing: 4) {
-            if engine.displayedPlan.isEmpty {
-                Text(engine.selectingReroll ? "REROLL" : "YOUR TURN")
-                    .font(.system(size: 11, weight: .black))
-                    .foregroundStyle(Theme.frost)
-                Spacer(minLength: 0)
-                Text("\(engine.resolveRemaining) RESOLVE")
-                    .font(.system(size: 10, weight: .bold).monospacedDigit())
-                    .foregroundStyle(Theme.gold)
-            } else {
-                ForEach(Array(engine.displayedPlan.enumerated()), id: \.element.id) { index, step in
-                    Button { inspectedAction = step } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 3) {
-                                Text("\(index + 1).").foregroundStyle(Theme.frost)
-                                Text(step.title)
-                            }
-                            .font(.system(size: 10, weight: .black))
-                            Text("\(step.diceCount)× · " + engine.planDetail(for: step)
-                                .replacingOccurrences(of: "damage before defenses", with: "dmg")
-                                .replacingOccurrences(of: "Shield", with: "Guard"))
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Theme.gold)
-                        }
-                        .foregroundStyle(Theme.parchment)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 5)
-                        .frame(height: 30)
-                        .background(Theme.frost.opacity(0.08), in: .rect(cornerRadius: 6))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Queued action \(index + 1). \(step.title). \(step.diceCount) dice. \(engine.planDetail(for: step))")
-                    .accessibilityIdentifier("battle.queuedAction.\(index + 1)")
+    private func finishDrag(_ id: UUID, at point: CGPoint) {
+        defer { draggingAction = nil; dragLocation = nil }
+        let entries = engine.timeline
+        guard let from = entries.firstIndex(where: { $0.isPlayer && $0.sourceID == id }),
+              let target = entries.firstIndex(where: { timelineFrames[$0.scheduleKey]?.contains(point) == true }),
+              let frame = timelineFrames[entries[target].scheduleKey] else { return }
+        let insertion = target + (point.x >= frame.midX ? 1 : 0)
+        engine.moveTimelineAction(id, to: max(0, insertion - (from < insertion ? 1 : 0)))
+    }
+
+    @ViewBuilder
+    private func timelineChip(_ entry: TimelineEntry) -> some View {
+        if entry.isPlayer { playerChip(entry) } else { enemyChip(entry) }
+    }
+
+    private func playerChip(_ entry: TimelineEntry) -> some View {
+        let selected = engine.timingAction?.id == entry.sourceID
+        return Button {
+            engine.selectTimingAction(entry.sourceID)
+            if selected { inspectedAction = engine.turnPlan.first { $0.id == entry.sourceID } }
+        } label: {
+            HStack(spacing: 5) {
+                Text("\(entry.beat)")
+                    .font(.system(size: 12, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.bg)
+                    .frame(width: 20, height: 20)
+                    .background(Theme.frost, in: .circle)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(entry.title).font(.system(size: 11, weight: .bold))
+                        .minimumScaleFactor(0.5)
+                    Text(entry.detail
+                        .replacingOccurrences(of: "damage before defenses", with: "dmg")
+                        .replacingOccurrences(of: "Shield", with: "Guard"))
+                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Theme.gold)
+                        .minimumScaleFactor(0.6)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+                if let step = engine.turnPlan.first(where: { $0.id == entry.sourceID }) {
+                    Text("\(engine.resolveCost(for: step)) R")
+                        .font(.system(size: 10, weight: .black).monospacedDigit())
+                        .foregroundStyle(Theme.gold)
                 }
             }
+            .foregroundStyle(Theme.parchment)
+            .padding(.horizontal, 5)
+            .frame(height: 37)
+            .background(Theme.frost.opacity(selected ? 0.18 : 0.08), in: .rect(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.frost.opacity(selected ? 0.9 : 0.3), lineWidth: selected ? 2 : 1))
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
+        .opacity(draggingAction == entry.sourceID ? 0.55 : 1)
+        .simultaneousGesture(DragGesture(minimumDistance: 8, coordinateSpace: .named("battleTimeline"))
+            .onChanged { value in
+                guard engine.phase == .player else { return }
+                draggingAction = entry.sourceID
+                dragLocation = value.location
+            }
+            .onEnded { value in finishDrag(entry.sourceID, at: value.location) })
+        .accessibilityLabel("Your action, beat \(entry.beat). \(entry.title). \(entry.detail). \(engine.turnPlan.first(where: { $0.id == entry.sourceID }).map { "\(engine.resolveCost(for: $0)) Resolve." } ?? "")")
+        .accessibilityHint("Drag to reorder. Tap to select; tap again for details.")
+        .accessibilityAction(named: "Move earlier") {
+            if let index = engine.timeline.firstIndex(where: { $0.scheduleKey == entry.scheduleKey }) {
+                engine.moveTimelineAction(entry.sourceID, to: max(0, index - 1))
+            }
+        }
+        .accessibilityAction(named: "Move later") {
+            if let index = engine.timeline.firstIndex(where: { $0.scheduleKey == entry.scheduleKey }) {
+                engine.moveTimelineAction(entry.sourceID, to: min(engine.timeline.count - 1, index + 1))
+            }
+        }
+        .accessibilityIdentifier("battle.playerAction.\(entry.beat)")
     }
 
     private func enemyChip(_ entry: TimelineEntry) -> some View {
@@ -209,16 +254,20 @@ struct BattleDecisionPanel: View {
                     .frame(width: 20, height: 20)
                     .background(active ? Theme.ember : Theme.gold, in: .circle)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(entry.title).font(.system(size: 9, weight: .bold))
-                    Text(entry.detail).font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    Text(entry.title.components(separatedBy: " · ").last ?? entry.title)
+                        .font(.system(size: 11, weight: .bold))
+                        .minimumScaleFactor(0.7)
+                    Text("\(entry.detail.replacingOccurrences(of: " damage", with: " dmg")) · \(entry.title.components(separatedBy: " · ").first ?? "")")
+                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
                         .foregroundStyle(Theme.gold)
+                        .minimumScaleFactor(0.6)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(1)
             }
             .foregroundStyle(Theme.parchment)
             .padding(.horizontal, 5)
-            .frame(height: 28)
+            .frame(height: 37)
             .background((active ? Theme.ember : Theme.parchment).opacity(active ? 0.15 : 0.05), in: .rect(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(active ? Theme.ember : Theme.gold.opacity(0.2), lineWidth: active ? 2 : 1))
             .opacity(completed ? 0.45 : 1)
@@ -248,5 +297,12 @@ struct BattleDecisionPanel: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+private struct TimelineFramesKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
     }
 }

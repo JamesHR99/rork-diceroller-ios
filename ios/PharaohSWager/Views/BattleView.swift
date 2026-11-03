@@ -7,7 +7,7 @@ struct BattlePlanningConsole: View {
     let size: CGSize
 
     var body: some View {
-        let metrics = BattleConsoleMetrics(size: size, enemyActions: engine.enemyActionOrder.count,
+        let metrics = BattleConsoleMetrics(size: size, enemyActions: engine.timeline.count,
                                            diceCount: engine.slots.count)
         VStack(spacing: 6) {
             BattleHealthRail(engine: engine)
@@ -402,7 +402,7 @@ struct BattleContentView: View {
                     .foregroundStyle(Theme.parchment)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                Text("Your whole action lands before enemies.")
+                Text("This action lands on its numbered timeline beat.")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Theme.frost)
             }

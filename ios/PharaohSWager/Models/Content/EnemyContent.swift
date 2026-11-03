@@ -87,7 +87,7 @@ enum EnemyContent {
         moves: [
             EnemyMove(id: "scorch", name: "Scorch", faces: [.runeFire], weight: 30, damage: 18),
             EnemyMove(id: "conflagrate", name: "Conflagrate", faces: [.runeFire, .runeFire], weight: 28,
-                      comboName: "Fireball", damage: 36, bleedAmount: 6, bleedTurns: 3),
+                      comboName: "Fireball", damage: 36, bleedAmount: 6, bleedTurns: 2),
             EnemyMove(id: "emberWard", name: "Ember Ward", faces: [.block, .block], weight: 22,
                       comboName: "Arcane Shield", block: 22),
             EnemyMove(id: "draw", name: "Draw from the Lake", faces: [.runeLife], weight: 20, damage: 14, heal: 16),
@@ -101,7 +101,7 @@ enum EnemyContent {
         moves: [
             EnemyMove(id: "brand", name: "Brand", faces: [.overhead], weight: 28, damage: 22),
             EnemyMove(id: "furnace", name: "Open the Furnace", faces: [.runeFire, .runeFire], weight: 26,
-                      comboName: "Fireball", damage: 42, bleedAmount: 7, bleedTurns: 3),
+                      comboName: "Fireball", damage: 42, bleedAmount: 7, bleedTurns: 2),
             EnemyMove(id: "wall", name: "Wall of Coals", faces: [.block, .block, .block], weight: 24,
                       comboName: "Fortress", block: 32),
             EnemyMove(id: "shove", name: "Brazier Shove", faces: [.block, .sideSwing], weight: 22,
@@ -132,7 +132,7 @@ enum EnemyContent {
         maxHP: 262, symbol: "flame.fill", goldReward: 110, isBoss: true,
         moves: [
             EnemyMove(id: "molten", name: "Molten Coil", faces: [.runeFire, .runeFire, .runeFire], weight: 28,
-                      comboName: "Dragonfire", damage: 46, bleedAmount: 8, bleedTurns: 3),
+                      comboName: "Dragonfire", damage: 46, bleedAmount: 8, bleedTurns: 2),
             EnemyMove(id: "constrict", name: "Constrict", faces: [.overhead, .sideSwing], weight: 26,
                       comboName: "Cleaving Follow-Through", damage: 42),
             EnemyMove(id: "glow", name: "Scales Glow White", faces: [.block, .block], weight: 22,
@@ -155,7 +155,7 @@ enum EnemyContent {
             EnemyMove(id: "maul", name: "Maul", faces: [.overhead], weight: 28, damage: 28),
             EnemyMove(id: "gorge", name: "Gorge", faces: [.overhead, .heal], weight: 26, damage: 26, heal: 22),
             EnemyMove(id: "bile", name: "Black Bile", faces: [.poison, .poison], weight: 24,
-                      comboName: "Venom Coat", damage: 18, bleedAmount: 9, bleedTurns: 3),
+                      comboName: "Venom Coat", damage: 18, bleedAmount: 9, bleedTurns: 2),
             EnemyMove(id: "hide", name: "Thickened Hide", faces: [.block, .block], weight: 22,
                       comboName: "Bulwark", block: 30),
         ]
@@ -168,7 +168,7 @@ enum EnemyContent {
         moves: [
             EnemyMove(id: "unmake", name: "Unmake", faces: [.runeArcane], weight: 28, damage: 30),
             EnemyMove(id: "wail", name: "Wail of the Void", faces: [.runeFrost, .runeArcane], weight: 26,
-                      comboName: "Soul Wail", damage: 46, bleedAmount: 9, bleedTurns: 3),
+                      comboName: "Soul Wail", damage: 46, bleedAmount: 9, bleedTurns: 2),
             EnemyMove(id: "fade", name: "Fade from the Light", faces: [.evade, .evade], weight: 24, block: 30),
             EnemyMove(id: "drink", name: "Drink the Disc", faces: [.runeLife], weight: 22, damage: 24, heal: 26),
         ]
@@ -207,7 +207,7 @@ enum EnemyContent {
                     EnemyMove(id: "bite", name: "The Bite", faces: [.overhead, .overhead], weight: 30,
                               comboName: "Crushing Blow", damage: 50),
                     EnemyMove(id: "venom", name: "Black Venom", faces: [.poison, .poison], weight: 24,
-                              comboName: "Venom Coat", damage: 26, bleedAmount: 10, bleedTurns: 3),
+                              comboName: "Venom Coat", damage: 26, bleedAmount: 10, bleedTurns: 2),
                     EnemyMove(id: "scaleWall", name: "Scale Wall", faces: [.block, .block, .block], weight: 22,
                               comboName: "Fortress", block: 38),
                     EnemyMove(id: "lash", name: "Tail Lash", faces: [.sideSwing, .sideSwing], weight: 24,
@@ -223,7 +223,7 @@ enum EnemyContent {
                     EnemyMove(id: "crush", name: "Crush the Hull", faces: [.overhead, .sideSwing], weight: 30,
                               comboName: "Cleaving Follow-Through", damage: 56),
                     EnemyMove(id: "blind", name: "Blind the Crew", faces: [.evade, .runeFrost], weight: 26,
-                              damage: 34, bleedAmount: 8, bleedTurns: 3),
+                              damage: 34, bleedAmount: 8, bleedTurns: 2),
                     EnemyMove(id: "squeeze", name: "Squeeze", faces: [.overhead, .overhead, .overhead], weight: 22,
                               comboName: "Crushing Blow", damage: 62),
                     EnemyMove(id: "shed", name: "Shed the Wounds", faces: [.runeLife, .block], weight: 22,
@@ -237,7 +237,7 @@ enum EnemyContent {
                 arrival: "It stops fighting you. It turns toward the disc and opens.",
                 moves: [
                     EnemyMove(id: "swallow", name: "Swallow the Sun", faces: [.runeFire, .runeFire, .runeFire], weight: 32,
-                              comboName: "Dragonfire", damage: 68, bleedAmount: 12, bleedTurns: 3),
+                              comboName: "Dragonfire", damage: 68, bleedAmount: 10, bleedTurns: 2),
                     EnemyMove(id: "unmake", name: "Unmake the Morning", faces: [.runeArcane, .runeArcane], weight: 26,
                               comboName: "Arcane Storm", damage: 58),
                     EnemyMove(id: "thrash", name: "Death Thrash", faces: [.sideSwing, .sideSwing, .sideSwing], weight: 24,

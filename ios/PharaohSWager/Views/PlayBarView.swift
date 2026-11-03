@@ -4,11 +4,12 @@ import SwiftUI
 struct PlayBarView: View {
     let engine: BattleEngine
     var bodyHeight: CGFloat = 108
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var compact: Bool { bodyHeight < 100 }
     private var controlHeight: CGFloat { compact ? 44 : 54 }
-    private var rerollWidth: CGFloat { compact ? 88 : 62 }
-    private var primaryWidth: CGFloat { compact ? 96 : 124 }
+    private var rerollWidth: CGFloat { compact ? 92 : 108 }
+    private var primaryWidth: CGFloat { compact ? 72 : 96 }
 
     private var hasSelection: Bool { !engine.playedFaces.isEmpty }
     private var primaryEnabled: Bool { engine.canEndTurn }
@@ -23,36 +24,35 @@ struct PlayBarView: View {
 
     private var rerollButton: some View {
         Button {
-            engine.selectingReroll.toggle()
-            Haptics.light()
+            engine.rerollUnused(reduceMotion: reduceMotion)
+            Haptics.medium()
             Audio.shared.play(.uiTap)
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: engine.selectingReroll ? "xmark" : "arrow.triangle.2.circlepath")
+                Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: compact ? 14 : 17, weight: .black))
                 VStack(spacing: 1) {
-                    Text(engine.selectingReroll ? "CANCEL" : "REROLL")
+                    Text("ROLL REST")
                         .font(.system(size: 9, weight: .black))
-                    if !engine.selectingReroll {
-                        Text(engine.rerollChargeText + " left")
-                            .font(.system(size: 8, weight: .bold).monospacedDigit())
-                    }
+                    Text(engine.rerollChargeText + " left")
+                        .font(.system(size: 8, weight: .bold).monospacedDigit())
                 }
             }
-            .foregroundStyle(engine.selectingReroll ? Theme.frost : Theme.gold)
+            .foregroundStyle(Theme.gold)
             .frame(width: rerollWidth, height: controlHeight)
             .background {
                 DeckButtonSurface(
                     tone: .secondary,
-                    state: engine.selectingReroll ? .selected : (engine.canReroll ? .normal : .disabled),
-                    rim: engine.selectingReroll ? Theme.frost : Theme.gold,
+                    state: engine.canRerollUnused ? .normal : .disabled,
+                    rim: Theme.gold,
                     cornerRadius: 14
                 )
             }
         }
         .buttonStyle(PressableButtonStyle())
-        .disabled(!engine.canReroll && !engine.selectingReroll)
+        .disabled(!engine.canRerollUnused)
         .accessibilityIdentifier("battle.reroll")
+        .accessibilityLabel("Roll all unused dice. \(engine.rerollChargeText) pulls left")
         .anchorPreference(key: RerollChargeAnchorKey.self, value: .bounds) { ["reroll": $0] }
     }
 
@@ -62,15 +62,10 @@ struct PlayBarView: View {
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            VStack(spacing: 3) {
-                HStack(spacing: 5) {
-                    Image(systemName: "play.fill")
-                    Text("END TURN")
-                        .font(.fantasy(compact ? 12 : 14, weight: .black))
-                }
-                Text(hasSelection ? "\(engine.plannedResolveCost)/\(engine.resolveRemaining) RESOLVE" : "PASS")
-                    .font(.system(size: compact ? 9 : 10, weight: .bold))
-                    .foregroundStyle(engine.plannedResolveCost > engine.resolveRemaining ? Theme.ember : Theme.parchmentDim)
+            HStack(spacing: 5) {
+                Image(systemName: "play.fill")
+                Text(hasSelection ? "GO" : "PASS")
+                    .font(.fantasy(compact ? 12 : 14, weight: .black))
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)
@@ -91,7 +86,7 @@ struct PlayBarView: View {
         .disabled(!primaryEnabled)
         .accessibilityIdentifier("battle.endTurn")
         .accessibilityHint(engine.plannedResolveCost > engine.resolveRemaining ? "Over Resolve budget. Remove dice to end your turn." :
-            hasSelection ? "Play every queued action in order, then enemies act" : "Pass to the announced enemy actions")
+            hasSelection ? "Resolve the visible player and enemy timeline" : "Pass to the announced enemy actions")
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: hasSelection)
     }
 }

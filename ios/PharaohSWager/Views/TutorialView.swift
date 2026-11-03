@@ -1,12 +1,9 @@
 import SwiftUI
 
-/// The opening briefing: a short run of pages before the first fight, taught
-/// in the demigod's own dice.
-///
-/// The page that matters is the third one, which is not text at all — it is a
-/// live row of your own faces you can actually tap into a plan and drag
-/// around. Put the right two next to each other and the plan visibly reacts.
-/// It never names what you made: chains stay found, not taught.
+/// The opening briefing: four short, practical pages before the first fight.
+/// The player builds a real plan first, then learns the two resources, enemy
+/// intent, and how a run grows. Story and class identity already live on the
+/// title and class screens, so the briefing does not repeat them.
 struct TutorialView: View {
     @Environment(GameManager.self) private var game
 
@@ -36,8 +33,10 @@ struct TutorialView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(minHeight: 0)
 
                 footer
+                    .layoutPriority(1)
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 14)
@@ -94,35 +93,23 @@ struct TutorialView: View {
         // Scrolling rather than squeezing: a long page on a short screen keeps
         // every word reachable instead of clipping the last paragraph.
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 8) {
-                    PharaohSWagerSymbol(art: entry.art, fallback: entry.fallbackSymbol,
-                               size: 22, tint: entry.tint)
-                    Text(entry.title.uppercased())
-                        .font(.fantasy(19, weight: .black))
-                        .kerning(1.6)
-                        .foregroundStyle(entry.tint)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Text(entry.body)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.parchment.opacity(0.92))
-                    .lineSpacing(2.5)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // The live pieces: the pokable demo, and the found-count.
+            Group {
                 switch entry.kind {
-                case .plain:
-                    EmptyView()
                 case .orderDemo:
-                    OrderDemoView(hero: hero)
-                case .loreCount:
-                    loreCount
-                case .classDice:
-                    classDice
-                case .actionOrder:
-                    actionOrderBlock
+                    // Landscape is wide and short. Put the explanation beside the
+                    // live dice so the first interactive task is visible without
+                    // asking a new player to discover that this page scrolls.
+                    HStack(alignment: .top, spacing: 14) {
+                        pageIntro(entry, compact: true)
+                            .frame(maxWidth: 240, alignment: .topLeading)
+                        OrderDemoView(hero: hero)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                default:
+                    VStack(alignment: .leading, spacing: 9) {
+                        pageIntro(entry)
+                        pageSupplement(entry)
+                    }
                 }
             }
             .padding(16)
@@ -141,11 +128,43 @@ struct TutorialView: View {
         .padding(.bottom, 4)
     }
 
+    private func pageIntro(_ entry: BriefingPage, compact: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 6 : 9) {
+            HStack(spacing: 8) {
+                PharaohSWagerSymbol(art: entry.art, fallback: entry.fallbackSymbol,
+                           size: compact ? 19 : 22, tint: entry.tint)
+                Text(entry.title.uppercased())
+                    .font(.fantasy(compact ? 17 : 19, weight: .black))
+                    .kerning(1.6)
+                    .foregroundStyle(entry.tint)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text(entry.body)
+                .font(.system(size: compact ? 13 : 14, weight: .medium))
+                .foregroundStyle(Theme.parchment.opacity(0.92))
+                .lineSpacing(compact ? 1.5 : 2.5)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private func pageSupplement(_ entry: BriefingPage) -> some View {
+        switch entry.kind {
+        case .plain, .orderDemo:
+            EmptyView()
+        case .actionOrder:
+            actionOrderBlock
+        case .progression:
+            progressionBlock
+        }
+    }
+
     private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Read the enemy intent before spending Resolve", systemImage: "eye.fill")
-            Label("Queue your actions → End Turn → enemies act", systemImage: "arrow.right.circle.fill")
-            Text("You have 3 Resolve. Queue actions in tap order, then press End Turn to play the whole plan before enemies act.")
+            Label("Place actions around enemy moves → Go", systemImage: "arrow.right.circle.fill")
+            Text("You have 3 Resolve. Drag a blue action along the numbered timeline until it matches your plan.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -154,103 +173,18 @@ struct TutorialView: View {
         .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 12))
     }
 
-    /// How many chains this player has ever found, so the hunt is framed as
-    /// the long game it is.
-    private var loreCount: some View {
-        let all = GameData.combos(for: hero.id)
-        let found = ComboLore.knownCount(among: all)
-        return HStack(spacing: 12) {
-            VStack(spacing: 0) {
-                Text("\(found)")
-                    .font(.fantasy(30, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.gold)
-                Text("FOUND")
-                    .font(.system(size: 8.5, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(Theme.parchmentDim)
-            }
-            .frame(width: 70)
-
-            VStack(spacing: 0) {
-                Text("\(all.count)")
-                    .font(.fantasy(30, weight: .black).monospacedDigit())
-                    .foregroundStyle(Theme.parchmentDim)
-                Text("IN THE NIGHT")
-                    .font(.system(size: 8.5, weight: .black))
-                    .kerning(1)
-                    .foregroundStyle(Theme.parchmentDim)
-            }
-            .frame(width: 96)
-
-            Text(found == 0
-                 ? "Nothing found yet. Every one of them is still out there."
-                 : "They stay found across every run, and across every death.")
-                .font(.system(size: 12, weight: .semibold))
-                .italic()
-                .foregroundStyle(Theme.gold.opacity(0.85))
+    private var progressionBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Draft a die after fights — or Skip", systemImage: "die.face.5.fill")
+            Label("Omens and shops tune individual faces", systemImage: "hammer.fill")
+            Label("Discovered chains stay in the Codex", systemImage: "book.closed.fill")
+            Text("A larger bag offers more possibilities but draws each favourite die less often. Take rewards that serve the build you want.")
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(Theme.gold)
         .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bg.opacity(0.5), in: .rect(cornerRadius: 12))
-    }
-
-    /// The demigod's actual dice, face by face, with what each one does alone.
-    private var classDice: some View {
-        let loadout = hero.startingLoadout
-        return VStack(alignment: .leading, spacing: 8) {
-            diceBlock(title: "Starting bag · 10 class dice",
-                      die: loadout.allDice.first)
-
-            HStack(spacing: 6) {
-                PharaohSWagerIcon(name: PharaohSWagerArt.Status.stamina, size: 15)
-                Text("Draw \(BattleRules.handSize) · \(BattleRules.resolvePerTurn) Resolve · 1 selective reroll · \(hero.battleIdentity.lowercased())")
-                    .font(.system(size: 11.5, weight: .bold))
-                    .foregroundStyle(Theme.gold.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func diceBlock(title: String, die: Die?) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title.uppercased())
-                .font(.system(size: 9.5, weight: .black))
-                .kerning(1)
-                .foregroundStyle(hero.accent)
-
-            if let die {
-                // Each distinct face once, with what it does on its own.
-                let faces = uniqueFaces(die)
-                ForEach(faces, id: \.self) { face in
-                    HStack(spacing: 6) {
-                        PharaohSWagerSymbol(art: face.artName, fallback: face.symbol,
-                                   size: 17, tint: face.tint)
-                            .frame(width: 22)
-                        Text(face.label)
-                            .font(.system(size: 11.5, weight: .black))
-                            .foregroundStyle(Theme.parchment)
-                            .frame(width: 84, alignment: .leading)
-                        Text(face.soloEffect)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Theme.parchmentDim)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                }
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.bg.opacity(0.45), in: .rect(cornerRadius: 11))
-    }
-
-    private func uniqueFaces(_ die: Die) -> [FaceKind] {
-        var seen: [FaceKind] = []
-        for face in die.faces where !seen.contains(face.kind) {
-            seen.append(face.kind)
-        }
-        return seen
     }
 
     // MARK: - Footer
@@ -322,15 +256,14 @@ struct TutorialView: View {
 /// live piece of the game underneath.
 struct BriefingPage: Identifiable {
     enum Kind {
+        /// A concise rules page with no additional interactive block.
         case plain
         /// The pokable row of dice — the page that actually teaches the game.
         case orderDemo
-        /// The codex's found-count.
-        case loreCount
-        /// The demigod's own dice, face by face.
-        case classDice
-        /// Agility worked out in this demigod's own numbers.
+        /// The handover from the queued player turn to announced enemy intent.
         case actionOrder
+        /// How rewards, bag size and the persistent Codex shape later runs.
+        case progression
     }
 
     let id: String
@@ -341,31 +274,14 @@ struct BriefingPage: Identifiable {
     let tint: Color
     let kind: Kind
 
-    /// The briefing, in order, written for the demigod who will fight it.
+    /// The briefing stays deliberately short. Each page answers a decision
+    /// the player must make in the opening fight or immediately after it.
     static func pages(for hero: HeroClass) -> [BriefingPage] {
         [
             BriefingPage(
-                id: "why",
-                title: "Why you are here",
-                body: "You guard Ra's barque through the twelve hours of the night. The river runs one way, under three great gates, and everything in the water wants the sun put out.\n\nIt ends at dawn, or it ends when you go under. There is no third way off the boat.",
-                art: PharaohSWagerArt.Status.champion,
-                fallbackSymbol: "sun.max.fill",
-                tint: Theme.sunGold,
-                kind: .plain
-            ),
-            BriefingPage(
-                id: "roll",
-                title: "The roll",
-                body: "You begin with ten class-specific dice in one bag. Draw \(BattleRules.handSize) each turn and roll them as they arrive.\n\nPlayed and unplayed dice go to the discard pile at End Turn. When the draw bag empties, shuffle the discard pile back in.",
-                art: PharaohSWagerArt.interactionRoll,
-                fallbackSymbol: "dice.fill",
-                tint: Theme.gold,
-                kind: .plain
-            ),
-            BriefingPage(
                 id: "order",
-                title: "Combining is the game",
-                body: "Tap these faces into the plan. Matching neighbours join automatically, growing from two to six dice. A different face starts a new action.\n\nArrow I, Arrow I, Arrow II, Arrow I makes a pair, a single Arrow II, and a single Arrow I. Drag dice to reorder them; use minus to return a die.",
+                title: "Build your turn",
+                body: "Draw \(BattleRules.handSize) dice. Tap faces into the plan. Matching neighbours join; a different face starts the next action.\n\nTap a queued die to take it back. Separate actions alternate into the enemy timeline.",
                 art: PharaohSWagerArt.chainConnector,
                 fallbackSymbol: "arrow.left.arrow.right",
                 tint: Theme.ember,
@@ -373,8 +289,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Three Resolve. One reroll.",
-                body: "Each turn starts with 3 Resolve and one selective reroll. A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nTap REROLL, then an unplayed die to reroll it. Queue your whole turn from the hand, then press END TURN to play the actions in order.",
+                title: "Lock actions. Roll the rest.",
+                body: "A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nYou get two ROLL UNUSED pulls. Dice already queued stay locked while the rest of the hand spins again.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -382,47 +298,23 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "action-order",
-                title: "Who moves first",
-                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nEnemies show their intent before you act, but they do not interrupt your turn. Spend Resolve in any order, then press END TURN and every surviving enemy executes its announced actions.",
+                title: "Build the exact order",
+                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nYour separate actions alternate into the enemy timeline. Drag a blue action to change its position, then press GO to resolve exactly what you see.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
                 kind: .actionOrder
             ),
             BriefingPage(
-                id: "chains",
-                title: "Recipes are yours to find",
-                body: "Nothing here suggests a recipe. No list, no hint, no book.\n\nAssemble one and it names itself on the spot, tells you what it does, and is written into your codex for good — across every run, and every death.",
+                id: "progression",
+                title: "Shape the next draw",
+                body: "After a fight, draft a die or skip it to keep your bag focused. Omens, shops and gods reshape the dice you already trust.\n\nExperiment freely: every chain you discover is remembered across runs.",
                 art: PharaohSWagerArt.Status.critical,
-                fallbackSymbol: "sparkles",
+                fallbackSymbol: "point.3.connected.trianglepath.dotted",
                 tint: Theme.gold,
-                kind: .loreCount
-            ),
-            BriefingPage(
-                id: "class",
-                title: hero.name,
-                body: "\(hero.blurb)\n\n\(demigodTruth(hero))",
-                art: PharaohSWagerArt.classSigil(hero.id) ?? PharaohSWagerArt.Status.champion,
-                fallbackSymbol: hero.symbol,
-                tint: hero.accent,
-                kind: .classDice
+                kind: .progression
             ),
         ]
-    }
-
-    /// The plain truth of how this demigod wants to be played — never a recipe
-    /// and never a chain name.
-    private static func demigodTruth(_ hero: HeroClass) -> String {
-        switch hero.id {
-        case "archer":
-            "You fight at range and you trade well. Your arrows come in three weights, and the heavier ones are worth waiting for."
-        case "warrior":
-            "You are the wall. Your guard goes up early and stays up, but your swings land late and heavy — so what you start this round often finishes in the next."
-        case "rogue":
-            "You are the fastest thing on the water and the easiest to kill. You defend almost instantly, you cut in flurries, and your blades carry venom."
-        default:
-            "You have no shield face, no evade and no bandage at all. Every guard, every escape and every mend has to be spelled out of runes — which is why you have more of them than anyone."
-        }
     }
 }
 
@@ -673,7 +565,7 @@ private struct OrderDemoView: View {
                 ? "A single die is a useful action. Try adding a matching face for a combo."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "Those dice now land together as one action. Add Block or Evade after it, or queue Focus before the combo to boost it. A different face starts the next action. Tap a queued die to remove it; End Turn plays the whole plan."
+        return "Those dice now land together as one action. Add Block, Evade or Focus as another action, then place it around enemy moves. Tap a queued die to remove it; Go plays the numbered timeline."
     }
 
     // MARK: Hand

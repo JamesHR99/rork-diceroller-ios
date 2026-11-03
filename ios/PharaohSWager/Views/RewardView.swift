@@ -26,6 +26,13 @@ struct RewardView: View {
     /// up, takes its place beside the rest.
     private var offers: [Offer] { Array(game.rewardOffers.prefix(4)) }
 
+    private var selectedDraftDie: Offer? {
+        guard !isForge, deity == nil,
+              let offer = offers.first(where: { $0.id == selectedID }),
+              case .die = offer.kind else { return nil }
+        return offer
+    }
+
     /// Spoils on the bank can draw more than one god's hand.
     private var hasSeveralGods: Bool {
         Set(offers.compactMap(\.deity)).count > 1
@@ -33,11 +40,17 @@ struct RewardView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            VStack(spacing: 8) {
-                rewardHeader
-                altar
-                actions
-                    .frame(height: 48)
+            Group {
+                if game.isShrine && deity == nil {
+                    shrineChooser
+                } else {
+                    VStack(spacing: 8) {
+                        rewardHeader
+                        altar
+                        actions
+                            .frame(height: 48)
+                    }
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -56,6 +69,79 @@ struct RewardView: View {
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) { risen = true }
             withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) { shimmer = true }
+        }
+        .onChange(of: deity) { _, _ in selectedID = nil }
+    }
+
+    private var shrineChooser: some View {
+        VStack(spacing: 7) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CHOOSE A GOD")
+                        .font(.fantasy(20, weight: .bold)).foregroundStyle(Theme.gold)
+                    Text("Approach a god to see their powers. You may return and compare.")
+                        .font(.system(size: 11)).foregroundStyle(Theme.parchmentDim)
+                }
+                Spacer()
+                RunStatusBar(game: game, compact: true)
+                PauseButton()
+            }
+            GeometryReader { proxy in
+                let width = max(1, (proxy.size.width - 16) / 3)
+                let height = max(1, (proxy.size.height - 8) / 2)
+                VStack(spacing: 8) {
+                    ForEach(0..<2) { row in
+                        HStack(spacing: 8) {
+                            ForEach(Array(Deity.allCases[(row * 3)..<(row * 3 + 3)])) { god in
+                                shrineGodCard(god)
+                                    .frame(width: width, height: height)
+                            }
+                        }
+                    }
+                }
+            }
+            Button("Leave the Shrine") { game.skipReward() }
+                .font(.fantasy(13, weight: .bold))
+                .foregroundStyle(Theme.parchmentDim)
+                .frame(minHeight: 30)
+        }
+    }
+
+    private func shrineGodCard(_ god: Deity) -> some View {
+        let owned = game.boons(of: god)
+        return Button {
+            game.chooseShrineDeity(god)
+            Haptics.light()
+        } label: {
+            HStack(spacing: 8) {
+                PharaohSWagerSymbol(art: god.artName, fallback: god.symbol, size: 30, tint: god.tint)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(god.name.uppercased())
+                        .font(.fantasy(14, weight: .bold)).foregroundStyle(god.tint)
+                    Text(shrinePitch(god))
+                        .font(.system(size: 10)).foregroundStyle(Theme.parchment)
+                        .lineLimit(2).minimumScaleFactor(0.8)
+                    Text(owned.isEmpty ? "NO POWERS YET" : "\(owned.count) POWER\(owned.count == 1 ? "" : "S") EQUIPPED")
+                        .font(.system(size: 8, weight: .black)).foregroundStyle(Theme.parchmentDim)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .duatPanel(tint: god.tint, cornerRadius: 12, showsBand: false)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityIdentifier("shrine.god.\(god.rawValue)")
+    }
+
+    private func shrinePitch(_ god: Deity) -> String {
+        switch god {
+        case .ra: "Burn foes and unleash solar attacks."
+        case .sobek: "Bleed foes and turn healing into attacks."
+        case .anubis: "Build Judgement, then strike health."
+        case .bes: "Keep Guard and counterattack."
+        case .horus: "Prepare dice, reroll and pierce."
+        case .bastet: "Evade, mark and counterattack."
         }
     }
 
@@ -77,6 +163,15 @@ struct RewardView: View {
                     Text(game.statusMessage ?? "Choose one favour for the voyage.")
                         .font(.paper(11)).foregroundStyle(Theme.parchmentDim)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let bagPreview {
+                        Text(bagPreview)
+                            .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                            .kerning(0.6)
+                            .foregroundStyle(Theme.gold.opacity(0.9))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .accessibilityIdentifier("reward.bagPreview")
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -93,6 +188,23 @@ struct RewardView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Dice rewards are a deckbuilding decision, not an automatic power-up.
+    /// Showing the bag before and after the pick makes the consistency cost
+    /// visible at the same moment the player compares the offered faces.
+    private var bagPreview: String? {
+        guard !isForge, deity == nil, let loadout = game.loadout else { return nil }
+        let count = loadout.diceCount
+        guard let selectedID,
+              let offer = game.rewardOffers.first(where: { $0.id == selectedID }),
+              case .die = offer.kind else {
+            return "BAG \(count) · DRAW \(BattleRules.handSize) · SKIP TO KEEP IT FOCUSED"
+        }
+        if loadout.isFull {
+            return "BAG \(count)/\(Loadout.maxDice) · CLAIMING WILL SWAP A DIE"
+        }
+        return "ADD: BAG \(count) → \(count + 1) · REPLACE: BAG \(count) · DRAW \(BattleRules.handSize)"
+    }
+
 
     private var actions: some View {
         HStack(spacing: 12) {
@@ -101,10 +213,10 @@ struct RewardView: View {
                     game.claimReward(offer)
                 }
             } label: {
-                Text(selectedID == nil
+                Text(selectedDraftDie != nil && game.loadout?.isFull == false ? "Add to Bag" : (selectedID == nil
                      ? (isForge ? "Choose a Chisel" : "Choose a Favour")
                      : (isForge ? "Strike the Chisel"
-                        : (deity == nil ? "Claim the Spoils" : "Accept the Blessing")))
+                        : (deity == nil ? "Claim the Spoils" : "Accept the Blessing"))))
                     .font(.fantasy(17, weight: .bold))
                     .kerning(0.8)
                     .foregroundStyle(
@@ -131,6 +243,41 @@ struct RewardView: View {
             }
             .buttonStyle(PressableButtonStyle())
             .disabled(selectedID == nil)
+
+            if game.isShrine, deity != nil {
+                Button {
+                    game.backToShrineDeities()
+                } label: {
+                    Text("Other Gods")
+                        .font(.fantasy(14, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background { DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold, cornerRadius: 11) }
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityIdentifier("shrine.back")
+            }
+
+            if let offer = selectedDraftDie, game.loadout?.isFull == false {
+                Button {
+                    game.replaceDraftDie(with: offer)
+                } label: {
+                    Text("Replace a Die")
+                        .font(.fantasy(15, weight: .bold))
+                        .foregroundStyle(Theme.parchment)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .paintedContentInsets()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 42)
+                        .background {
+                            DeckButtonSurface(tone: .secondary, state: .normal, rim: Theme.gold,
+                                              cornerRadius: 11)
+                        }
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityIdentifier("reward.replaceDie")
+            }
 
             Button {
                 game.skipReward()
@@ -182,42 +329,16 @@ struct RewardView: View {
     }
 
 
-    /// How much of this god you already carry: claimed dice, earned upgrades,
-    /// and where their path stands.
+    /// Powers carried now, with levels, so the offer is read in build context.
     private func patronStrip(_ deity: Deity) -> some View {
-        let dice = game.allDice.filter { $0.patron == deity }.count
-        let earned = GodKit.upgrades(for: deity).filter { game.activeUpgrades.contains($0.id) }.count
-        let capstone = GodKit.capstone(for: deity)
-        let capstoneTaken = game.activeCapstone?.deity == deity
+        let owned = game.boons(of: deity)
         return VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 5) {
-                HStack(spacing: 3) {
-                    ForEach(0..<4, id: \.self) { index in
-                        PharaohSWagerImage(name: index < earned ? PharaohSWagerArt.nightCleared : PharaohSWagerArt.nightHour,
-                                  height: 10, fit: .fit)
-                            .colorMultiply(index < earned ? accent : Theme.parchmentDim)
-                            .opacity(index < earned ? 1 : 0.35)
-                    }
-                }
-                Text(dice == 0
-                     ? "No dice claimed yet"
-                     : "\(dice) claimed dice · \(earned) upgrade\(earned == 1 ? "" : "s")")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Theme.parchmentDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-
-            if let capstone {
-                Text(capstoneTaken
-                     ? "\(capstone.name) rides with you"
-                     : (game.capstoneUnlocked(capstone)
-                        ? "\(capstone.name) unlocked — one capstone per run"
-                        : "Two upgrades unlock \(capstone.name)"))
-                    .font(.system(size: 8.5, weight: .semibold))
-                    .foregroundStyle(capstoneTaken ? accent.opacity(0.9) : Theme.parchmentDim.opacity(0.9))
-                    .lineLimit(2)
-            }
+            Text("YOUR \(deity.name.uppercased()) POWERS")
+                .font(.system(size: 9, weight: .black)).foregroundStyle(accent)
+            Text(owned.isEmpty ? "None yet" : owned.map { "\($0.def?.name ?? "Power") · Lv \($0.level)" }.joined(separator: "\n"))
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Theme.parchmentDim)
+                .lineLimit(3)
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 6)

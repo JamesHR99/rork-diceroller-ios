@@ -242,6 +242,16 @@ final class TurnOrderRenderingTests: XCTestCase {
         }
     }
 
+    func testShrineChooserAndOffersAtCompactPhoneSize() async throws {
+        let game = GameManager()
+        game.startRun(with: GameData.classes.first { $0.id == "archer" }!)
+        game.enterShrine()
+        let size = CGSize(width: 660, height: 320)
+        try await capture(RewardView().environment(game), name: "Shrine-chooser-660", size: size)
+        game.chooseShrineDeity(.ra)
+        try await capture(RewardView().environment(game), name: "Shrine-offers-660", size: size)
+    }
+
     func testPlanningConsoleClearsForLargeFightersWhileAiming() async throws {
         let game = GameManager()
         game.startRun(with: GameData.classes.first { $0.id == "archer" }!)
