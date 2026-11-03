@@ -90,6 +90,8 @@ final class GameManager {
     // MARK: Encounter state
     private(set) var battle: BattleEngine?
     private(set) var rewardOffers: [Offer] = []
+    /// Optional draft replacement returns to the offer screen when cancelled.
+    private(set) var replacingDraftDie = false
     private(set) var shopStock: [Offer] = []
     private(set) var currentEvent: RunEvent?
     private(set) var eventOutcome: String?
@@ -104,6 +106,8 @@ final class GameManager {
     private(set) var visitingDeity: Deity?
     /// True when the offering screen is a bank shrine rather than post-battle spoils.
     private(set) var isShrine = false
+    /// An audience's cards are rolled once per god for this shrine visit.
+    private var shrineOffers: [Deity: [Offer]] = [:]
 
     // MARK: Personal leaderboard
     private(set) var leaderboard: [RunRecord] = []
@@ -297,7 +301,7 @@ final class GameManager {
     /// the health and gear you walked in with.
     func saveRun(resumingAt node: UUID?) {
         guard let heroClass, let loadout, screen != .title else { return }
-        let save = RunSave(
+        var save = RunSave(
             classID: heroClass.id,
             loadout: loadout,
             maxHP: maxHP,
@@ -322,6 +326,13 @@ final class GameManager {
             totalCrits: totalCrits,
             savedAt: Date()
         )
+        if isShrine, activeNode?.kind == .shrine {
+            guard let snapshot = shrineVisitSnapshot() else {
+                assertionFailure("Shrine contains an unsupported offer; not saving an incomplete visit.")
+                return
+            }
+            save.shrineVisit = snapshot
+        }
         RunSaveStore.save(save)
         savedRun = save
     }
@@ -336,11 +347,12 @@ final class GameManager {
     /// Puts the run away and returns to the title. A fight in progress is
     /// saved at its own doorstep rather than mid-blow.
     func saveAndExit() {
-        let resumeNode = screen == .battle ? currentNodeID : nil
+        let resumeNode = screen == .battle || isShrine ? currentNodeID : nil
         saveRun(resumingAt: resumeNode)
         isPaused = false
         battle = nil
         pendingSelection = nil
+        replacingDraftDie = false
         selectionQueue = []
         statusMessage = nil
         Audio.shared.play(.uiConfirm)
@@ -353,6 +365,7 @@ final class GameManager {
         isPaused = false
         battle = nil
         pendingSelection = nil
+        replacingDraftDie = false
         selectionQueue = []
         statusMessage = nil
         Haptics.warning()
@@ -372,6 +385,7 @@ final class GameManager {
             return
         }
         let hero = save.hero
+        replacingDraftDie = false
         heroClass = hero
         loadout = save.loadout
         maxHP = save.maxHP
@@ -412,7 +426,21 @@ final class GameManager {
 
         // A fight that was underway is re-entered from its doorstep; anything
         // quiet simply hands the chart back.
-        if let nodeID = save.currentNodeID, let node = voyage.node(nodeID) {
+        if let visit = save.shrineVisit, let nodeID = save.currentNodeID,
+           let node = voyage.node(nodeID), node.kind == .shrine {
+            guard let restored = restoreShrineOffers(visit) else {
+                statusMessage = "The saved shrine offers could not be restored."
+                withAnimation { screen = .title }
+                return
+            }
+            currentNodeID = nodeID
+            isShrine = true
+            shrineOffers = restored
+            visitingDeity = visit.selectedDeity
+            rewardOffers = visit.selectedDeity.flatMap { restored[$0] } ?? []
+            statusMessage = visit.selectedDeity?.greeting
+            withAnimation { screen = .reward }
+        } else if let nodeID = save.currentNodeID, let node = voyage.node(nodeID) {
             currentNodeID = node.id
             deepestHour = max(deepestHour, node.hour)
             enterBattle()
@@ -424,6 +452,7 @@ final class GameManager {
     // MARK: - Flow
 
     func startRun(with hero: HeroClass) {
+        replacingDraftDie = false
         heroClass = hero
         loadout = hero.startingLoadout
         maxHP = hero.maxHP
@@ -519,16 +548,95 @@ final class GameManager {
         }
     }
 
-    /// A god holds court on the bank. Shrines are the reliable place to
-    /// receive a god's favour: a patron claim, upgrades, a capstone once it
-    /// is unlocked, or the pairing with a god you already follow.
-    private func enterShrine() {
-        let deity = Deity.allCases.randomElement() ?? .ra
-        visitingDeity = deity
+    /// Choose which god to approach before seeing that god's offers.
+    func enterShrine() {
+        visitingDeity = nil
         isShrine = true
-        rewardOffers = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
-        statusMessage = deity.greeting
+        shrineOffers = [:]
+        rewardOffers = []
+        statusMessage = nil
         withAnimation { screen = .reward }
+        saveRun(resumingAt: currentNodeID)
+    }
+
+    func chooseShrineDeity(_ deity: Deity) {
+        guard screen == .reward, isShrine, visitingDeity == nil else { return }
+        if shrineOffers[deity] == nil {
+            shrineOffers[deity] = makeGodFavourOffers(deity: deity, count: 3, progress: progress)
+        }
+        visitingDeity = deity
+        rewardOffers = shrineOffers[deity] ?? []
+        statusMessage = deity.greeting
+        saveRun(resumingAt: currentNodeID)
+    }
+
+    func backToShrineDeities() {
+        guard screen == .reward, isShrine, visitingDeity != nil, pendingSelection == nil else { return }
+        visitingDeity = nil
+        rewardOffers = []
+        statusMessage = nil
+        saveRun(resumingAt: currentNodeID)
+    }
+
+    func boons(of deity: Deity) -> [EquippedBoon] {
+        equippedBoons.filter { $0.def?.god == deity }
+    }
+
+    private func shrineVisitSnapshot() -> SavedShrineVisit? {
+        var saved: [String: [SavedShrineOffer]] = [:]
+        for (deity, offers) in shrineOffers {
+            var cards: [SavedShrineOffer] = []
+            for offer in offers {
+                let kind: SavedShrineOfferKind
+                switch offer.kind {
+                case .boon(let def, let rarity): kind = .boon(def.id, rarity)
+                case .boonLevel(let boon): kind = .level(boon)
+                case .legendary(let def, let rarity): kind = .legendary(def.id, rarity)
+                case .reforge(let face): kind = .reforge(face)
+                case .imbue(let amount): kind = .imbue(amount)
+                case .heal(let amount): kind = .heal(amount)
+                case .maxHP(let amount): kind = .maxHP(amount)
+                default: return nil
+                }
+                cards.append(SavedShrineOffer(id: offer.id, name: offer.name, detail: offer.detail,
+                    symbol: offer.symbol, rarity: offer.rarity, comboHint: offer.comboHint,
+                    price: offer.price, deity: offer.deity, kind: kind))
+            }
+            saved[deity.rawValue] = cards
+        }
+        return SavedShrineVisit(selectedDeity: visitingDeity, offers: saved)
+    }
+
+    private func restoreShrineOffers(_ visit: SavedShrineVisit) -> [Deity: [Offer]]? {
+        var restored: [Deity: [Offer]] = [:]
+        for (key, cards) in visit.offers {
+            guard let deity = Deity(rawValue: key) else { return nil }
+            var offers: [Offer] = []
+            for card in cards {
+                let kind: OfferKind
+                switch card.kind {
+                case .boon(let id, let rarity):
+                    guard let def = GodCatalog.boon(id) else { return nil }
+                    kind = .boon(def, rarity)
+                case .level(let boon):
+                    guard boon.def != nil else { return nil }
+                    kind = .boonLevel(boon)
+                case .legendary(let id, let rarity):
+                    guard let def = GodCatalog.boon(id) else { return nil }
+                    kind = .legendary(def, rarity)
+                case .reforge(let face): kind = .reforge(face)
+                case .imbue(let amount): kind = .imbue(amount)
+                case .heal(let amount): kind = .heal(amount)
+                case .maxHP(let amount): kind = .maxHP(amount)
+                }
+                offers.append(Offer(name: card.name, detail: card.detail, symbol: card.symbol,
+                    rarity: card.rarity, comboHint: card.comboHint, price: card.price,
+                    kind: kind, deity: card.deity, id: card.id))
+            }
+            restored[deity] = offers
+        }
+        if let deity = visit.selectedDeity, restored[deity] == nil { return nil }
+        return restored
     }
 
     private func enterBattle() {
@@ -842,6 +950,16 @@ final class GameManager {
         }
     }
 
+    /// Exchange a combat reward for an existing die without growing the bag.
+    func replaceDraftDie(with offer: Offer) {
+        guard screen == .reward, visitingDeity == nil, !isPtahForge,
+              rewardOffers.contains(where: { $0.id == offer.id }),
+              case .die(let die) = offer.kind, loadout != nil else { return }
+        replacingDraftDie = true
+        returnToChartAfterSelection = true
+        pendingSelection = .swapDie(die.instantiated())
+    }
+
     func skipReward() {
         statusMessage = "No die taken."
         leaveEncounter()
@@ -1129,7 +1247,7 @@ final class GameManager {
     }
 
     func applySwap(replacing oldDieID: UUID, with newDie: Die) {
-        guard var loadout else { return }
+        guard var loadout, loadout.die(id: oldDieID) != nil else { return }
         loadout.remove(dieID: oldDieID)
         _ = loadout.add(newDie)
         self.loadout = loadout
@@ -1146,6 +1264,15 @@ final class GameManager {
     func cancelSelection() {
         pendingSelection = nil
         selectionQueue = []
+        if replacingDraftDie {
+            replacingDraftDie = false
+            returnToChartAfterSelection = false
+            return
+        }
+        if isShrine, visitingDeity != nil {
+            returnToChartAfterSelection = false
+            return
+        }
         if returnToChartAfterSelection {
             returnToChartAfterSelection = false
             leaveEncounter()
@@ -1153,6 +1280,7 @@ final class GameManager {
     }
 
     private func finishSelection(_ message: String) {
+        replacingDraftDie = false
         statusMessage = message
         Haptics.success()
         if !selectionQueue.isEmpty {

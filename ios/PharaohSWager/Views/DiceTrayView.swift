@@ -435,26 +435,34 @@ private struct DiceTrayReelView: View {
             .overlay {
                 if engine.playOrder.contains(face.id) && !selectingReroll {
                     RoundedRectangle(cornerRadius: corner)
-                        .strokeBorder(Theme.gold, lineWidth: 3)
-                        .shadow(color: Theme.gold.opacity(0.8), radius: 10)
-                        .padding(2)
+                        .fill(Theme.frost.opacity(0.13))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: corner)
+                                .strokeBorder(Theme.frost, lineWidth: 3)
+                        }
+                        .shadow(color: Theme.frost.opacity(0.55), radius: 7)
                 } else if engine.phase == .player, !selectingReroll,
                           engine.selectedActionFace == face.matchFace {
                     RoundedRectangle(cornerRadius: corner)
-                        .strokeBorder(Theme.frost.opacity(0.8), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+                        .strokeBorder(Theme.frost.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                         .padding(2)
                 }
             }
-            .overlay(alignment: .bottomTrailing) {
-                if engine.playOrder.contains(face.id) && !selectingReroll {
-                    Text(engine.queuedActionNumber(faceID: face.id).map(String.init) ?? "")
-                        .font(.system(size: 9, weight: .black))
+            .overlay(alignment: .bottomLeading) {
+                if !selectingReroll, let beat = engine.queuedActionNumber(faceID: face.id) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "checkmark")
+                        Text("\(beat)")
+                    }
+                        .font(.system(size: 10, weight: .black).monospacedDigit())
                         .foregroundStyle(Theme.bg)
-                        .frame(width: 16, height: 16)
-                        .background(Theme.gold, in: .circle)
-                        .overlay(Circle().strokeBorder(Theme.parchment.opacity(0.9), lineWidth: 1))
+                        .padding(.horizontal, 5)
+                        .frame(height: 19)
+                        .background(Theme.frost, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Theme.parchment.opacity(0.9), lineWidth: 1))
                         .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
-                        .offset(x: 2, y: 2)
+                        .offset(x: -2, y: 2)
+                        .allowsHitTesting(false)
                 }
             }
             .overlay { armedHalo(face) }
@@ -520,7 +528,7 @@ private struct DiceTrayReelView: View {
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(face.matchFace.label)
-        .accessibilityValue(engine.queuedActionNumber(faceID: face.id).map { "Queued action \($0)" } ?? "Not queued")
+        .accessibilityValue(engine.queuedActionNumber(faceID: face.id).map { "Selected, timeline beat \($0)" } ?? "Not selected")
         .accessibilityHint(engine.playOrder.contains(face.id) ? "Remove this die from your turn" : "Add this die to the end of your turn")
         .draggable(face.id.uuidString)
         .onAppear {
@@ -755,7 +763,7 @@ private struct DiceTrayReelView: View {
 
     private func bottomTagTint(_ face: RolledFace) -> Color {
         if selectingReroll { return Theme.frost }
-        if engine.playOrder.contains(face.id) { return Theme.gold }
+        if engine.playOrder.contains(face.id) { return Theme.frost }
         return face.isCrit ? Theme.gold : Theme.parchmentDim
     }
 

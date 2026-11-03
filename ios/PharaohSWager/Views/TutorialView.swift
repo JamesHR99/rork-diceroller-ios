@@ -164,7 +164,7 @@ struct TutorialView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Read the enemy intent before spending Resolve", systemImage: "eye.fill")
             Label("Place actions around enemy moves → Go", systemImage: "arrow.right.circle.fill")
-            Text("You have 3 Resolve. Select a blue action and use Earlier or Later until the numbered timeline matches your plan.")
+            Text("You have 3 Resolve. Drag a blue action along the numbered timeline until it matches your plan.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -299,7 +299,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "action-order",
                 title: "Build the exact order",
-                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nYour separate actions alternate into the enemy timeline. Select any blue action and move it Earlier or Later, then press GO to resolve exactly what you see.",
+                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nYour separate actions alternate into the enemy timeline. Drag a blue action to change its position, then press GO to resolve exactly what you see.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,

@@ -88,3 +88,21 @@ Live loops: three practice rounds using one-, two-, and three-action plans; rewa
 4. Are god paths and Chisels encountered early enough for a run to develop an identity before its midpoint?
 5. Beyond persistent chain discovery and records, what unlock gives a finished or failed run a specific reason to start another?
 
+## Iteration 3 — timeline editing and focused rewards
+
+The next planning revision responds to player feedback: the separate selected-action editor duplicated the timeline and made both areas small. The shared timeline now carries the Resolve cost on each player action and accepts drag placement, including reordering actions in the same enemy gap. A visible budget shows planned Resolve and remaining capacity. Selected dice use the same blue as player actions and show their numbered beat.
+
+Reviewing the execution path also found three fairness defects: Delay could repeat an already-executed enemy action, moving a Dodge could leave it assigned to a strike that had passed, and enemy Bleed forecasts could disagree with the documented two-tick, capped effect. Reordering also needs first-attack bonuses and Focus to follow the displayed sequence. These cases are covered by battle-level regressions.
+
+The bag-dilution question remains a playtest hypothesis: a six-die opening hand is less likely to contain a particular die as the bag grows. Combat die rewards now offer an optional replacement alongside adding or skipping, showing the unchanged bag size and consequences of removing a blessing or etching. A longer run is still needed to evaluate how often replacement feels worthwhile and whether its presentation is clear at compact sizes.
+
+The route and god audit found that shrines silently chose a random god and several older patron, Trial and Chisel paths were unreachable. This iteration makes the shrine's god a player choice, shows owned powers, and keeps each visited god's exact offers stable through Back and save/resume. Route cards explain the immediate payoff and risk; the opening now always leads to the promised practice battle. The actual reward economy still needs longer-run testing before numerical balance changes, and Trials and Chisels remain follow-up work.
+
+## Next iteration — a herald reward that shapes the build
+
+Chisels have class-specific effects, but the current combat and shrine reward paths never call the Chisel offer generator. A new run therefore has no ordinary way to earn them. The first herald is a natural point to introduce this kind of build-defining reward: test a choice of three unowned class Chisels after that victory, followed by the normal die draft. Skipping the Chisel should still lead to the die choice, and the screen must make the two steps clear. Keep later Chisel availability and balance as separate questions until a longer run has been played.
+
+This needs a save-safe staged reward, not just a second screen. Persist the won node, post-fight health and gold, the current reward step, and the exact pre-rolled Chisel and die offers. Resuming or cancelling a die replacement should return to the same unfinished choice without repeating the fight, rerolling offers, paying gold twice, or granting another Chisel. Only clear the encounter after the die draft is completed or skipped. Keep old saves readable when the new snapshot is absent.
+
+Before keeping the change, test claiming and skipping each step; saving and resuming at both steps and during die replacement; duplicate, class and capacity constraints; and the existing save format. Then play through the herald and its rewards on a compact phone layout, recording the health spent, the chosen Chisel's impact on later decisions, and whether both rewards feel worth the extra screen.
+

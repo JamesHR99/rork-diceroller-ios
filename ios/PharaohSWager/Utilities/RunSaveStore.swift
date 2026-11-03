@@ -1,5 +1,33 @@
 import Foundation
 
+/// Exact cards shown during a shrine visit, retained across save and exit.
+nonisolated enum SavedShrineOfferKind: Codable {
+    case boon(String, BoonRarity)
+    case level(EquippedBoon)
+    case legendary(String, BoonRarity)
+    case reforge(FaceKind)
+    case imbue(Double)
+    case heal(Int)
+    case maxHP(Int)
+}
+
+nonisolated struct SavedShrineOffer: Codable {
+    let id: UUID
+    let name: String
+    let detail: String
+    let symbol: String
+    let rarity: Rarity
+    let comboHint: String
+    let price: Int
+    let deity: Deity?
+    let kind: SavedShrineOfferKind
+}
+
+nonisolated struct SavedShrineVisit: Codable {
+    let selectedDeity: Deity?
+    let offers: [String: [SavedShrineOffer]]
+}
+
 /// A night written down: everything permanent about a run, saved between
 /// fights so the voyage can be put away and picked back up later.
 ///
@@ -55,6 +83,8 @@ nonisolated struct RunSave: Codable {
     let totalCrits: Int
 
     let savedAt: Date
+    /// Optional to preserve compatibility with earlier version-five saves.
+    var shrineVisit: SavedShrineVisit? = nil
 
     /// The hour this save sits in, for the Continue card on the title screen.
     var hour: Int {

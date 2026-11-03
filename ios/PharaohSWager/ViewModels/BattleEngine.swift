@@ -702,6 +702,8 @@ final class BattleEngine {
     /// announced move, 1 is after it, and so on. Missing entries use the
     /// action's natural alternating position, keeping ordinary planning fast.
     private(set) var actionTiming: [UUID: Int] = [:]
+    /// Relative order of player actions sharing the same enemy gap.
+    private var actionTimelineOrder: [UUID] = []
     private(set) var timingActionID: UUID?
     /// Dice you have explicitly welded together, each entry the face ids of one
     /// combined action in plan order. Nothing fuses on its own any more: a
@@ -1054,7 +1056,7 @@ final class BattleEngine {
     var timeline: [TimelineEntry] {
         let enemy = enemyActionOrder
         let plan = displayedPlan
-        let player = plan.enumerated().map { index, step in
+        let player = orderedPlan(plan).map { index, step in
             (slot: timingSlot(for: step.id, fallback: index, enemyCount: enemy.count), entry:
             TimelineEntry(side: .player, beat: 0, duration: 1, title: planTitle(for: step),
                 detail: planDetail(for: step), targetID: allocations[step.id],
@@ -1097,8 +1099,46 @@ final class BattleEngine {
         guard let step = timingAction, let slot = timingSlot(for: step.id),
               canMoveTimingAction(by: offset) else { return }
         actionTiming[step.id] = slot + offset
+        validateEvadeAssignments(for: step)
         Haptics.light()
         Audio.shared.play(.uiTap)
+    }
+
+    /// Move a player action to a zero-based position in the complete timeline.
+    /// The destination is interpreted after removing the dragged action.
+    func moveTimelineAction(_ stepID: UUID, to destination: Int) {
+        guard phase == .player, !isRolling,
+              let step = turnPlan.first(where: { $0.id == stepID }) else { return }
+        var entries = timeline
+        guard let source = entries.firstIndex(where: { $0.isPlayer && $0.sourceID == stepID }),
+              (0..<entries.count).contains(destination) else { return }
+        let moving = entries.remove(at: source)
+        entries.insert(moving, at: destination)
+        actionTiming[stepID] = entries.prefix(destination).filter { !$0.isPlayer }.count
+        actionTimelineOrder = entries.filter(\.isPlayer).map(\.sourceID)
+        timingActionID = stepID
+        validateEvadeAssignments(for: step)
+        Haptics.light()
+        Audio.shared.play(.uiTap)
+    }
+
+    private func validateEvadeAssignments(for step: PlanStep) {
+        // A reservation is only usable after its Dodge action has resolved.
+        // Moving that action can put a formerly valid target in the past.
+        let schedule = timeline
+        if let release = schedule.firstIndex(where: { $0.isPlayer && $0.sourceID == step.id }) {
+            for face in step.faces {
+                guard let id = evadeAssignments[face.id],
+                      let strike = incomingStrikes.first(where: { $0.id == id }) else { continue }
+                guard let incoming = schedule.firstIndex(where: {
+                    !$0.isPlayer && $0.sourceID == strike.foeID && $0.chainIndex == strike.moveIndex
+                }), incoming > release else {
+                    evadeAssignments.removeValue(forKey: face.id)
+                    lastAction = "Dodge target cleared: that strike is now before this action."
+                    continue
+                }
+            }
+        }
     }
 
     private func numbered(_ entries: [TimelineEntry]) -> [TimelineEntry] {
@@ -1858,11 +1898,22 @@ final class BattleEngine {
     /// Focus must read this order rather than the order dice were tapped.
     private var executionOrderedPlan: [PlanStep] {
         let enemies = enemyActionOrder.count
-        return displayedPlan.enumerated().sorted { lhs, rhs in
+        return orderedPlan(displayedPlan).sorted { lhs, rhs in
             let left = timingSlot(for: lhs.element.id, fallback: lhs.offset, enemyCount: enemies)
             let right = timingSlot(for: rhs.element.id, fallback: rhs.offset, enemyCount: enemies)
-            return left == right ? lhs.offset < rhs.offset : left < right
+            if left != right { return left < right }
+            return actionRank(lhs.element.id, fallback: lhs.offset) < actionRank(rhs.element.id, fallback: rhs.offset)
         }.map(\.element)
+    }
+
+    private func actionRank(_ id: UUID, fallback: Int) -> Int {
+        actionTimelineOrder.firstIndex(of: id) ?? actionTimelineOrder.count + fallback
+    }
+
+    private func orderedPlan(_ plan: [PlanStep]) -> [(offset: Int, element: PlanStep)] {
+        plan.enumerated().sorted {
+            actionRank($0.element.id, fallback: $0.offset) < actionRank($1.element.id, fallback: $1.offset)
+        }
     }
 
     var projectedDamage: Int {
@@ -2290,8 +2341,12 @@ final class BattleEngine {
     }
 
     private func refreshTimingSelection() {
-        let ids = Set(turnPlan.map(\.id))
+        let planIDs = turnPlan.map(\.id)
+        let ids = Set(planIDs)
         actionTiming = actionTiming.filter { ids.contains($0.key) }
+        actionTimelineOrder = actionTimelineOrder.filter { ids.contains($0) }
+        let newIDs = planIDs.filter { !actionTimelineOrder.contains($0) }
+        actionTimelineOrder.append(contentsOf: newIDs)
         if let timingActionID, ids.contains(timingActionID) { return }
         timingActionID = turnPlan.last?.id
     }
@@ -2549,6 +2604,7 @@ final class BattleEngine {
         playOrder = []
         weldedGroups = []
         actionTiming = [:]
+        actionTimelineOrder = []
         timingActionID = nil
         committedPlan = []
         endingTurn = true
@@ -4000,14 +4056,20 @@ final class BattleEngine {
     /// Pushes one foe's telegraphed action a beat later, capped per round so a
 
     private func delayFoe(targetIndex target: Int?) {
-        guard let index = resolveTarget(target), enemies[index].isAlive,
-              let announced = enemies[index].intents.first else { return }
+        guard let index = resolveTarget(target), enemies[index].isAlive else { return }
         let foeID = enemies[index].id
         let already = foeDelays[foeID] ?? 0
         guard already < Timing.maxDelayPerEnemy, deferredEnemyMoves[foeID] == nil else { return }
-        deferredEnemyMoves[foeID] = announced
+        // A player can now act between enemy moves. Delay the next action
+        // that is still waiting, not the first one that was announced: that
+        // first action may already have happened.
+        let next = endingTurn
+            ? pendingEntries.first { !$0.isPlayer && $0.sourceID == foeID }
+            : enemyActionOrder.first { $0.sourceID == foeID && !completedEnemyActions.contains($0.scheduleKey) }
+        guard let next, enemies[index].intents.indices.contains(next.chainIndex) else { return }
+        deferredEnemyMoves[foeID] = enemies[index].intents[next.chainIndex]
         foeDelays[foeID] = already + 1
-        pendingEntries.removeAll { !$0.isPlayer && $0.sourceID == foeID && $0.chainIndex == 0 }
+        pendingEntries.removeAll { $0.scheduleKey == next.scheduleKey }
         addFloat("Delayed to next turn", color: Theme.frost, onEnemy: true, foe: foeID)
     }
 
@@ -4839,6 +4901,7 @@ final class BattleEngine {
         playOrder = []
         weldedGroups = []
         actionTiming = [:]
+        actionTimelineOrder = []
         timingActionID = nil
         committedPlan = []
         activeStepIndex = nil
@@ -4994,13 +5057,23 @@ final class BattleEngine {
                 runs[runs.count - 1].append(face)
             } else { runs.append([face]) }
         }
-        var relentlessReady = relentlessActive && hasChisel("ch_relentless")
-        return runs.map { members in
+        let candidates = runs.map { members in
             let face = members[0].matchFace
             let combo = SameFaceCatalog.action(face, count: members.count)
-            let bonus = relentlessReady && members.count >= 2 && face.isSwing ? GameData.relentlessDamage : 0
-            if bonus > 0 { relentlessReady = false }
-            return PlanStep(faces: members, combo: combo, momentumBonus: bonus)
+            return PlanStep(faces: members, combo: combo)
+        }
+        let enemyCount = enemyActionOrder.count
+        let firstSwing = relentlessActive && hasChisel("ch_relentless")
+            ? candidates.enumerated().filter { $0.element.isCombo && $0.element.faces[0].matchFace.isSwing }
+                .min { lhs, rhs in
+                    let left = timingSlot(for: lhs.element.id, fallback: lhs.offset, enemyCount: enemyCount)
+                    let right = timingSlot(for: rhs.element.id, fallback: rhs.offset, enemyCount: enemyCount)
+                    if left != right { return left < right }
+                    return actionRank(lhs.element.id, fallback: lhs.offset) < actionRank(rhs.element.id, fallback: rhs.offset)
+                }?.element.id : nil
+        return candidates.map { step in
+            PlanStep(faces: step.faces, combo: step.combo,
+                     momentumBonus: step.id == firstSwing ? GameData.relentlessDamage : 0)
         }
     }
 

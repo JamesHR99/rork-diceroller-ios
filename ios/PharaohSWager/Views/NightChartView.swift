@@ -228,6 +228,7 @@ struct NightChartView: View {
         let faces: [StageKind] = [.battle, .ferryman, .omen, .shrine, .battle, .omen]
         let rollingFace = faces[rollFrame % faces.count]
         let face = rolling ? rollingFace : node.kind
+        let description = known ? routeDescription(for: node) : "Unknown destination · risk and reward hidden"
         return VStack(spacing: 7) {
             Button {
                 guard rollingIDs.isEmpty else { return }
@@ -256,10 +257,11 @@ struct NightChartView: View {
                     .rotationEffect(.degrees(rolling && !reduceMotion ? (rollFrame.isMultiple(of: 2) ? -9 : 9) : 0))
                     .scaleEffect(rolling && !reduceMotion ? 0.9 : 1)
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.11), value: rollFrame)
-                    Text(rolling ? "Reading the river…" : known ? node.kind.blurb : "A hidden destination. Discover it when you arrive.")
+                    Text(rolling ? "Reading the river…" : description)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Theme.parchment)
                         .multilineTextAlignment(.center).lineLimit(2)
+                        .minimumScaleFactor(0.8)
                         .frame(height: 28)
                     Text(solo ? "SAIL ONWARD" : "CHOOSE THIS DIE")
                         .font(.fantasy(12, weight: .bold)).foregroundStyle(Theme.gold)
@@ -270,7 +272,7 @@ struct NightChartView: View {
             }
             .buttonStyle(.plain)
             .disabled(!rollingIDs.isEmpty)
-            .accessibilityLabel(known ? "Choose \(node.kind.label)" : "Choose Dark Water, a hidden destination")
+            .accessibilityLabel("Choose \(known ? node.kind.label : "Dark Water"). \(description)")
             if !solo {
                 Button {
                     guard rollingIDs.isEmpty, game.rerollDestination(node.id) else { return }
@@ -288,6 +290,18 @@ struct NightChartView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func routeDescription(for node: VoyageNode) -> String {
+        switch node.kind {
+        case .battle: "Fight · win gold and a die choice"
+        case .herald: "Harder fight · win gold and a die choice"
+        case .boss:
+            node.hour == Voyage.totalHours ? "Final fight · reach the dawn" : "Gate boss · win gold and a die choice"
+        case .shrine: "Choose a god · gain a free favour"
+        case .ferryman: "Spend gold · heal or improve dice"
+        case .omen: "A choice · possible cost or gift"
+        }
     }
 
     @MainActor

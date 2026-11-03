@@ -53,11 +53,11 @@ struct BattleConsoleMetrics {
         let preferred = size.height < 500 ? min(6, count) : 3
         columns = min(count, preferred)
         rows = (count + columns - 1) / columns
-        orderHeight = 74 + CGFloat(rows) * 28 + CGFloat(max(0, rows - 1)) * 4
+        orderHeight = 58 + CGFloat(rows) * 37 + CGFloat(max(0, rows - 1)) * 4
         let dice = CGFloat(max(1, diceCount))
         let widthLimit = (width - 40 - CGFloat(max(0, diceCount - 1)) * 6) / dice
         // Top strip 47, health rail 32, bed 16, gaps 12, outer insets 16.
-        // Roll Unused/Go share the timeline-editor row, not a large footer.
+        // Roll Rest and Go share the Resolve row above the timeline.
         let heightLimit = size.height - 47 - orderHeight - 32 - 16 - 12 - 16
         reelSize = max(44, min(132, widthLimit, heightLimit))
     }

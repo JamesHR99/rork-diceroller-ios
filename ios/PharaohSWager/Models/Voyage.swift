@@ -36,7 +36,7 @@ enum StageKind: String, CaseIterable, Hashable, Codable {
         switch self {
         case .battle: "Something rises to bar the channel."
         case .herald: "A harder fight, guarding richer spoils."
-        case .shrine: "A god's altar rises out of the water."
+        case .shrine: "Choose a god and receive a power."
         case .ferryman: "A hooded boatman trades in gold."
         case .omen: "Something on the river wants your attention."
         case .boss: "It fills the river from bank to bank."
@@ -156,6 +156,14 @@ struct Voyage: Hashable, Codable {
         for stage in 0..<totalStages {
             let hour = stage / stagesPerHour + 1
             let spineKind = spine(ofStage: stage)
+
+            if stage == 0 {
+                // Cast-off enters this node directly, so it must lead to the
+                // practice battle promised by the opening briefing.
+                nodes.append(VoyageNode(id: UUID(), kind: .battle, stage: stage,
+                                        hour: hour, isRevealed: true))
+                continue
+            }
 
             if spineKind.isForced {
                 // A herald or a serpent-lord is the one channel there is, and

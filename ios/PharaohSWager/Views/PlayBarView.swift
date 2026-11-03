@@ -62,15 +62,10 @@ struct PlayBarView: View {
             Haptics.medium()
             Audio.shared.play(.uiConfirm)
         } label: {
-            VStack(spacing: 3) {
-                HStack(spacing: 5) {
-                    Image(systemName: "play.fill")
-                    Text("GO")
-                        .font(.fantasy(compact ? 12 : 14, weight: .black))
-                }
-                Text(hasSelection ? "\(engine.plannedResolveCost)/\(engine.resolveRemaining) RESOLVE" : "PASS")
-                    .font(.system(size: compact ? 9 : 10, weight: .bold))
-                    .foregroundStyle(engine.plannedResolveCost > engine.resolveRemaining ? Theme.ember : Theme.parchmentDim)
+            HStack(spacing: 5) {
+                Image(systemName: "play.fill")
+                Text(hasSelection ? "GO" : "PASS")
+                    .font(.fantasy(compact ? 12 : 14, weight: .black))
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)

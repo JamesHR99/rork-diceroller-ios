@@ -105,7 +105,7 @@ struct SelectionOverlayView: View {
         case .reforgeDie(let title): title
         case .patron(_, _, let title): title
         case .imbue(_, let title): title
-        case .swapDie: "Your dice are full"
+        case .swapDie: game.loadout?.isFull == true ? "Your dice are full" : "Replace a die"
         case .replaceBoon(let def, _): "Your \(def.slot.label.lowercased()) slots are full"
         default: ""
         }
@@ -124,12 +124,26 @@ struct SelectionOverlayView: View {
         case .imbue(let amount, _):
             "Choose a face to etch. Its crit chance rises permanently by \(Int(amount * 100))%."
         case .swapDie(let die):
-            "You carry \(Loadout.maxDice) dice. Pick one to replace with \(die.name)."
+            swapSubtitle(incoming: die)
         case .replaceBoon(let def, _):
             "You carry \(def.slot.capacity) \(def.slot.label.lowercased()) powers. Choose which one \(def.name) takes the place of — its level and rarity are lost."
         default:
             ""
         }
+    }
+
+    private func swapSubtitle(incoming: Die) -> String {
+        let count = carriedDice.count
+        guard let id = chosenDieID, let old = carriedDice.first(where: { $0.id == id }) else {
+            return "Bag \(count) stays \(count). Choose a die to replace with \(incoming.name). Its faces, etchings and blessing are lost."
+        }
+        var line = "\(old.name) → \(incoming.name) · Bag \(count) stays \(count). Its faces, etchings and blessing are lost."
+        if let patron = old.patron,
+           carriedDice.filter({ $0.patron == patron }).count == 1,
+           incoming.patron != patron {
+            line += " \(patron.name)'s upgrades go quiet until another die is blessed."
+        }
+        return line
     }
 
     private var header: some View {
@@ -265,8 +279,9 @@ struct SelectionOverlayView: View {
     }
 
     private var cancelLabel: String {
-        switch selection {
-        case .swapDie: "Leave it behind"
+        if game.isShrine { return "Back to offers" }
+        return switch selection {
+        case .swapDie: game.replacingDraftDie ? "Back to rewards" : "Leave it behind"
         default: "Skip"
         }
     }
@@ -582,7 +597,7 @@ struct SelectionOverlayView: View {
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
-                    ForEach((game.loadout?.allDice ?? []).filter { $0.slot == incoming.slot }) { die in
+                    ForEach(game.loadout?.allDice ?? []) { die in
                         Button {
                             chosenDieID = die.id
                             Haptics.light()

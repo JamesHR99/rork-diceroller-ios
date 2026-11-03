@@ -3,7 +3,7 @@
 The battle screen distinguishes the **round** from each action on a shared, editable timeline.
 
 - Tap dice in the order you want to play them. Adjacent matching dice build a combo; a different face appends another action without replacing the plan. Tapping a queued die removes it and rebuilds the affected combos.
-- Player actions and enemy intent share one numbered timeline. Dice carry the beat their action belongs to; select a blue action and move it Earlier or Later before pressing Go.
+- Player actions and enemy intent share one numbered timeline. Selected dice carry their action's beat; drag a blue action to rearrange it before pressing Go.
 - One or two dice cost one Resolve, three or four cost two, and five or six cost three. A large combo is one uninterrupted action, not alternating player/enemy exchanges.
 - **Go** is the only play control. It commits the complete visible schedule, even with unused Resolve. Merely selecting a full budget never starts combat. Over-budget plans cannot commit; remove dice to bring the cost down. An empty plan passes.
 - A numbered, row-major grid shows every player action and every living enemy move in actual execution order, without scrolling. Short landscape screens add columns to keep the full round visible. Tap an enemy for detail; select a blue player chip to move it.
@@ -14,7 +14,7 @@ The resolver consumes the same interleaved schedule the preview displays. A sepa
 
 ## Planning and performance
 
-- The hand is a central overlay, not a permanent shelf. Six large reels use their own full-width row; smaller Roll Unused and Go controls share the timeline editor, with 44-point touch targets.
+- The hand is a central overlay, not a permanent shelf. Six large reels use their own full-width row; Roll Rest and Go share the Resolve row above the timeline.
 - The console stays visible while you build the whole turn. After Go, it slides away once for targeting and remains away through the complete timeline, returning for the next round's hand. Backing out of targeting restores the complete plan without spending Resolve. Charge-collection flights complete before the console leaves.
 - Fighters use the full stage height independently of the console. Packs retain larger artwork too. Targeting instructions and action announcements are low captions, leaving the centre clear for attacks and projectiles.
 - The roll accelerates, spins and brakes into left-to-right detents, with a stronger individual landing bounce, gold rim flare and final tray kick. Existing lock audio and haptics stay synchronized to the actual results. Six reels finish in 1.92 seconds; Reduce Motion keeps its short, non-scrolling presentation (at most 0.30 seconds) and removes the tray kick.
