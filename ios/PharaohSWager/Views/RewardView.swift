@@ -77,6 +77,15 @@ struct RewardView: View {
                     Text(game.statusMessage ?? "Choose one favour for the voyage.")
                         .font(.paper(11)).foregroundStyle(Theme.parchmentDim)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let bagPreview {
+                        Text(bagPreview)
+                            .font(.system(size: 9.5, weight: .black).monospacedDigit())
+                            .kerning(0.6)
+                            .foregroundStyle(Theme.gold.opacity(0.9))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .accessibilityIdentifier("reward.bagPreview")
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,6 +100,23 @@ struct RewardView: View {
             .frame(width: 155)
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Dice rewards are a deckbuilding decision, not an automatic power-up.
+    /// Showing the bag before and after the pick makes the consistency cost
+    /// visible at the same moment the player compares the offered faces.
+    private var bagPreview: String? {
+        guard !isForge, deity == nil, let loadout = game.loadout else { return nil }
+        let count = loadout.diceCount
+        guard let selectedID,
+              let offer = game.rewardOffers.first(where: { $0.id == selectedID }),
+              case .die = offer.kind else {
+            return "BAG \(count) · DRAW \(BattleRules.handSize) · SKIP TO KEEP IT FOCUSED"
+        }
+        if loadout.isFull {
+            return "BAG \(count)/\(Loadout.maxDice) · CLAIMING WILL SWAP A DIE"
+        }
+        return "BAG \(count) → \(count + 1) · DRAW \(BattleRules.handSize) EACH TURN"
     }
 
 
