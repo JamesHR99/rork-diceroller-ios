@@ -69,7 +69,7 @@ struct ClassCardView: View {
                 // the shape of every turn: lower acts first, and each action
                 // adds its own size in dice on top of this.
                 statPill(art: nil, icon: "hare.fill",
-                         value: "1", label: "REROLL", tint: Theme.frost)
+                         value: "\(BattleRules.baseRerolls)", label: "REROLLS", tint: Theme.frost)
             }
 
             Text(hero.playstyle.uppercased())
@@ -96,7 +96,7 @@ struct ClassCardView: View {
                 symbol: "dice.fill",
                 die: hero.startingLoadout.allDice.first
             )
-            Text("Draw \(BattleRules.handSize) each turn · \(BattleRules.resolvePerTurn) Resolve · 1 selective reroll")
+            Text("Draw \(BattleRules.handSize) each turn · \(BattleRules.resolvePerTurn) Resolve · \(BattleRules.baseRerolls) Roll Rest pulls")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.parchmentDim)
 

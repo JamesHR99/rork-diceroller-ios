@@ -54,6 +54,32 @@ Live path: Archer class selection → opening briefing → Straw Effigy → die 
 - Reward header previews `BAG 10 → 11 · DRAW 6 EACH TURN`, with a focused-bag reminder before selection and swap messaging at the cap.
 - Regression coverage keeps the briefing at four pages and rejects the obsolete interaction copy.
 
+## Iteration 2 — hold, redraw, and interleave
+
+Live loops: three practice rounds using one-, two-, and three-action plans; reward Skip; then a Silt Colossus round with Focus, a two-die Piercing Bolt, two full hand refreshes, and a Heavy Shot placed before the announced guard.
+
+### What worked
+
+- Locking a finished action and rerolling every unused die made each pull produce a new decision instead of asking which single weak die to replace.
+- Two pulls were enough to build in stages without making the best hand feel guaranteed.
+- Automatic player/enemy alternation created a useful schedule immediately; manual Earlier/Later controls were only needed for a deliberate tactic.
+- Moving Focus and Piercing Bolt ahead of Wide Sweep, then placing Heavy Shot between Wide Sweep and the enemy guard, made enemy intent affect the exact plan rather than only the amount of Block to take.
+- Numbered badges on both the dice and shared timeline kept three player actions plus three enemy moves readable without scrolling.
+
+### Friction found
+
+- `ROLL UNUSED` clipped in the compact control.
+- The timeline wrapped after four entries even though a landscape phone still had enough horizontal room, shrinking the dice unnecessarily.
+- Class and rules copy still described one selective reroll and a player-first handover.
+
+### Changes kept
+
+- Two `ROLL REST` pulls per turn. Queued dice remain locked; all other dice reroll together for one charge.
+- One exact timeline for player actions and enemy intent. Separate actions default into alternating enemy gaps and can be moved Earlier or Later before Go.
+- The resolver consumes the displayed schedule, so late Guard cannot prevent an earlier strike.
+- Up to six timeline beats stay on one compact row; seven through twelve use two rows, with no horizontal scrolling.
+- Deterministic coverage for locked-dice rerolls, default interleaving, manual placement, and the gameplay consequence of late defence.
+
 ## Ranked questions for the next iterations
 
 1. Does a bag above 14–16 dice still feel like a build, or does mandatory-looking drafting dilute it into noise?

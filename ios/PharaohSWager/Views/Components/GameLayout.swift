@@ -47,14 +47,17 @@ struct BattleConsoleMetrics {
     init(size: CGSize, enemyActions: Int, diceCount: Int = BattleRules.handSize) {
         width = max(1, min(960, size.width - 24))
         let count = max(1, enemyActions)
-        let preferred = size.height < 500 ? max(3, (count + 1) / 2) : 3
+        // Landscape phones have abundant width and scarce height. Keep up to
+        // six beats on one row; seven through twelve use two rows, so adding a
+        // normal three-action plan does not suddenly shrink the dice.
+        let preferred = size.height < 500 ? min(6, count) : 3
         columns = min(count, preferred)
         rows = (count + columns - 1) / columns
         orderHeight = 74 + CGFloat(rows) * 28 + CGFloat(max(0, rows - 1)) * 4
         let dice = CGFloat(max(1, diceCount))
         let widthLimit = (width - 40 - CGFloat(max(0, diceCount - 1)) * 6) / dice
         // Top strip 47, health rail 32, bed 16, gaps 12, outer insets 16.
-        // Reroll/End Turn now share the action-preview row, not a large footer.
+        // Roll Unused/Go share the timeline-editor row, not a large footer.
         let heightLimit = size.height - 47 - orderHeight - 32 - 16 - 12 - 16
         reelSize = max(44, min(132, widthLimit, heightLimit))
     }

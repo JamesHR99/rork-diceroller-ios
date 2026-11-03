@@ -163,8 +163,8 @@ struct TutorialView: View {
     private var actionOrderBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Read the enemy intent before spending Resolve", systemImage: "eye.fill")
-            Label("Queue your actions → End Turn → enemies act", systemImage: "arrow.right.circle.fill")
-            Text("You have 3 Resolve. Queue actions in tap order, then press End Turn to play the whole plan before enemies act.")
+            Label("Place actions around enemy moves → Go", systemImage: "arrow.right.circle.fill")
+            Text("You have 3 Resolve. Select a blue action and use Earlier or Later until the numbered timeline matches your plan.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 12, weight: .semibold))
@@ -281,7 +281,7 @@ struct BriefingPage: Identifiable {
             BriefingPage(
                 id: "order",
                 title: "Build your turn",
-                body: "Draw \(BattleRules.handSize) dice. Tap faces into the plan. Matching neighbours join; a different face starts the next action.\n\nTap a queued die to take it back. Actions play left to right.",
+                body: "Draw \(BattleRules.handSize) dice. Tap faces into the plan. Matching neighbours join; a different face starts the next action.\n\nTap a queued die to take it back. Separate actions alternate into the enemy timeline.",
                 art: PharaohSWagerArt.chainConnector,
                 fallbackSymbol: "arrow.left.arrow.right",
                 tint: Theme.ember,
@@ -289,8 +289,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "rerolls",
-                title: "Three Resolve. One reroll.",
-                body: "A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nTap REROLL, then one unplayed die. Queue the whole turn, then press END TURN.",
+                title: "Lock actions. Roll the rest.",
+                body: "A 1–2 die action costs 1 Resolve, a 3–4 die action costs 2, and a 5–6 die action costs 3.\n\nYou get two ROLL UNUSED pulls. Dice already queued stay locked while the rest of the hand spins again.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "bolt.circle.fill",
                 tint: Theme.gold,
@@ -298,8 +298,8 @@ struct BriefingPage: Identifiable {
             ),
             BriefingPage(
                 id: "action-order",
-                title: "Who moves first",
-                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nEnemies show their intent before you act, but they do not interrupt your turn. Spend Resolve in any order, then press END TURN and every surviving enemy executes its announced actions.",
+                title: "Build the exact order",
+                body: "Block gives Guard, Evade softens a chosen hit, Heal restores missing HP, and Focus primes your next Attack.\n\nYour separate actions alternate into the enemy timeline. Select any blue action and move it Earlier or Later, then press GO to resolve exactly what you see.",
                 art: PharaohSWagerArt.Status.stamina,
                 fallbackSymbol: "hare.fill",
                 tint: Theme.frost,
@@ -565,7 +565,7 @@ private struct OrderDemoView: View {
                 ? "A single die is a useful action. Try adding a matching face for a combo."
                 : "Those two are not working together. Take one back and try a different pairing — or a different order."
         }
-        return "Those dice now land together as one action. Add Block or Evade after it, or queue Focus before the combo to boost it. A different face starts the next action. Tap a queued die to remove it; End Turn plays the whole plan."
+        return "Those dice now land together as one action. Add Block, Evade or Focus as another action, then place it around enemy moves. Tap a queued die to remove it; Go plays the numbered timeline."
     }
 
     // MARK: Hand

@@ -160,19 +160,19 @@ struct BattleLoopTests {
         #expect(engine.discardPile.isEmpty)
     }
 
-    @Test func selectiveRerollResetsEachTurnInsteadOfChargingFromUnusedDice() async throws {
+    @Test func rerollsResetToTwoEachTurnInsteadOfChargingFromUnusedDice() async throws {
         let engine = battle(Array(repeating: .block, count: 10))
         try await roll(engine)
-        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollsRemaining == 2)
         let first = try #require(engine.slots.first)
         engine.selectingReroll = true
         engine.reroll(slotID: first.id, reduceMotion: true)
         try await settled(engine)
-        #expect(engine.rerollsRemaining == 0)
+        #expect(engine.rerollsRemaining == 1)
         #expect(engine.pendingRerollHalfCharges == 0)
         try await nextRound(engine)
-        #expect(engine.rerollsRemaining == 1)
-        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.rerollsRemaining == 2)
+        #expect(engine.rerollHalfCharges == 4)
     }
 
     @Test func resolveIsSpentByImmediateActionsAndResetsNextTurn() async throws {
@@ -196,11 +196,11 @@ struct BattleLoopTests {
 
     @Test func rewardsShareTheCapAndKeepHalfCharges() {
         let engine = battle(Array(repeating: .block, count: 5))
-        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.rerollHalfCharges == 4)
         engine.gainRerollHalfCharges(1)
-        #expect(engine.rerollHalfCharges == 3)
-        #expect(engine.rerollsRemaining == 1)
-        #expect(engine.rerollChargeText == "1.5")
+        #expect(engine.rerollHalfCharges == 4)
+        #expect(engine.rerollsRemaining == 2)
+        #expect(engine.rerollChargeText == "2")
         engine.gainRerollHalfCharges(2)
         #expect(engine.rerollHalfCharges == 4)
         #expect(engine.rerollsRemaining == 2)
@@ -222,7 +222,88 @@ struct BattleLoopTests {
         #expect(engine.planDetail(for: selected).contains("\(engine.displayedDamage(for: selected)) damage"))
     }
 
-    @Test func endTurnPlaysArrowComboThenBlockBeforeEnemiesWithoutReopeningPlanning() async throws {
+    @Test func separateActionsDefaultIntoEnemyGapsAndCanMoveAcrossThem() async throws {
+        let moves = (0..<3).map { index in
+            EnemyMove(id: "jab-\(index)", name: "Jab \(index + 1)", faces: [.swiftSlash],
+                      weight: 1, damage: 9, cost: 1)
+        }
+        let foe = EnemyDef(id: "timeline-foe", name: "Timeline foe", title: "Tests", maxHP: 500,
+            symbol: "circle", goldReward: 0, moves: moves, stamina: 3)
+        let dice = [FaceKind.arrow1, .block, .focus].map {
+            Die(name: "Timeline", slot: $0.isAttack ? .weapon : .armor, faces: Array(repeating: $0, count: 6))
+        }
+        let engine = BattleEngine(enemies: [foe], dice: dice, classID: "archer",
+            maxHP: 100, startHP: 100, critBonus: -1)
+        try await roll(engine)
+        for kind in [FaceKind.arrow1, .block, .focus] {
+            engine.toggleActionSelection(faceID: try #require(engine.rolled.first { $0.face == kind }).id)
+        }
+
+        let steps = engine.turnPlan
+        #expect(steps.count == 3)
+        #expect(engine.enemyActionOrder.count == 3)
+        #expect(engine.timeline.map(\.isPlayer) == [true, false, true, false, true, false])
+        #expect(engine.timeline.filter(\.isPlayer).map(\.sourceID) == steps.map(\.id))
+
+        engine.selectTimingAction(steps[1].id)
+        engine.moveTimingAction(by: 1)
+        #expect(engine.timeline.map(\.isPlayer) == [true, false, false, true, true, false])
+        #expect(engine.timingSlot(for: steps[1].id) == 2)
+        engine.moveTimingAction(by: -1)
+        #expect(engine.timeline.map(\.isPlayer) == [true, false, true, false, true, false])
+    }
+
+    @Test func rollUnusedLocksQueuedDiceAndRefreshesTheRestTwice() async throws {
+        let engine = battle([.arrow1, .arrow2, .arrow3, .block, .evade, .focus])
+        try await roll(engine)
+        let locked = try #require(engine.rolled.first { $0.face == .arrow1 })
+        engine.toggleActionSelection(faceID: locked.id)
+        let firstIDs = Dictionary(uniqueKeysWithValues: engine.rolled.map { ($0.dieID, $0.id) })
+
+        #expect(engine.canRerollUnused)
+        engine.rerollUnused(reduceMotion: true)
+        #expect(engine.rerollsRemaining == 1)
+        try await settled(engine)
+        #expect(engine.rolled.first { $0.dieID == locked.dieID }?.id == locked.id)
+        #expect(engine.rolled.filter { $0.dieID != locked.dieID }.allSatisfy { firstIDs[$0.dieID] != $0.id })
+
+        let secondIDs = Dictionary(uniqueKeysWithValues: engine.rolled.map { ($0.dieID, $0.id) })
+        engine.rerollUnused(reduceMotion: true)
+        try await settled(engine)
+        #expect(engine.rerollsRemaining == 0)
+        #expect(engine.rolled.first { $0.dieID == locked.dieID }?.id == locked.id)
+        #expect(engine.rolled.filter { $0.dieID != locked.dieID }.allSatisfy { secondIDs[$0.dieID] != $0.id })
+        #expect(!engine.canRerollUnused)
+    }
+
+    @Test func blockOnlyProtectsAgainstEnemyMovesScheduledAfterIt() async throws {
+        let early = battle([.block])
+        try await roll(early)
+        early.toggleActionSelection(faceID: try #require(early.rolled.first).id)
+        let incoming = early.announcedIncomingDamage
+        early.endPlayerTurn()
+        let earlyDeadline = ContinuousClock().now.advanced(by: .seconds(30))
+        while early.turnNumber == 1 && ContinuousClock().now < earlyDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(early.playerHP == 100 - max(0, incoming - BattleRules.blockValue))
+
+        let late = battle([.block])
+        try await roll(late)
+        late.toggleActionSelection(faceID: try #require(late.rolled.first).id)
+        late.selectTimingAction(try #require(late.turnPlan.first).id)
+        late.moveTimingAction(by: 1)
+        #expect(late.timeline.map(\.isPlayer) == [false, true])
+        late.endPlayerTurn()
+        let lateDeadline = ContinuousClock().now.advanced(by: .seconds(30))
+        while late.turnNumber == 1 && ContinuousClock().now < lateDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(late.playerHP == 100 - incoming)
+        #expect(early.playerHP > late.playerHP)
+    }
+
+    @Test func goPlaysAnExplicitlyAdvancedBlockBeforeTheEnemyWithoutReopeningPlanning() async throws {
         let engine = battle([.arrow1, .arrow1, .block, .focus, .arrow2, .arrow2])
         try await roll(engine)
         let arrows = engine.rolled.filter { $0.face == .arrow1 }
@@ -236,6 +317,12 @@ struct BattleLoopTests {
         #expect(engine.phase == .player)
         #expect(engine.enemies[0].hp == 500 && engine.playerShield == 0)
         #expect(arrows.allSatisfy { engine.queuedActionNumber(faceID: $0.id) == 1 })
+        #expect(engine.queuedActionNumber(faceID: block.id) == 3)
+
+        let blockStep = try #require(steps.last)
+        engine.selectTimingAction(blockStep.id)
+        #expect(engine.canMoveTimingAction(by: -1))
+        engine.moveTimingAction(by: -1)
         #expect(engine.queuedActionNumber(faceID: block.id) == 2)
 
         let damage = engine.displayedDamage(for: steps[0])
@@ -285,7 +372,7 @@ struct BattleLoopTests {
         #expect(engine.plannedResolveCost == 2)
         #expect(engine.canEndTurn)
         #expect(engine.queuedActionNumber(faceID: arrows[1].id) == 1)
-        #expect(engine.queuedActionNumber(faceID: blocks[1].id) == 2)
+        #expect(engine.queuedActionNumber(faceID: blocks[1].id) == 3)
     }
 
     @Test func cancellingQueuedTurnAimingKeepsAllActionsAndResolve() async throws {
@@ -429,8 +516,8 @@ struct BattleLoopTests {
         let engine = BattleEngine(enemies: [EnemyContent.enemy(hour: 1, isHerald: false)],
             dice: hero.startingLoadout.allDice, classID: classID, maxHP: hero.maxHP, startHP: hero.maxHP, critBonus: 0)
         #expect(Set(engine.slots.map { $0.die.id }).count == BattleRules.handSize)
-        #expect(engine.rerollsRemaining == 1)
-        #expect(engine.rerollHalfCharges == 2)
+        #expect(engine.rerollsRemaining == 2)
+        #expect(engine.rerollHalfCharges == 4)
         #expect(engine.resolveRemaining == 3)
         #expect(engine.drawBag.count == hero.startingLoadout.allDice.count - BattleRules.handSize)
     }
@@ -513,7 +600,7 @@ struct BattleLoopTests {
         try await nextRound(engine)
         #expect(engine.enemies[0].hp == 500 - expected)
         #expect(engine.rolled.isEmpty && engine.slots.count == BattleRules.handSize)
-        #expect(engine.rerollsRemaining == 1)
+        #expect(engine.rerollsRemaining == 2)
         #expect(engine.resolveRemaining == 3)
     }
 

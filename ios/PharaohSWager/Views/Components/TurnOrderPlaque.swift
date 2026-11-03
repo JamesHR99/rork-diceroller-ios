@@ -78,7 +78,8 @@ struct BattlePhaseLabel: View {
     }
 }
 
-/// A compact, ordered player plan above the complete announced enemy queue.
+/// One truthful, editable schedule: blue player actions and announced enemy
+/// moves share the same numbered clock before the player presses Go.
 struct BattleDecisionPanel: View {
     let engine: BattleEngine
     var columns = 3
@@ -90,14 +91,14 @@ struct BattleDecisionPanel: View {
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 8) {
-                preview
+                timingEditor
                 if showsControls { PlayBarView(engine: engine, bodyHeight: 44) }
             }
             .frame(height: showsControls ? 44 : 30)
             HStack(spacing: 6) {
-                Text("THEN ENEMIES")
+                Text(engine.displayedPlan.isEmpty ? "ENEMY TIMELINE" : "YOUR ACTIONS + ENEMY TIMELINE")
                     .font(.system(size: 9, weight: .black))
-                    .foregroundStyle(Theme.ember)
+                    .foregroundStyle(engine.displayedPlan.isEmpty ? Theme.ember : Theme.frost)
                 Spacer(minLength: 0)
                 Text("\(engine.remainingEnemyActionCount) moves · \(engine.announcedIncomingDamage) dmg*")
                     .font(.system(size: 9, weight: .semibold).monospacedDigit())
@@ -107,20 +108,20 @@ struct BattleDecisionPanel: View {
             .minimumScaleFactor(0.75)
             .frame(height: 12)
 
-            // Row-major order, with every entry present. No scrolling and no
-            // '+ more' chip that hides the back half of a crowded round.
+            // Every action remains present. Short screens add columns rather
+            // than hiding a scrolling tail.
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: max(1, columns)), spacing: 4) {
-                ForEach(engine.enemyActionOrder, id: \.scheduleKey) { entry in
-                    enemyChip(entry)
+                ForEach(engine.timeline, id: \.scheduleKey) { entry in
+                    timelineChip(entry)
                 }
-                if engine.enemyActionOrder.isEmpty {
-                    Text("No enemy moves this round")
+                if engine.timeline.isEmpty {
+                    Text("No actions queued")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Theme.parchmentDim)
                         .frame(height: 28)
                 }
             }
-            .accessibilityIdentifier("battle.enemyOrder")
+            .accessibilityIdentifier("battle.timeline")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -136,7 +137,7 @@ struct BattleDecisionPanel: View {
                 }
                 if let chisel = engine.chiselLine(for: step) { Text(chisel).foregroundStyle(Theme.ptahCopper) }
                 Divider()
-                Text("Queued actions play in order when you press End Turn. All your actions finish before enemies act.")
+                Text("This action lands on its numbered beat when you press Go. Use Earlier and Later to place it around enemy moves.")
                 Text("Damage is before target defenses. God powers and target-dependent effects resolve when played.")
                     .foregroundStyle(Theme.parchmentDim)
                 if (step.combo?.shield ?? 0) > 0 {
@@ -146,7 +147,7 @@ struct BattleDecisionPanel: View {
         }
         .sheet(item: $inspectedEnemy) { entry in
             detailSheet(title: entry.title) {
-                Text("Enemy action \(entry.beat)").foregroundStyle(Theme.ember)
+                Text("Timeline beat \(entry.beat)").foregroundStyle(Theme.ember)
                 Text(entry.detail)
                 Text("* Announced damage is before your Guard, Evade and reactive powers. Defeated enemies lose their remaining actions. Delayed opening moves return next round.")
                     .foregroundStyle(Theme.parchmentDim)
@@ -154,46 +155,91 @@ struct BattleDecisionPanel: View {
         }
     }
 
-    /// One numbered chip per queued action, not instructions for every tap.
-    private var preview: some View {
+    /// The latest action is selected automatically. Tapping any blue timeline
+    /// chip selects it; these two controls then move it across enemy gaps.
+    private var timingEditor: some View {
         HStack(spacing: 4) {
-            if engine.displayedPlan.isEmpty {
-                Text(engine.selectingReroll ? "REROLL" : "YOUR TURN")
+            if let step = engine.timingAction {
+                Button { inspectedAction = step } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(step.title)
+                            .font(.system(size: 10, weight: .black))
+                        Text("BEAT \(engine.timeline.first(where: { $0.isPlayer && $0.sourceID == step.id })?.beat ?? 0) · \(engine.planDetail(for: step))")
+                            .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(Theme.gold)
+                    }
+                    .foregroundStyle(Theme.parchment)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 6)
+                    .frame(height: showsControls ? 40 : 30)
+                    .background(Theme.frost.opacity(0.08), in: .rect(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+                timingButton(offset: -1, symbol: "chevron.left", label: "Earlier")
+                timingButton(offset: 1, symbol: "chevron.right", label: "Later")
+            } else {
+                Text("BUILD YOUR TIMELINE")
                     .font(.system(size: 11, weight: .black))
                     .foregroundStyle(Theme.frost)
                 Spacer(minLength: 0)
                 Text("\(engine.resolveRemaining) RESOLVE")
                     .font(.system(size: 10, weight: .bold).monospacedDigit())
                     .foregroundStyle(Theme.gold)
-            } else {
-                ForEach(Array(engine.displayedPlan.enumerated()), id: \.element.id) { index, step in
-                    Button { inspectedAction = step } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 3) {
-                                Text("\(index + 1).").foregroundStyle(Theme.frost)
-                                Text(step.title)
-                            }
-                            .font(.system(size: 10, weight: .black))
-                            Text("\(step.diceCount)× · " + engine.planDetail(for: step)
-                                .replacingOccurrences(of: "damage before defenses", with: "dmg")
-                                .replacingOccurrences(of: "Shield", with: "Guard"))
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Theme.gold)
-                        }
-                        .foregroundStyle(Theme.parchment)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 5)
-                        .frame(height: 30)
-                        .background(Theme.frost.opacity(0.08), in: .rect(cornerRadius: 6))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Queued action \(index + 1). \(step.title). \(step.diceCount) dice. \(engine.planDetail(for: step))")
-                    .accessibilityIdentifier("battle.queuedAction.\(index + 1)")
-                }
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func timingButton(offset: Int, symbol: String, label: String) -> some View {
+        Button { engine.moveTimingAction(by: offset) } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(engine.canMoveTimingAction(by: offset) ? Theme.frost : Theme.parchmentDim)
+                .frame(width: 34, height: showsControls ? 40 : 30)
+                .background(Theme.frost.opacity(0.08), in: .rect(cornerRadius: 7))
+        }
+        .buttonStyle(PressableButtonStyle())
+        .disabled(!engine.canMoveTimingAction(by: offset))
+        .accessibilityLabel("Move \(engine.timingAction?.title ?? "action") \(label.lowercased())")
+    }
+
+    @ViewBuilder
+    private func timelineChip(_ entry: TimelineEntry) -> some View {
+        if entry.isPlayer { playerChip(entry) } else { enemyChip(entry) }
+    }
+
+    private func playerChip(_ entry: TimelineEntry) -> some View {
+        let selected = engine.timingAction?.id == entry.sourceID
+        return Button {
+            engine.selectTimingAction(entry.sourceID)
+        } label: {
+            HStack(spacing: 5) {
+                Text("\(entry.beat)")
+                    .font(.system(size: 12, weight: .black).monospacedDigit())
+                    .foregroundStyle(Theme.bg)
+                    .frame(width: 20, height: 20)
+                    .background(Theme.frost, in: .circle)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("YOU · \(entry.title)").font(.system(size: 9, weight: .bold))
+                    Text(entry.detail
+                        .replacingOccurrences(of: "damage before defenses", with: "dmg")
+                        .replacingOccurrences(of: "Shield", with: "Guard"))
+                        .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Theme.gold)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+            }
+            .foregroundStyle(Theme.parchment)
+            .padding(.horizontal, 5)
+            .frame(height: 28)
+            .background(Theme.frost.opacity(selected ? 0.18 : 0.08), in: .rect(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.frost.opacity(selected ? 0.9 : 0.3), lineWidth: selected ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Your action, beat \(entry.beat). \(entry.title). \(entry.detail). Select to move earlier or later")
+        .accessibilityIdentifier("battle.playerAction.\(entry.beat)")
     }
 
     private func enemyChip(_ entry: TimelineEntry) -> some View {

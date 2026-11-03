@@ -3,7 +3,9 @@ import Foundation
 /// Shared, deterministic rules used by planning, resolution and tests.
 enum BattleRules {
     static let handSize = 6
-    static let baseRerolls = 1
+    /// Two deliberate redraws let a player lock one action, refresh the rest
+    /// of the hand, and still make one meaningful follow-up adjustment.
+    static let baseRerolls = 2
     static let maximumRerolls = 2
     static let resolvePerTurn = 3
     static let focusPercent = 50

@@ -152,7 +152,7 @@ struct InfoSheetView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle("YOUR DICE BAG")
 
-            Text("Your run starts with ten class-specific dice. Draw five each turn; played and unplayed dice go to the discard pile at End Turn, and the discard reshuffles only when the draw bag is empty.")
+            Text("Your run starts with ten class-specific dice. Draw \(BattleRules.handSize) each turn; played and unplayed dice go to the discard pile after Go, and the discard reshuffles only when the draw bag is empty.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -273,7 +273,7 @@ struct InfoSheetView: View {
                     .font(.system(size: 13, weight: .black).monospacedDigit())
                     .foregroundStyle(Theme.sunGold)
             }
-            Text("Adjacent matching dice form one action. Queue your actions, then press End Turn to play them in order. Discovered chains are written here for good.")
+            Text("Adjacent matching dice form one action. Queue actions, place them around enemy moves, then press Go. Discovered chains are written here for good.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.parchmentDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -696,10 +696,10 @@ struct InfoSheetView: View {
                 lines: [
                     "Start with ten class-specific dice. Draw \(BattleRules.handSize) from the bag each turn.",
                     "You have 3 Resolve each turn. A 1–2 die action costs 1, a 3–4 die action costs 2, and a 5–6 die action costs 3.",
-                    "Queue actions from your hand in tap order. Press End Turn to play the entire plan before enemies act.",
-                    "You begin each turn with one selective reroll. Tap Reroll, then choose an unplayed die.",
-                    "Enemies do not interrupt your actions. They execute their telegraphed intent only when you press End Turn.",
-                    "At End Turn, every remaining die in hand discards. Draw \(BattleRules.handSize) next turn; when the draw bag is empty, shuffle the discard pile back in."
+                    "Queue actions from your hand, then place each blue action before, between or after announced enemy moves.",
+                    "You begin each turn with two Roll Unused pulls. Queued dice stay locked while every unqueued die rerolls.",
+                    "The numbered timeline is exact. Press Go once to resolve player and enemy actions in the order shown.",
+                    "After Go, every remaining die in hand discards. Draw \(BattleRules.handSize) next turn; when the draw bag is empty, shuffle the discard pile back in."
                 ]
             )
             ruleCard(
@@ -709,7 +709,7 @@ struct InfoSheetView: View {
                     "Evade grants 50% reduction charges when it resolves. Choose an announced hit or Next strike. Boons can raise reduction to 75%.",
                     "Each charge reduces one hit, never an entire multi-hit move. Weaken, defensive wards and Evade multiply before Guard absorbs damage. Unused charges expire at round end.",
                     "Focus and Channel prime the next separate Attack, through the end of next round. The strongest prime wins.",
-                    "Enemy intent is fixed for the turn. Your actions resolve first; enemies act only after End Turn."
+                    "Enemy intent is fixed for the turn. Move separate actions around those enemy beats before you press Go."
                 ]
             )
 
